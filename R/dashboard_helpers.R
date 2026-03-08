@@ -2,13 +2,13 @@
 # -------------------
 # Helper functions for dashboard HTML generation.
 
-build_archive_links_html <- function(archive_files) {
-  if (length(archive_files) == 0) {
+build_archive_links_html <- function(archive_files_public) {
+  if (length(archive_files_public) == 0) {
     return("<p>No archived CSV files yet.</p>")
   }
   
   links <- paste0(
-    "<li><a href='../", archive_files, "'>", basename(archive_files), "</a></li>",
+    "<li><a href='", archive_files_public, "'>", basename(archive_files_public), "</a></li>",
     collapse = "\n"
   )
   
@@ -32,8 +32,8 @@ build_dashboard_index_html <- function() {
   )
 }
 
-build_saladjcurator_html <- function(run_meta, archive_files) {
-  archive_links_html <- build_archive_links_html(archive_files)
+build_saladjcurator_html <- function(run_meta, archive_files_public) {
+  archive_links_html <- build_archive_links_html(archive_files_public)
   
   paste0(
     "<html>
@@ -47,7 +47,7 @@ build_saladjcurator_html <- function(run_meta, archive_files) {
 
   <p><strong>Script last run:</strong> ", run_meta$run_time_display[1], "</p>
 
-  <p><strong>Latest CSV:</strong> <a href='../", run_meta$latest_archive_csv[1], "'>", run_meta$latest_archive_filename[1], "</a></p>
+  <p><strong>Latest CSV:</strong> <a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a> (script generated: ", run_meta$run_time_display[1], ")</p>
 
   <h2>SalAdjCurator Archive</h2>
   ", archive_links_html, "

@@ -15,15 +15,19 @@ source("R/saladj_helpers.R")
 
 current_season <- get_current_season()
 
-run_time_toronto <- as.POSIXct(format(Sys.time(), tz = "America/Toronto", usetz = TRUE), tz = "America/Toronto")
+run_time_toronto <- as.POSIXct(
+  format(Sys.time(), tz = "America/Toronto", usetz = TRUE),
+  tz = "America/Toronto"
+)
+
 run_date_file <- format(run_time_toronto, "%Y_%m_%d")
 run_time_display <- format(run_time_toronto, "%m/%d/%Y %I:%M %p %Z")
 
-# make display friendlier:
-# 03/08/2026 06:17 AM EST -> 3/8/2026 6:17 a.m. EST
+# Make display friendlier:
+# 03/08/2026 06:17 AM EDT -> 3/8/2026 6:17 a.m. EDT
 run_time_display <- gsub("^0", "", run_time_display)
 run_time_display <- gsub("/0", "/", run_time_display)
-run_time_display <- gsub("^([0-9]+)/([0-9]+)/([0-9]{4}) 0", "\\1/\\2/\\3 ", run_time_display)
+run_time_display <- gsub(" 0", " ", run_time_display)
 run_time_display <- gsub(" AM ", " a.m. ", run_time_display)
 run_time_display <- gsub(" PM ", " p.m. ", run_time_display)
 
@@ -71,8 +75,8 @@ readr::write_csv(saladj_summary, archive_file)
 run_meta <- tibble::tibble(
   season = current_season,
   run_time_display = run_time_display,
-  latest_csv = "data/saladj_summary.csv",
-  latest_archive_csv = archive_file,
+  latest_csv_data_path = "data/saladj_summary.csv",
+  latest_archive_data_path = archive_file,
   latest_archive_filename = archive_filename
 )
 
