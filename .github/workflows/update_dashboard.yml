@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-dashboard
+  cancel-in-progress: true
+
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
@@ -54,6 +58,7 @@ jobs:
           packages: |
             any::tidyverse
             any::readr
+          cache-version: 1
 
       - name: Verify packages
         if: steps.localtime.outputs.should_run == 'true'
