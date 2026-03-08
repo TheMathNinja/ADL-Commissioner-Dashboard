@@ -76,9 +76,26 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-lib-v1-${{ hashFiles('.github/workflows/update_dashboard.yml') }}
+          key: ${{ runner.os }}-r-lib-v2-${{ hashFiles('.github/workflows/update_dashboard.yml') }}
           restore-keys: |
-            ${{ runner.os }}-r-lib-v1-
+            ${{ runner.os }}-r-lib-v2-
+
+      - name: Install Ubuntu system libraries
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libssl-dev \
+            libtiff5-dev \
+            libxml2-dev \
+            pkg-config
 
       - name: Set up R
         if: steps.localtime.outputs.should_run == 'true'
