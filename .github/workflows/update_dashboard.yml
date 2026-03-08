@@ -24,8 +24,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      CURRENT_SEASON: "2026"
       RAW_CACHE_DIR: cache/raw_league_data
       RAW_CACHE_VERSION: v1
+      R_LIBS_USER: ${{ github.workspace }}/_lib
 
     steps:
       - name: Check out repository
@@ -56,6 +58,7 @@ jobs:
         if: steps.localtime.outputs.should_run == 'true'
         run: |
           mkdir -p "${RAW_CACHE_DIR}"
+          mkdir -p "${R_LIBS_USER}"
           mkdir -p data
           mkdir -p docs
 
@@ -68,34 +71,58 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-
 
+      - name: Restore R package library cache
+        if: steps.localtime.outputs.should_run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-r-lib-v1-${{ hashFiles('.github/workflows/update_dashboard.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-r-lib-v1-
+
       - name: Set up R
         if: steps.localtime.outputs.should_run == 'true'
         uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
 
-      - name: Install R packages
-        if: steps.localtime.outputs.should_run == 'true'
-        run: |
-          Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
-
-      - name: Verify packages
+      - name: Install and verify R packages
         if: steps.localtime.outputs.should_run == 'true'
         shell: Rscript {0}
         run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+
+          if (!requireNamespace("tidyverse", quietly = TRUE)) {
+            install.packages(
+              "tidyverse",
+              repos = "https://cloud.r-project.org",
+              dependencies = TRUE,
+              Ncpus = max(1, parallel::detectCores() - 1)
+            )
+          }
+
+          if (!requireNamespace("tidyverse", quietly = TRUE)) {
+            stop("tidyverse still not installed after install.packages()")
+          }
+
           library(tidyverse)
           sessionInfo()
 
       - name: Run SalAdjCurator script
         if: steps.localtime.outputs.should_run == 'true'
         env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
         run: Rscript scripts/run_saladjcurator.R
 
       - name: Build dashboard site
         if: steps.localtime.outputs.should_run == 'true'
         env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
         run: Rscript scripts/build_dashboard.R
 
       - name: Commit generated files

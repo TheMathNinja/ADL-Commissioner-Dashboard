@@ -5,8 +5,15 @@
 
 library(tidyverse)
 
+source("R/config_helpers.R")
 source("R/cache_helpers.R")
 source("R/saladj_helpers.R")
+
+# -------------------
+# Config
+# -------------------
+
+current_season <- get_current_season()
 
 # -------------------
 # Directories
@@ -15,15 +22,15 @@ source("R/saladj_helpers.R")
 raw_cache_dir <- get_raw_cache_dir()
 dir.create("data", recursive = TRUE, showWarnings = FALSE)
 
+message("Running SalAdjCurator for season: ", current_season)
 message("Using raw cache dir: ", raw_cache_dir)
 
 # -------------------
 # Example cached raw object
 # -------------------
-# For now this is still placeholder data, but it is now using the real cache system.
 
 saladj_summary <- read_or_build_rds(
-  filename = "placeholder_saladj_summary.rds",
+  filename = paste0("saladj_summary_", current_season, ".rds"),
   builder_fun = function() {
     get_placeholder_saladj_summary()
   }

@@ -4,7 +4,10 @@
 
 library(tidyverse)
 
+source("R/config_helpers.R")
 source("R/dashboard_helpers.R")
+
+current_season <- get_current_season()
 
 # Read the SalAdjCurator output
 saladj_summary <- readr::read_csv("data/saladj_summary.csv", show_col_types = FALSE)
@@ -17,4 +20,4 @@ html <- build_dashboard_html(saladj_summary)
 
 writeLines(html, "docs/index.html")
 
-print("Dashboard build complete")
+message("Dashboard build complete for season: ", current_season)
