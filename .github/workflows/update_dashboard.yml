@@ -64,7 +64,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.RAW_CACHE_DIR }}
-          key: ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R', 'DESCRIPTION') }}
+          key: ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R') }}
           restore-keys: |
             ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-
 
@@ -74,13 +74,10 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Install R dependencies
+      - name: Install R packages
         if: steps.localtime.outputs.should_run == 'true'
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            any::tidyverse
-          cache-version: 1
+        run: |
+          Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
 
       - name: Verify packages
         if: steps.localtime.outputs.should_run == 'true'
