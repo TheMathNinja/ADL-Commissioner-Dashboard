@@ -5,32 +5,29 @@
 
 library(tidyverse)
 
+source("R/cache_helpers.R")
 source("R/saladj_helpers.R")
 
 # -------------------
 # Directories
 # -------------------
 
-# Raw cache directory:
-# - On GitHub Actions, this comes from the workflow env var
-# - Locally, it defaults to cache/raw_league_data
-raw_cache_dir <- Sys.getenv("RAW_CACHE_DIR", unset = "cache/raw_league_data")
-
-dir.create(raw_cache_dir, recursive = TRUE, showWarnings = FALSE)
+raw_cache_dir <- get_raw_cache_dir()
 dir.create("data", recursive = TRUE, showWarnings = FALSE)
 
 message("Using raw cache dir: ", raw_cache_dir)
 
 # -------------------
-# Placeholder output
+# Example cached raw object
 # -------------------
+# For now this is still placeholder data, but it is now using the real cache system.
 
-# For now, use placeholder data from helper function
-saladj_summary <- get_placeholder_saladj_summary()
-
-# Optional example cached file so the cache folder is actually used
-placeholder_cache_file <- file.path(raw_cache_dir, "placeholder_saladj_summary.rds")
-saveRDS(saladj_summary, placeholder_cache_file)
+saladj_summary <- read_or_build_rds(
+  filename = "placeholder_saladj_summary.rds",
+  builder_fun = function() {
+    get_placeholder_saladj_summary()
+  }
+)
 
 # -------------------
 # Save dashboard output
