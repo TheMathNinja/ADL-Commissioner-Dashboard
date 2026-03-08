@@ -23,6 +23,10 @@ jobs:
   build-dashboard:
     runs-on: ubuntu-latest
 
+    env:
+      RAW_CACHE_DIR: cache/raw_league_data
+      RAW_CACHE_VERSION: v1
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -33,16 +37,36 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "Push/manual run -> proceeding."
             exit 0
           fi
 
           LOCAL_HOUR=$(TZ=America/Toronto date +%H)
+          echo "Toronto local hour is $LOCAL_HOUR"
 
           if [ "$LOCAL_HOUR" = "05" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "It is 5 a.m. in Toronto -> proceeding."
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "Not 5 a.m. in Toronto -> skipping."
           fi
+
+      - name: Create cache directories
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          mkdir -p "${RAW_CACHE_DIR}"
+          mkdir -p data
+          mkdir -p docs
+
+      - name: Restore raw league data cache
+        if: steps.localtime.outputs.should_run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RAW_CACHE_DIR }}
+          key: ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R', 'DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-raw-league-data-${{ env.RAW_CACHE_VERSION }}-
 
       - name: Set up R
         if: steps.localtime.outputs.should_run == 'true'
@@ -54,6 +78,8 @@ jobs:
         if: steps.localtime.outputs.should_run == 'true'
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          extra-packages: |
+            any::tidyverse
           cache-version: 1
 
       - name: Verify packages
@@ -65,10 +91,14 @@ jobs:
 
       - name: Run SalAdjCurator script
         if: steps.localtime.outputs.should_run == 'true'
+        env:
+          RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
         run: Rscript scripts/run_saladjcurator.R
 
       - name: Build dashboard site
         if: steps.localtime.outputs.should_run == 'true'
+        env:
+          RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
         run: Rscript scripts/build_dashboard.R
 
       - name: Commit generated files
