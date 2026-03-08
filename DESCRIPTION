@@ -1,0 +1,19 @@
+Package: ADLCommissionerDashboard
+Title: ADL Commissioner Dashboard Automation
+Version: 0.0.1
+Authors@R: 
+    person("Mike", "Filicicchia", email = "you@example.com", role = c("aut", "cre"))
+Description: GitHub Actions automation and dashboard build files for the ADL Commissioner Dashboard and SalAdjCurator.
+License: What license is it under?
+Encoding: UTF-8
+Imports:
+    tidyversePackage: ADLCommissionerDashboard
+Title: ADL Commissioner Dashboard Automation
+Version: 0.0.1
+Authors@R: 
+    person("Mike", "Filicicchia", email = "you@example.com", role = c("aut", "cre"))
+Description: GitHub Actions automation and dashboard build files for the ADL Commissioner Dashboard and SalAdjCurator.
+License: What license is it under?
+Encoding: UTF-8
+Imports:
+    tidyverse
