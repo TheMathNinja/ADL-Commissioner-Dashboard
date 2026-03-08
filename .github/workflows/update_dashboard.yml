@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'data/**'
   schedule:
     - cron: "17 9 * * *"
     - cron: "17 10 * * *"
@@ -30,19 +33,15 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Push/manual run -> proceeding."
             exit 0
           fi
 
           LOCAL_HOUR=$(TZ=America/Toronto date +%H)
-          echo "Toronto local hour is $LOCAL_HOUR"
 
           if [ "$LOCAL_HOUR" = "05" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "It is 5 a.m. in Toronto -> proceeding."
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Not 5 a.m. in Toronto -> skipping."
           fi
 
       - name: Set up R
@@ -51,7 +50,7 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Install R dependencies from DESCRIPTION
+      - name: Install R dependencies
         if: steps.localtime.outputs.should_run == 'true'
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
@@ -62,7 +61,6 @@ jobs:
         shell: Rscript {0}
         run: |
           library(tidyverse)
-          library(readr)
           sessionInfo()
 
       - name: Run SalAdjCurator script
