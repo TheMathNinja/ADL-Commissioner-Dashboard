@@ -1,2 +1,2 @@
-season,run_time_display,latest_csv,latest_archive_csv,latest_archive_filename
-2026,3/8/2026 6:55 p.m. EDT,data/saladj_summary.csv,data/archive/2026_03_08_ADLSalAdjSummary.csv,2026_03_08_ADLSalAdjSummary.csv
+season,run_time_display,latest_csv_data_path,latest_archive_data_path,latest_archive_filename
+2026,3/8/2026 7:21 p.m. EDT,data/saladj_summary.csv,data/archive/2026_03_08_ADLSalAdjSummary.csv,2026_03_08_ADLSalAdjSummary.csv
