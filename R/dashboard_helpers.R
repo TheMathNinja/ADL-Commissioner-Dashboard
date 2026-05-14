@@ -116,8 +116,9 @@ build_daily_salary_snapshots_html <- function(snapshot_files_public, latest_snap
 
   <h2>Notes</h2>
   <p>
-  These CSVs are roster salary snapshots captured by the SalAdjCurator run.
-  They preserve player salary, years, contract info, franchise, and conference at the time of capture.
+  These CSVs are roster salary snapshots captured by the SalAdjCurator run and published using Eastern time.
+  The archive shows the latest capture for each Eastern calendar day.
+  They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
   They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
   </p>
 </body>

@@ -177,6 +177,16 @@ format_pending_until <- function(x) {
   )
 }
 
+format_roster_status <- function(x) {
+  dplyr::case_when(
+    is.na(x) | !nzchar(as.character(x)) ~ "Active",
+    as.character(x) == "ROSTER" ~ "Active",
+    as.character(x) == "TAXI_SQUAD" ~ "Taxi",
+    as.character(x) %in% c("INJURED_RESERVE", "IR") ~ "Injured reserve",
+    TRUE ~ stringr::str_to_title(stringr::str_replace_all(as.character(x), "_", " "))
+  )
+}
+
 next_waiver_run_at <- function(x) {
   x_local <- lubridate::with_tz(x, "America/Toronto")
   run_at <- as.POSIXct(
@@ -541,17 +551,31 @@ rosters_now <- ffscrapr::ff_rosters(adl_conn)
 salary_col <- intersect(names(rosters_now), c("salary", "player_salary", "contract_salary"))
 years_col  <- intersect(names(rosters_now), c("contract_years", "years", "contractYears"))
 info_col   <- intersect(names(rosters_now), c("contractInfo", "contract_info", "contractinfo"))
+status_col <- intersect(names(rosters_now), c("roster_status", "status", "player_status"))
 
 if (length(salary_col) == 0) rosters_now$salary <- NA_real_ else rosters_now <- rosters_now %>% dplyr::rename(salary = dplyr::all_of(salary_col[1]))
 if (length(years_col) == 0)  rosters_now$contract_years <- NA_real_ else rosters_now <- rosters_now %>% dplyr::rename(contract_years = dplyr::all_of(years_col[1]))
 if (length(info_col) == 0)   rosters_now$contractInfo <- NA_character_ else rosters_now <- rosters_now %>% dplyr::rename(contractInfo = dplyr::all_of(info_col[1]))
+if (length(status_col) == 0) rosters_now$roster_status <- NA_character_ else rosters_now <- rosters_now %>% dplyr::rename(roster_status = dplyr::all_of(status_col[1]))
 
 if (!"franchise_id" %in% names(rosters_now)) rosters_now$franchise_id <- NA_character_
+if (!"franchise_name" %in% names(rosters_now)) rosters_now$franchise_name <- NA_character_
 if (!"player_id" %in% names(rosters_now)) rosters_now$player_id <- NA_character_
 
 rosters_now <- rosters_now %>%
   dplyr::mutate(player_id = as.character(.data$player_id)) %>%
-  add_conf_fields("franchise_id")
+  add_conf_fields("franchise_id") %>%
+  dplyr::left_join(
+    franchises %>%
+      dplyr::transmute(
+        franchise_id = as.character(.data$franchise_id),
+        franchise_name_lookup = .data$franchise_name
+      ),
+    by = "franchise_id"
+  ) %>%
+  dplyr::mutate(
+    franchise_name = dplyr::coalesce(.data$franchise_name, .data$franchise_name_lookup)
+  )
 
 snapshot_time <- lubridate::with_tz(Sys.time(), "UTC")
 missing_snapshot_review_start <- snapshot_time - lubridate::days(missing_snapshot_review_days)
@@ -562,9 +586,11 @@ current_roster_snapshot <- rosters_now %>%
     season = current_season,
     snapshot_time = snapshot_time,
     franchise_id = as.character(.data$franchise_id),
+    franchise_name = as.character(.data$franchise_name),
     CONF = .data$CONF,
     player_id = as.character(.data$player_id),
     player_name = as.character(.data$player_name),
+    roster_status = format_roster_status(.data$roster_status),
     roster_salary = .data$salary,
     roster_years = .data$contract_years,
     roster_contractInfo = as.character(.data$contractInfo)
