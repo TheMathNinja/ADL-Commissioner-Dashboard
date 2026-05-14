@@ -253,6 +253,31 @@ write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapsho
   snapshot_file
 }
 
+
+build_manual_drop_salary_overrides <- function(current_season) {
+  overrides <- tibble::tribble(
+    ~season, ~franchise_id, ~player_id, ~drop_timestamp_local, ~salary_snap, ~years_snap, ~info_snap, ~override_note,
+    2026L, "0029", "15351", "2026-05-13 07:24:11", 5.43, 1, "2025 B/R", "MANUAL PRE-DROP SALARY OVERRIDE"
+  )
+
+  overrides %>%
+    dplyr::filter(.data$season == current_season) %>%
+    dplyr::mutate(
+      franchise_id = as.character(.data$franchise_id),
+      player_id = as.character(.data$player_id),
+      drop_timestamp = as.POSIXct(.data$drop_timestamp_local, tz = "America/Toronto") %>%
+        lubridate::with_tz("UTC")
+    ) %>%
+    dplyr::select(
+      "franchise_id",
+      "player_id",
+      "drop_timestamp",
+      override_salary_snap = "salary_snap",
+      override_years_snap = "years_snap",
+      override_info_snap = "info_snap",
+      "override_note"
+    )
+}
 normalize_and_dedupe_cache <- function(df) {
   if (nrow(df) == 0) return(df)
   
@@ -635,9 +660,20 @@ current_same_conf_player <- current_roster_snapshot %>%
     current_player_abbrev = .data$current_player_abbrev
   )
 
+manual_drop_salary_overrides <- build_manual_drop_salary_overrides(current_season)
+
 tx_enriched <- tx_enriched %>%
   dplyr::left_join(historical_roster_matches, by = "row_key") %>%
-  dplyr::left_join(current_same_conf_player, by = c("player_id", "CONF"))
+  dplyr::left_join(current_same_conf_player, by = c("player_id", "CONF")) %>%
+  dplyr::left_join(
+    manual_drop_salary_overrides,
+    by = c("franchise_id", "player_id", "DATE_raw" = "drop_timestamp")
+  ) %>%
+  dplyr::mutate(
+    salary_snap = dplyr::coalesce(.data$salary_snap, .data$override_salary_snap),
+    years_snap = dplyr::coalesce(.data$years_snap, .data$override_years_snap),
+    info_snap = dplyr::coalesce(.data$info_snap, .data$override_info_snap)
+  )
 
 # ----------------------------
 # Output columns for penalties
@@ -787,6 +823,12 @@ sd_rows <- tx_enriched %>%
     FG = dplyr::if_else(!.data$missing_salary_snapshot & is_fg(.data$info_snap), "x", ""),
     `1.XX+` = dplyr::if_else(!.data$missing_salary_snapshot & has_plus(.data$info_snap), "fill", ""),
     NOTES = dplyr::case_when(
+      !is.na(.data$override_note) & .data$waiver_pending ~ paste0(
+        .data$override_note,
+        "; PENDING WAIVER UNTIL ",
+        format_pending_until(.data$waiver_matures_at)
+      ),
+      !is.na(.data$override_note) ~ .data$override_note,
       .data$waiver_claimed ~ paste0(
         "WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY ",
         dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "AFC/NFC TEAM")
