@@ -69,6 +69,13 @@ missing_snapshot_review_days <- suppressWarnings(as.integer(
 if (length(missing_snapshot_review_days) != 1 || is.na(missing_snapshot_review_days) || missing_snapshot_review_days < 1) {
   missing_snapshot_review_days <- 3L
 }
+
+waiver_window_hours <- suppressWarnings(as.numeric(
+  get_env_or_default("SALADJ_WAIVER_WINDOW_HOURS", "36")
+))
+if (length(waiver_window_hours) != 1 || is.na(waiver_window_hours) || waiver_window_hours <= 0) {
+  waiver_window_hours <- 36
+}
 # ----------------------------
 # Directory Setup
 # ----------------------------
@@ -161,6 +168,14 @@ format_mdy_hms <- function(x) {
     lt$mday, "/",
     lt$year + 1900, " ",
     sprintf("%02d:%02d:%02d", lt$hour, lt$min, lt$sec)
+  )
+}
+
+format_pending_until <- function(x) {
+  ifelse(
+    is.na(x),
+    "",
+    format(lubridate::with_tz(x, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
   )
 }
 
@@ -579,7 +594,7 @@ historical_roster_matches <- tx_enriched %>%
     salary_snapshot_time = .data$snapshot_time
   )
 
-current_player_fallback <- current_roster_snapshot %>%
+current_same_conf_player <- current_roster_snapshot %>%
   dplyr::left_join(
     franchises %>%
       dplyr::transmute(
@@ -588,7 +603,7 @@ current_player_fallback <- current_roster_snapshot %>%
       ),
     by = c("franchise_id" = "current_player_franchise_id")
   ) %>%
-  dplyr::group_by(.data$player_id) %>%
+  dplyr::group_by(.data$player_id, .data$CONF) %>%
   dplyr::arrange(
     dplyr::desc(.data$roster_salary),
     dplyr::desc(.data$roster_years),
@@ -598,6 +613,7 @@ current_player_fallback <- current_roster_snapshot %>%
   dplyr::ungroup() %>%
   dplyr::transmute(
     player_id = .data$player_id,
+    CONF = .data$CONF,
     current_player_salary = .data$roster_salary,
     current_player_years = .data$roster_years,
     current_player_contractInfo = .data$roster_contractInfo,
@@ -607,7 +623,7 @@ current_player_fallback <- current_roster_snapshot %>%
 
 tx_enriched <- tx_enriched %>%
   dplyr::left_join(historical_roster_matches, by = "row_key") %>%
-  dplyr::left_join(current_player_fallback, by = "player_id")
+  dplyr::left_join(current_same_conf_player, by = c("player_id", "CONF"))
 
 # ----------------------------
 # Output columns for penalties
@@ -726,15 +742,25 @@ sd_rows <- tx_enriched %>%
   dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
   dplyr::mutate(
     missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
-    current_player_qualifies = .data$missing_salary_snapshot &
-      .data$DATE_raw >= missing_snapshot_review_start & (
-        dplyr::coalesce(.data$current_player_salary, -Inf) >= sd_min |
-          is_fg(.data$current_player_contractInfo)
-      ),
+    waiver_matures_at = .data$DATE_raw + lubridate::hours(waiver_window_hours),
+    waiver_pending = snapshot_time < .data$waiver_matures_at,
+    current_same_conf_elsewhere = !is.na(.data$current_player_franchise_id) &
+      .data$current_player_franchise_id != .data$franchise_id,
+    likely_waiver_claim = !.data$missing_salary_snapshot &
+      .data$current_same_conf_elsewhere &
+      !is.na(.data$current_player_salary) &
+      !is.na(.data$salary_snap) &
+      abs(.data$current_player_salary - .data$salary_snap) < 0.001 &
+      dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, ""),
+    recent_missing_snapshot_review = .data$missing_salary_snapshot &
+      .data$DATE_raw >= missing_snapshot_review_start,
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
-    qualifies = (.data$current_player_qualifies) |
-      (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
-      is_fg(.data$info_snap)
+    salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
+      is_fg(.data$info_snap),
+    qualifies = !.data$likely_waiver_claim & (
+      .data$salary_or_contract_qualifies |
+        .data$recent_missing_snapshot_review
+    )
   ) %>%
   dplyr::filter(.data$qualifies) %>%
   dplyr::mutate(
@@ -748,13 +774,21 @@ sd_rows <- tx_enriched %>%
     FG = dplyr::if_else(!.data$missing_salary_snapshot & is_fg(.data$info_snap), "x", ""),
     `1.XX+` = dplyr::if_else(!.data$missing_salary_snapshot & has_plus(.data$info_snap), "fill", ""),
     NOTES = dplyr::case_when(
-      .data$current_player_qualifies ~ paste0(
-        "CHECK SALARY - NO PRIOR FRANCHISE SNAPSHOT; CURRENT ",
-        dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "TEAM"),
-        " ",
-        dplyr::coalesce(as.character(.data$current_player_salary), "?"),
-        " ",
-        dplyr::coalesce(.data$current_player_contractInfo, "")
+      .data$waiver_pending & .data$missing_salary_snapshot ~ paste0(
+        "PENDING WAIVER UNTIL ",
+        format_pending_until(.data$waiver_matures_at),
+        "; CHECK SALARY - NO PRIOR ",
+        .data$CONF,
+        " FRANCHISE SNAPSHOT"
+      ),
+      .data$waiver_pending ~ paste0(
+        "PENDING WAIVER UNTIL ",
+        format_pending_until(.data$waiver_matures_at)
+      ),
+      .data$recent_missing_snapshot_review ~ paste0(
+        "CHECK SALARY - NO PRIOR ",
+        .data$CONF,
+        " FRANCHISE SNAPSHOT"
       ),
       .data$RVSD_flag ~ "NG PPE",
       .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
