@@ -241,6 +241,37 @@ roster_snapshot_values <- function(df) {
     dplyr::arrange(.data$franchise_id, .data$player_id)
 }
 
+record_roster_snapshot_check <- function(snapshot_dir, season, snapshot_time, snapshot_changed, snapshot_file) {
+  check_file <- file.path(snapshot_dir, paste0("saladj_roster_snapshot_checks_", season, ".csv"))
+  check_time_et <- lubridate::with_tz(snapshot_time, "America/Toronto")
+  check_row <- tibble::tibble(
+    season = season,
+    check_date_et = as.character(as.Date(check_time_et, tz = "America/Toronto")),
+    last_checked_at_et = format(check_time_et, "%m/%d/%Y %I:%M %p %Z"),
+    snapshot_changed = snapshot_changed,
+    snapshot_file = basename(snapshot_file)
+  )
+
+  checks <- if (file.exists(check_file)) {
+    readr::read_csv(
+      check_file,
+      col_types = readr::cols(.default = readr::col_character()),
+      show_col_types = FALSE
+    ) %>%
+      dplyr::mutate(snapshot_changed = as.logical(.data$snapshot_changed))
+  } else {
+    tibble::tibble()
+  }
+
+  checks <- dplyr::bind_rows(checks, check_row) %>%
+    dplyr::arrange(.data$check_date_et, .data$last_checked_at_et) %>%
+    dplyr::group_by(.data$check_date_et) %>%
+    dplyr::slice_tail(n = 1) %>%
+    dplyr::ungroup()
+
+  readr::write_csv(checks, check_file, na = "")
+}
+
 write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapshot_time) {
   dir.create(snapshot_dir, recursive = TRUE, showWarnings = FALSE)
   snapshot_stamp <- format(lubridate::with_tz(snapshot_time, "UTC"), "%Y%m%d_%H%M%S")
@@ -253,12 +284,14 @@ write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapsho
   if (file.exists(latest_file)) {
     latest_snapshot <- readr::read_csv(latest_file, show_col_types = FALSE)
     if (identical(roster_snapshot_values(roster_snapshot), roster_snapshot_values(latest_snapshot))) {
+      record_roster_snapshot_check(snapshot_dir, season, snapshot_time, FALSE, latest_file)
       return(latest_file)
     }
   }
   
   readr::write_csv(roster_snapshot, snapshot_file, na = "")
   readr::write_csv(roster_snapshot, latest_file, na = "")
+  record_roster_snapshot_check(snapshot_dir, season, snapshot_time, TRUE, snapshot_file)
   
   snapshot_file
 }

@@ -48,7 +48,7 @@ build_snapshot_index <- function(snapshot_files) {
       snapshot_file = snapshot_file,
       snapshot_time = snapshot_time,
       snapshot_time_et = snapshot_time_et,
-      snapshot_date_et = as.Date(snapshot_time_et),
+      snapshot_date_et = as.Date(snapshot_time_et, tz = "America/Toronto"),
       public_filename = paste0(
         format(snapshot_time_et, "%Y_%m_%d_%H%M%S"),
         "_ADLDailySalarySnapshot.csv"
@@ -228,6 +228,48 @@ latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   NA_character_
 }
 
+snapshot_checks_file <- file.path(
+  "data",
+  "roster_snapshots",
+  paste0("saladj_roster_snapshot_checks_", current_season, ".csv")
+)
+
+latest_snapshot_date_et <- if (nrow(snapshot_index) > 0) {
+  as.Date(snapshot_index$snapshot_date_et[1])
+} else {
+  as.Date(NA)
+}
+
+no_change_check_text <- if (file.exists(snapshot_checks_file) && !is.na(latest_snapshot_date_et)) {
+  snapshot_checks <- readr::read_csv(
+    snapshot_checks_file,
+    col_types = readr::cols(
+      check_date_et = readr::col_date(),
+      snapshot_changed = readr::col_logical(),
+      .default = readr::col_character()
+    ),
+    show_col_types = FALSE
+  )
+
+  snapshot_checks %>%
+    dplyr::filter(
+      .data$check_date_et > latest_snapshot_date_et,
+      !.data$snapshot_changed
+    ) %>%
+    dplyr::arrange(.data$check_date_et) %>%
+    dplyr::transmute(
+      text = paste0(
+        format(.data$check_date_et, "%m/%d/%Y"),
+        ": checked at ",
+        .data$last_checked_at_et,
+        "; no roster/salary changes found"
+      )
+    ) %>%
+    dplyr::pull(.data$text)
+} else {
+  character()
+}
+
 # Publish salary cap accounting snapshots and summaries.
 cap_base_dir <- file.path("data", "cap_accounting", as.character(current_season))
 cap_snapshot_files_data <- list.files(
@@ -319,7 +361,8 @@ writeLines(saladj_html, file.path("docs", "saladjcurator.html"))
 # Build daily salary snapshots page
 daily_salary_snapshots_html <- build_daily_salary_snapshots_html(
   snapshot_files_public = snapshot_files_public,
-  latest_snapshot_public = latest_snapshot_public
+  latest_snapshot_public = latest_snapshot_public,
+  no_change_check_text = no_change_check_text
 )
 
 writeLines(daily_salary_snapshots_html, file.path("docs", "daily-salary-snapshots.html"))

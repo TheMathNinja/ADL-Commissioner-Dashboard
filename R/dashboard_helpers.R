@@ -177,13 +177,27 @@ build_cap_accounting_html <- function(
   )
 }
 
-build_daily_salary_snapshots_html <- function(snapshot_files_public, latest_snapshot_public = NA_character_) {
+build_daily_salary_snapshots_html <- function(
+  snapshot_files_public,
+  latest_snapshot_public = NA_character_,
+  no_change_check_text = character()
+) {
   snapshot_links_html <- build_archive_links_html(snapshot_files_public)
   latest_link_html <- if (!is.na(latest_snapshot_public) && nzchar(latest_snapshot_public)) {
     latest_snapshot_label <- basename(sub("\\?.*$", "", latest_snapshot_public))
     paste0("<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>", latest_snapshot_label, "</a></p>")
   } else {
     "<p><strong>Latest CSV:</strong> Not available yet.</p>"
+  }
+
+  no_change_html <- if (length(no_change_check_text) == 0) {
+    "<p><strong>No-change checks since latest snapshot:</strong> None.</p>"
+  } else {
+    paste0(
+      "<p><strong>No-change checks since latest snapshot:</strong></p>\n<ul>\n",
+      paste0("<li>", no_change_check_text, "</li>", collapse = "\n"),
+      "\n</ul>"
+    )
   }
 
   paste0(
@@ -197,6 +211,8 @@ build_daily_salary_snapshots_html <- function(snapshot_files_public, latest_snap
   <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
 
   ", latest_link_html, "
+
+  ", no_change_html, "
 
   <h2>Snapshot Archive</h2>
   ", snapshot_links_html, "
