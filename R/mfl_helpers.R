@@ -6,7 +6,7 @@ library(ffscrapr)
 
 get_env_or_default <- function(name, default = "") {
   value <- Sys.getenv(name, unset = default)
-  if (is.na(value)) default else value
+  if (is.na(value) || !nzchar(value)) default else value
 }
 
 connect_adl_mfl <- function(season = get_current_season()) {
