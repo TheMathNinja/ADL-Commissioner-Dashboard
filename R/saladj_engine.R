@@ -62,6 +62,13 @@ cutoff_end_local <- as.POSIXct(
   tz = "America/Toronto"
 )
 
+
+missing_snapshot_review_days <- suppressWarnings(as.integer(
+  get_env_or_default("SALADJ_MISSING_SNAPSHOT_REVIEW_DAYS", "3")
+))
+if (length(missing_snapshot_review_days) != 1 || is.na(missing_snapshot_review_days) || missing_snapshot_review_days < 1) {
+  missing_snapshot_review_days <- 3L
+}
 # ----------------------------
 # Directory Setup
 # ----------------------------
@@ -74,6 +81,7 @@ qualified_rds  <- file.path(script_dir, paste0("saladj_qualified_", current_seas
 
 out_csv <- file.path(script_dir, paste0("SalAdjCurator_", current_season, ".csv"))
 out_rds <- file.path(script_dir, paste0("SalAdjCurator_", current_season, ".rds"))
+snapshot_dir <- file.path(script_dir, "roster_snapshots")
 
 # ----------------------------
 # MFL Conn
@@ -154,6 +162,51 @@ format_mdy_hms <- function(x) {
     lt$year + 1900, " ",
     sprintf("%02d:%02d:%02d", lt$hour, lt$min, lt$sec)
   )
+}
+
+load_roster_snapshot_history <- function(snapshot_dir, season) {
+  if (!dir.exists(snapshot_dir)) return(tibble::tibble())
+  
+  snapshot_files <- list.files(
+    snapshot_dir,
+    pattern = paste0("^saladj_roster_snapshot_", season, "_[0-9]{8}_[0-9]{6}\\.csv$"),
+    full.names = TRUE
+  )
+  
+  if (length(snapshot_files) == 0) return(tibble::tibble())
+  
+  dplyr::bind_rows(lapply(snapshot_files, function(snapshot_file) {
+    readr::read_csv(
+      snapshot_file,
+      col_types = readr::cols(
+        season = readr::col_integer(),
+        snapshot_time = readr::col_datetime(),
+        franchise_id = readr::col_character(),
+        CONF = readr::col_character(),
+        player_id = readr::col_character(),
+        roster_salary = readr::col_double(),
+        roster_years = readr::col_double(),
+        roster_contractInfo = readr::col_character(),
+        .default = readr::col_character()
+      ),
+      show_col_types = FALSE
+    )
+  }))
+}
+
+write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapshot_time) {
+  dir.create(snapshot_dir, recursive = TRUE, showWarnings = FALSE)
+  snapshot_stamp <- format(lubridate::with_tz(snapshot_time, "UTC"), "%Y%m%d_%H%M%S")
+  snapshot_file <- file.path(
+    snapshot_dir,
+    paste0("saladj_roster_snapshot_", season, "_", snapshot_stamp, ".csv")
+  )
+  latest_file <- file.path(snapshot_dir, paste0("saladj_roster_snapshot_", season, "_latest.csv"))
+  
+  readr::write_csv(roster_snapshot, snapshot_file, na = "")
+  readr::write_csv(roster_snapshot, latest_file, na = "")
+  
+  snapshot_file
 }
 
 normalize_and_dedupe_cache <- function(df) {
@@ -431,22 +484,40 @@ rosters_now <- rosters_now %>%
   dplyr::mutate(player_id = as.character(.data$player_id)) %>%
   add_conf_fields("franchise_id")
 
-rosters_now_slim <- rosters_now %>%
+snapshot_time <- lubridate::with_tz(Sys.time(), "UTC")
+missing_snapshot_review_start <- snapshot_time - lubridate::days(missing_snapshot_review_days)
+snapshot_history <- load_roster_snapshot_history(snapshot_dir, current_season)
+
+current_roster_snapshot <- rosters_now %>%
   dplyr::transmute(
-    player_id,
-    CONF,
+    season = current_season,
+    snapshot_time = snapshot_time,
+    franchise_id = as.character(.data$franchise_id),
+    CONF = .data$CONF,
+    player_id = as.character(.data$player_id),
+    player_name = as.character(.data$player_name),
     roster_salary = .data$salary,
     roster_years = .data$contract_years,
-    roster_contractInfo = .data$contractInfo
-  ) %>%
-  dplyr::group_by(.data$player_id, .data$CONF) %>%
-  dplyr::arrange(
-    dplyr::desc(.data$roster_salary),
-    dplyr::desc(.data$roster_years),
-    dplyr::desc(nchar(dplyr::coalesce(.data$roster_contractInfo, "")))
-  ) %>%
-  dplyr::slice(1) %>%
-  dplyr::ungroup()
+    roster_contractInfo = as.character(.data$contractInfo)
+  )
+
+snapshot_file <- write_roster_snapshot(
+  current_roster_snapshot,
+  snapshot_dir,
+  current_season,
+  snapshot_time
+)
+message("Wrote roster snapshot: ", snapshot_file)
+
+roster_snapshot_history <- dplyr::bind_rows(snapshot_history, current_roster_snapshot) %>%
+  dplyr::filter(!is.na(.data$snapshot_time)) %>%
+  dplyr::distinct(
+    .data$season,
+    .data$snapshot_time,
+    .data$franchise_id,
+    .data$player_id,
+    .keep_all = TRUE
+  )
 
 # ----------------------------
 # Enrich tx
@@ -473,13 +544,55 @@ tx_enriched <- tx_enriched %>%
   dplyr::select(-"DATE_local") %>%
   dplyr::distinct(.data$row_key, .keep_all = TRUE)
 
-tx_enriched <- tx_enriched %>%
-  dplyr::left_join(rosters_now_slim, by = c("player_id", "CONF")) %>%
-  dplyr::mutate(
+historical_roster_matches <- tx_enriched %>%
+  dplyr::select(dplyr::all_of(c("row_key", "player_id", "franchise_id", "DATE_raw"))) %>%
+  dplyr::left_join(
+    roster_snapshot_history,
+    by = c("player_id", "franchise_id"),
+    relationship = "many-to-many"
+  ) %>%
+  dplyr::filter(!is.na(.data$snapshot_time), .data$snapshot_time <= .data$DATE_raw) %>%
+  dplyr::group_by(.data$row_key) %>%
+  dplyr::arrange(dplyr::desc(.data$snapshot_time), .by_group = TRUE) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    row_key = .data$row_key,
     salary_snap = .data$roster_salary,
-    years_snap  = .data$roster_years,
-    info_snap   = .data$roster_contractInfo
+    years_snap = .data$roster_years,
+    info_snap = .data$roster_contractInfo,
+    salary_snapshot_time = .data$snapshot_time
   )
+
+current_player_fallback <- current_roster_snapshot %>%
+  dplyr::left_join(
+    franchises %>%
+      dplyr::transmute(
+        current_player_franchise_id = as.character(.data$franchise_id),
+        current_player_abbrev = .data$abbrev
+      ),
+    by = c("franchise_id" = "current_player_franchise_id")
+  ) %>%
+  dplyr::group_by(.data$player_id) %>%
+  dplyr::arrange(
+    dplyr::desc(.data$roster_salary),
+    dplyr::desc(.data$roster_years),
+    .by_group = TRUE
+  ) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    player_id = .data$player_id,
+    current_player_salary = .data$roster_salary,
+    current_player_years = .data$roster_years,
+    current_player_contractInfo = .data$roster_contractInfo,
+    current_player_franchise_id = .data$franchise_id,
+    current_player_abbrev = .data$current_player_abbrev
+  )
+
+tx_enriched <- tx_enriched %>%
+  dplyr::left_join(historical_roster_matches, by = "row_key") %>%
+  dplyr::left_join(current_player_fallback, by = "player_id")
 
 # ----------------------------
 # Output columns for penalties
@@ -597,24 +710,40 @@ if (nrow(trade_groups) > 0) {
 sd_rows <- tx_enriched %>%
   dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
   dplyr::mutate(
+    missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
+    current_player_qualifies = .data$missing_salary_snapshot &
+      .data$DATE_raw >= missing_snapshot_review_start & (
+        dplyr::coalesce(.data$current_player_salary, -Inf) >= sd_min |
+          is_fg(.data$current_player_contractInfo)
+      ),
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
-    qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) | is_fg(.data$info_snap)
+    qualifies = (.data$current_player_qualifies) |
+      (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
+      is_fg(.data$info_snap)
   ) %>%
   dplyr::filter(.data$qualifies) %>%
   dplyr::mutate(
-    SALARY = as.character(.data$salary_snap),
-    YEARS  = as.character(.data$years_snap),
-    CONTRACT = dplyr::coalesce(as.character(.data$info_snap), ""),
-    FG = dplyr::if_else(is_fg(.data$info_snap), "x", ""),
-    `1.XX+` = dplyr::if_else(has_plus(.data$info_snap), "fill", ""),
-    NOTES = dplyr::if_else(
-      .data$RVSD_flag,
-      "NG PPE",
-      dplyr::if_else(
-        (.data$FG == "x"),
-        dplyr::coalesce(.data$info_snap, ""),
-        ""
-      )
+    SALARY = dplyr::if_else(.data$missing_salary_snapshot, "CHECK", as.character(.data$salary_snap)),
+    YEARS  = dplyr::if_else(.data$missing_salary_snapshot, "CHECK", as.character(.data$years_snap)),
+    CONTRACT = dplyr::if_else(
+      .data$missing_salary_snapshot,
+      "",
+      dplyr::coalesce(as.character(.data$info_snap), "")
+    ),
+    FG = dplyr::if_else(!.data$missing_salary_snapshot & is_fg(.data$info_snap), "x", ""),
+    `1.XX+` = dplyr::if_else(!.data$missing_salary_snapshot & has_plus(.data$info_snap), "fill", ""),
+    NOTES = dplyr::case_when(
+      .data$current_player_qualifies ~ paste0(
+        "CHECK SALARY - NO PRIOR FRANCHISE SNAPSHOT; CURRENT ",
+        dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "TEAM"),
+        " ",
+        dplyr::coalesce(as.character(.data$current_player_salary), "?"),
+        " ",
+        dplyr::coalesce(.data$current_player_contractInfo, "")
+      ),
+      .data$RVSD_flag ~ "NG PPE",
+      .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
+      TRUE ~ ""
     ),
     `RVSD?` = dplyr::if_else(.data$RVSD_flag, "x", "")
   ) %>%

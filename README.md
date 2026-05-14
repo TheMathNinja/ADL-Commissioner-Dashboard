@@ -72,13 +72,13 @@ ADL-Commissioner-Dashboard/
 
 Pipeline:
 
-run\_saladjcurator.R â†’ data/\*.csv â†’ build\_dashboard.R â†’ docs/index.html â†’ GitHub Pages
+run\_saladjcurator.R Ã¢â€ â€™ data/\*.csv Ã¢â€ â€™ build\_dashboard.R Ã¢â€ â€™ docs/index.html Ã¢â€ â€™ GitHub Pages
 
 
 
 Current module:
 
-SalAdjCurator â€“ filters ADL transactions for those requiring team salary adjustments in copy-pasteable format for Contract Admin sheet.
+SalAdjCurator Ã¢â‚¬â€œ filters ADL transactions for those requiring team salary adjustments in copy-pasteable format for Contract Admin sheet.
 
 
 
@@ -116,3 +116,7 @@ SalAdjCurator outputs:
 - data/SalAdjCurator_<season>.csv
 - data/archive/<run_date>_ADLSalAdjCurator.csv
 - docs/saladjcurator.html links to archived CSV downloads
+
+Roster snapshots:
+
+SalAdjCurator now writes dated roster salary snapshots to data/roster_snapshots. Drop transactions are matched against the most recent prior snapshot for the same franchise/player. If no prior franchise snapshot exists, recent drops can still be surfaced as CHECK SALARY rows when the player currently appears elsewhere with salary-risk evidence.
