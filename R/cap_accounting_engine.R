@@ -209,6 +209,7 @@ build_cap_accounting_snapshot <- function(
   output_snapshot_csv <- file.path(snapshot_dir, paste0(snapshot_stub, ".csv"))
   output_summary_rds <- file.path(summary_dir, paste0(summary_stub, ".rds"))
   output_summary_csv <- file.path(summary_dir, paste0(summary_stub, ".csv"))
+  output_warnings_csv <- file.path(base_dir, paste0(current_season, "w", snapshot_week, "_ADLsalarycapwarnings.csv"))
 
   injuries_df <- get_mfl_injuries(current_season, snapshot_week)
   sal_adj_summary <- get_mfl_salary_adjustments(conn) %>%
@@ -231,6 +232,25 @@ build_cap_accounting_snapshot <- function(
     ) %>%
     dplyr::mutate(pos = as.character(.data$pos)) %>%
     dplyr::relocate("inj", .after = "player_name")
+
+  warning_rows <- snapshot_sorted %>%
+    dplyr::mutate(
+      salary_num = suppressWarnings(as.numeric(.data$salary)),
+      player_display = stringr::str_trim(paste(.data$player_name, .data$team, .data$pos)),
+      conference = dplyr::case_when(
+        suppressWarnings(as.integer(.data$franchise_id)) >= 1L & suppressWarnings(as.integer(.data$franchise_id)) <= 16L ~ "NFC",
+        suppressWarnings(as.integer(.data$franchise_id)) >= 17L & suppressWarnings(as.integer(.data$franchise_id)) <= 32L ~ "AFC",
+        TRUE ~ NA_character_
+      )
+    ) %>%
+    dplyr::filter(!is.na(.data$salary_num), .data$salary_num == 0) %>%
+    dplyr::transmute(
+      season = current_season,
+      week = snapshot_week,
+      file_type = "summary",
+      filename = basename(output_summary_csv),
+      warning = paste0(.data$player_display, " in ", .data$conference, " has Salary = 0")
+    )
 
   saveRDS(snapshot_sorted, output_snapshot_rds)
 
@@ -360,6 +380,7 @@ build_cap_accounting_snapshot <- function(
     dplyr::mutate(dplyr::across(dplyr::all_of(dollar_summary_cols), format_summary_dollars))
 
   readr::write_csv(summary_csv_out, output_summary_csv, na = "")
+  readr::write_csv(warning_rows, output_warnings_csv, na = "")
 
   tibble::tibble(
     current_season = current_season,
@@ -367,6 +388,7 @@ build_cap_accounting_snapshot <- function(
     snapshot_csv = output_snapshot_csv,
     snapshot_rds = output_snapshot_rds,
     summary_csv = output_summary_csv,
-    summary_rds = output_summary_rds
+    summary_rds = output_summary_rds,
+    warnings_csv = output_warnings_csv
   )
 }

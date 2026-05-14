@@ -17,6 +17,27 @@ build_archive_links_html <- function(archive_files_public) {
   paste0("<ul>\n", links, "\n</ul>")
 }
 
+build_archive_links_with_warnings_html <- function(archive_files_public, warnings_by_file = list()) {
+  if (length(archive_files_public) == 0) {
+    return("<p>No archived CSV files yet.</p>")
+  }
+
+  archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
+
+  links <- paste0(
+    "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a>",
+    vapply(archive_file_labels, function(label) {
+      warnings <- warnings_by_file[[label]]
+      if (is.null(warnings) || length(warnings) == 0) return("")
+      paste0(" (Warnings: ", paste(warnings, collapse = "; "), ")")
+    }, character(1), USE.NAMES = FALSE),
+    "</li>",
+    collapse = "\n"
+  )
+
+  paste0("<ul>\n", links, "\n</ul>")
+}
+
 build_dashboard_index_html <- function(
   latest_daily_salary_snapshot_public = NA_character_,
   latest_cap_summary_public = NA_character_
@@ -113,16 +134,23 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
 build_cap_accounting_html <- function(
   current_summary_public = NA_character_,
   summary_files_public = character(),
-  snapshot_files_public = character()
+  snapshot_files_public = character(),
+  warnings_by_file = list()
 ) {
   current_summary_html <- if (!is.na(current_summary_public) && nzchar(current_summary_public)) {
     current_summary_label <- basename(sub("\\?.*$", "", current_summary_public))
-    paste0("<p><strong>Current Summary:</strong> <a href='", current_summary_public, "'>", current_summary_label, "</a></p>")
+    current_warnings <- warnings_by_file[[current_summary_label]]
+    current_warning_html <- if (is.null(current_warnings) || length(current_warnings) == 0) {
+      ""
+    } else {
+      paste0(" (Warnings: ", paste(current_warnings, collapse = "; "), ")")
+    }
+    paste0("<p><strong>Current Summary:</strong> <a href='", current_summary_public, "'>", current_summary_label, "</a>", current_warning_html, "</p>")
   } else {
     "<p><strong>Current Summary:</strong> Not available yet.</p>"
   }
 
-  summary_links_html <- build_archive_links_html(summary_files_public)
+  summary_links_html <- build_archive_links_with_warnings_html(summary_files_public, warnings_by_file)
   snapshot_links_html <- build_archive_links_html(snapshot_files_public)
 
   paste0(

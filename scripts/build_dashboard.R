@@ -240,6 +240,11 @@ cap_summary_files_data <- list.files(
   pattern = paste0("^", current_season, "w\\d+_ADLsalarycapsummary\\.csv$"),
   full.names = TRUE
 )
+cap_warning_files_data <- list.files(
+  path = cap_base_dir,
+  pattern = paste0("^", current_season, "w\\d+_ADLsalarycapwarnings\\.csv$"),
+  full.names = TRUE
+)
 
 cap_week_from_file <- function(x, file_type) {
   as.integer(stringr::str_match(
@@ -271,6 +276,24 @@ cap_snapshot_files_public <- file.path("downloads", "salary-cap-accounting", "sn
 cap_summary_files_public <- file.path("downloads", "salary-cap-accounting", "summaries", basename(cap_summary_files_data))
 cap_snapshot_files_public <- add_file_versions(cap_snapshot_files_public)
 cap_summary_files_public <- add_file_versions(cap_summary_files_public)
+
+cap_warning_rows <- if (length(cap_warning_files_data) > 0) {
+  dplyr::bind_rows(lapply(cap_warning_files_data, function(warning_file) {
+    readr::read_csv(
+      warning_file,
+      col_types = readr::cols(.default = readr::col_character()),
+      show_col_types = FALSE
+    )
+  }))
+} else {
+  tibble::tibble(filename = character(), warning = character())
+}
+
+cap_warnings_by_file <- if (nrow(cap_warning_rows) > 0) {
+  split(cap_warning_rows$warning, cap_warning_rows$filename)
+} else {
+  list()
+}
 
 current_cap_summary_public <- if (length(cap_summary_files_public) > 0) {
   cap_summary_files_public[1]
@@ -305,7 +328,8 @@ writeLines(daily_salary_snapshots_html, file.path("docs", "daily-salary-snapshot
 cap_accounting_html <- build_cap_accounting_html(
   current_summary_public = current_cap_summary_public,
   summary_files_public = cap_summary_files_public,
-  snapshot_files_public = cap_snapshot_files_public
+  snapshot_files_public = cap_snapshot_files_public,
+  warnings_by_file = cap_warnings_by_file
 )
 
 writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))
