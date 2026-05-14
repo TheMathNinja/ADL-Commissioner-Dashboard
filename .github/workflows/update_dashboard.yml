@@ -111,7 +111,7 @@ jobs:
           dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
           .libPaths(Sys.getenv("R_LIBS_USER"))
 
-          packages <- c("dplyr", "ffscrapr", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          packages <- c("dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
           missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 
           if (length(missing) > 0) {

@@ -17,7 +17,10 @@ build_archive_links_html <- function(archive_files_public) {
   paste0("<ul>\n", links, "\n</ul>")
 }
 
-build_dashboard_index_html <- function(latest_daily_salary_snapshot_public = NA_character_) {
+build_dashboard_index_html <- function(
+  latest_daily_salary_snapshot_public = NA_character_,
+  latest_cap_summary_public = NA_character_
+) {
   daily_snapshot_text <- if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
     latest_daily_salary_snapshot_label <- basename(sub("\\?.*$", "", latest_daily_salary_snapshot_public))
     paste0(
@@ -28,6 +31,18 @@ build_dashboard_index_html <- function(latest_daily_salary_snapshot_public = NA_
     )
   } else {
     "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a></li>"
+  }
+
+  cap_accounting_text <- if (!is.na(latest_cap_summary_public) && nzchar(latest_cap_summary_public)) {
+    latest_cap_summary_label <- basename(sub("\\?.*$", "", latest_cap_summary_public))
+    paste0(
+      "<li><a href='salary-cap-accounting.html'>Salary Cap Accounting & Rollover</a> ",
+      "(current summary: <a href='", latest_cap_summary_public, "'>",
+      latest_cap_summary_label,
+      "</a>)</li>"
+    )
+  } else {
+    "<li><a href='salary-cap-accounting.html'>Salary Cap Accounting & Rollover</a></li>"
   }
 
   paste0(
@@ -41,6 +56,7 @@ build_dashboard_index_html <- function(latest_daily_salary_snapshot_public = NA_
   <ul>
     <li><a href='saladjcurator.html'>SalAdjCurator</a></li>
     ", daily_snapshot_text, "
+    ", cap_accounting_text, "
   </ul>
 </body>
 </html>"
@@ -89,6 +105,45 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
   This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
   Enter that data manually.
   </p>
+</body>
+</html>"
+  )
+}
+
+build_cap_accounting_html <- function(
+  current_summary_public = NA_character_,
+  summary_files_public = character(),
+  snapshot_files_public = character()
+) {
+  current_summary_html <- if (!is.na(current_summary_public) && nzchar(current_summary_public)) {
+    current_summary_label <- basename(sub("\\?.*$", "", current_summary_public))
+    paste0("<p><strong>Current Summary:</strong> <a href='", current_summary_public, "'>", current_summary_label, "</a></p>")
+  } else {
+    "<p><strong>Current Summary:</strong> Not available yet.</p>"
+  }
+
+  summary_links_html <- build_archive_links_html(summary_files_public)
+  snapshot_links_html <- build_archive_links_html(snapshot_files_public)
+
+  paste0(
+    "<html>
+<head>
+  <title>ADL Commissioner Dashboard - Salary Cap Accounting & Rollover</title>
+</head>
+<body>
+  <h1>Salary Cap Accounting & Rollover</h1>
+
+  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
+
+  ", current_summary_html, "
+
+  <h2>Weekly Snapshots and Summaries Archive</h2>
+
+  <h3>Summaries</h3>
+  ", summary_links_html, "
+
+  <h3>Full Snapshots</h3>
+  ", snapshot_links_html, "
 </body>
 </html>"
   )

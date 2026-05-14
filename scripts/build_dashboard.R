@@ -171,7 +171,11 @@ franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season
 dir.create("docs", recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "daily-salary-snapshots"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
 unlink(file.path("docs", "downloads", "daily-salary-snapshots", "*.csv"))
+unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
+unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
 
 # Find archived CSVs for current season only
 archive_files_data <- list.files(
@@ -224,9 +228,60 @@ latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   NA_character_
 }
 
+# Publish salary cap accounting snapshots and summaries.
+cap_base_dir <- file.path("data", "cap_accounting", as.character(current_season))
+cap_snapshot_files_data <- list.files(
+  path = file.path(cap_base_dir, "snapshots"),
+  pattern = paste0("^", current_season, "w\\d+_ADLsalarycapsnapshot\\.csv$"),
+  full.names = TRUE
+)
+cap_summary_files_data <- list.files(
+  path = file.path(cap_base_dir, "summaries"),
+  pattern = paste0("^", current_season, "w\\d+_ADLsalarycapsummary\\.csv$"),
+  full.names = TRUE
+)
+
+cap_week_from_file <- function(x, file_type) {
+  as.integer(stringr::str_match(
+    basename(x),
+    paste0("^", current_season, "w(\\d+)_ADLsalarycap", file_type, "\\.csv$")
+  )[, 2])
+}
+
+cap_snapshot_files_data <- cap_snapshot_files_data[order(cap_week_from_file(cap_snapshot_files_data, "snapshot"), decreasing = TRUE)]
+cap_summary_files_data <- cap_summary_files_data[order(cap_week_from_file(cap_summary_files_data, "summary"), decreasing = TRUE)]
+
+if (length(cap_snapshot_files_data) > 0) {
+  invisible(file.copy(
+    from = cap_snapshot_files_data,
+    to = file.path("docs", "downloads", "salary-cap-accounting", "snapshots", basename(cap_snapshot_files_data)),
+    overwrite = TRUE
+  ))
+}
+
+if (length(cap_summary_files_data) > 0) {
+  invisible(file.copy(
+    from = cap_summary_files_data,
+    to = file.path("docs", "downloads", "salary-cap-accounting", "summaries", basename(cap_summary_files_data)),
+    overwrite = TRUE
+  ))
+}
+
+cap_snapshot_files_public <- file.path("downloads", "salary-cap-accounting", "snapshots", basename(cap_snapshot_files_data))
+cap_summary_files_public <- file.path("downloads", "salary-cap-accounting", "summaries", basename(cap_summary_files_data))
+cap_snapshot_files_public <- add_file_versions(cap_snapshot_files_public)
+cap_summary_files_public <- add_file_versions(cap_summary_files_public)
+
+current_cap_summary_public <- if (length(cap_summary_files_public) > 0) {
+  cap_summary_files_public[1]
+} else {
+  NA_character_
+}
+
 # Build landing page
 index_html <- build_dashboard_index_html(
-  latest_daily_salary_snapshot_public = latest_snapshot_public
+  latest_daily_salary_snapshot_public = latest_snapshot_public,
+  latest_cap_summary_public = current_cap_summary_public
 )
 writeLines(index_html, file.path("docs", "index.html"))
 
@@ -245,5 +300,14 @@ daily_salary_snapshots_html <- build_daily_salary_snapshots_html(
 )
 
 writeLines(daily_salary_snapshots_html, file.path("docs", "daily-salary-snapshots.html"))
+
+# Build salary cap accounting page
+cap_accounting_html <- build_cap_accounting_html(
+  current_summary_public = current_cap_summary_public,
+  summary_files_public = cap_summary_files_public,
+  snapshot_files_public = cap_snapshot_files_public
+)
+
+writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))
 
 message("Dashboard build complete for season: ", current_season)
