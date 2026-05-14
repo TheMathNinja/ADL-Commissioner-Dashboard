@@ -70,12 +70,10 @@ if (length(missing_snapshot_review_days) != 1 || is.na(missing_snapshot_review_d
   missing_snapshot_review_days <- 3L
 }
 
-waiver_window_hours <- suppressWarnings(as.numeric(
-  get_env_or_default("SALADJ_WAIVER_WINDOW_HOURS", "36")
-))
-if (length(waiver_window_hours) != 1 || is.na(waiver_window_hours) || waiver_window_hours <= 0) {
-  waiver_window_hours <- 36
-}
+waiver_short_window_start <- as.POSIXct(
+  paste0(get_env_or_default("SALADJ_SHORT_WAIVER_START_DATE", "2026-08-26"), " 00:00:00"),
+  tz = "America/Toronto"
+)
 # ----------------------------
 # Directory Setup
 # ----------------------------
@@ -177,6 +175,22 @@ format_pending_until <- function(x) {
     "",
     format(lubridate::with_tz(x, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
   )
+}
+
+next_waiver_run_at <- function(x) {
+  x_local <- lubridate::with_tz(x, "America/Toronto")
+  run_at <- as.POSIXct(
+    paste0(format(as.Date(x_local), "%Y-%m-%d"), " 05:00:00"),
+    tz = "America/Toronto"
+  )
+  run_at <- dplyr::if_else(x_local <= run_at, run_at, run_at + lubridate::days(1))
+  lubridate::with_tz(run_at, "UTC")
+}
+
+waiver_maturity_time <- function(drop_time, short_window_start) {
+  drop_local <- lubridate::with_tz(drop_time, "America/Toronto")
+  base_hours <- dplyr::if_else(drop_local >= short_window_start, 24, 48)
+  next_waiver_run_at(drop_time + lubridate::hours(base_hours))
 }
 
 load_roster_snapshot_history <- function(snapshot_dir, season) {
@@ -742,11 +756,12 @@ sd_rows <- tx_enriched %>%
   dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
   dplyr::mutate(
     missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
-    waiver_matures_at = .data$DATE_raw + lubridate::hours(waiver_window_hours),
+    waiver_matures_at = waiver_maturity_time(.data$DATE_raw, waiver_short_window_start),
     waiver_pending = snapshot_time < .data$waiver_matures_at,
     current_same_conf_elsewhere = !is.na(.data$current_player_franchise_id) &
       .data$current_player_franchise_id != .data$franchise_id,
-    likely_waiver_claim = !.data$missing_salary_snapshot &
+    waiver_claimed = !.data$waiver_pending &
+      !.data$missing_salary_snapshot &
       .data$current_same_conf_elsewhere &
       !is.na(.data$current_player_salary) &
       !is.na(.data$salary_snap) &
@@ -757,10 +772,8 @@ sd_rows <- tx_enriched %>%
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
     salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
       is_fg(.data$info_snap),
-    qualifies = !.data$likely_waiver_claim & (
-      .data$salary_or_contract_qualifies |
-        .data$recent_missing_snapshot_review
-    )
+    qualifies = .data$salary_or_contract_qualifies |
+      .data$recent_missing_snapshot_review
   ) %>%
   dplyr::filter(.data$qualifies) %>%
   dplyr::mutate(
@@ -774,6 +787,10 @@ sd_rows <- tx_enriched %>%
     FG = dplyr::if_else(!.data$missing_salary_snapshot & is_fg(.data$info_snap), "x", ""),
     `1.XX+` = dplyr::if_else(!.data$missing_salary_snapshot & has_plus(.data$info_snap), "fill", ""),
     NOTES = dplyr::case_when(
+      .data$waiver_claimed ~ paste0(
+        "WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY ",
+        dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "AFC/NFC TEAM")
+      ),
       .data$waiver_pending & .data$missing_salary_snapshot ~ paste0(
         "PENDING WAIVER UNTIL ",
         format_pending_until(.data$waiver_matures_at),
@@ -794,7 +811,7 @@ sd_rows <- tx_enriched %>%
       .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
       TRUE ~ ""
     ),
-    `RVSD?` = dplyr::if_else(.data$RVSD_flag, "x", "")
+    `RVSD?` = dplyr::if_else(.data$RVSD_flag | .data$waiver_claimed, "x", "")
   ) %>%
   dplyr::transmute(
     row_key = .data$row_key,
