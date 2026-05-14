@@ -15,7 +15,18 @@ build_archive_links_html <- function(archive_files_public) {
   paste0("<ul>\n", links, "\n</ul>")
 }
 
-build_dashboard_index_html <- function() {
+build_dashboard_index_html <- function(latest_daily_salary_snapshot_public = NA_character_) {
+  daily_snapshot_text <- if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
+    paste0(
+      "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a> ",
+      "(latest: <a href='", latest_daily_salary_snapshot_public, "'>",
+      basename(latest_daily_salary_snapshot_public),
+      "</a>)</li>"
+    )
+  } else {
+    "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a></li>"
+  }
+
   paste0(
     "<html>
 <head>
@@ -26,6 +37,7 @@ build_dashboard_index_html <- function() {
 
   <ul>
     <li><a href='saladjcurator.html'>SalAdjCurator</a></li>
+    ", daily_snapshot_text, "
   </ul>
 </body>
 </html>"
@@ -73,6 +85,40 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
   Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into ADL Contract Admin sheet for each conference.
   This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
   Enter that data manually.
+  </p>
+</body>
+</html>"
+  )
+}
+
+build_daily_salary_snapshots_html <- function(snapshot_files_public, latest_snapshot_public = NA_character_) {
+  snapshot_links_html <- build_archive_links_html(snapshot_files_public)
+  latest_link_html <- if (!is.na(latest_snapshot_public) && nzchar(latest_snapshot_public)) {
+    paste0("<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>", basename(latest_snapshot_public), "</a></p>")
+  } else {
+    "<p><strong>Latest CSV:</strong> Not available yet.</p>"
+  }
+
+  paste0(
+    "<html>
+<head>
+  <title>ADL Commissioner Dashboard - Daily Salary Snapshots</title>
+</head>
+<body>
+  <h1>Daily Salary Snapshots</h1>
+
+  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
+
+  ", latest_link_html, "
+
+  <h2>Snapshot Archive</h2>
+  ", snapshot_links_html, "
+
+  <h2>Notes</h2>
+  <p>
+  These CSVs are roster salary snapshots captured by the SalAdjCurator run.
+  They preserve player salary, years, contract info, franchise, and conference at the time of capture.
+  They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
   </p>
 </body>
 </html>"
