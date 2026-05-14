@@ -245,7 +245,7 @@ record_roster_snapshot_check <- function(snapshot_dir, season, snapshot_time, sn
   check_file <- file.path(snapshot_dir, paste0("saladj_roster_snapshot_checks_", season, ".csv"))
   check_time_et <- lubridate::with_tz(snapshot_time, "America/Toronto")
   check_row <- tibble::tibble(
-    season = season,
+    season = as.character(season),
     check_date_et = as.character(as.Date(check_time_et, tz = "America/Toronto")),
     last_checked_at_et = format(check_time_et, "%m/%d/%Y %I:%M %p %Z"),
     snapshot_changed = snapshot_changed,
@@ -258,7 +258,10 @@ record_roster_snapshot_check <- function(snapshot_dir, season, snapshot_time, sn
       col_types = readr::cols(.default = readr::col_character()),
       show_col_types = FALSE
     ) %>%
-      dplyr::mutate(snapshot_changed = as.logical(.data$snapshot_changed))
+      dplyr::mutate(
+        season = as.character(.data$season),
+        snapshot_changed = as.logical(.data$snapshot_changed)
+      )
   } else {
     tibble::tibble()
   }
