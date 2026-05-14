@@ -131,8 +131,7 @@ write_public_salary_snapshot <- function(snapshot_file, public_file, franchises)
       franchise_name = dplyr::coalesce(.data$franchise_name, .data$franchise_name_lookup)
     ) %>%
     dplyr::arrange(
-      .data$CONF,
-      .data$franchise_name,
+      suppressWarnings(as.integer(.data$franchise_id)),
       .data$roster_status_sort,
       .data$player_pos_sort,
       .data$player_last_name,
