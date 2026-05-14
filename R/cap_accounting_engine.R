@@ -283,8 +283,8 @@ build_cap_accounting_snapshot <- function(
       is_active = .data$roster_status_calc == "ACTIVE_ROSTER",
       is_ir = .data$roster_status_calc == "INJURED_RESERVE",
       is_suspended = .data$inj == "Suspended",
-      is_taxi_non_suspended = .data$roster_status_calc == "TAXI_SQUAD" & .data$inj != "Suspended",
-      is_taxi_suspended = .data$roster_status_calc == "TAXI_SQUAD" & .data$inj == "Suspended"
+      is_taxi_non_suspended = .data$roster_status_calc == "TAXI_SQUAD" & dplyr::coalesce(.data$inj != "Suspended", TRUE),
+      is_taxi_suspended = .data$roster_status_calc == "TAXI_SQUAD" & dplyr::coalesce(.data$inj == "Suspended", FALSE)
     )
 
   current_week_summary <- summary_base %>%
