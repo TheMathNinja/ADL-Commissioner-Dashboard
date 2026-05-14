@@ -303,7 +303,7 @@ build_cap_accounting_snapshot <- function(
         sum(dplyr::if_else(.data$is_taxi_suspended, .data$salary_num, 0), na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    dplyr::mutate(`Ill?` = dplyr::if_else(.data$A + .data$TE > 45 | .data$Yrs > 120, "Y", "")) %>%
+    dplyr::mutate(`Ill?` = dplyr::if_else(.data$A < 40 | .data$A + .data$TE > 45 | .data$Yrs > 120, "Y", "")) %>%
     dplyr::left_join(sal_adj_summary, by = "franchise_id") %>%
     dplyr::mutate(
       SalAdj = dplyr::coalesce(.data$SalAdj, 0),
