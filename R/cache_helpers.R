@@ -2,8 +2,6 @@
 # ---------------
 # Helpers for reading/writing cached raw league data.
 
-library(tidyverse)
-
 get_raw_cache_dir <- function() {
   raw_cache_dir <- Sys.getenv("RAW_CACHE_DIR", unset = "cache/raw_league_data")
   dir.create(raw_cache_dir, recursive = TRUE, showWarnings = FALSE)

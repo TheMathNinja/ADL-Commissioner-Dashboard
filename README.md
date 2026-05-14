@@ -72,13 +72,13 @@ ADL-Commissioner-Dashboard/
 
 Pipeline:
 
-run\_saladjcurator.R → data/\*.csv → build\_dashboard.R → docs/index.html → GitHub Pages
+run\_saladjcurator.R â†’ data/\*.csv â†’ build\_dashboard.R â†’ docs/index.html â†’ GitHub Pages
 
 
 
 Current module:
 
-SalAdjCurator – filters ADL transactions for those requiring team salary adjustments in copy-pasteable format for Contract Admin sheet.
+SalAdjCurator â€“ filters ADL transactions for those requiring team salary adjustments in copy-pasteable format for Contract Admin sheet.
 
 
 
@@ -102,3 +102,17 @@ Rscript scripts/run\_saladjcurator.R
 
 Rscript scripts/build\_dashboard.R
 
+
+GitHub Actions secrets needed for live MFL scraping:
+
+- ADL_LEAGUE_ID, default 60206 if omitted locally
+- MFL_USERNAME
+- MFL_PASSWORD
+- MFL_USER_AGENT, default ADLCommissionerDashboard if omitted locally
+
+SalAdjCurator outputs:
+
+- data/SalAdjCurator_latest.csv
+- data/SalAdjCurator_<season>.csv
+- data/archive/<run_date>_ADLSalAdjCurator.csv
+- docs/saladjcurator.html links to archived CSV downloads

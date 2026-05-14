@@ -95,6 +95,7 @@ jobs:
             libssl-dev \
             libtiff5-dev \
             libxml2-dev \
+            libuv1-dev \
             pkg-config
 
       - name: Set up R
@@ -110,20 +111,24 @@ jobs:
           dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
           .libPaths(Sys.getenv("R_LIBS_USER"))
 
-          if (!requireNamespace("tidyverse", quietly = TRUE)) {
+          packages <- c("dplyr", "ffscrapr", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+          if (length(missing) > 0) {
             install.packages(
-              "tidyverse",
+              missing,
               repos = "https://cloud.r-project.org",
-              dependencies = TRUE,
+              dependencies = c("Depends", "Imports", "LinkingTo"),
               Ncpus = max(1, parallel::detectCores() - 1)
             )
           }
 
-          if (!requireNamespace("tidyverse", quietly = TRUE)) {
-            stop("tidyverse still not installed after install.packages()")
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) {
+            stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
           }
 
-          library(tidyverse)
+          invisible(lapply(packages, requireNamespace, quietly = TRUE))
           sessionInfo()
 
       - name: Run SalAdjCurator script
@@ -132,6 +137,10 @@ jobs:
           CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+          MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+          MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+          MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
         run: Rscript scripts/run_saladjcurator.R
 
       - name: Build dashboard site

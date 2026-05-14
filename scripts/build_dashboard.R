@@ -2,8 +2,6 @@
 # -----------------
 # This script builds the dashboard website files.
 
-library(tidyverse)
-
 source("R/config_helpers.R")
 source("R/dashboard_helpers.R")
 
@@ -19,7 +17,7 @@ dir.create(file.path("docs", "downloads"), recursive = TRUE, showWarnings = FALS
 # Find archived CSVs for current season only
 archive_files_data <- list.files(
   path = file.path("data", "archive"),
-  pattern = paste0("^", current_season, "_\\d{2}_\\d{2}_ADLSalAdjSummary\\.csv$"),
+  pattern = paste0("^", current_season, "_\\d{2}_\\d{2}_ADLSalAdjCurator\\.csv$"),
   full.names = TRUE
 )
 
@@ -29,11 +27,11 @@ archive_files_data <- sort(archive_files_data, decreasing = TRUE)
 archive_filenames <- basename(archive_files_data)
 
 if (length(archive_files_data) > 0) {
-  file.copy(
+  invisible(file.copy(
     from = archive_files_data,
     to = file.path("docs", "downloads", archive_filenames),
     overwrite = TRUE
-  )
+  ))
 }
 
 # Public links for HTML
