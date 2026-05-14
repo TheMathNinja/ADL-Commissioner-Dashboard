@@ -6,9 +6,11 @@ build_archive_links_html <- function(archive_files_public) {
   if (length(archive_files_public) == 0) {
     return("<p>No archived CSV files yet.</p>")
   }
+
+  archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
   
   links <- paste0(
-    "<li><a href='", archive_files_public, "'>", basename(archive_files_public), "</a></li>",
+    "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a></li>",
     collapse = "\n"
   )
   
@@ -17,10 +19,11 @@ build_archive_links_html <- function(archive_files_public) {
 
 build_dashboard_index_html <- function(latest_daily_salary_snapshot_public = NA_character_) {
   daily_snapshot_text <- if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
+    latest_daily_salary_snapshot_label <- basename(sub("\\?.*$", "", latest_daily_salary_snapshot_public))
     paste0(
       "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a> ",
       "(latest: <a href='", latest_daily_salary_snapshot_public, "'>",
-      basename(latest_daily_salary_snapshot_public),
+      latest_daily_salary_snapshot_label,
       "</a>)</li>"
     )
   } else {
@@ -94,7 +97,8 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
 build_daily_salary_snapshots_html <- function(snapshot_files_public, latest_snapshot_public = NA_character_) {
   snapshot_links_html <- build_archive_links_html(snapshot_files_public)
   latest_link_html <- if (!is.na(latest_snapshot_public) && nzchar(latest_snapshot_public)) {
-    paste0("<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>", basename(latest_snapshot_public), "</a></p>")
+    latest_snapshot_label <- basename(sub("\\?.*$", "", latest_snapshot_public))
+    paste0("<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>", latest_snapshot_label, "</a></p>")
   } else {
     "<p><strong>Latest CSV:</strong> Not available yet.</p>"
   }

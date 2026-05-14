@@ -152,6 +152,17 @@ write_public_salary_snapshot <- function(snapshot_file, public_file, franchises)
   readr::write_csv(public_snapshot, public_file, na = "")
 }
 
+add_file_versions <- function(public_files) {
+  if (length(public_files) == 0) return(public_files)
+
+  vapply(public_files, function(public_file) {
+    docs_file <- file.path("docs", public_file)
+    if (!file.exists(docs_file)) return(public_file)
+
+    paste0(public_file, "?v=", unname(tools::md5sum(docs_file)))
+  }, character(1), USE.NAMES = FALSE)
+}
+
 # Read metadata
 run_meta <- readr::read_csv("data/run_metadata.csv", show_col_types = FALSE)
 franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season, ".rds")))
@@ -206,6 +217,7 @@ if (nrow(snapshot_index) > 0) {
 }
 
 snapshot_files_public <- file.path("downloads", "daily-salary-snapshots", snapshot_filenames)
+snapshot_files_public <- add_file_versions(snapshot_files_public)
 latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   snapshot_files_public[1]
 } else {
