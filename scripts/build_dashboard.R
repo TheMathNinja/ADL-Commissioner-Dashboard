@@ -64,16 +64,60 @@ build_snapshot_index <- function(snapshot_files) {
     dplyr::arrange(dplyr::desc(.data$snapshot_time_et))
 }
 
+format_salary <- function(x) {
+  salary <- suppressWarnings(as.numeric(x))
+  dplyr::if_else(
+    is.na(salary),
+    "",
+    paste0("$", format(round(salary, 2), nsmall = 2, trim = TRUE, scientific = FALSE))
+  )
+}
+
+format_player_display <- function(player_name, player_team, player_pos) {
+  suffix <- paste(
+    dplyr::coalesce(player_team, ""),
+    dplyr::coalesce(player_pos, "")
+  )
+  suffix <- stringr::str_squish(suffix)
+
+  dplyr::if_else(
+    nzchar(suffix),
+    paste(dplyr::coalesce(player_name, ""), suffix),
+    dplyr::coalesce(player_name, "")
+  )
+}
+
+player_last_name <- function(player_name) {
+  player_name <- dplyr::coalesce(player_name, "")
+  ifelse(
+    stringr::str_detect(player_name, ","),
+    stringr::str_trim(stringr::str_extract(player_name, "^[^,]+")),
+    stringr::str_trim(stringr::word(player_name, -1))
+  )
+}
+
 write_public_salary_snapshot <- function(snapshot_file, public_file, franchises) {
   snapshot <- read_snapshot_csv(snapshot_file)
 
   if (!"franchise_name" %in% names(snapshot)) snapshot$franchise_name <- NA_character_
   if (!"roster_status" %in% names(snapshot)) snapshot$roster_status <- NA_character_
+  if (!"player_team" %in% names(snapshot)) snapshot$player_team <- NA_character_
+  if (!"player_pos" %in% names(snapshot)) snapshot$player_pos <- NA_character_
+
+  position_order <- c("QB", "RB", "WR", "TE", "PK", "PN", "DT", "DE", "LB", "CB", "S")
 
   public_snapshot <- snapshot %>%
     dplyr::mutate(
       franchise_id = as.character(.data$franchise_id),
-      snapshot_time_et = format(lubridate::with_tz(.data$snapshot_time, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
+      snapshot_time_et = format(lubridate::with_tz(.data$snapshot_time, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z"),
+      roster_status_sort = dplyr::case_when(
+        .data$roster_status == "Active" ~ 1L,
+        .data$roster_status == "Taxi" ~ 2L,
+        TRUE ~ 3L
+      ),
+      player_pos_sort = match(.data$player_pos, position_order),
+      player_pos_sort = dplyr::coalesce(.data$player_pos_sort, length(position_order) + 1L),
+      player_last_name = player_last_name(.data$player_name)
     ) %>%
     dplyr::left_join(
       franchises %>%
@@ -86,16 +130,24 @@ write_public_salary_snapshot <- function(snapshot_file, public_file, franchises)
     dplyr::mutate(
       franchise_name = dplyr::coalesce(.data$franchise_name, .data$franchise_name_lookup)
     ) %>%
+    dplyr::arrange(
+      .data$CONF,
+      .data$franchise_name,
+      .data$roster_status_sort,
+      .data$player_pos_sort,
+      .data$player_last_name,
+      .data$player_name
+    ) %>%
     dplyr::transmute(
       SNAPSHOT_TIME_ET = .data$snapshot_time_et,
       CONF = .data$CONF,
       FRANCHISE = .data$franchise_name,
-      ROSTER_STATUS = .data$roster_status,
       PLAYER_ID = .data$player_id,
-      PLAYER = .data$player_name,
-      SALARY = .data$roster_salary,
+      PLAYER = format_player_display(.data$player_name, .data$player_team, .data$player_pos),
+      SALARY = format_salary(.data$roster_salary),
       YEARS = .data$roster_years,
-      CONTRACT = .data$roster_contractInfo
+      CONTRACT = .data$roster_contractInfo,
+      ROSTER_STATUS = .data$roster_status
     )
 
   readr::write_csv(public_snapshot, public_file, na = "")
@@ -145,13 +197,6 @@ snapshot_files_data <- sort(snapshot_files_data, decreasing = TRUE)
 snapshot_index <- build_snapshot_index(snapshot_files_data)
 snapshot_filenames <- snapshot_index$public_filename
 
-latest_snapshot_data <- file.path(
-  "data",
-  "roster_snapshots",
-  paste0("saladj_roster_snapshot_", current_season, "_latest.csv")
-)
-latest_snapshot_filename <- paste0(current_season, "_latest_ADLDailySalarySnapshot.csv")
-
 if (nrow(snapshot_index) > 0) {
   invisible(mapply(
     write_public_salary_snapshot,
@@ -161,17 +206,9 @@ if (nrow(snapshot_index) > 0) {
   ))
 }
 
-if (file.exists(latest_snapshot_data)) {
-  write_public_salary_snapshot(
-    snapshot_file = latest_snapshot_data,
-    public_file = file.path("docs", "downloads", "daily-salary-snapshots", latest_snapshot_filename),
-    franchises = franchises
-  )
-}
-
 snapshot_files_public <- file.path("downloads", "daily-salary-snapshots", snapshot_filenames)
-latest_snapshot_public <- if (file.exists(latest_snapshot_data)) {
-  file.path("downloads", "daily-salary-snapshots", latest_snapshot_filename)
+latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
+  snapshot_files_public[1]
 } else {
   NA_character_
 }

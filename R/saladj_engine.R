@@ -561,6 +561,8 @@ if (length(status_col) == 0) rosters_now$roster_status <- NA_character_ else ros
 if (!"franchise_id" %in% names(rosters_now)) rosters_now$franchise_id <- NA_character_
 if (!"franchise_name" %in% names(rosters_now)) rosters_now$franchise_name <- NA_character_
 if (!"player_id" %in% names(rosters_now)) rosters_now$player_id <- NA_character_
+if (!"team" %in% names(rosters_now)) rosters_now$team <- NA_character_
+if (!"pos" %in% names(rosters_now)) rosters_now$pos <- NA_character_
 
 rosters_now <- rosters_now %>%
   dplyr::mutate(player_id = as.character(.data$player_id)) %>%
@@ -590,6 +592,8 @@ current_roster_snapshot <- rosters_now %>%
     CONF = .data$CONF,
     player_id = as.character(.data$player_id),
     player_name = as.character(.data$player_name),
+    player_team = as.character(.data$team),
+    player_pos = as.character(.data$pos),
     roster_status = format_roster_status(.data$roster_status),
     roster_salary = .data$salary,
     roster_years = .data$contract_years,
