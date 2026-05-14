@@ -194,6 +194,14 @@ load_roster_snapshot_history <- function(snapshot_dir, season) {
   }))
 }
 
+roster_snapshot_values <- function(df) {
+  if (is.null(df) || nrow(df) == 0) return(tibble::tibble())
+  df %>%
+    dplyr::select(-dplyr::any_of("snapshot_time")) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) %>%
+    dplyr::arrange(.data$franchise_id, .data$player_id)
+}
+
 write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapshot_time) {
   dir.create(snapshot_dir, recursive = TRUE, showWarnings = FALSE)
   snapshot_stamp <- format(lubridate::with_tz(snapshot_time, "UTC"), "%Y%m%d_%H%M%S")
@@ -202,6 +210,13 @@ write_roster_snapshot <- function(roster_snapshot, snapshot_dir, season, snapsho
     paste0("saladj_roster_snapshot_", season, "_", snapshot_stamp, ".csv")
   )
   latest_file <- file.path(snapshot_dir, paste0("saladj_roster_snapshot_", season, "_latest.csv"))
+  
+  if (file.exists(latest_file)) {
+    latest_snapshot <- readr::read_csv(latest_file, show_col_types = FALSE)
+    if (identical(roster_snapshot_values(roster_snapshot), roster_snapshot_values(latest_snapshot))) {
+      return(latest_file)
+    }
+  }
   
   readr::write_csv(roster_snapshot, snapshot_file, na = "")
   readr::write_csv(roster_snapshot, latest_file, na = "")

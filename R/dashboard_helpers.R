@@ -34,6 +34,14 @@ build_dashboard_index_html <- function() {
 
 build_saladjcurator_html <- function(run_meta, archive_files_public) {
   archive_links_html <- build_archive_links_html(archive_files_public)
+  last_checked <- if ("last_checked_display" %in% names(run_meta)) run_meta$last_checked_display[1] else run_meta$run_time_display[1]
+  last_changed <- if ("last_changed_display" %in% names(run_meta)) run_meta$last_changed_display[1] else run_meta$run_time_display[1]
+  changed_text <- if ("latest_csv_changed" %in% names(run_meta) && !is.na(run_meta$latest_csv_changed[1]) && isFALSE(run_meta$latest_csv_changed[1])) {
+    "No new actionable CSV was archived on the most recent check."
+  } else {
+    "A new actionable CSV was archived on the most recent check."
+  }
+  qualifying_rows <- if ("qualifying_rows" %in% names(run_meta)) run_meta$qualifying_rows[1] else NA_integer_
   
   paste0(
     "<html>
@@ -45,9 +53,15 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
 
   <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
 
-  <p><strong>Script last run:</strong> ", run_meta$run_time_display[1], "</p>
+  <p><strong>Last checked:</strong> ", last_checked, "</p>
 
-  <p><strong>Latest CSV:</strong> <a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a> (script generated: ", run_meta$run_time_display[1], ")</p>
+  <p><strong>Latest change:</strong> ", last_changed, "</p>
+
+  <p><strong>Current qualifying rows:</strong> ", qualifying_rows, "</p>
+
+  <p><strong>Status:</strong> ", changed_text, "</p>
+
+  <p><strong>Latest CSV:</strong> <a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a></p>
 
   <h2>SalAdjCurator Archive</h2>
   ", archive_links_html, "
