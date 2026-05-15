@@ -87,6 +87,7 @@ qualified_rds  <- file.path(script_dir, paste0("saladj_qualified_", current_seas
 out_csv <- file.path(script_dir, paste0("SalAdjCurator_", current_season, ".csv"))
 out_rds <- file.path(script_dir, paste0("SalAdjCurator_", current_season, ".rds"))
 snapshot_dir <- file.path(script_dir, "roster_snapshots")
+prescrape_seed_csv <- file.path(script_dir, paste0("saladj_prescrape_seed_", current_season, ".csv"))
 
 # ----------------------------
 # MFL Conn
@@ -351,6 +352,69 @@ normalize_and_dedupe_cache <- function(df) {
     dplyr::select(-"dedupe_key")
   
   df
+}
+
+load_prescrape_seed_rows <- function(seed_path, current_season, pen_col_1, pen_col_2) {
+  base_cols <- c(
+    "CONF", "DATE", "FRAN", "PLAYER", "SALARY", "YEARS", "CONTRACT", pen_col_1, pen_col_2,
+    "B/R", "TR/IB", "FG", "(S)", "JT", "1.XX+", "NOTES", "ENTD?", "RVSD?"
+  )
+  
+  if (!file.exists(seed_path)) {
+    empty <- tibble::tibble(row_key = character(), pair_key = character(), pair_ord = integer(), DATE_sort = as.POSIXct(character(), tz = "America/Toronto"))
+    for (col in base_cols) empty[[col]] <- character()
+    return(empty)
+  }
+  
+  seed <- readr::read_csv(seed_path, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+  for (col in base_cols) {
+    if (!col %in% names(seed)) seed[[col]] <- ""
+  }
+  
+  seed %>%
+    dplyr::transmute(
+      CONF = dplyr::coalesce(.data$CONF, ""),
+      DATE = dplyr::coalesce(.data$DATE, ""),
+      FRAN = dplyr::coalesce(.data$FRAN, ""),
+      PLAYER = dplyr::coalesce(.data$PLAYER, ""),
+      SALARY = dplyr::coalesce(.data$SALARY, ""),
+      YEARS = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$YEARS, "")),
+      CONTRACT = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$CONTRACT, "")),
+      !!pen_col_1 := dplyr::coalesce(.data[[pen_col_1]], ""),
+      !!pen_col_2 := dplyr::coalesce(.data[[pen_col_2]], ""),
+      `B/R` = dplyr::coalesce(.data$`B/R`, ""),
+      `TR/IB` = dplyr::coalesce(.data$`TR/IB`, ""),
+      FG = dplyr::coalesce(.data$FG, ""),
+      `(S)` = dplyr::coalesce(.data$`(S)`, ""),
+      JT = dplyr::coalesce(.data$JT, ""),
+      `1.XX+` = dplyr::coalesce(.data$`1.XX+`, ""),
+      NOTES = dplyr::coalesce(.data$NOTES, ""),
+      `ENTD?` = dplyr::coalesce(.data$`ENTD?`, ""),
+      `RVSD?` = dplyr::coalesce(.data$`RVSD?`, "")
+    ) %>%
+    dplyr::filter(.data$DATE != "", .data$FRAN != "", .data$PLAYER != "") %>%
+    dplyr::mutate(
+      DATE_sort = lubridate::parse_date_time(
+        .data$DATE,
+        orders = c("mdY HMS", "mdY HM", "mdY", "Ymd HMS", "Ymd HM", "Ymd"),
+        tz = "America/Toronto"
+      ),
+      row_key = paste0(
+        "prescrape_seed|", current_season, "|", .data$CONF, "|", .data$DATE, "|",
+        .data$FRAN, "|", .data$PLAYER, "|", .data$SALARY
+      ),
+      pair_key = dplyr::if_else(
+        .data$PLAYER == "Cash Trade",
+        paste0("prescrape_cash|", current_season, "|", .data$CONF, "|", .data$DATE),
+        paste0("prescrape_seed|", .data$row_key)
+      ),
+      pair_ord = dplyr::if_else(
+        .data$PLAYER == "Cash Trade" & suppressWarnings(as.numeric(.data$SALARY)) < 0,
+        2L,
+        1L
+      )
+    ) %>%
+    dplyr::filter(!is.na(.data$DATE_sort))
 }
 
 # ----------------------------
@@ -949,7 +1013,9 @@ sd_rows <- tx_enriched %>%
 # Combine, cache, output
 # ----------------------------
 
-new_qualified <- dplyr::bind_rows(sd_rows, cash_trade_rows)
+prescrape_seed_rows <- load_prescrape_seed_rows(prescrape_seed_csv, current_season, pen_col_1, pen_col_2)
+
+new_qualified <- dplyr::bind_rows(prescrape_seed_rows, sd_rows, cash_trade_rows)
 
 if (nrow(new_qualified) == 0) {
   final_out_csv <- tibble::tibble()
@@ -963,7 +1029,7 @@ if (nrow(new_qualified) == 0) {
 qualified_all <- dplyr::bind_rows(qualified_existing, new_qualified) %>%
   dplyr::distinct(.data$row_key, .keep_all = TRUE) %>%
   dplyr::mutate(DATE_sort_local = lubridate::with_tz(.data$DATE_sort, tzone = "America/Toronto")) %>%
-  dplyr::filter(.data$DATE_sort_local > cutoff_end_local) %>%
+  dplyr::filter(.data$DATE_sort_local > cutoff_end_local | startsWith(.data$row_key, "prescrape_seed|")) %>%
   dplyr::select(-"DATE_sort_local")
 
 qualified_all <- normalize_and_dedupe_cache(qualified_all)

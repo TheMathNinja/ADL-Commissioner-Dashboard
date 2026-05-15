@@ -120,8 +120,8 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
 
   <h2>Instructions</h2>
   <p>
-  This script scrapes ADL transactions after the NFL draft to avoid complications from early offseason auctions.
-  Enter cap adjustments manually before that time.
+  This script combines static pre-scrape rows copied from the ADL Contract Admin sheets with fresh scraped ADL transactions.
+  The static seed closes the gap for present-season transactions that were entered manually before this dashboard began running.
   Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into ADL Contract Admin sheet for each conference.
   This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
   Enter that data manually.
