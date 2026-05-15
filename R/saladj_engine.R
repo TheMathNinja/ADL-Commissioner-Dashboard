@@ -380,8 +380,8 @@ load_prescrape_seed_rows <- function(seed_path, current_season, pen_col_1, pen_c
       SALARY = dplyr::coalesce(.data$SALARY, ""),
       YEARS = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$YEARS, "")),
       CONTRACT = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$CONTRACT, "")),
-      !!pen_col_1 := dplyr::coalesce(.data[[pen_col_1]], ""),
-      !!pen_col_2 := dplyr::coalesce(.data[[pen_col_2]], ""),
+      !!pen_col_1 := "",
+      !!pen_col_2 := "",
       `B/R` = dplyr::coalesce(.data$`B/R`, ""),
       `TR/IB` = dplyr::coalesce(.data$`TR/IB`, ""),
       FG = dplyr::coalesce(.data$FG, ""),
@@ -389,8 +389,8 @@ load_prescrape_seed_rows <- function(seed_path, current_season, pen_col_1, pen_c
       JT = dplyr::coalesce(.data$JT, ""),
       `1.XX+` = dplyr::coalesce(.data$`1.XX+`, ""),
       NOTES = dplyr::coalesce(.data$NOTES, ""),
-      `ENTD?` = dplyr::coalesce(.data$`ENTD?`, ""),
-      `RVSD?` = dplyr::coalesce(.data$`RVSD?`, "")
+      `ENTD?` = "",
+      `RVSD?` = ""
     ) %>%
     dplyr::filter(.data$DATE != "", .data$FRAN != "", .data$PLAYER != "") %>%
     dplyr::mutate(
