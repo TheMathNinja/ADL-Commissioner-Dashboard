@@ -38,6 +38,26 @@ same_csv_output <- function(new_df, old_csv) {
   identical(normalize_for_compare(new_df), normalize_for_compare(old_df))
 }
 
+same_df_output <- function(new_df, old_df) {
+  if (is.null(old_df)) return(FALSE)
+  identical(normalize_for_compare(new_df), normalize_for_compare(old_df))
+}
+
+find_latest_matching_archive <- function(new_df, archive_dir, current_season) {
+  archive_files <- list.files(
+    archive_dir,
+    pattern = paste0("^", current_season, "_\\d{2}_\\d{2}_ADLSalAdjCurator\\.csv$"),
+    full.names = TRUE
+  )
+  archive_files <- sort(archive_files, decreasing = TRUE)
+  for (archive_path in archive_files) {
+    if (same_csv_output(new_df, archive_path)) {
+      return(archive_path)
+    }
+  }
+  NA_character_
+}
+
 run_time_toronto <- as.POSIXct(
   format(Sys.time(), tz = "America/Toronto", usetz = TRUE),
   tz = "America/Toronto"
@@ -53,6 +73,12 @@ dir.create(file.path("data", "archive"), recursive = TRUE, showWarnings = FALSE)
 latest_csv <- file.path("data", "SalAdjCurator_latest.csv")
 archive_file <- file.path("data", "archive", archive_filename)
 metadata_file <- file.path("data", "run_metadata.csv")
+
+prior_latest_df <- if (file.exists(latest_csv)) {
+  readr::read_csv(latest_csv, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+} else {
+  NULL
+}
 
 prior_meta <- if (file.exists(metadata_file)) {
   readr::read_csv(metadata_file, show_col_types = FALSE)
@@ -79,7 +105,7 @@ saladj_rows <- build_saladj_curator(
   output_dir = "data"
 )
 
-output_changed <- !same_csv_output(saladj_rows, latest_csv)
+output_changed <- !same_df_output(saladj_rows, prior_latest_df)
 archive_missing <- is.na(prior_archive_file) || !file.exists(prior_archive_file)
 should_publish_archive <- output_changed || !file.exists(latest_csv) || archive_missing
 
@@ -91,9 +117,12 @@ if (should_publish_archive) {
   last_changed_display <- run_time_display
   message("Published new SalAdjCurator archive: ", archive_file)
 } else {
-  latest_archive_data_path <- prior_archive_file
-  latest_archive_filename <- prior_archive_filename
-  last_changed_display <- if ("last_changed_display" %in% names(prior_meta) && nrow(prior_meta) > 0) {
+  matching_archive_file <- find_latest_matching_archive(saladj_rows, file.path("data", "archive"), current_season)
+  latest_archive_data_path <- if (!is.na(matching_archive_file)) matching_archive_file else prior_archive_file
+  latest_archive_filename <- basename(latest_archive_data_path)
+  last_changed_display <- if (!is.na(matching_archive_file) && !identical(latest_archive_filename, prior_archive_filename)) {
+    format_run_time(as.POSIXct(file.info(matching_archive_file)$mtime, tz = "America/Toronto"))
+  } else if ("last_changed_display" %in% names(prior_meta) && nrow(prior_meta) > 0) {
     as.character(prior_meta$last_changed_display[1])
   } else if ("run_time_display" %in% names(prior_meta) && nrow(prior_meta) > 0) {
     as.character(prior_meta$run_time_display[1])
