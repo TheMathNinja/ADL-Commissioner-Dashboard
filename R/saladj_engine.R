@@ -329,7 +329,7 @@ normalize_and_dedupe_cache <- function(df) {
   
   df <- df %>%
     dplyr::mutate(
-      YEARS = dplyr::if_else(.data$PLAYER == "Cash Trade", "1", dplyr::coalesce(.data$YEARS, "")),
+      YEARS = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$YEARS, "")),
       CONTRACT = dplyr::if_else(.data$PLAYER == "Cash Trade", "", dplyr::coalesce(.data$CONTRACT, ""))
     )
   
@@ -803,7 +803,7 @@ if (nrow(trade_groups) > 0) {
       FRAN = .data$sender_abbrev,
       PLAYER = "Cash Trade",
       SALARY = as.character(abs(.data$cash_amt_m)),
-      YEARS = "1",
+      YEARS = "",
       CONTRACT = "",
       !!pen_col_1 := "",
       !!pen_col_2 := "",
@@ -829,7 +829,7 @@ if (nrow(trade_groups) > 0) {
       FRAN = .data$receiver_abbrev,
       PLAYER = "Cash Trade",
       SALARY = as.character(-abs(.data$cash_amt_m)),
-      YEARS = "1",
+      YEARS = "",
       CONTRACT = "",
       !!pen_col_1 := "",
       !!pen_col_2 := "",
