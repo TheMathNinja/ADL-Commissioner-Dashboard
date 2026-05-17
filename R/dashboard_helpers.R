@@ -78,6 +78,7 @@ build_dashboard_index_html <- function(
     <li><a href='saladjcurator.html'>SalAdjCurator</a></li>
     ", daily_snapshot_text, "
     ", cap_accounting_text, "
+    <li><a href='https://themathninja.github.io/ADL-GM-Dashboard/'>GM Dashboard</a></li>
   </ul>
 </body>
 </html>"
