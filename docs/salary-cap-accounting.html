@@ -1,24 +1,182 @@
-<html>
+<!DOCTYPE html>
+<html lang='en'>
 <head>
-  <title>ADL Commissioner Dashboard - Salary Cap Accounting & Rollover</title>
+  <meta charset='utf-8' />
+  <meta name='viewport' content='width=device-width,initial-scale=1' />
+  <title>Salary Cap Accounting & Rollover</title>
+  
+  <style>
+    :root {
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --panel: #ffffff;
+      --page: #f3f5f7;
+      --red: #c83a3f;
+      --blue: #174ea6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1.9rem;
+      min-height: 6.4rem;
+      padding: 0.65rem 1.5rem;
+      background: linear-gradient(90deg, #8b8b8b 0%, #a3a9ae 10%, #c9ced3 28%, #d8dde2 44%, #d8dde2 100%);
+      border-bottom: 2px solid var(--red);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
+    }
+    header img {
+      width: 5.15rem;
+      height: 6.1rem;
+      object-fit: contain;
+    }
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem;
+    }
+    .tool-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .tool-card,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+    }
+    .tool-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.2rem 1.25rem;
+    }
+    .panel {
+      padding: 1.2rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+    h3 {
+      margin: 1rem 0 0.35rem;
+      font-size: 1rem;
+      line-height: 1.2;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    p {
+      margin: 0 0 0.75rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    p:last-child { margin-bottom: 0; }
+    ul {
+      margin: 0.35rem 0 0;
+      padding-left: 1.25rem;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    a {
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.5rem;
+      padding: 0 1rem;
+      border-radius: 6px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 1rem;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.85rem 0.95rem;
+    }
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    @media (max-width: 720px) {
+      header { gap: 1.25rem; padding: 0.65rem 1rem; }
+      header img { width: 4.4rem; height: 5.2rem; }
+      .tool-card,
+      .stat-row {
+        grid-template-columns: 1fr;
+      }
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Salary Cap Accounting & Rollover</h1>
-
-  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
-
-  <p><strong>Current Summary:</strong> <a href='downloads/salary-cap-accounting/summaries/2026w1_ADLsalarycapsummary.csv?v=4fa46a29d5b0ec208fe58cca3704e5e0'>2026w1_ADLsalarycapsummary.csv</a></p>
-
-  <h2>Weekly Snapshots and Summaries Archive</h2>
-
-  <h3>Summaries</h3>
-  <ul>
+  <header>
+    <img src='adl-shield.png' alt='ADL shield' />
+    <h1>Salary Cap Accounting & Rollover</h1>
+  </header>
+  <main>
+    <a class='back-link' href='index.html'>Back to Commissioner Dashboard</a><section class='panel'><p><strong>Current Summary:</strong> <a href='downloads/salary-cap-accounting/summaries/2026w1_ADLsalarycapsummary.csv?v=4fa46a29d5b0ec208fe58cca3704e5e0'>2026w1_ADLsalarycapsummary.csv</a></p></section>
+      <section class='panel'>
+        <h2>Weekly Snapshots and Summaries Archive</h2>
+        <h3>Summaries</h3>
+        <ul>
 <li><a href='downloads/salary-cap-accounting/summaries/2026w1_ADLsalarycapsummary.csv?v=4fa46a29d5b0ec208fe58cca3704e5e0'>2026w1_ADLsalarycapsummary.csv</a></li>
 </ul>
-
-  <h3>Full Snapshots</h3>
-  <ul>
+        <h3>Full Snapshots</h3>
+        <ul>
 <li><a href='downloads/salary-cap-accounting/snapshots/2026w1_ADLsalarycapsnapshot.csv?v=cac63114659154d95a9be59cbdef011b'>2026w1_ADLsalarycapsnapshot.csv</a></li>
 </ul>
+      </section>
+  </main>
 </body>
 </html>

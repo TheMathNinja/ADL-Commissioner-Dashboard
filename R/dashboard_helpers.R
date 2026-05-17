@@ -2,6 +2,202 @@
 # -------------------
 # Helper functions for dashboard HTML generation.
 
+dashboard_css <- function() {
+  "
+  <style>
+    :root {
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --panel: #ffffff;
+      --page: #f3f5f7;
+      --red: #c83a3f;
+      --blue: #174ea6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1.9rem;
+      min-height: 6.4rem;
+      padding: 0.65rem 1.5rem;
+      background: linear-gradient(90deg, #8b8b8b 0%, #a3a9ae 10%, #c9ced3 28%, #d8dde2 44%, #d8dde2 100%);
+      border-bottom: 2px solid var(--red);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
+    }
+    header img {
+      width: 5.15rem;
+      height: 6.1rem;
+      object-fit: contain;
+    }
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem;
+    }
+    .tool-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .tool-card,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+    }
+    .tool-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.2rem 1.25rem;
+    }
+    .panel {
+      padding: 1.2rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+    h3 {
+      margin: 1rem 0 0.35rem;
+      font-size: 1rem;
+      line-height: 1.2;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    p {
+      margin: 0 0 0.75rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    p:last-child { margin-bottom: 0; }
+    ul {
+      margin: 0.35rem 0 0;
+      padding-left: 1.25rem;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    a {
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.5rem;
+      padding: 0 1rem;
+      border-radius: 6px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 1rem;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.85rem 0.95rem;
+    }
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    @media (max-width: 720px) {
+      header { gap: 1.25rem; padding: 0.65rem 1rem; }
+      header img { width: 4.4rem; height: 5.2rem; }
+      .tool-card,
+      .stat-row {
+        grid-template-columns: 1fr;
+      }
+      .button {
+        width: 100%;
+      }
+    }
+  </style>"
+}
+
+dashboard_page <- function(title, body_html) {
+  paste0(
+    "<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8' />
+  <meta name='viewport' content='width=device-width,initial-scale=1' />
+  <title>", title, "</title>
+  ", dashboard_css(), "
+</head>
+<body>
+  <header>
+    <img src='adl-shield.png' alt='ADL shield' />
+    <h1>", title, "</h1>
+  </header>
+  <main>
+    ", body_html, "
+  </main>
+</body>
+</html>"
+  )
+}
+
+tool_card <- function(title, description, href, button = "Open") {
+  paste0(
+    "<section class='tool-card'>
+      <div>
+        <h2>", title, "</h2>
+        <p>", description, "</p>
+      </div>
+      <a class='button' href='", href, "'>", button, "</a>
+    </section>"
+  )
+}
+
+back_link <- function() {
+  "<a class='back-link' href='index.html'>Back to Commissioner Dashboard</a>"
+}
+
 build_archive_links_html <- function(archive_files_public) {
   if (length(archive_files_public) == 0) {
     return("<p>No archived CSV files yet.</p>")
@@ -66,22 +262,40 @@ build_dashboard_index_html <- function(
     "<li><a href='salary-cap-accounting.html'>Salary Cap Accounting & Rollover</a></li>"
   }
 
-  paste0(
-    "<html>
-<head>
-  <title>ADL Commissioner Dashboard</title>
-</head>
-<body>
-  <h1>ADL Commissioner Dashboard</h1>
-
-  <ul>
-    <li><a href='saladjcurator.html'>SalAdjCurator</a></li>
-    ", daily_snapshot_text, "
-    ", cap_accounting_text, "
-    <li><a href='https://themathninja.github.io/ADL-GM-Dashboard/'>GM Dashboard</a></li>
-  </ul>
-</body>
-</html>"
+  dashboard_page(
+    "ADL Commissioner Dashboard",
+    paste0(
+      "<div class='tool-grid'>",
+      tool_card(
+        "SalAdjCurator",
+        "Transaction review output for salary adjustments that need league-office handling.",
+        "saladjcurator.html"
+      ),
+      tool_card(
+        "Daily Salary Snapshots",
+        if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
+          paste0("Roster salary snapshots with latest capture: ", latest_daily_salary_snapshot_label, ".")
+        } else {
+          "Roster salary snapshots captured by dashboard runs."
+        },
+        "daily-salary-snapshots.html"
+      ),
+      tool_card(
+        "Salary Cap Accounting & Rollover",
+        if (!is.na(latest_cap_summary_public) && nzchar(latest_cap_summary_public)) {
+          paste0("Current cap summary: ", latest_cap_summary_label, ".")
+        } else {
+          "Weekly salary-cap summaries and full accounting snapshots."
+        },
+        "salary-cap-accounting.html"
+      ),
+      tool_card(
+        "GM Dashboard",
+        "Player-facing ADL tools, including the live Contract Extension Calculator.",
+        "https://themathninja.github.io/ADL-GM-Dashboard/"
+      ),
+      "</div>"
+    )
   )
 }
 
@@ -96,39 +310,34 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
   }
   qualifying_rows <- if ("qualifying_rows" %in% names(run_meta)) run_meta$qualifying_rows[1] else NA_integer_
   
-  paste0(
-    "<html>
-<head>
-  <title>ADL Commissioner Dashboard - SalAdjCurator</title>
-</head>
-<body>
-  <h1>SalAdjCurator</h1>
-
-  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
-
-  <p><strong>Last checked:</strong> ", last_checked, "</p>
-
-  <p><strong>Latest change:</strong> ", last_changed, "</p>
-
-  <p><strong>Current qualifying rows:</strong> ", qualifying_rows, "</p>
-
-  <p><strong>Status:</strong> ", changed_text, "</p>
-
-  <p><strong>Latest CSV:</strong> <a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a></p>
-
-  <h2>SalAdjCurator Archive</h2>
-  ", archive_links_html, "
-
-  <h2>Instructions</h2>
-  <p>
-  This script combines static pre-scrape rows copied from the ADL Contract Admin sheets with fresh scraped ADL transactions.
-  The static seed closes the gap for present-season transactions that were entered manually before this dashboard began running.
-  Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into ADL Contract Admin sheet for each conference.
-  This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
-  Enter that data manually.
-  </p>
-</body>
-</html>"
+  dashboard_page(
+    "SalAdjCurator",
+    paste0(
+      back_link(),
+      "<section class='panel'>
+        <div class='stat-row'>
+          <div class='stat'><span class='stat-label'>Last checked</span><span class='stat-value'>", last_checked, "</span></div>
+          <div class='stat'><span class='stat-label'>Latest change</span><span class='stat-value'>", last_changed, "</span></div>
+          <div class='stat'><span class='stat-label'>Current qualifying rows</span><span class='stat-value'>", qualifying_rows, "</span></div>
+          <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a></span></div>
+        </div>
+        <p><strong>Status:</strong> ", changed_text, "</p>
+      </section>
+      <section class='panel'>
+        <h2>SalAdjCurator Archive</h2>
+        ", archive_links_html, "
+      </section>
+      <section class='panel'>
+        <h2>Instructions</h2>
+        <p>
+        This script combines static pre-scrape rows copied from the ADL Contract Admin sheets with fresh scraped ADL transactions.
+        The static seed closes the gap for present-season transactions that were entered manually before this dashboard began running.
+        Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into ADL Contract Admin sheet for each conference.
+        This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
+        Enter that data manually.
+        </p>
+      </section>"
+    )
   )
 }
 
@@ -154,27 +363,19 @@ build_cap_accounting_html <- function(
   summary_links_html <- build_archive_links_with_warnings_html(summary_files_public, warnings_by_file)
   snapshot_links_html <- build_archive_links_html(snapshot_files_public)
 
-  paste0(
-    "<html>
-<head>
-  <title>ADL Commissioner Dashboard - Salary Cap Accounting & Rollover</title>
-</head>
-<body>
-  <h1>Salary Cap Accounting & Rollover</h1>
-
-  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
-
-  ", current_summary_html, "
-
-  <h2>Weekly Snapshots and Summaries Archive</h2>
-
-  <h3>Summaries</h3>
-  ", summary_links_html, "
-
-  <h3>Full Snapshots</h3>
-  ", snapshot_links_html, "
-</body>
-</html>"
+  dashboard_page(
+    "Salary Cap Accounting & Rollover",
+    paste0(
+      back_link(),
+      "<section class='panel'>", current_summary_html, "</section>
+      <section class='panel'>
+        <h2>Weekly Snapshots and Summaries Archive</h2>
+        <h3>Summaries</h3>
+        ", summary_links_html, "
+        <h3>Full Snapshots</h3>
+        ", snapshot_links_html, "
+      </section>"
+    )
   )
 }
 
@@ -201,31 +402,27 @@ build_daily_salary_snapshots_html <- function(
     )
   }
 
-  paste0(
-    "<html>
-<head>
-  <title>ADL Commissioner Dashboard - Daily Salary Snapshots</title>
-</head>
-<body>
-  <h1>Daily Salary Snapshots</h1>
-
-  <p><a href='index.html'>Back to Commissioner Dashboard</a></p>
-
-  ", latest_link_html, "
-
-  ", no_change_html, "
-
-  <h2>Snapshot Archive</h2>
-  ", snapshot_links_html, "
-
-  <h2>Notes</h2>
-  <p>
-  These CSVs are roster salary snapshots captured by the SalAdjCurator run and published using Eastern time.
-  The archive shows the latest capture for each Eastern calendar day.
-  They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
-  They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
-  </p>
-</body>
-</html>"
+  dashboard_page(
+    "Daily Salary Snapshots",
+    paste0(
+      back_link(),
+      "<section class='panel'>
+        ", latest_link_html, "
+        ", no_change_html, "
+      </section>
+      <section class='panel'>
+        <h2>Snapshot Archive</h2>
+        ", snapshot_links_html, "
+      </section>
+      <section class='panel'>
+        <h2>Notes</h2>
+        <p>
+        These CSVs are roster salary snapshots captured by the SalAdjCurator run and published using Eastern time.
+        The archive shows the latest capture for each Eastern calendar day.
+        They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
+        They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
+        </p>
+      </section>"
+    )
   )
 }
