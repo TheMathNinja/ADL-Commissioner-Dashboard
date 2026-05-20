@@ -331,7 +331,10 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
         <h2>Instructions</h2>
         <p>
         This script combines static pre-scrape rows copied from the ADL Contract Admin sheets with fresh scraped ADL transactions.
-        The static seed closes the gap for present-season transactions that were entered manually before this dashboard began running.
+        For 2026, the scrape-backed rows begin with May 1, 2026 transactions.
+        Contract Admin should remain the source of truth for present-season SalAdj entries before May 1, 2026, and those rows are seeded here manually.
+        This includes all entries through the NFL Draft date, April 23, 2026, because offseason auction activity such as FT and B/R can create drops that should not be counted as ordinary in-season salary-adjustment drops by the scraper.
+        April 24-30, 2026 entries are also seeded from Contract Admin because they occurred before this dashboard's scrape feed was running reliably.
         Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into ADL Contract Admin sheet for each conference.
         This sheet does not track Suspended status ((S) column) or July 1 Tenders (JT column).
         Enter that data manually.
