@@ -1,0 +1,77 @@
+name: Dashboard Watchdog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 15 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check-dashboard-freshness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify SalAdjCurator checked in recently
+        shell: python
+        run: |
+          import csv
+          import re
+          import sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          metadata_path = Path("data/run_metadata.csv")
+          max_age_hours = 28
+
+          if not metadata_path.exists():
+              sys.exit("data/run_metadata.csv is missing; dashboard freshness cannot be verified.")
+
+          with metadata_path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          if not rows:
+              sys.exit("data/run_metadata.csv has no rows; dashboard freshness cannot be verified.")
+
+          last_checked = (rows[0].get("last_checked_display") or "").strip()
+          if not last_checked:
+              sys.exit("last_checked_display is blank in data/run_metadata.csv.")
+
+          match = re.fullmatch(
+              r"(\d{1,2})/(\d{1,2})/(\d{4}) (\d{1,2}):(\d{2}) (a\.m\.|p\.m\.) (EDT|EST)",
+              last_checked,
+          )
+          if not match:
+              sys.exit(f"Could not parse last_checked_display: {last_checked!r}")
+
+          month, day, year, hour, minute, meridiem, _abbr = match.groups()
+          hour = int(hour)
+          if meridiem == "a.m.":
+              hour = 0 if hour == 12 else hour
+          else:
+              hour = 12 if hour == 12 else hour + 12
+
+          checked_at = datetime(
+              int(year),
+              int(month),
+              int(day),
+              hour,
+              int(minute),
+              tzinfo=ZoneInfo("America/New_York"),
+          )
+          now = datetime.now(timezone.utc)
+          age_hours = (now - checked_at.astimezone(timezone.utc)).total_seconds() / 3600
+
+          print(f"Last checked: {last_checked}")
+          print(f"Age: {age_hours:.2f} hours")
+
+          if age_hours > max_age_hours:
+              sys.exit(
+                  f"SalAdjCurator is stale: last checked {age_hours:.2f} hours ago, "
+                  f"which exceeds the {max_age_hours}-hour watchdog threshold."
+              )
