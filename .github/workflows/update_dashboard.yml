@@ -43,15 +43,18 @@ jobs:
             exit 0
           fi
 
-          LOCAL_HOUR=$(TZ=America/Toronto date +%H)
-          echo "Toronto local hour is $LOCAL_HOUR"
+          TORONTO_OFFSET=$(TZ=America/Toronto date +%z)
+          SCHEDULE="${{ github.event.schedule }}"
+          echo "Toronto UTC offset is $TORONTO_OFFSET"
+          echo "Scheduled cron is $SCHEDULE"
 
-          if [ "$LOCAL_HOUR" = "05" ]; then
+          if { [ "$TORONTO_OFFSET" = "-0400" ] && [ "$SCHEDULE" = "17 9 * * *" ]; } || \
+             { [ "$TORONTO_OFFSET" = "-0500" ] && [ "$SCHEDULE" = "17 10 * * *" ]; }; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "It is 5 a.m. in Toronto -> proceeding."
+            echo "Correct 5 a.m. Toronto cron slot -> proceeding."
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Not 5 a.m. in Toronto -> skipping."
+            echo "Duplicate non-5 a.m. Toronto cron slot -> skipping."
           fi
 
       - name: Create cache directories
