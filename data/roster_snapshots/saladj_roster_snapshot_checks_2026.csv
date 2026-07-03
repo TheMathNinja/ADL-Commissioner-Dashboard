@@ -7,3 +7,4 @@ season,check_date_et,last_checked_at_et,snapshot_changed,snapshot_file
 2026,2026-06-30,06/30/2026 07:57 AM EDT,TRUE,saladj_roster_snapshot_2026_20260630_115713.csv
 2026,2026-07-01,07/01/2026 08:22 AM EDT,FALSE,saladj_roster_snapshot_2026_latest.csv
 2026,2026-07-02,07/02/2026 07:47 AM EDT,TRUE,saladj_roster_snapshot_2026_20260702_114755.csv
+2026,2026-07-03,07/03/2026 07:46 AM EDT,FALSE,saladj_roster_snapshot_2026_latest.csv
