@@ -457,21 +457,21 @@ build_daily_roster_snapshots_html <- function(
     paste0(
       back_link(),
       "<section class='panel'>
-        ", latest_link_html, "
-        ", no_change_html, "
-      </section>
-      <section class='panel'>
-        <h2>Snapshot Archive</h2>
-        ", snapshot_links_html, "
-      </section>
-      <section class='panel'>
-        <h2>Notes</h2>
+        <h2>Purpose</h2>
         <p>
         These CSVs are roster snapshots captured by the SalAdjCurator run and published using Eastern time.
         The archive shows the latest capture for each Eastern calendar day.
         They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
         They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
         </p>
+      </section>
+      <section class='panel'>
+        ", latest_link_html, "
+        ", no_change_html, "
+      </section>
+      <section class='panel'>
+        <h2>Snapshot Archive</h2>
+        ", snapshot_links_html, "
       </section>"
     )
   )
