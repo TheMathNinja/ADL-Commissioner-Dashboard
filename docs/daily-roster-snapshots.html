@@ -172,15 +172,10 @@
     <a class='back-link' href='index.html'>Back to Commissioner Dashboard</a><section class='panel'>
         <h2>Purpose</h2>
         <p>
-        These CSVs are roster snapshots captured by the SalAdjCurator run and published using Eastern time.
-        The archive shows the latest capture for each Eastern calendar day.
-        They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
-        They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
-        </p>
-        <p>
-        The dashboard checks for roster snapshots automatically each day at 5 a.m. Eastern time, and also during manual or push-triggered dashboard runs.
-        A new dated CSV is published only when the roster snapshot differs from the latest saved snapshot after ignoring the capture timestamp.
-        If no roster, salary, contract, team, or status values changed, the dashboard records the check but does not add a new archive CSV.
+        Daily Roster Snapshots exist to provide a consistent historical record of ADL roster movement for commissioner accounting purposes.
+        This dashboard's script runs automatically each day at 5 a.m. Eastern, and also during manual or push-triggered runs.
+        A new dated CSV is published only when the roster data changes from the latest saved snapshot.
+        The snapshots include roster, salary, contract, franchise, conference, and roster status information.
         </p>
       </section>
       <section class='panel'>
