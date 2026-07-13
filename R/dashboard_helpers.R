@@ -419,6 +419,18 @@ build_cap_accounting_html <- function(
       back_link(),
       "<section class='panel'>", current_summary_html, "</section>
       <section class='panel'>
+        <h2>Instructions</h2>
+        <p>
+        The weekly salary cap accounting workflow is scheduled to run every Tuesday at 3:30 a.m. Eastern time during September through January.
+        It can also be run manually from GitHub Actions with a selected snapshot week.
+        When no week is provided, the workflow infers the latest completed regular-season fantasy week, capped at Week 17.
+        </p>
+        <p>
+        In each weekly summary CSV, the output columns from A through Adj are intended to be copied and pasted into the Cap Rollover tab of the current ADL Contract Admin spreadsheet.
+        Commissioners can then manually enter corrections in the spreadsheet for the final rollover calculation.
+        </p>
+      </section>
+      <section class='panel'>
         <h2>Weekly Snapshots and Summaries Archive</h2>
         <h3>Summaries</h3>
         ", summary_links_html, "
