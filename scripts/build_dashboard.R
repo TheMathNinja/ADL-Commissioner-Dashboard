@@ -184,9 +184,11 @@ dir.create(file.path("docs", "downloads"), recursive = TRUE, showWarnings = FALS
 dir.create(file.path("docs", "downloads", "daily-roster-snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections"), recursive = TRUE, showWarnings = FALSE)
 unlink(file.path("docs", "downloads", "daily-roster-snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
+unlink(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections", "*.csv"))
 
 # Find archived CSVs for current season only
 archive_files_data <- list.files(
@@ -293,24 +295,31 @@ cap_summary_files_data <- list.files(
   pattern = paste0("^", current_season, "w\\d+_ADLsalarycapsummary\\.csv$"),
   full.names = TRUE
 )
+cap_waiver_correction_files_data <- list.files(
+  path = file.path(cap_base_dir, "waiver_corrections"),
+  pattern = paste0("^", current_season, "w\\d+_ADLwaivercorrections\\.csv$"),
+  full.names = TRUE
+)
 cap_warning_files_data <- list.files(
   path = cap_base_dir,
   pattern = paste0("^", current_season, "w\\d+_ADLsalarycapwarnings\\.csv$"),
   full.names = TRUE
 )
 
-cap_week_from_file <- function(x, file_type) {
+cap_week_from_file <- function(x, file_pattern) {
   as.integer(stringr::str_match(
     basename(x),
-    paste0("^", current_season, "w(\\d+)_ADLsalarycap", file_type, "\\.csv$")
+    paste0("^", current_season, "w(\\d+)_", file_pattern, "\\.csv$")
   )[, 2])
 }
 
-cap_snapshot_files_data <- cap_snapshot_files_data[order(cap_week_from_file(cap_snapshot_files_data, "snapshot"), decreasing = TRUE)]
-cap_summary_files_data <- cap_summary_files_data[order(cap_week_from_file(cap_summary_files_data, "summary"), decreasing = TRUE)]
+cap_snapshot_files_data <- cap_snapshot_files_data[order(cap_week_from_file(cap_snapshot_files_data, "ADLsalarycapsnapshot"), decreasing = TRUE)]
+cap_summary_files_data <- cap_summary_files_data[order(cap_week_from_file(cap_summary_files_data, "ADLsalarycapsummary"), decreasing = TRUE)]
+cap_waiver_correction_files_data <- cap_waiver_correction_files_data[order(cap_week_from_file(cap_waiver_correction_files_data, "ADLwaivercorrections"), decreasing = TRUE)]
 cap_generated_at_by_file <- c(
   file_generated_at_et(cap_summary_files_data),
-  file_generated_at_et(cap_snapshot_files_data)
+  file_generated_at_et(cap_snapshot_files_data),
+  file_generated_at_et(cap_waiver_correction_files_data)
 )
 
 if (length(cap_snapshot_files_data) > 0) {
@@ -329,10 +338,20 @@ if (length(cap_summary_files_data) > 0) {
   ))
 }
 
+if (length(cap_waiver_correction_files_data) > 0) {
+  invisible(file.copy(
+    from = cap_waiver_correction_files_data,
+    to = file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections", basename(cap_waiver_correction_files_data)),
+    overwrite = TRUE
+  ))
+}
+
 cap_snapshot_files_public <- file.path("downloads", "salary-cap-accounting", "snapshots", basename(cap_snapshot_files_data))
 cap_summary_files_public <- file.path("downloads", "salary-cap-accounting", "summaries", basename(cap_summary_files_data))
+cap_waiver_correction_files_public <- file.path("downloads", "salary-cap-accounting", "waiver-corrections", basename(cap_waiver_correction_files_data))
 cap_snapshot_files_public <- add_file_versions(cap_snapshot_files_public)
 cap_summary_files_public <- add_file_versions(cap_summary_files_public)
+cap_waiver_correction_files_public <- add_file_versions(cap_waiver_correction_files_public)
 
 cap_warning_rows <- if (length(cap_warning_files_data) > 0) {
   dplyr::bind_rows(lapply(cap_warning_files_data, function(warning_file) {
@@ -387,6 +406,7 @@ cap_accounting_html <- build_cap_accounting_html(
   current_summary_public = current_cap_summary_public,
   summary_files_public = cap_summary_files_public,
   snapshot_files_public = cap_snapshot_files_public,
+  waiver_correction_files_public = cap_waiver_correction_files_public,
   warnings_by_file = cap_warnings_by_file,
   generated_at_by_file = cap_generated_at_by_file
 )

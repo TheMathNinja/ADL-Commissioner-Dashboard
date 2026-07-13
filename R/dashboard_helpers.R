@@ -246,9 +246,14 @@ format_generated_at <- function(generated_at) {
   paste0(" <span class='generated-at'>(generated ", generated_at, ")</span>")
 }
 
-build_cap_links_html <- function(archive_files_public, generated_at_by_file = list(), warnings_by_file = list()) {
+build_cap_links_html <- function(
+  archive_files_public,
+  generated_at_by_file = list(),
+  warnings_by_file = list(),
+  empty_text = "No archived CSV files yet."
+) {
   if (length(archive_files_public) == 0) {
-    return("<p>No archived CSV files yet.</p>")
+    return(paste0("<p>", empty_text, "</p>"))
   }
 
   archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
@@ -387,6 +392,7 @@ build_cap_accounting_html <- function(
   current_summary_public = NA_character_,
   summary_files_public = character(),
   snapshot_files_public = character(),
+  waiver_correction_files_public = character(),
   warnings_by_file = list(),
   generated_at_by_file = list()
 ) {
@@ -412,6 +418,11 @@ build_cap_accounting_html <- function(
 
   summary_links_html <- build_cap_links_html(summary_files_public, generated_at_by_file, warnings_by_file)
   snapshot_links_html <- build_cap_links_html(snapshot_files_public, generated_at_by_file)
+  waiver_correction_links_html <- build_cap_links_html(
+    waiver_correction_files_public,
+    generated_at_by_file,
+    empty_text = "No waiver correction CSV files published yet."
+  )
 
   dashboard_page(
     "Salary Cap Accounting & Rollover",
@@ -436,6 +447,8 @@ build_cap_accounting_html <- function(
         ", summary_links_html, "
         <h3>Full Snapshots</h3>
         ", snapshot_links_html, "
+        <h3>Waiver Corrections</h3>
+        ", waiver_correction_links_html, "
       </section>"
     )
   )
