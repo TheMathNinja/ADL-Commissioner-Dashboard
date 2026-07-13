@@ -3,7 +3,7 @@
 <head>
   <meta charset='utf-8' />
   <meta name='viewport' content='width=device-width,initial-scale=1' />
-  <title>Daily Salary Snapshots</title>
+  <title>Daily Roster Snapshots</title>
   
   <style>
     :root {
@@ -146,6 +146,10 @@
       font-size: 1rem;
       font-weight: 700;
     }
+    .generated-at {
+      color: var(--muted);
+      font-weight: 500;
+    }
     @media (max-width: 720px) {
       header { gap: 1.25rem; padding: 0.65rem 1rem; }
       header img { width: 4.4rem; height: 5.2rem; }
@@ -162,11 +166,11 @@
 <body>
   <header>
     <img src='adl-shield.png' alt='ADL shield' />
-    <h1>Daily Salary Snapshots</h1>
+    <h1>Daily Roster Snapshots</h1>
   </header>
   <main>
     <a class='back-link' href='index.html'>Back to Commissioner Dashboard</a><section class='panel'>
-        <p><strong>Latest CSV:</strong> <a href='downloads/daily-salary-snapshots/2026_07_12_064836_ADLDailySalarySnapshot.csv?v=162d2ffb3016bb092e080e94e74bc3e7'>2026_07_12_064836_ADLDailySalarySnapshot.csv</a></p>
+        <p><strong>Latest CSV:</strong> <a href='downloads/daily-roster-snapshots/2026_07_12_064836_ADLDailyRosterSnapshot.csv?v=162d2ffb3016bb092e080e94e74bc3e7'>2026_07_12_064836_ADLDailyRosterSnapshot.csv</a></p>
         <p><strong>No-change checks since latest snapshot:</strong></p>
 <ul>
 <li>07/13/2026: checked at 07/13/2026 08:21 AM EDT; no roster/salary changes found</li>
@@ -175,23 +179,23 @@
       <section class='panel'>
         <h2>Snapshot Archive</h2>
         <ul>
-<li><a href='downloads/daily-salary-snapshots/2026_07_12_064836_ADLDailySalarySnapshot.csv?v=162d2ffb3016bb092e080e94e74bc3e7'>2026_07_12_064836_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_07_11_063916_ADLDailySalarySnapshot.csv?v=1deeadde0cd667369b7da9bc162f96e4'>2026_07_11_063916_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_07_09_082038_ADLDailySalarySnapshot.csv?v=3ccd400c782f7628176aced483e92d44'>2026_07_09_082038_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_07_07_081444_ADLDailySalarySnapshot.csv?v=3ef61d8e2e7c1a33bcb15e4d0d2af842'>2026_07_07_081444_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_07_05_071823_ADLDailySalarySnapshot.csv?v=ea53d00f022624b019dc6d4c51f974d7'>2026_07_05_071823_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_07_02_074755_ADLDailySalarySnapshot.csv?v=bc942a6990ecdbeb8a26c2c2a5221670'>2026_07_02_074755_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_06_30_075713_ADLDailySalarySnapshot.csv?v=5274883ccdec9971fce46b4e513ad4af'>2026_06_30_075713_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_06_28_235401_ADLDailySalarySnapshot.csv?v=ded7b3d18f9217a7e6da558b4938dab7'>2026_06_28_235401_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_05_20_113227_ADLDailySalarySnapshot.csv?v=cb367482512bb45e7126064698a55ccc'>2026_05_20_113227_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_05_14_193644_ADLDailySalarySnapshot.csv?v=400afb57966ad71b51261256587c91a5'>2026_05_14_193644_ADLDailySalarySnapshot.csv</a></li>
-<li><a href='downloads/daily-salary-snapshots/2026_05_13_234531_ADLDailySalarySnapshot.csv?v=64b6966d1ad559fa5ed1e324d9c3553a'>2026_05_13_234531_ADLDailySalarySnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_12_064836_ADLDailyRosterSnapshot.csv?v=162d2ffb3016bb092e080e94e74bc3e7'>2026_07_12_064836_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_11_063916_ADLDailyRosterSnapshot.csv?v=1deeadde0cd667369b7da9bc162f96e4'>2026_07_11_063916_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_09_082038_ADLDailyRosterSnapshot.csv?v=3ccd400c782f7628176aced483e92d44'>2026_07_09_082038_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_07_081444_ADLDailyRosterSnapshot.csv?v=3ef61d8e2e7c1a33bcb15e4d0d2af842'>2026_07_07_081444_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_05_071823_ADLDailyRosterSnapshot.csv?v=ea53d00f022624b019dc6d4c51f974d7'>2026_07_05_071823_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_07_02_074755_ADLDailyRosterSnapshot.csv?v=bc942a6990ecdbeb8a26c2c2a5221670'>2026_07_02_074755_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_06_30_075713_ADLDailyRosterSnapshot.csv?v=5274883ccdec9971fce46b4e513ad4af'>2026_06_30_075713_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_06_28_235401_ADLDailyRosterSnapshot.csv?v=ded7b3d18f9217a7e6da558b4938dab7'>2026_06_28_235401_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_05_20_113227_ADLDailyRosterSnapshot.csv?v=cb367482512bb45e7126064698a55ccc'>2026_05_20_113227_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_05_14_193644_ADLDailyRosterSnapshot.csv?v=400afb57966ad71b51261256587c91a5'>2026_05_14_193644_ADLDailyRosterSnapshot.csv</a></li>
+<li><a href='downloads/daily-roster-snapshots/2026_05_13_234531_ADLDailyRosterSnapshot.csv?v=64b6966d1ad559fa5ed1e324d9c3553a'>2026_05_13_234531_ADLDailyRosterSnapshot.csv</a></li>
 </ul>
       </section>
       <section class='panel'>
         <h2>Notes</h2>
         <p>
-        These CSVs are roster salary snapshots captured by the SalAdjCurator run and published using Eastern time.
+        These CSVs are roster snapshots captured by the SalAdjCurator run and published using Eastern time.
         The archive shows the latest capture for each Eastern calendar day.
         They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
         They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.

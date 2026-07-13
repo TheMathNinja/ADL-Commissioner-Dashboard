@@ -100,6 +100,8 @@ Local run:
 
 Rscript scripts/run\_saladjcurator.R
 
+SNAPSHOT\_WEEK=1 Rscript scripts/run\_cap\_accounting.R
+
 Rscript scripts/build\_dashboard.R
 
 
@@ -119,4 +121,8 @@ SalAdjCurator outputs:
 
 Roster snapshots:
 
-SalAdjCurator now writes dated roster salary snapshots to data/roster_snapshots. Drop transactions are matched against the most recent prior snapshot for the same franchise/player. If no prior franchise snapshot exists, recent drops can still be surfaced as CHECK SALARY rows when the player currently appears elsewhere with salary-risk evidence.
+SalAdjCurator now writes dated roster snapshots to data/roster_snapshots. Drop transactions are matched against the most recent prior snapshot for the same franchise/player. If no prior franchise snapshot exists, recent drops can still be surfaced as CHECK SALARY rows when the player currently appears elsewhere with salary-risk evidence.
+
+Salary cap accounting:
+
+scripts/run\_cap\_accounting.R writes weekly roster snapshots and rolling summary files under data/cap\_accounting/<season>/. The dashboard builder publishes those CSVs to docs/downloads/salary-cap-accounting/ and updates docs/salary-cap-accounting.html. The weekly GitHub Action runs Tuesday at 3:30 a.m. Toronto time during the regular season; manual workflow runs can provide SNAPSHOT\_WEEK, or omit it to infer the latest completed regular-season week from nflreadr.

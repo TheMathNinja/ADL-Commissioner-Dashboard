@@ -6,7 +6,7 @@ source("R/config_helpers.R")
 source("R/cap_accounting_engine.R")
 
 current_season <- get_current_season()
-snapshot_week <- as.integer(Sys.getenv("SNAPSHOT_WEEK", unset = "1"))
+snapshot_week <- get_snapshot_week(current_season)
 
 message("Running salary cap accounting snapshot for season ", current_season, ", week ", snapshot_week)
 

@@ -51,7 +51,7 @@ build_snapshot_index <- function(snapshot_files) {
       snapshot_date_et = as.Date(snapshot_time_et, tz = "America/Toronto"),
       public_filename = paste0(
         format(snapshot_time_et, "%Y_%m_%d_%H%M%S"),
-        "_ADLDailySalarySnapshot.csv"
+        "_ADLDailyRosterSnapshot.csv"
       )
     )
   }))
@@ -96,7 +96,7 @@ player_last_name <- function(player_name) {
   )
 }
 
-write_public_salary_snapshot <- function(snapshot_file, public_file, franchises) {
+write_public_roster_snapshot <- function(snapshot_file, public_file, franchises) {
   snapshot <- read_snapshot_csv(snapshot_file)
 
   if (!"franchise_name" %in% names(snapshot)) snapshot$franchise_name <- NA_character_
@@ -163,6 +163,17 @@ add_file_versions <- function(public_files) {
   }, character(1), USE.NAMES = FALSE)
 }
 
+file_generated_at_et <- function(files) {
+  if (length(files) == 0) {
+    return(list())
+  }
+
+  generated_at <- file.info(files)$mtime
+  generated_at_et <- lubridate::with_tz(generated_at, "America/Toronto")
+  generated_at_text <- format(generated_at_et, "%m/%d/%Y %I:%M %p %Z")
+  stats::setNames(as.list(generated_at_text), basename(files))
+}
+
 # Read metadata
 run_meta <- readr::read_csv("data/run_metadata.csv", show_col_types = FALSE)
 franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season, ".rds")))
@@ -170,10 +181,10 @@ franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season
 # Make sure docs directories exist
 dir.create("docs", recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads"), recursive = TRUE, showWarnings = FALSE)
-dir.create(file.path("docs", "downloads", "daily-salary-snapshots"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "daily-roster-snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
-unlink(file.path("docs", "downloads", "daily-salary-snapshots", "*.csv"))
+unlink(file.path("docs", "downloads", "daily-roster-snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
 
@@ -200,7 +211,7 @@ if (length(archive_files_data) > 0) {
 # Public links for HTML
 archive_files_public <- file.path("downloads", archive_filenames)
 
-# Publish daily salary snapshots from the SalAdj roster snapshot history.
+# Publish daily roster snapshots from the SalAdj roster snapshot history.
 snapshot_files_data <- list.files(
   path = file.path("data", "roster_snapshots"),
   pattern = paste0("^saladj_roster_snapshot_", current_season, "_[0-9]{8}_[0-9]{6}\\.csv$"),
@@ -213,14 +224,14 @@ snapshot_filenames <- snapshot_index$public_filename
 
 if (nrow(snapshot_index) > 0) {
   invisible(mapply(
-    write_public_salary_snapshot,
+    write_public_roster_snapshot,
     snapshot_file = snapshot_index$snapshot_file,
-    public_file = file.path("docs", "downloads", "daily-salary-snapshots", snapshot_index$public_filename),
+    public_file = file.path("docs", "downloads", "daily-roster-snapshots", snapshot_index$public_filename),
     MoreArgs = list(franchises = franchises)
   ))
 }
 
-snapshot_files_public <- file.path("downloads", "daily-salary-snapshots", snapshot_filenames)
+snapshot_files_public <- file.path("downloads", "daily-roster-snapshots", snapshot_filenames)
 snapshot_files_public <- add_file_versions(snapshot_files_public)
 latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   snapshot_files_public[1]
@@ -297,6 +308,10 @@ cap_week_from_file <- function(x, file_type) {
 
 cap_snapshot_files_data <- cap_snapshot_files_data[order(cap_week_from_file(cap_snapshot_files_data, "snapshot"), decreasing = TRUE)]
 cap_summary_files_data <- cap_summary_files_data[order(cap_week_from_file(cap_summary_files_data, "summary"), decreasing = TRUE)]
+cap_generated_at_by_file <- c(
+  file_generated_at_et(cap_summary_files_data),
+  file_generated_at_et(cap_snapshot_files_data)
+)
 
 if (length(cap_snapshot_files_data) > 0) {
   invisible(file.copy(
@@ -345,7 +360,7 @@ current_cap_summary_public <- if (length(cap_summary_files_public) > 0) {
 
 # Build landing page
 index_html <- build_dashboard_index_html(
-  latest_daily_salary_snapshot_public = latest_snapshot_public,
+  latest_daily_roster_snapshot_public = latest_snapshot_public,
   latest_cap_summary_public = current_cap_summary_public
 )
 writeLines(index_html, file.path("docs", "index.html"))
@@ -358,21 +373,22 @@ saladj_html <- build_saladjcurator_html(
 
 writeLines(saladj_html, file.path("docs", "saladjcurator.html"))
 
-# Build daily salary snapshots page
-daily_salary_snapshots_html <- build_daily_salary_snapshots_html(
+# Build daily roster snapshots page
+daily_roster_snapshots_html <- build_daily_roster_snapshots_html(
   snapshot_files_public = snapshot_files_public,
   latest_snapshot_public = latest_snapshot_public,
   no_change_check_text = no_change_check_text
 )
 
-writeLines(daily_salary_snapshots_html, file.path("docs", "daily-salary-snapshots.html"))
+writeLines(daily_roster_snapshots_html, file.path("docs", "daily-roster-snapshots.html"))
 
 # Build salary cap accounting page
 cap_accounting_html <- build_cap_accounting_html(
   current_summary_public = current_cap_summary_public,
   summary_files_public = cap_summary_files_public,
   snapshot_files_public = cap_snapshot_files_public,
-  warnings_by_file = cap_warnings_by_file
+  warnings_by_file = cap_warnings_by_file,
+  generated_at_by_file = cap_generated_at_by_file
 )
 
 writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))

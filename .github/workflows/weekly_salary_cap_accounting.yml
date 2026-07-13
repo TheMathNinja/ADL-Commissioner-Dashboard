@@ -1,0 +1,155 @@
+name: Weekly Salary Cap Accounting
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_week:
+        description: "Fantasy week to snapshot. Leave blank to infer from the NFL schedule."
+        required: false
+        type: string
+  schedule:
+    - cron: "30 7 * 9-12,1 2"
+    - cron: "30 8 * 9-12,1 2"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-salary-cap-accounting
+  cancel-in-progress: true
+
+jobs:
+  run-salary-cap-accounting:
+    runs-on: ubuntu-latest
+
+    env:
+      CURRENT_SEASON: "2026"
+      SNAPSHOT_WEEK: ${{ github.event.inputs.snapshot_week }}
+      RAW_CACHE_DIR: cache/raw_league_data
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Decide whether scheduled run should proceed
+        id: localtime
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run -> proceeding."
+            exit 0
+          fi
+
+          TORONTO_OFFSET=$(TZ=America/Toronto date +%z)
+          SCHEDULE="${{ github.event.schedule }}"
+          echo "Toronto UTC offset is $TORONTO_OFFSET"
+          echo "Scheduled cron is $SCHEDULE"
+
+          if { [ "$TORONTO_OFFSET" = "-0400" ] && [ "$SCHEDULE" = "30 7 * 9-12,1 2" ]; } || \
+             { [ "$TORONTO_OFFSET" = "-0500" ] && [ "$SCHEDULE" = "30 8 * 9-12,1 2" ]; }; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "Correct 3:30 a.m. Toronto Tuesday cron slot -> proceeding."
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "Duplicate non-3:30 a.m. Toronto Tuesday cron slot -> skipping."
+          fi
+
+      - name: Create cache directories
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          mkdir -p "${RAW_CACHE_DIR}"
+          mkdir -p "${R_LIBS_USER}"
+          mkdir -p data
+          mkdir -p docs
+
+      - name: Restore R package library cache
+        if: steps.localtime.outputs.should_run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-r-lib-v2-${{ hashFiles('.github/workflows/*.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-r-lib-v2-
+
+      - name: Install Ubuntu system libraries
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libssl-dev \
+            libtiff5-dev \
+            libxml2-dev \
+            libuv1-dev \
+            pkg-config
+
+      - name: Set up R
+        if: steps.localtime.outputs.should_run == 'true'
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install and verify R packages
+        if: steps.localtime.outputs.should_run == 'true'
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+
+          packages <- c("dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+          if (length(missing) > 0) {
+            install.packages(
+              missing,
+              repos = "https://cloud.r-project.org",
+              dependencies = c("Depends", "Imports", "LinkingTo"),
+              Ncpus = max(1, parallel::detectCores() - 1)
+            )
+          }
+
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) {
+            stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+          }
+
+          invisible(lapply(packages, requireNamespace, quietly = TRUE))
+          sessionInfo()
+
+      - name: Run salary cap accounting
+        if: steps.localtime.outputs.should_run == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
+          RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+          MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+          MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+          MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+        run: Rscript scripts/run_cap_accounting.R
+
+      - name: Build dashboard site
+        if: steps.localtime.outputs.should_run == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+        run: Rscript scripts/build_dashboard.R
+
+      - name: Commit generated files
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data docs
+          git diff --cached --quiet || git commit -m "Update weekly salary cap accounting"
+          git push

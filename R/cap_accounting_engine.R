@@ -58,6 +58,43 @@ get_cap_veteran_min <- function(current_season) {
   vet_min
 }
 
+get_snapshot_week <- function(current_season = get_current_season(), fantasy_weeks = 17L) {
+  snapshot_week_env <- Sys.getenv("SNAPSHOT_WEEK", unset = "")
+
+  if (nzchar(snapshot_week_env)) {
+    snapshot_week <- suppressWarnings(as.integer(snapshot_week_env))
+    if (is.na(snapshot_week) || snapshot_week < 1) {
+      stop("SNAPSHOT_WEEK must be a positive integer when provided.")
+    }
+    return(snapshot_week)
+  }
+
+  if (!requireNamespace("nflreadr", quietly = TRUE)) {
+    stop("SNAPSHOT_WEEK is not set and nflreadr is not installed, so the snapshot week cannot be inferred.")
+  }
+
+  today_et <- as.Date(format(Sys.time(), tz = "America/New_York", usetz = FALSE))
+
+  schedule <- nflreadr::load_schedules(seasons = current_season) %>%
+    dplyr::filter(
+      .data$season_type == "REG",
+      .data$week <= fantasy_weeks,
+      !is.na(.data$gameday),
+      as.Date(.data$gameday) < today_et
+    )
+
+  snapshot_week <- suppressWarnings(max(schedule$week, na.rm = TRUE))
+
+  if (!is.finite(snapshot_week) || is.na(snapshot_week) || snapshot_week < 1) {
+    stop(
+      "Could not infer SNAPSHOT_WEEK for season ", current_season,
+      ". Set SNAPSHOT_WEEK explicitly for offseason or preseason runs."
+    )
+  }
+
+  as.integer(snapshot_week)
+}
+
 get_franchise_lookup <- function(conn) {
   fr <- ffscrapr::ff_franchises(conn)
 
@@ -97,12 +134,18 @@ initialize_summary_shell <- function(franchise_lookup, fantasy_weeks) {
     out[[paste0("W", wk, "_Paid")]] <- NA_real_
     out[[paste0("W", wk, "_Vac$")]] <- NA_real_
     out[[paste0("W", wk, "_RostSal")]] <- NA_real_
-    out[[paste0("W", wk, "_SalAdj")]] <- NA_real_
-    out[[paste0("W", wk, "_Cor")]] <- NA_real_
+    out[[paste0("W", wk, "_Adj")]] <- NA_real_
+    out[[paste0("W", wk, "_Corr")]] <- NA_real_
     out[[paste0("W", wk, "_Final")]] <- NA_real_
   }
 
   out
+}
+
+normalize_cap_summary_suffixes <- function(summary_df) {
+  names(summary_df) <- stringr::str_replace(names(summary_df), "^(W\\d+)_SalAdj$", "\\1_Adj")
+  names(summary_df) <- stringr::str_replace(names(summary_df), "^(W\\d+)_Cor$", "\\1_Corr")
+  summary_df
 }
 
 get_mfl_injuries <- function(current_season, snapshot_week) {
@@ -152,12 +195,12 @@ get_mfl_salary_adjustments <- function(conn) {
 
 summarise_salary_adjustments <- function(sal_adj_df) {
   if (nrow(sal_adj_df) == 0) {
-    return(tibble::tibble(franchise_id = character(), SalAdj = numeric()))
+    return(tibble::tibble(franchise_id = character(), Adj = numeric()))
   }
 
   sal_adj_df %>%
     dplyr::group_by(.data$franchise_id) %>%
-    dplyr::summarise(SalAdj = sum(.data$amount, na.rm = TRUE), .groups = "drop")
+    dplyr::summarise(Adj = sum(.data$amount, na.rm = TRUE), .groups = "drop")
 }
 
 latest_prior_summary_rds <- function(summary_dir, current_season, snapshot_week) {
@@ -287,7 +330,8 @@ build_cap_accounting_snapshot <- function(
   if (is.null(prior_summary_rds)) {
     summary_out <- initialize_summary_shell(franchise_lookup, fantasy_weeks)
   } else {
-    summary_out <- readRDS(prior_summary_rds)
+    summary_out <- readRDS(prior_summary_rds) %>%
+      normalize_cap_summary_suffixes()
     if (!"franchise_id" %in% names(summary_out)) {
       summary_out <- franchise_lookup %>% dplyr::left_join(summary_out, by = "FRANCHISE")
     }
@@ -326,8 +370,8 @@ build_cap_accounting_snapshot <- function(
     dplyr::mutate(`Ill?` = dplyr::if_else(.data$A < 40 | .data$A + .data$TE > 45 | .data$Yrs > 120, "Y", "")) %>%
     dplyr::left_join(sal_adj_summary, by = "franchise_id") %>%
     dplyr::mutate(
-      SalAdj = dplyr::coalesce(.data$SalAdj, 0),
-      Cor = NA_real_,
+      Adj = dplyr::coalesce(.data$Adj, 0),
+      Corr = NA_real_,
       Final = NA_real_
     ) %>%
     dplyr::select(
@@ -342,12 +386,12 @@ build_cap_accounting_snapshot <- function(
       "Paid",
       `Vac$`,
       "RostSal",
-      "SalAdj",
-      "Cor",
+      "Adj",
+      "Corr",
       "Final"
     )
 
-  week_cols <- c("A", "IR", "S", "TE", "Yrs", "Ill?", "Paid", "Vac$", "RostSal", "SalAdj", "Cor", "Final")
+  week_cols <- c("A", "IR", "S", "TE", "Yrs", "Ill?", "Paid", "Vac$", "RostSal", "Adj", "Corr", "Final")
   new_names <- paste0("W", snapshot_week, "_", week_cols)
   names(current_week_summary)[match(week_cols, names(current_week_summary))] <- new_names
 
@@ -373,7 +417,7 @@ build_cap_accounting_snapshot <- function(
     dplyr::select(-"franchise_id")
 
   dollar_summary_cols <- names(summary_csv_out)[
-    stringr::str_detect(names(summary_csv_out), "_Vac\\$|_RostSal|_SalAdj|_Cor|_Final")
+    stringr::str_detect(names(summary_csv_out), "_Vac\\$|_RostSal|_Adj|_Corr|_Final")
   ]
 
   summary_csv_out <- summary_csv_out %>%

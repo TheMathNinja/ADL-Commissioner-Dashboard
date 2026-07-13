@@ -145,6 +145,10 @@ dashboard_css <- function() {
       font-size: 1rem;
       font-weight: 700;
     }
+    .generated-at {
+      color: var(--muted);
+      font-weight: 500;
+    }
     @media (max-width: 720px) {
       header { gap: 1.25rem; padding: 0.65rem 1rem; }
       header img { width: 4.4rem; height: 5.2rem; }
@@ -234,20 +238,52 @@ build_archive_links_with_warnings_html <- function(archive_files_public, warning
   paste0("<ul>\n", links, "\n</ul>")
 }
 
+format_generated_at <- function(generated_at) {
+  if (is.null(generated_at) || length(generated_at) == 0 || is.na(generated_at) || !nzchar(generated_at)) {
+    return("")
+  }
+
+  paste0(" <span class='generated-at'>(generated ", generated_at, ")</span>")
+}
+
+build_cap_links_html <- function(archive_files_public, generated_at_by_file = list(), warnings_by_file = list()) {
+  if (length(archive_files_public) == 0) {
+    return("<p>No archived CSV files yet.</p>")
+  }
+
+  archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
+
+  links <- paste0(
+    "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a>",
+    vapply(archive_file_labels, function(label) {
+      format_generated_at(generated_at_by_file[[label]])
+    }, character(1), USE.NAMES = FALSE),
+    vapply(archive_file_labels, function(label) {
+      warnings <- warnings_by_file[[label]]
+      if (is.null(warnings) || length(warnings) == 0) return("")
+      paste0(" (Warnings: ", paste(warnings, collapse = "; "), ")")
+    }, character(1), USE.NAMES = FALSE),
+    "</li>",
+    collapse = "\n"
+  )
+
+  paste0("<ul>\n", links, "\n</ul>")
+}
+
 build_dashboard_index_html <- function(
-  latest_daily_salary_snapshot_public = NA_character_,
+  latest_daily_roster_snapshot_public = NA_character_,
   latest_cap_summary_public = NA_character_
 ) {
-  daily_snapshot_text <- if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
-    latest_daily_salary_snapshot_label <- basename(sub("\\?.*$", "", latest_daily_salary_snapshot_public))
+  daily_snapshot_text <- if (!is.na(latest_daily_roster_snapshot_public) && nzchar(latest_daily_roster_snapshot_public)) {
+    latest_daily_roster_snapshot_label <- basename(sub("\\?.*$", "", latest_daily_roster_snapshot_public))
     paste0(
-      "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a> ",
-      "(latest: <a href='", latest_daily_salary_snapshot_public, "'>",
-      latest_daily_salary_snapshot_label,
+      "<li><a href='daily-roster-snapshots.html'>Daily roster snapshots</a> ",
+      "(latest: <a href='", latest_daily_roster_snapshot_public, "'>",
+      latest_daily_roster_snapshot_label,
       "</a>)</li>"
     )
   } else {
-    "<li><a href='daily-salary-snapshots.html'>Daily salary snapshots</a></li>"
+    "<li><a href='daily-roster-snapshots.html'>Daily roster snapshots</a></li>"
   }
 
   cap_accounting_text <- if (!is.na(latest_cap_summary_public) && nzchar(latest_cap_summary_public)) {
@@ -272,13 +308,13 @@ build_dashboard_index_html <- function(
         "saladjcurator.html"
       ),
       tool_card(
-        "Daily Salary Snapshots",
-        if (!is.na(latest_daily_salary_snapshot_public) && nzchar(latest_daily_salary_snapshot_public)) {
-          paste0("Roster salary snapshots with latest capture: ", latest_daily_salary_snapshot_label, ".")
+        "Daily Roster Snapshots",
+        if (!is.na(latest_daily_roster_snapshot_public) && nzchar(latest_daily_roster_snapshot_public)) {
+          paste0("Roster snapshots with latest capture: ", latest_daily_roster_snapshot_label, ".")
         } else {
-          "Roster salary snapshots captured by dashboard runs."
+          "Roster snapshots captured by dashboard runs."
         },
-        "daily-salary-snapshots.html"
+        "daily-roster-snapshots.html"
       ),
       tool_card(
         "Salary Cap Accounting & Rollover",
@@ -351,7 +387,8 @@ build_cap_accounting_html <- function(
   current_summary_public = NA_character_,
   summary_files_public = character(),
   snapshot_files_public = character(),
-  warnings_by_file = list()
+  warnings_by_file = list(),
+  generated_at_by_file = list()
 ) {
   current_summary_html <- if (!is.na(current_summary_public) && nzchar(current_summary_public)) {
     current_summary_label <- basename(sub("\\?.*$", "", current_summary_public))
@@ -361,13 +398,20 @@ build_cap_accounting_html <- function(
     } else {
       paste0(" (Warnings: ", paste(current_warnings, collapse = "; "), ")")
     }
-    paste0("<p><strong>Current Summary:</strong> <a href='", current_summary_public, "'>", current_summary_label, "</a>", current_warning_html, "</p>")
+    paste0(
+      "<p><strong>Current Summary:</strong> <a href='", current_summary_public, "'>",
+      current_summary_label,
+      "</a>",
+      format_generated_at(generated_at_by_file[[current_summary_label]]),
+      current_warning_html,
+      "</p>"
+    )
   } else {
     "<p><strong>Current Summary:</strong> Not available yet.</p>"
   }
 
-  summary_links_html <- build_archive_links_with_warnings_html(summary_files_public, warnings_by_file)
-  snapshot_links_html <- build_archive_links_html(snapshot_files_public)
+  summary_links_html <- build_cap_links_html(summary_files_public, generated_at_by_file, warnings_by_file)
+  snapshot_links_html <- build_cap_links_html(snapshot_files_public, generated_at_by_file)
 
   dashboard_page(
     "Salary Cap Accounting & Rollover",
@@ -385,7 +429,7 @@ build_cap_accounting_html <- function(
   )
 }
 
-build_daily_salary_snapshots_html <- function(
+build_daily_roster_snapshots_html <- function(
   snapshot_files_public,
   latest_snapshot_public = NA_character_,
   no_change_check_text = character()
@@ -409,7 +453,7 @@ build_daily_salary_snapshots_html <- function(
   }
 
   dashboard_page(
-    "Daily Salary Snapshots",
+    "Daily Roster Snapshots",
     paste0(
       back_link(),
       "<section class='panel'>
@@ -423,7 +467,7 @@ build_daily_salary_snapshots_html <- function(
       <section class='panel'>
         <h2>Notes</h2>
         <p>
-        These CSVs are roster salary snapshots captured by the SalAdjCurator run and published using Eastern time.
+        These CSVs are roster snapshots captured by the SalAdjCurator run and published using Eastern time.
         The archive shows the latest capture for each Eastern calendar day.
         They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
         They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
