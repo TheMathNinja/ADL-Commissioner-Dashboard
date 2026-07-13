@@ -476,6 +476,11 @@ build_daily_roster_snapshots_html <- function(
         They preserve player salary, years, contract info, franchise, conference, and roster status at the time of capture.
         They are intended as supporting salary evidence for commissioner review and are separate from the SalAdj transaction CSVs.
         </p>
+        <p>
+        The dashboard checks for roster snapshots automatically each day at 5 a.m. Eastern time, and also during manual or push-triggered dashboard runs.
+        A new dated CSV is published only when the roster snapshot differs from the latest saved snapshot after ignoring the capture timestamp.
+        If no roster, salary, contract, team, or status values changed, the dashboard records the check but does not add a new archive CSV.
+        </p>
       </section>
       <section class='panel'>
         ", latest_link_html, "
