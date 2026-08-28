@@ -635,6 +635,7 @@ tx <- ffscrapr::ff_transactions(adl_conn)
 if (!"comments" %in% names(tx)) tx$comments <- NA_character_
 if (!"player_name" %in% names(tx)) tx$player_name <- NA_character_
 if (!"player_id" %in% names(tx)) tx$player_id <- NA_character_
+if (!"trade_partner" %in% names(tx)) tx$trade_partner <- NA_character_
 
 tx <- tx %>%
   dplyr::mutate(
@@ -760,7 +761,99 @@ historical_roster_matches <- tx_enriched %>%
     salary_snap = .data$roster_salary,
     years_snap = .data$roster_years,
     info_snap = .data$roster_contractInfo,
-    salary_snapshot_time = .data$snapshot_time
+    salary_snapshot_time = .data$snapshot_time,
+    salary_snapshot_match_type = "same_franchise",
+    salary_snapshot_franchise_id = .data$franchise_id
+  )
+
+drop_events <- tx_enriched %>%
+  dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
+  dplyr::select(
+    drop_row_key = .data$row_key,
+    player_id = .data$player_id,
+    drop_franchise_id = .data$franchise_id,
+    CONF = .data$CONF,
+    drop_time = .data$DATE_raw
+  )
+
+arrival_events <- tx_enriched %>%
+  dplyr::filter(
+    .data$type_desc %in% c("traded_for", "added"),
+    !is.na(.data$DATE_raw),
+    !is.na(.data$player_id),
+    !is.na(.data$franchise_id)
+  ) %>%
+  dplyr::mutate(
+    contract_preserving_arrival = .data$type == "TRADE" & .data$type_desc == "traded_for",
+    source_franchise_id = dplyr::if_else(
+      .data$contract_preserving_arrival,
+      as.character(.data$trade_partner),
+      NA_character_
+    )
+  ) %>%
+  dplyr::select(
+    player_id = .data$player_id,
+    arrival_franchise_id = .data$franchise_id,
+    CONF = .data$CONF,
+    arrival_time = .data$DATE_raw,
+    arrival_type = .data$type,
+    arrival_type_desc = .data$type_desc,
+    contract_preserving_arrival = .data$contract_preserving_arrival,
+    source_franchise_id = .data$source_franchise_id
+  )
+
+latest_arrival_before_drop <- drop_events %>%
+  dplyr::left_join(
+    arrival_events,
+    by = c(
+      "player_id" = "player_id",
+      "drop_franchise_id" = "arrival_franchise_id",
+      "CONF" = "CONF"
+    ),
+    relationship = "many-to-many"
+  ) %>%
+  dplyr::filter(!is.na(.data$arrival_time), .data$arrival_time <= .data$drop_time) %>%
+  dplyr::group_by(.data$drop_row_key) %>%
+  dplyr::arrange(dplyr::desc(.data$arrival_time), .by_group = TRUE) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup()
+
+contract_preserving_roster_matches <- latest_arrival_before_drop %>%
+  dplyr::filter(
+    .data$contract_preserving_arrival,
+    !is.na(.data$source_franchise_id),
+    .data$source_franchise_id != .data$drop_franchise_id
+  ) %>%
+  dplyr::select(
+    drop_row_key,
+    player_id,
+    CONF,
+    source_franchise_id,
+    drop_franchise_id,
+    arrival_time
+  ) %>%
+  dplyr::left_join(
+    roster_snapshot_history,
+    by = c(
+      "player_id" = "player_id",
+      "source_franchise_id" = "franchise_id",
+      "CONF" = "CONF"
+    ),
+    relationship = "many-to-many"
+  ) %>%
+  dplyr::filter(!is.na(.data$snapshot_time), .data$snapshot_time <= .data$arrival_time) %>%
+  dplyr::group_by(.data$drop_row_key) %>%
+  dplyr::arrange(dplyr::desc(.data$snapshot_time), .by_group = TRUE) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    row_key = .data$drop_row_key,
+    fallback_salary_snap = .data$roster_salary,
+    fallback_years_snap = .data$roster_years,
+    fallback_info_snap = .data$roster_contractInfo,
+    fallback_salary_snapshot_time = .data$snapshot_time,
+    fallback_salary_snapshot_match_type = "trade_source",
+    fallback_salary_snapshot_franchise_id = .data$source_franchise_id
   )
 
 current_same_conf_player <- current_roster_snapshot %>%
@@ -794,15 +887,20 @@ manual_drop_salary_overrides <- build_manual_drop_salary_overrides(current_seaso
 
 tx_enriched <- tx_enriched %>%
   dplyr::left_join(historical_roster_matches, by = "row_key") %>%
+  dplyr::left_join(contract_preserving_roster_matches, by = "row_key") %>%
   dplyr::left_join(current_same_conf_player, by = c("player_id", "CONF")) %>%
   dplyr::left_join(
     manual_drop_salary_overrides,
     by = c("franchise_id", "player_id", "DATE_raw" = "drop_timestamp")
   ) %>%
   dplyr::mutate(
-    salary_snap = dplyr::coalesce(.data$salary_snap, .data$override_salary_snap),
-    years_snap = dplyr::coalesce(.data$years_snap, .data$override_years_snap),
-    info_snap = dplyr::coalesce(.data$info_snap, .data$override_info_snap)
+    salary_snap = dplyr::coalesce(.data$salary_snap, .data$override_salary_snap, .data$fallback_salary_snap),
+    years_snap = dplyr::coalesce(.data$years_snap, .data$override_years_snap, .data$fallback_years_snap),
+    info_snap = dplyr::coalesce(.data$info_snap, .data$override_info_snap, .data$fallback_info_snap),
+    salary_snapshot_time = dplyr::coalesce(.data$salary_snapshot_time, .data$fallback_salary_snapshot_time),
+    salary_snapshot_match_type = dplyr::coalesce(.data$salary_snapshot_match_type, .data$fallback_salary_snapshot_match_type),
+    salary_snapshot_franchise_id = dplyr::coalesce(.data$salary_snapshot_franchise_id, .data$fallback_salary_snapshot_franchise_id),
+    salary_snapshot_source_abbrev = franchise_id_to_abbrev(.data$salary_snapshot_franchise_id, franchises)
   )
 
 # ----------------------------
@@ -963,6 +1061,14 @@ sd_rows <- tx_enriched %>%
         "WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY ",
         dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "AFC/NFC TEAM")
       ),
+      .data$waiver_pending & .data$salary_snapshot_match_type == "trade_source" ~ paste0(
+        "PENDING WAIVER UNTIL ",
+        format_pending_until(.data$waiver_matures_at),
+        "; SALARY FROM TRADE SOURCE SNAPSHOT: ",
+        dplyr::coalesce(.data$salary_snapshot_source_abbrev, .data$salary_snapshot_franchise_id, "SOURCE"),
+        " -> ",
+        dplyr::coalesce(.data$abbrev, .data$franchise_id, "DROP TEAM")
+      ),
       .data$waiver_pending & .data$missing_salary_snapshot ~ paste0(
         "PENDING WAIVER UNTIL ",
         format_pending_until(.data$waiver_matures_at),
@@ -978,6 +1084,12 @@ sd_rows <- tx_enriched %>%
         "CHECK SALARY - NO PRIOR ",
         .data$CONF,
         " FRANCHISE SNAPSHOT"
+      ),
+      .data$salary_snapshot_match_type == "trade_source" ~ paste0(
+        "SALARY FROM TRADE SOURCE SNAPSHOT: ",
+        dplyr::coalesce(.data$salary_snapshot_source_abbrev, .data$salary_snapshot_franchise_id, "SOURCE"),
+        " -> ",
+        dplyr::coalesce(.data$abbrev, .data$franchise_id, "DROP TEAM")
       ),
       .data$RVSD_flag ~ "NG PPE",
       .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
