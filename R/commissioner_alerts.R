@@ -896,6 +896,20 @@ lineup_alert_type <- function(severity) {
   ifelse(identical(severity, "warning") | severity == "warning", "Illegal Lineup Warning", "Illegal Lineup")
 }
 
+lineup_alert_date <- function(x) {
+  as.Date(lubridate::with_tz(as.POSIXct(x, tz = "UTC"), "America/New_York"))
+}
+
+lineup_week_first_game_date <- function(kickoffs) {
+  if (is.null(kickoffs) || !nrow(kickoffs) || !"kickoff_at" %in% names(kickoffs)) {
+    return(as.Date(NA))
+  }
+
+  kickoff_dates <- lineup_alert_date(kickoffs$kickoff_at)
+  kickoff_dates <- kickoff_dates[!is.na(kickoff_dates)]
+  if (!length(kickoff_dates)) as.Date(NA) else min(kickoff_dates)
+}
+
 franchise_lineup_lock_times <- function(lineups, kickoffs) {
   if (is.null(kickoffs) || !nrow(kickoffs)) {
     return(tibble(franchise_id = unique(lineups$franchise_id), lineup_lock_at = as.POSIXct(NA)))
@@ -1368,6 +1382,15 @@ evaluate_illegal_lineup_alerts <- function(
     distinct(.data$conference, .data$franchise, .data$franchise_name, .data$franchise_id)
   kickoffs <- kickoffs %||% read_nfl_team_kickoffs(season = season, week = week)
   lineup_lock_times <- franchise_lineup_lock_times(lineups, kickoffs)
+  checked_date <- lineup_alert_date(checked_at)
+  first_game_date <- lineup_week_first_game_date(kickoffs)
+  first_game_at <- if (!is.null(kickoffs) && nrow(kickoffs) && "kickoff_at" %in% names(kickoffs)) {
+    kickoff_values <- as.POSIXct(kickoffs$kickoff_at, tz = "UTC")
+    kickoff_values <- kickoff_values[!is.na(kickoff_values)]
+    if (length(kickoff_values)) min(kickoff_values) else as.POSIXct(NA)
+  } else {
+    as.POSIXct(NA)
+  }
 
   lineup_counts <- franchise_index |>
     left_join(
@@ -1398,6 +1421,7 @@ evaluate_illegal_lineup_alerts <- function(
         conference = row$conference[[1]],
         franchise = row$franchise[[1]],
         franchise_name = row$franchise_name[[1]],
+        franchise_id_temp = row$franchise_id[[1]],
         .before = 1
       )
   }))
@@ -1451,38 +1475,68 @@ evaluate_illegal_lineup_alerts <- function(
       missing_current_designation = is.na(.data$current_player_status),
       bye_week = unname(read_bye_weeks(season)[.data$player_team]),
       on_bye = !is.na(.data$bye_week) & .data$bye_week == .env$week,
+      current_bad_designation = !.data$missing_current_designation & inactive_designation(.data$current_player_status),
+      bad_72h_designation = !.data$missing_72h_snapshot & inactive_designation(.data$designation_72h),
+      designation_game_date = lineup_alert_date(.data$kickoff_at),
+      designation_warning_today = .data$current_bad_designation & !is.na(.data$designation_game_date) &
+        .data$designation_game_date == .env$checked_date,
+      bye_warning_today = .data$on_bye & !is.na(.env$first_game_date) & .env$first_game_date == .env$checked_date,
+      player_warning_today = .data$designation_warning_today | .data$bye_warning_today,
+      designation_violation = .data$current_bad_designation & .data$bad_72h_designation &
+        !is.na(.data$kickoff_at) & as.POSIXct(.env$checked_at, tz = "UTC") >= .data$kickoff_at,
+      bye_violation = .data$on_bye & !is.na(.env$first_game_at) &
+        as.POSIXct(.env$checked_at, tz = "UTC") >= .env$first_game_at,
       player_lineup_severity = lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at),
-      bad_designation = !.data$missing_72h_snapshot &
-        !.data$missing_current_designation &
-        inactive_designation(.data$designation_72h) &
-        inactive_designation(.data$current_player_status)
+      bad_designation = .data$designation_violation
     )
 
-  designation_alerts <- player_checks |>
-    filter(.data$bad_designation) |>
+  warning_franchise_ids <- player_checks |>
+    filter(.data$player_warning_today) |>
+    distinct(.data$franchise_id) |>
+    pull(.data$franchise_id)
+
+  count_alerts <- count_alerts |>
+    filter(.data$severity == "violation" | .data$franchise_id_temp %in% .env$warning_franchise_ids) |>
+    select(-.data$franchise_id_temp)
+
+  designation_violation_alerts <- player_checks |>
+    filter(.data$designation_violation) |>
     transmute(
-      alert_type = lineup_alert_type(.data$player_lineup_severity),
-      severity = .data$player_lineup_severity,
+      alert_type = "Illegal Lineup",
+      severity = "violation",
       conference,
       franchise,
       franchise_name,
-      rule = "No starters with (S), (I), (H), or (O) designation 72 hours before kickoff",
+      rule = "No starters with (S), (I), (H), or (O) designation at kickoff after 72-hour grace period",
       observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
-      details = if_else(
-        .data$missing_72h_snapshot,
-        paste0("designation evidence missing; current status is ", .data$current_player_status),
-        paste0("72-hour designation was ", .data$designation_72h, "; current designation is ", .data$current_player_status)
-      )
+      details = paste0("72-hour designation was ", .data$designation_72h, "; current designation is ", .data$current_player_status)
+    )
+
+  designation_warning_alerts <- player_checks |>
+    filter(
+      .data$current_bad_designation,
+      .data$franchise_id %in% .env$warning_franchise_ids,
+      !.data$designation_violation
+    ) |>
+    transmute(
+      alert_type = "Illegal Lineup Warning",
+      severity = "warning",
+      conference,
+      franchise,
+      franchise_name,
+      rule = "No starters with (S), (I), (H), or (O) designation",
+      observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
+      details = paste0("Current designation is ", .data$current_player_status, ".")
     )
 
   bye_players <- player_checks |>
-    filter(.data$on_bye)
+    filter(.data$on_bye, .data$bye_violation | .data$franchise_id %in% .env$warning_franchise_ids)
 
   bye_alerts <- if (nrow(bye_players)) {
     bye_players |>
       transmute(
-        alert_type = lineup_alert_type(lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at)),
-        severity = lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at),
+        alert_type = if_else(.data$bye_violation, "Illegal Lineup", "Illegal Lineup Warning"),
+        severity = if_else(.data$bye_violation, "violation", "warning"),
         conference,
         franchise,
         franchise_name,
@@ -1507,16 +1561,16 @@ evaluate_illegal_lineup_alerts <- function(
     )
   }
 
-  bind_rows(count_alerts, designation_alerts, bye_alerts)
+  bind_rows(count_alerts, designation_violation_alerts, designation_warning_alerts, bye_alerts)
 }
 
 commissioner_alert_sort_order <- function(alert_type, rule) {
   case_when(
-    alert_type == "Illegal Lineup" & startsWith(rule, "Starting lineups require 21 total starters") ~ 1L,
-    alert_type == "Illegal Lineup" & startsWith(rule, "Starting lineups require 7 offensive starters") ~ 2L,
-    alert_type == "Illegal Lineup" & startsWith(rule, "Starting lineups require 12 defensive starters") ~ 3L,
-    alert_type == "Illegal Lineup" & rule == "No starters on bye" ~ 4L,
-    alert_type == "Illegal Lineup" ~ 5L,
+    alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 21 total starters") ~ 1L,
+    alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 7 offensive starters") ~ 2L,
+    alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 12 defensive starters") ~ 3L,
+    alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & rule == "No starters on bye" ~ 4L,
+    alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") ~ 5L,
     TRUE ~ 99L
   )
 }
