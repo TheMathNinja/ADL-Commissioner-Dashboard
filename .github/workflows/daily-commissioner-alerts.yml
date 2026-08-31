@@ -103,7 +103,7 @@ jobs:
             CRAN = "https://cloud.r-project.org"
           ))
 
-          packages <- c("curl", "dplyr", "ffscrapr", "lubridate", "readr", "stringr", "tibble")
+          packages <- c("curl", "dplyr", "ffscrapr", "lubridate", "nflreadr", "readr", "stringr", "tibble")
           missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 
           if (length(missing) > 0) {
