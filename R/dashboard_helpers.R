@@ -202,12 +202,14 @@ back_link <- function() {
   "<a class='back-link' href='index.html'>Back to Commissioner Dashboard</a>"
 }
 
-build_archive_links_html <- function(archive_files_public) {
+build_archive_links_html <- function(archive_files_public, archive_file_labels = NULL) {
   if (length(archive_files_public) == 0) {
     return("<p>No archived CSV files yet.</p>")
   }
 
-  archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
+  if (is.null(archive_file_labels)) {
+    archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
+  }
   
   links <- paste0(
     "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a></li>",
@@ -359,9 +361,17 @@ build_dashboard_index_html <- function(
 build_commissioner_alerts_html <- function(
   report_files_public = character(),
   latest_report_public = NA_character_,
-  latest_report_rows = NA_integer_
+  latest_report_rows = NA_integer_,
+  violation_report_files_public = character(),
+  violation_report_file_labels = NULL,
+  clean_archive_public = NA_character_,
+  clean_report_count = 0L,
+  failed_report_dates = as.Date(character())
 ) {
-  report_links_html <- build_archive_links_html(report_files_public)
+  violation_report_links_html <- build_archive_links_html(
+    violation_report_files_public,
+    archive_file_labels = violation_report_file_labels
+  )
   latest_report_html <- if (!is.na(latest_report_public) && nzchar(latest_report_public)) {
     latest_report_label <- basename(sub("\\?.*$", "", latest_report_public))
     paste0(
@@ -379,6 +389,30 @@ build_commissioner_alerts_html <- function(
     ""
   }
 
+  clean_archive_html <- if (!is.na(clean_archive_public) && nzchar(clean_archive_public) && clean_report_count > 0) {
+    paste0(
+      "<p><a href='", clean_archive_public, "'>",
+      clean_report_count,
+      " clean report CSV",
+      if (clean_report_count == 1) "" else "s",
+      "</a></p>"
+    )
+  } else {
+    "<p>No clean report CSVs yet.</p>"
+  }
+
+  failed_report_dates <- failed_report_dates[!is.na(failed_report_dates)]
+  failed_report_html <- if (length(failed_report_dates) > 0) {
+    paste0(
+      "<p>No report CSV found for these expected daily run dates:</p>",
+      "<ul>\n",
+      paste0("<li>", format(failed_report_dates, "%Y-%m-%d"), "</li>", collapse = "\n"),
+      "\n</ul>"
+    )
+  } else {
+    "<p>No missing daily report CSVs found.</p>"
+  }
+
   dashboard_page(
     "Commissioner Alerts",
     paste0(
@@ -389,8 +423,29 @@ build_commissioner_alerts_html <- function(
         ", latest_count_html, "
       </section>
       <section class='panel'>
-        <h2>Report Archive</h2>
-        ", report_links_html, "
+        <h2>Reported Violations</h2>
+        ", violation_report_links_html, "
+      </section>
+      <section class='panel'>
+        <h2>Clean Runs</h2>
+        ", clean_archive_html, "
+      </section>
+      <section class='panel'>
+        <h2>Failed / No Report Days</h2>
+        ", failed_report_html, "
+      </section>"
+    )
+  )
+}
+
+build_commissioner_alert_clean_archive_html <- function(clean_report_files_public = character()) {
+  dashboard_page(
+    "Commissioner Alerts Clean Runs",
+    paste0(
+      back_link(),
+      "<section class='panel'>
+        <h2>Clean Report CSVs</h2>
+        ", build_archive_links_html(clean_report_files_public), "
       </section>"
     )
   )
