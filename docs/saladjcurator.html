@@ -171,12 +171,28 @@
   <main>
     <a class='back-link' href='index.html'>Back to Commissioner Dashboard</a><section class='panel'>
         <div class='stat-row'>
-          <div class='stat'><span class='stat-label'>Last checked</span><span class='stat-value'>8/31/2026 5:20 p.m. EDT</span></div>
-          <div class='stat'><span class='stat-label'>Latest change</span><span class='stat-value'>8/31/2026 1:09 p.m. EDT</span></div>
-          <div class='stat'><span class='stat-label'>Current qualifying rows</span><span class='stat-value'>36</span></div>
+          <div class='stat'><span class='stat-label'>Last checked</span><span class='stat-value'>8/31/2026 5:28 p.m. EDT</span></div>
+          <div class='stat'><span class='stat-label'>Latest change</span><span class='stat-value'>8/31/2026 5:28 p.m. EDT</span></div>
+          <div class='stat'><span class='stat-label'>Current qualifying rows</span><span class='stat-value'>37</span></div>
           <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/2026_08_31_ADLSalAdjCurator.csv'>2026_08_31_ADLSalAdjCurator.csv</a></span></div>
         </div>
-        <p><strong>Status:</strong> No new actionable CSV was archived on the most recent check.</p>
+        <p><strong>Status:</strong> A new actionable CSV was archived on the most recent check.</p>
+      </section>
+      <section class='panel'>
+        <h2>Instructions</h2>
+        <p>
+        For 2026, SalAdjCurator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
+        Starting with May 1, 2026 transactions, this dashboard uses the automated ADL transaction scrape.
+        </p>
+        <p>
+        The manual seed is intentional.
+        Through the NFL Draft date, April 23, 2026, offseason auction activity such as FT and B/R can create drops that should not be counted as ordinary salary-adjustment drops by the scraper.
+        April 24-30, 2026 entries are also seeded from Contract Admin because they occurred before the scrape feed was running reliably.
+        </p>
+        <p>
+        Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into the ADL Contract Admin sheet for each conference.
+        This dashboard does not track Suspended status ((S) column) or July 1 Tenders (JT column); enter those manually when needed.
+        </p>
       </section>
       <section class='panel'>
         <h2>SalAdjCurator Archive</h2>
@@ -199,22 +215,6 @@
 <li><a href='downloads/2026_05_13_ADLSalAdjCurator.csv'>2026_05_13_ADLSalAdjCurator.csv</a></li>
 <li><a href='downloads/2026_05_06_ADLSalAdjCurator.csv'>2026_05_06_ADLSalAdjCurator.csv</a></li>
 </ul>
-      </section>
-      <section class='panel'>
-        <h2>Instructions</h2>
-        <p>
-        For 2026, SalAdjCurator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
-        Starting with May 1, 2026 transactions, this dashboard uses the automated ADL transaction scrape.
-        </p>
-        <p>
-        The manual seed is intentional.
-        Through the NFL Draft date, April 23, 2026, offseason auction activity such as FT and B/R can create drops that should not be counted as ordinary salary-adjustment drops by the scraper.
-        April 24-30, 2026 entries are also seeded from Contract Admin because they occurred before the scrape feed was running reliably.
-        </p>
-        <p>
-        Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into the ADL Contract Admin sheet for each conference.
-        This dashboard does not track Suspended status ((S) column) or July 1 Tenders (JT column); enter those manually when needed.
-        </p>
       </section>
   </main>
 </body>
