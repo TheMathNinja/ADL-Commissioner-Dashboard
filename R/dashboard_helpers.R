@@ -421,10 +421,6 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
         <p><strong>Status:</strong> ", changed_text, "</p>
       </section>
       <section class='panel'>
-        <h2>SalAdjCurator Archive</h2>
-        ", archive_links_html, "
-      </section>
-      <section class='panel'>
         <h2>Instructions</h2>
         <p>
         For 2026, SalAdjCurator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
@@ -439,6 +435,10 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
         Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into the ADL Contract Admin sheet for each conference.
         This dashboard does not track Suspended status ((S) column) or July 1 Tenders (JT column); enter those manually when needed.
         </p>
+      </section>
+      <section class='panel'>
+        <h2>SalAdjCurator Archive</h2>
+        ", archive_links_html, "
       </section>"
     )
   )
