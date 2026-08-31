@@ -708,8 +708,8 @@ read_designation_snapshot <- function(season = get_current_season(), week = NULL
 
 inactive_designation <- function(x) {
   x <- toupper(trimws(as.character(x %||% "")))
-  grepl("\\((I|H|O)\\)", x) |
-    x %in% c("I", "H", "O", "INJURED", "HOLDOUT", "OUT")
+  grepl("\\((S|I|H|O)\\)", x) |
+    x %in% c("S", "I", "H", "O", "SUSPENDED", "INJURED", "HOLDOUT", "OUT")
 }
 
 adl_lineup_position_rules <- function() {
@@ -1213,7 +1213,7 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
       conference,
       franchise,
       franchise_name,
-      rule = "No starters with (I), (H), or (O) designation 72 hours before kickoff",
+      rule = "No starters with (S), (I), (H), or (O) designation 72 hours before kickoff",
       observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
       details = if_else(
         .data$missing_72h_snapshot,
