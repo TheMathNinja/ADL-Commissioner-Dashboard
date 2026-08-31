@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details
+2026,,2026-08-13 11:59:40 UTC,Roster Cap Violation,violation,AFC,KCC,Kansas City Chiefs,Maximum 75 players on Active Roster + Taxi Squad,77 active/taxi players,2 above maximum

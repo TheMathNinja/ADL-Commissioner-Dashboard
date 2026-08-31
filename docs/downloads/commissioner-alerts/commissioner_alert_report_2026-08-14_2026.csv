@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details
+2026,,2026-08-14 11:57:13 UTC,Salary Cap Violation,violation,AFC,IND,Indianapolis Colts,Top 43 Salaries plus cap adjustments exceeds franchise cap of $245.71m.,$249.01m,"Top 43 Salaries: $249.01m
+Salary Adjustments: +$0.00m
+Total Expenditures: $249.01m
+$3.30m over cap."
