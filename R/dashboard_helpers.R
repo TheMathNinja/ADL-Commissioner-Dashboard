@@ -277,7 +277,8 @@ build_cap_links_html <- function(
 
 build_dashboard_index_html <- function(
   latest_daily_roster_snapshot_public = NA_character_,
-  latest_cap_summary_public = NA_character_
+  latest_cap_summary_public = NA_character_,
+  latest_commissioner_alert_report_public = NA_character_
 ) {
   daily_snapshot_text <- if (!is.na(latest_daily_roster_snapshot_public) && nzchar(latest_daily_roster_snapshot_public)) {
     latest_daily_roster_snapshot_label <- basename(sub("\\?.*$", "", latest_daily_roster_snapshot_public))
@@ -301,6 +302,12 @@ build_dashboard_index_html <- function(
     )
   } else {
     "<li><a href='salary-cap-accounting.html'>Salary Cap Accounting & Rollover</a></li>"
+  }
+
+  latest_commissioner_alert_report_label <- if (!is.na(latest_commissioner_alert_report_public) && nzchar(latest_commissioner_alert_report_public)) {
+    basename(sub("\\?.*$", "", latest_commissioner_alert_report_public))
+  } else {
+    NA_character_
   }
 
   dashboard_page(
@@ -331,11 +338,60 @@ build_dashboard_index_html <- function(
         "salary-cap-accounting.html"
       ),
       tool_card(
+        "Commissioner Alerts",
+        if (!is.na(latest_commissioner_alert_report_label) && nzchar(latest_commissioner_alert_report_label)) {
+          paste0("Violation and warning report history, latest: ", latest_commissioner_alert_report_label, ".")
+        } else {
+          "Violation and warning report history from automated commissioner checks."
+        },
+        "commissioner-alerts.html"
+      ),
+      tool_card(
         "GM Dashboard",
         "Player-facing ADL tools, including the live Contract Extension Calculator.",
         "https://themathninja.github.io/ADL-GM-Dashboard/"
       ),
       "</div>"
+    )
+  )
+}
+
+build_commissioner_alerts_html <- function(
+  report_files_public = character(),
+  latest_report_public = NA_character_,
+  latest_report_rows = NA_integer_
+) {
+  report_links_html <- build_archive_links_html(report_files_public)
+  latest_report_html <- if (!is.na(latest_report_public) && nzchar(latest_report_public)) {
+    latest_report_label <- basename(sub("\\?.*$", "", latest_report_public))
+    paste0(
+      "<p><strong>Latest Report:</strong> <a href='", latest_report_public, "'>",
+      latest_report_label,
+      "</a></p>"
+    )
+  } else {
+    "<p><strong>Latest Report:</strong> Not available yet.</p>"
+  }
+
+  latest_count_html <- if (!is.na(latest_report_rows)) {
+    paste0("<p><strong>Latest report rows:</strong> ", latest_report_rows, "</p>")
+  } else {
+    ""
+  }
+
+  dashboard_page(
+    "Commissioner Alerts",
+    paste0(
+      back_link(),
+      "<section class='panel'>
+        <h2>Status</h2>
+        ", latest_report_html, "
+        ", latest_count_html, "
+      </section>
+      <section class='panel'>
+        <h2>Report Archive</h2>
+        ", report_links_html, "
+      </section>"
     )
   )
 }

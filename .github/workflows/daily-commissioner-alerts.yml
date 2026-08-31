@@ -1,0 +1,170 @@
+on:
+  schedule:
+    - cron: 15 10 * * *
+    - cron: 7 16 31 8 *
+    - cron: 22 16 31 8 *
+    - cron: 7 16 7 9 *
+    - cron: 22 16 7 9 *
+  workflow_dispatch:
+    inputs:
+      cutdown_id:
+        description: Optional roster cutdown benchmark to run instead of the regular daily check.
+        required: false
+        type: string
+
+name: daily-commissioner-alerts
+
+permissions:
+  contents: write
+
+concurrency:
+  group: commissioner-dashboard-data-writes
+  cancel-in-progress: false
+
+jobs:
+  daily-commissioner-alerts:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: 2026
+      ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
+      ADL_CAP_ACCOUNTING_DIR: data/cap_accounting
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_MODE: check
+      ADL_ALERT_SEND_EMAIL: true
+      ADL_ALERT_FORCE_LIVE: true
+      ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
+      ADL_ALERT_NFC_CC: ${{ secrets.ADL_ALERT_NFC_CC }}
+      ADL_ALERT_AFC_CC: ${{ secrets.ADL_ALERT_AFC_CC }}
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_ALERT_EMAIL_TO: ${{ secrets.ADL_ALERT_EMAIL_TO }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+
+    steps:
+      - name: Checkout dashboard repo
+        uses: actions/checkout@v4
+
+      - name: Create cache directories
+        run: |
+          mkdir -p "${ADL_RAW_LEAGUE_DATA_DIR}"
+          mkdir -p "${R_LIBS_USER}"
+          mkdir -p data
+
+      - name: Restore raw league data cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ADL_RAW_LEAGUE_DATA_DIR }}
+          key: ${{ runner.os }}-commissioner-raw-league-data-${{ env.CURRENT_SEASON }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R') }}
+          restore-keys: |
+            ${{ runner.os }}-commissioner-raw-league-data-${{ env.CURRENT_SEASON }}-
+
+      - name: Restore R package library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-commissioner-alert-r-lib-v1-${{ hashFiles('.github/workflows/daily-commissioner-alerts.yml', 'DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-commissioner-alert-r-lib-v1-
+
+      - name: Install Ubuntu system libraries and R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            r-base \
+            r-base-dev \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libssl-dev \
+            libtiff5-dev \
+            libxml2-dev \
+            libuv1-dev \
+            pkg-config
+
+      - name: Install and verify R packages
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          options(repos = c(
+            ffverse = "https://ffverse.r-universe.dev",
+            CRAN = "https://cloud.r-project.org"
+          ))
+
+          packages <- c("curl", "dplyr", "ffscrapr", "lubridate", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+          if (length(missing) > 0) {
+            install.packages(
+              missing,
+              dependencies = c("Depends", "Imports", "LinkingTo"),
+              Ncpus = max(1, parallel::detectCores() - 1)
+            )
+          }
+
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) {
+            stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+          }
+
+      - name: Run commissioner alerts
+        run: |
+          CUTDOWN_ID="${{ github.event.inputs.cutdown_id }}"
+          if [ -z "${CUTDOWN_ID}" ]; then
+            case "${{ github.event.schedule }}" in
+              "7 16 31 8 *") CUTDOWN_ID="roster_cutdown_1" ;;
+              "22 16 31 8 *") CUTDOWN_ID="roster_cutdown_1" ;;
+              "7 16 7 9 *") CUTDOWN_ID="final_roster_cutdown" ;;
+              "22 16 7 9 *") CUTDOWN_ID="final_roster_cutdown" ;;
+            esac
+          fi
+
+          if [ -n "${CUTDOWN_ID}" ]; then
+            Rscript scripts/run_commissioner_alerts.R --mode=cutdown --cutdown="${CUTDOWN_ID}" --season=${CURRENT_SEASON} --force-live --send-email --send-empty --skip-completed-cutdown
+          else
+            Rscript scripts/run_commissioner_alerts.R --mode=check --season=${CURRENT_SEASON} --force-live --send-email
+          fi
+
+      - name: Build dashboard site
+        if: always()
+        run: Rscript scripts/build_dashboard.R
+
+      - name: Commit public violation reports
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/commissioner_alert_reports docs
+          git diff --cached --quiet && exit 0
+          git commit -m "Automated commissioner alert report"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase --autostash origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Failed to push commissioner alert report after 3 attempts."
+          exit 1
+
+      - name: Upload alert results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commissioner-alert-results
+          path: data/commissioner_alerts/

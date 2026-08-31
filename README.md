@@ -126,3 +126,27 @@ SalAdjCurator now writes dated roster snapshots to data/roster_snapshots. Drop t
 Salary cap accounting:
 
 scripts/run\_cap\_accounting.R writes weekly roster snapshots and rolling summary files under data/cap\_accounting/<season>/. The dashboard builder publishes those CSVs to docs/downloads/salary-cap-accounting/ and updates docs/salary-cap-accounting.html. The weekly GitHub Action runs Tuesday at 3:30 a.m. Toronto time during the regular season; manual workflow runs can provide SNAPSHOT\_WEEK, or omit it to infer the latest completed regular-season week from nflreadr.
+
+Commissioner Alerts:
+
+R/commissioner\_alerts.R checks roster cap, contract years, salary cap, and illegal lineup rules. The daily alert workflow runs at 6:15 a.m. Eastern during daylight saving time and sends emails when alerts are found. It also runs roster cutdown reports near Noon Eastern on August 31 and September 7 with backup runs to reduce the chance of GitHub schedule drops.
+
+Salary cap alerts use the offseason/preseason Top 43 rule until the Final Roster Cutdown datetime. After Final Cutdown, daily checks read this repo's salary-cap accounting summaries and warn teams whose current live accounting salary would push their cumulative average over the franchise cap at the next weekly salary snapshot.
+
+Public alert summaries are written under data/commissioner\_alert\_reports/ and published to docs/commissioner-alerts.html.
+
+Offseason Inactivity Monitor:
+
+R/offseason\_inactivity\_monitor.R checks offseason inactivity policies and reuses the commissioner-alert email plumbing. Season-specific date windows live in data/source/offseason\_inactivity\_windows\_<season>.csv and should be updated each offseason before running retroactive auction-window checks.
+
+Additional GitHub Actions secrets needed for commissioner alert emails:
+
+- ADL_ALERT_EMAIL_FROM
+- ADL_SMTP_SERVER
+- ADL_SMTP_USERNAME
+- ADL_SMTP_PASSWORD
+- ADL_SMTP_SSL
+- ADL_ALERT_DIGEST_FRANCHISES, defaults to CHI,KCC,IND,SEA in the workflow
+- ADL_ALERT_DIGEST_EXTRA_EMAILS, optional
+- ADL_ALERT_NFC_CC, optional
+- ADL_ALERT_AFC_CC, optional

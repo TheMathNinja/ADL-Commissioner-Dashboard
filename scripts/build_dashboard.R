@@ -185,10 +185,12 @@ dir.create(file.path("docs", "downloads", "daily-roster-snapshots"), recursive =
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "commissioner-alerts"), recursive = TRUE, showWarnings = FALSE)
 unlink(file.path("docs", "downloads", "daily-roster-snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections", "*.csv"))
+unlink(file.path("docs", "downloads", "commissioner-alerts", "*.csv"))
 
 # Find archived CSVs for current season only
 archive_files_data <- list.files(
@@ -377,10 +379,44 @@ current_cap_summary_public <- if (length(cap_summary_files_public) > 0) {
   NA_character_
 }
 
+# Publish commissioner alert report history.
+commissioner_alert_report_files_data <- list.files(
+  path = file.path("data", "commissioner_alert_reports"),
+  pattern = paste0("^commissioner_alert_report_.*_", current_season, ".*\\.csv$"),
+  full.names = TRUE
+)
+commissioner_alert_report_files_data <- sort(commissioner_alert_report_files_data, decreasing = TRUE)
+
+if (length(commissioner_alert_report_files_data) > 0) {
+  invisible(file.copy(
+    from = commissioner_alert_report_files_data,
+    to = file.path("docs", "downloads", "commissioner-alerts", basename(commissioner_alert_report_files_data)),
+    overwrite = TRUE
+  ))
+}
+
+commissioner_alert_report_files_public <- file.path(
+  "downloads",
+  "commissioner-alerts",
+  basename(commissioner_alert_report_files_data)
+)
+commissioner_alert_report_files_public <- add_file_versions(commissioner_alert_report_files_public)
+latest_commissioner_alert_report_public <- if (length(commissioner_alert_report_files_public) > 0) {
+  commissioner_alert_report_files_public[1]
+} else {
+  NA_character_
+}
+latest_commissioner_alert_report_rows <- if (length(commissioner_alert_report_files_data) > 0) {
+  nrow(readr::read_csv(commissioner_alert_report_files_data[1], show_col_types = FALSE))
+} else {
+  NA_integer_
+}
+
 # Build landing page
 index_html <- build_dashboard_index_html(
   latest_daily_roster_snapshot_public = latest_snapshot_public,
-  latest_cap_summary_public = current_cap_summary_public
+  latest_cap_summary_public = current_cap_summary_public,
+  latest_commissioner_alert_report_public = latest_commissioner_alert_report_public
 )
 writeLines(index_html, file.path("docs", "index.html"))
 
@@ -400,6 +436,15 @@ daily_roster_snapshots_html <- build_daily_roster_snapshots_html(
 )
 
 writeLines(daily_roster_snapshots_html, file.path("docs", "daily-roster-snapshots.html"))
+
+# Build commissioner alerts page
+commissioner_alerts_html <- build_commissioner_alerts_html(
+  report_files_public = commissioner_alert_report_files_public,
+  latest_report_public = latest_commissioner_alert_report_public,
+  latest_report_rows = latest_commissioner_alert_report_rows
+)
+
+writeLines(commissioner_alerts_html, file.path("docs", "commissioner-alerts.html"))
 
 # Build salary cap accounting page
 cap_accounting_html <- build_cap_accounting_html(

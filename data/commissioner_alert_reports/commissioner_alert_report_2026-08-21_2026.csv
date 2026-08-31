@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details
+2026,,2026-08-21 11:42:16 UTC,Roster Cap Violation,violation,AFC,TEN,Tennessee Titans,Maximum 75 players on Active Roster + Taxi Squad,76 active/taxi players,1 above maximum
