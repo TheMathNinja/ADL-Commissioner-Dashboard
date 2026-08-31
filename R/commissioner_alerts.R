@@ -1384,6 +1384,7 @@ evaluate_illegal_lineup_alerts <- function(
   lineup_lock_times <- franchise_lineup_lock_times(lineups, kickoffs)
   checked_date <- lineup_alert_date(checked_at)
   first_game_date <- lineup_week_first_game_date(kickoffs)
+  is_first_game_warning_day <- !is.na(first_game_date) && checked_date == first_game_date
   first_game_at <- if (!is.null(kickoffs) && nrow(kickoffs) && "kickoff_at" %in% names(kickoffs)) {
     kickoff_values <- as.POSIXct(kickoffs$kickoff_at, tz = "UTC")
     kickoff_values <- kickoff_values[!is.na(kickoff_values)]
@@ -1479,7 +1480,7 @@ evaluate_illegal_lineup_alerts <- function(
       bad_72h_designation = !.data$missing_72h_snapshot & inactive_designation(.data$designation_72h),
       designation_game_date = lineup_alert_date(.data$kickoff_at),
       designation_warning_today = .data$current_bad_designation & !is.na(.data$designation_game_date) &
-        .data$designation_game_date == .env$checked_date,
+        (.data$designation_game_date == .env$checked_date | isTRUE(.env$is_first_game_warning_day)),
       bye_warning_today = .data$on_bye & !is.na(.env$first_game_date) & .env$first_game_date == .env$checked_date,
       player_warning_today = .data$designation_warning_today | .data$bye_warning_today,
       designation_violation = .data$current_bad_designation & .data$bad_72h_designation &
@@ -1490,10 +1491,21 @@ evaluate_illegal_lineup_alerts <- function(
       bad_designation = .data$designation_violation
     )
 
-  warning_franchise_ids <- player_checks |>
+  player_warning_franchise_ids <- player_checks |>
     filter(.data$player_warning_today) |>
     distinct(.data$franchise_id) |>
     pull(franchise_id)
+
+  structural_warning_franchise_ids <- if (isTRUE(is_first_game_warning_day) && nrow(count_alerts)) {
+    count_alerts |>
+      filter(.data$severity == "warning") |>
+      distinct(.data$franchise_id_temp) |>
+      pull(franchise_id_temp)
+  } else {
+    character()
+  }
+
+  warning_franchise_ids <- unique(c(player_warning_franchise_ids, structural_warning_franchise_ids))
 
   count_alerts <- count_alerts |>
     filter(.data$severity == "violation" | .data$franchise_id_temp %in% .env$warning_franchise_ids) |>
