@@ -1147,7 +1147,15 @@ read_bye_weeks <- function(season = get_current_season()) {
   integer()
 }
 
-evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_current_season(), week, expected_starters = 21L, designation_snapshot = NULL) {
+evaluate_illegal_lineup_alerts <- function(
+  lineups,
+  rosters,
+  season = get_current_season(),
+  week,
+  expected_starters = 21L,
+  designation_snapshot = NULL,
+  current_designations = NULL
+) {
   franchise_index <- rosters |>
     distinct(.data$conference, .data$franchise, .data$franchise_name, .data$franchise_id)
 
@@ -1183,6 +1191,19 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
       current_player_status = as.character(coalesce_col(rosters, c("player_status"), NA_character_))
     )
 
+  if (!is.null(current_designations)) {
+    current_designation_tbl <- current_designations |>
+      transmute(
+        player_id,
+        current_weekly_designation = as.character(coalesce_col(current_designations, c("player_status", "roster_status"), NA_character_))
+      )
+
+    status_source <- status_source |>
+      left_join(current_designation_tbl, by = "player_id") |>
+      mutate(current_player_status = coalesce(.data$current_weekly_designation, .data$current_player_status)) |>
+      select(-current_weekly_designation)
+  }
+
   if (!is.null(designation_snapshot)) {
     status_source <- designation_snapshot |>
       transmute(
@@ -1199,9 +1220,13 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
     left_join(status_source, by = "player_id") |>
     mutate(
       missing_72h_snapshot = is.na(.data$designation_72h),
+      missing_current_designation = is.na(.data$current_player_status),
       bye_week = unname(read_bye_weeks(season)[.data$player_team]),
       on_bye = !is.na(.data$bye_week) & .data$bye_week == .env$week,
-      bad_designation = !.data$missing_72h_snapshot & inactive_designation(.data$designation_72h)
+      bad_designation = !.data$missing_72h_snapshot &
+        !.data$missing_current_designation &
+        inactive_designation(.data$designation_72h) &
+        inactive_designation(.data$current_player_status)
     )
 
   designation_alerts <- player_checks |>
@@ -1217,7 +1242,7 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
       details = if_else(
         .data$missing_72h_snapshot,
         paste0("designation evidence missing; current status is ", .data$current_player_status),
-        paste0("72-hour designation was ", .data$designation_72h)
+        paste0("72-hour designation was ", .data$designation_72h, "; current designation is ", .data$current_player_status)
       )
     )
 
@@ -1307,12 +1332,24 @@ build_commissioner_alerts <- function(
   if (include_inseason) {
     if (is.null(week) || is.na(week)) stop("week is required for in-season lineup alerts.", call. = FALSE)
     lineups <- cache_lineups_snapshot(season = season, week = week, force_live = force_live)
+    current_designations <- if (isTRUE(force_live)) {
+      tryCatch(
+        fetch_mfl_weekly_designations(season = season, week = week),
+        error = function(e) {
+          warning("MFL current weekly designations unavailable; designation lineup alerts require current evidence: ", conditionMessage(e), call. = FALSE)
+          NULL
+        }
+      )
+    } else {
+      NULL
+    }
     alerts$illegal_lineup <- evaluate_illegal_lineup_alerts(
       lineups = lineups,
       rosters = rosters,
       season = season,
       week = week,
-      designation_snapshot = read_designation_snapshot(season, week)
+      designation_snapshot = read_designation_snapshot(season, week),
+      current_designations = current_designations
     )
   }
 
