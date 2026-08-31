@@ -174,6 +174,90 @@ file_generated_at_et <- function(files) {
   stats::setNames(as.list(generated_at_text), basename(files))
 }
 
+report_date_from_commissioner_alert_file <- function(report_file) {
+  report_date_text <- sub(
+    "^commissioner_alert_report_([0-9]{4}-[0-9]{2}-[0-9]{2})_.*\\.csv$",
+    "\\1",
+    basename(report_file)
+  )
+  suppressWarnings(as.Date(report_date_text))
+}
+
+count_csv_data_rows <- function(report_file) {
+  if (!file.exists(report_file)) return(NA_integer_)
+  rows <- tryCatch(
+    nrow(readr::read_csv(report_file, show_col_types = FALSE)),
+    error = function(e) NA_integer_
+  )
+  as.integer(rows)
+}
+
+summarize_commissioner_alert_report_label <- function(report_file) {
+  report_label <- basename(report_file)
+  report <- tryCatch(
+    readr::read_csv(
+      report_file,
+      col_types = readr::cols(.default = readr::col_character()),
+      show_col_types = FALSE
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(report)) {
+    return(paste0(report_label, " (unable to read report)"))
+  }
+
+  violation_count <- nrow(report)
+  if (violation_count == 0) {
+    return(paste0(report_label, " (clean)"))
+  }
+
+  franchise_values <- if ("franchise" %in% names(report)) {
+    report$franchise
+  } else if ("franchise_name" %in% names(report)) {
+    report$franchise_name
+  } else {
+    character()
+  }
+  franchise_values <- stringr::str_squish(dplyr::coalesce(franchise_values, ""))
+  franchise_values <- franchise_values[nzchar(franchise_values)]
+
+  franchise_summary <- ""
+  if (length(franchise_values) > 0) {
+    franchise_order <- unique(franchise_values)
+    franchise_counts <- table(factor(franchise_values, levels = franchise_order))
+    franchise_parts <- ifelse(
+      as.integer(franchise_counts) == 1,
+      names(franchise_counts),
+      paste0(names(franchise_counts), " (", as.integer(franchise_counts), ")")
+    )
+    franchise_summary <- paste0(": ", paste(franchise_parts, collapse = ", "))
+  }
+
+  paste0(
+    report_label,
+    " (",
+    violation_count,
+    " violation",
+    if (violation_count == 1) "" else "s",
+    franchise_summary,
+    ")"
+  )
+}
+
+missing_commissioner_alert_report_dates <- function(report_files, timezone = "America/Toronto") {
+  report_dates <- report_date_from_commissioner_alert_file(report_files)
+  report_dates <- report_dates[!is.na(report_dates)]
+
+  if (length(report_dates) == 0) {
+    return(as.Date(character()))
+  }
+
+  expected_dates <- seq.Date(min(report_dates), lubridate::today(tzone = timezone), by = "day")
+  missing_dates <- setdiff(as.numeric(expected_dates), as.numeric(report_dates))
+  sort(as.Date(missing_dates, origin = "1970-01-01"), decreasing = TRUE)
+}
+
 # Read metadata
 run_meta <- readr::read_csv("data/run_metadata.csv", show_col_types = FALSE)
 franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season, ".rds")))
@@ -186,11 +270,13 @@ dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"),
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "commissioner-alerts"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "commissioner-alerts", "clean"), recursive = TRUE, showWarnings = FALSE)
 unlink(file.path("docs", "downloads", "daily-roster-snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections", "*.csv"))
 unlink(file.path("docs", "downloads", "commissioner-alerts", "*.csv"))
+unlink(file.path("docs", "downloads", "commissioner-alerts", "clean", "*.csv"))
 
 # Find archived CSVs for current season only
 archive_files_data <- list.files(
@@ -387,10 +473,31 @@ commissioner_alert_report_files_data <- list.files(
 )
 commissioner_alert_report_files_data <- sort(commissioner_alert_report_files_data, decreasing = TRUE)
 
-if (length(commissioner_alert_report_files_data) > 0) {
+commissioner_alert_report_row_counts <- vapply(
+  commissioner_alert_report_files_data,
+  count_csv_data_rows,
+  integer(1),
+  USE.NAMES = FALSE
+)
+commissioner_alert_report_files_with_violations_data <- commissioner_alert_report_files_data[
+  !is.na(commissioner_alert_report_row_counts) & commissioner_alert_report_row_counts > 0
+]
+commissioner_alert_report_files_clean_data <- commissioner_alert_report_files_data[
+  !is.na(commissioner_alert_report_row_counts) & commissioner_alert_report_row_counts == 0
+]
+
+if (length(commissioner_alert_report_files_with_violations_data) > 0) {
   invisible(file.copy(
-    from = commissioner_alert_report_files_data,
-    to = file.path("docs", "downloads", "commissioner-alerts", basename(commissioner_alert_report_files_data)),
+    from = commissioner_alert_report_files_with_violations_data,
+    to = file.path("docs", "downloads", "commissioner-alerts", basename(commissioner_alert_report_files_with_violations_data)),
+    overwrite = TRUE
+  ))
+}
+
+if (length(commissioner_alert_report_files_clean_data) > 0) {
+  invisible(file.copy(
+    from = commissioner_alert_report_files_clean_data,
+    to = file.path("docs", "downloads", "commissioner-alerts", "clean", basename(commissioner_alert_report_files_clean_data)),
     overwrite = TRUE
   ))
 }
@@ -400,7 +507,32 @@ commissioner_alert_report_files_public <- file.path(
   "commissioner-alerts",
   basename(commissioner_alert_report_files_data)
 )
+commissioner_alert_report_files_public <- ifelse(
+  !is.na(commissioner_alert_report_row_counts) & commissioner_alert_report_row_counts == 0,
+  file.path("downloads", "commissioner-alerts", "clean", basename(commissioner_alert_report_files_data)),
+  commissioner_alert_report_files_public
+)
 commissioner_alert_report_files_public <- add_file_versions(commissioner_alert_report_files_public)
+commissioner_alert_report_files_with_violations_public <- file.path(
+  "downloads",
+  "commissioner-alerts",
+  basename(commissioner_alert_report_files_with_violations_data)
+)
+commissioner_alert_report_files_with_violations_public <- add_file_versions(commissioner_alert_report_files_with_violations_public)
+commissioner_alert_report_files_with_violations_labels <- vapply(
+  commissioner_alert_report_files_with_violations_data,
+  summarize_commissioner_alert_report_label,
+  character(1),
+  USE.NAMES = FALSE
+)
+commissioner_alert_report_files_clean_public <- file.path(
+  "downloads",
+  "commissioner-alerts",
+  "clean",
+  basename(commissioner_alert_report_files_clean_data)
+)
+commissioner_alert_report_files_clean_public <- add_file_versions(commissioner_alert_report_files_clean_public)
+commissioner_alert_missing_report_dates <- missing_commissioner_alert_report_dates(commissioner_alert_report_files_data)
 latest_commissioner_alert_report_public <- if (length(commissioner_alert_report_files_public) > 0) {
   commissioner_alert_report_files_public[1]
 } else {
@@ -441,10 +573,24 @@ writeLines(daily_roster_snapshots_html, file.path("docs", "daily-roster-snapshot
 commissioner_alerts_html <- build_commissioner_alerts_html(
   report_files_public = commissioner_alert_report_files_public,
   latest_report_public = latest_commissioner_alert_report_public,
-  latest_report_rows = latest_commissioner_alert_report_rows
+  latest_report_rows = latest_commissioner_alert_report_rows,
+  violation_report_files_public = commissioner_alert_report_files_with_violations_public,
+  violation_report_file_labels = commissioner_alert_report_files_with_violations_labels,
+  clean_archive_public = "downloads/commissioner-alerts/clean/",
+  clean_report_count = length(commissioner_alert_report_files_clean_public),
+  failed_report_dates = commissioner_alert_missing_report_dates
 )
 
 writeLines(commissioner_alerts_html, file.path("docs", "commissioner-alerts.html"))
+
+commissioner_alert_clean_archive_html <- build_commissioner_alert_clean_archive_html(
+  clean_report_files_public = commissioner_alert_report_files_clean_public
+)
+
+writeLines(
+  commissioner_alert_clean_archive_html,
+  file.path("docs", "downloads", "commissioner-alerts", "clean", "index.html")
+)
 
 # Build salary cap accounting page
 cap_accounting_html <- build_cap_accounting_html(
