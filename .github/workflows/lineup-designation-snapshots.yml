@@ -103,7 +103,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/commissioner_alerts/designation_snapshot_*.csv data/commissioner_alerts/designation_snapshots
+          mkdir -p data/commissioner_alerts/designation_snapshots
+          git add -A data/commissioner_alerts
           git diff --cached --quiet && exit 0
           git commit -m "Automated lineup designation snapshot"
 
