@@ -655,7 +655,101 @@ fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
     distinct(.data$player_id, .keep_all = TRUE)
 }
 
+mfl_player_team <- function(team) {
+  team <- toupper(trimws(as.character(team %||% "")))
+  dplyr::recode(
+    team,
+    ARZ = "ARI",
+    JAX = "JAC",
+    KC = "KCC",
+    GB = "GBP",
+    NO = "NOS",
+    NE = "NEP",
+    SF = "SFO",
+    TB = "TBB",
+    LA = "LAR",
+    STL = "LAR",
+    OAK = "LVR",
+    SD = "LAC",
+    .default = team
+  )
+}
+
+nfl_schedule_type_col <- function(schedule) {
+  dplyr::case_when(
+    "season_type" %in% names(schedule) ~ "season_type",
+    "game_type" %in% names(schedule) ~ "game_type",
+    TRUE ~ NA_character_
+  )
+}
+
+nfl_game_kickoff_at <- function(schedule) {
+  if ("game_datetime" %in% names(schedule)) {
+    kickoff <- lubridate::ymd_hms(schedule$game_datetime, quiet = TRUE, tz = "UTC")
+    if (all(is.na(kickoff))) {
+      kickoff <- as.POSIXct(schedule$game_datetime, tz = "UTC")
+    }
+    return(kickoff)
+  }
+
+  if (all(c("gameday", "gametime") %in% names(schedule))) {
+    return(as.POSIXct(
+      paste(schedule$gameday, schedule$gametime),
+      format = "%Y-%m-%d %H:%M",
+      tz = "America/New_York"
+    ))
+  }
+
+  if ("gameday" %in% names(schedule)) {
+    return(as.POSIXct(paste(schedule$gameday, "00:00"), format = "%Y-%m-%d %H:%M", tz = "America/New_York"))
+  }
+
+  rep(as.POSIXct(NA), nrow(schedule))
+}
+
+read_nfl_team_kickoffs <- function(season = get_current_season(), week) {
+  if (!requireNamespace("nflreadr", quietly = TRUE)) {
+    warning("nflreadr is not installed; kickoff-aware lineup alert severity is unavailable.", call. = FALSE)
+    return(tibble(player_team = character(), kickoff_at = as.POSIXct(character())))
+  }
+
+  schedule <- nflreadr::load_schedules(seasons = season)
+  schedule_type_col <- nfl_schedule_type_col(schedule)
+  if (is.na(schedule_type_col)) {
+    warning("NFL schedule has no season_type or game_type column; kickoff-aware lineup alert severity is unavailable.", call. = FALSE)
+    return(tibble(player_team = character(), kickoff_at = as.POSIXct(character())))
+  }
+
+  games <- schedule |>
+    filter(.data[[schedule_type_col]] == "REG", .data$week == .env$week) |>
+    mutate(kickoff_at = nfl_game_kickoff_at(dplyr::cur_data_all()))
+
+  if (!nrow(games)) {
+    return(tibble(player_team = character(), kickoff_at = as.POSIXct(character())))
+  }
+
+  bind_rows(
+    games |> transmute(player_team = mfl_player_team(.data$home_team), kickoff_at),
+    games |> transmute(player_team = mfl_player_team(.data$away_team), kickoff_at)
+  ) |>
+    filter(!is.na(.data$kickoff_at), nzchar(.data$player_team)) |>
+    distinct(.data$player_team, .keep_all = TRUE)
+}
+
+commissioner_alert_designation_snapshot_dir <- function(season = get_current_season(), week = NULL) {
+  week_part <- if (is.null(week) || is.na(week)) "weekNA" else paste0("week", sprintf("%02d", as.integer(week)))
+  file.path(commissioner_alert_dir(), "designation_snapshots", as.character(season), week_part)
+}
+
+commissioner_alert_designation_snapshot_path <- function(season = get_current_season(), week = NULL, snapshot_time = Sys.time()) {
+  dir <- commissioner_alert_designation_snapshot_dir(season, week)
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  stamp <- format(lubridate::with_tz(snapshot_time, "UTC"), "%Y%m%d_%H%M%S")
+  file.path(dir, paste0("designation_snapshot_", season, "_week", sprintf("%02d", as.integer(week)), "_", stamp, ".csv"))
+}
+
 cache_designation_snapshot <- function(season = get_current_season(), week = NULL, force_live = TRUE) {
+  snapshot_time <- Sys.time()
   rosters <- load_current_rosters(
     force_live = force_live,
     source = if (force_live) "live" else "auto",
@@ -678,11 +772,12 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
 
   snapshot <- rosters |>
     left_join(
-      weekly_designations |> rename(weekly_player_status = .data$player_status),
+      weekly_designations |> rename(weekly_player_status = player_status),
       by = "player_id"
     ) |>
     transmute(
       captured_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+      snapshot_time = lubridate::with_tz(.env$snapshot_time, "UTC"),
       season = .env$season,
       week = .env$week %||% NA_integer_,
       conference,
@@ -696,6 +791,7 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
       player_status = coalesce(.data$weekly_player_status, .data$player_status)
     )
 
+  write_csv(snapshot, commissioner_alert_designation_snapshot_path(season, week, snapshot_time), na = "")
   write_csv(snapshot, commissioner_alert_path("designation_snapshot", season, week), na = "")
   snapshot
 }
@@ -703,13 +799,122 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
 read_designation_snapshot <- function(season = get_current_season(), week = NULL) {
   path <- commissioner_alert_path("designation_snapshot", season, week)
   if (!file.exists(path)) return(NULL)
-  read_csv(path, show_col_types = FALSE)
+  normalize_designation_snapshot_time(read_csv(path, show_col_types = FALSE))
+}
+
+normalize_designation_snapshot_time <- function(snapshot) {
+  snapshot <- tibble::as_tibble(snapshot)
+  if (!nrow(snapshot)) {
+    snapshot$snapshot_time <- as.POSIXct(character())
+    return(snapshot)
+  }
+
+  if ("snapshot_time" %in% names(snapshot)) {
+    parsed <- suppressWarnings(lubridate::ymd_hms(snapshot$snapshot_time, quiet = TRUE, tz = "UTC"))
+    needs_fallback <- is.na(parsed)
+    parsed[needs_fallback] <- suppressWarnings(as.POSIXct(snapshot$snapshot_time[needs_fallback], tz = "UTC"))
+  } else if ("captured_at" %in% names(snapshot)) {
+    parsed <- suppressWarnings(lubridate::parse_date_time(
+      snapshot$captured_at,
+      orders = c("Ymd HMS z", "Ymd HMS", "Ymd HM z", "Ymd HM"),
+      tz = "America/New_York"
+    ))
+  } else {
+    parsed <- rep(as.POSIXct(NA), nrow(snapshot))
+  }
+
+  snapshot$snapshot_time <- lubridate::with_tz(parsed, "UTC")
+  snapshot
+}
+
+read_designation_snapshot_history <- function(season = get_current_season(), week = NULL) {
+  snapshot_dir <- commissioner_alert_designation_snapshot_dir(season, week)
+  snapshot_files <- if (dir.exists(snapshot_dir)) {
+    list.files(snapshot_dir, pattern = "^designation_snapshot_.*\\.csv$", full.names = TRUE)
+  } else {
+    character()
+  }
+
+  snapshots <- bind_rows(lapply(snapshot_files, function(path) {
+    read_csv(path, show_col_types = FALSE) |>
+      normalize_designation_snapshot_time()
+  }))
+
+  latest_snapshot <- read_designation_snapshot(season, week)
+  bind_rows(snapshots, latest_snapshot) |>
+    filter(!is.na(.data$snapshot_time)) |>
+    distinct(.data$player_id, .data$snapshot_time, .keep_all = TRUE)
+}
+
+select_72h_designations_for_lineup <- function(lineups, designation_history, kickoffs) {
+  if (is.null(designation_history) || !nrow(designation_history) || is.null(kickoffs) || !nrow(kickoffs)) {
+    return(tibble(
+      player_id = character(),
+      designation_72h = character(),
+      designation_snapshot_time = as.POSIXct(character()),
+      kickoff_at = as.POSIXct(character())
+    ))
+  }
+
+  lineups |>
+    transmute(
+      player_id = as.character(.data$player_id),
+      player_team = mfl_player_team(.data$player_team)
+    ) |>
+    left_join(kickoffs, by = "player_team") |>
+    filter(!is.na(.data$kickoff_at)) |>
+    left_join(
+      designation_history |>
+        transmute(
+          player_id = as.character(.data$player_id),
+          designation_72h = as.character(coalesce_col(designation_history, c("player_status", "roster_status"), NA_character_)),
+          designation_snapshot_time = .data$snapshot_time
+        ),
+      by = "player_id"
+    ) |>
+    filter(!is.na(.data$designation_snapshot_time), .data$designation_snapshot_time <= .data$kickoff_at - lubridate::hours(72)) |>
+    arrange(.data$player_id, desc(.data$designation_snapshot_time)) |>
+    group_by(.data$player_id) |>
+    slice_head(n = 1L) |>
+    ungroup() |>
+    select(player_id, designation_72h, designation_snapshot_time, kickoff_at)
 }
 
 inactive_designation <- function(x) {
   x <- toupper(trimws(as.character(x %||% "")))
   grepl("\\((S|I|H|O)\\)", x) |
     x %in% c("S", "I", "H", "O", "SUSPENDED", "INJURED", "HOLDOUT", "OUT")
+}
+
+lineup_alert_severity <- function(kickoff_at, checked_at = Sys.time()) {
+  kickoff_at <- as.POSIXct(kickoff_at, tz = "UTC")
+  checked_at <- as.POSIXct(checked_at, tz = "UTC")
+  ifelse(!is.na(kickoff_at) & checked_at >= kickoff_at, "violation", "warning")
+}
+
+lineup_alert_type <- function(severity) {
+  ifelse(identical(severity, "warning") | severity == "warning", "Illegal Lineup Warning", "Illegal Lineup")
+}
+
+franchise_lineup_lock_times <- function(lineups, kickoffs) {
+  if (is.null(kickoffs) || !nrow(kickoffs)) {
+    return(tibble(franchise_id = unique(lineups$franchise_id), lineup_lock_at = as.POSIXct(NA)))
+  }
+
+  lineups |>
+    transmute(
+      franchise_id = as.character(.data$franchise_id),
+      player_team = mfl_player_team(.data$player_team)
+    ) |>
+    left_join(kickoffs, by = "player_team") |>
+    group_by(.data$franchise_id) |>
+    summarize(
+      lineup_lock_at = {
+        kickoff_values <- .data$kickoff_at[!is.na(.data$kickoff_at)]
+        if (length(kickoff_values)) min(kickoff_values) else as.POSIXct(NA)
+      },
+      .groups = "drop"
+    )
 }
 
 adl_lineup_position_rules <- function() {
@@ -1154,17 +1359,30 @@ evaluate_illegal_lineup_alerts <- function(
   week,
   expected_starters = 21L,
   designation_snapshot = NULL,
-  current_designations = NULL
+  designation_history = NULL,
+  current_designations = NULL,
+  kickoffs = NULL,
+  checked_at = Sys.time()
 ) {
   franchise_index <- rosters |>
     distinct(.data$conference, .data$franchise, .data$franchise_name, .data$franchise_id)
+  kickoffs <- kickoffs %||% read_nfl_team_kickoffs(season = season, week = week)
+  lineup_lock_times <- franchise_lineup_lock_times(lineups, kickoffs)
 
   lineup_counts <- franchise_index |>
     left_join(
       lineups |> count(.data$franchise_id, name = "starter_count"),
       by = "franchise_id"
     ) |>
-    mutate(starter_count = coalesce(.data$starter_count, 0L))
+    left_join(
+      lineup_lock_times,
+      by = "franchise_id"
+    ) |>
+    mutate(
+      starter_count = coalesce(.data$starter_count, 0L),
+      severity = lineup_alert_severity(.data$lineup_lock_at, checked_at = .env$checked_at),
+      alert_type = lineup_alert_type(.data$severity)
+    )
 
   count_alerts <- bind_rows(lapply(seq_len(nrow(lineup_counts)), function(i) {
     row <- lineup_counts[i, ]
@@ -1175,8 +1393,8 @@ evaluate_illegal_lineup_alerts <- function(
       expected_starters = expected_starters
     ) |>
       mutate(
-        alert_type = "Illegal Lineup",
-        severity = "violation",
+        alert_type = row$alert_type[[1]],
+        severity = row$severity[[1]],
         conference = row$conference[[1]],
         franchise = row$franchise[[1]],
         franchise_name = row$franchise_name[[1]],
@@ -1204,25 +1422,36 @@ evaluate_illegal_lineup_alerts <- function(
       select(-current_weekly_designation)
   }
 
-  if (!is.null(designation_snapshot)) {
-    status_source <- designation_snapshot |>
-      transmute(
-        player_id,
-        designation_72h = as.character(coalesce_col(designation_snapshot, c("player_status", "roster_status"), NA_character_))
-      ) |>
+  designation_history <- designation_history %||% designation_snapshot
+  selected_designations <- select_72h_designations_for_lineup(lineups, designation_history, kickoffs)
+
+  if (!is.null(selected_designations) && nrow(selected_designations)) {
+    status_source <- selected_designations |>
       right_join(status_source, by = "player_id")
   } else {
     status_source <- status_source |>
-      mutate(designation_72h = NA_character_)
+      mutate(
+        designation_72h = NA_character_,
+        designation_snapshot_time = as.POSIXct(NA),
+        kickoff_at = as.POSIXct(NA)
+      )
   }
 
   player_checks <- lineups |>
+    mutate(player_team_key = mfl_player_team(.data$player_team)) |>
     left_join(status_source, by = "player_id") |>
+    left_join(
+      kickoffs |> rename(player_kickoff_at = kickoff_at),
+      by = c("player_team_key" = "player_team")
+    ) |>
+    left_join(lineup_lock_times, by = "franchise_id") |>
     mutate(
+      kickoff_at = coalesce(.data$kickoff_at, .data$player_kickoff_at, .data$lineup_lock_at),
       missing_72h_snapshot = is.na(.data$designation_72h),
       missing_current_designation = is.na(.data$current_player_status),
       bye_week = unname(read_bye_weeks(season)[.data$player_team]),
       on_bye = !is.na(.data$bye_week) & .data$bye_week == .env$week,
+      player_lineup_severity = lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at),
       bad_designation = !.data$missing_72h_snapshot &
         !.data$missing_current_designation &
         inactive_designation(.data$designation_72h) &
@@ -1232,8 +1461,8 @@ evaluate_illegal_lineup_alerts <- function(
   designation_alerts <- player_checks |>
     filter(.data$bad_designation) |>
     transmute(
-      alert_type = "Illegal Lineup",
-      severity = "violation",
+      alert_type = lineup_alert_type(.data$player_lineup_severity),
+      severity = .data$player_lineup_severity,
       conference,
       franchise,
       franchise_name,
@@ -1252,8 +1481,8 @@ evaluate_illegal_lineup_alerts <- function(
   bye_alerts <- if (nrow(bye_players)) {
     bye_players |>
       transmute(
-        alert_type = "Illegal Lineup",
-        severity = "violation",
+        alert_type = lineup_alert_type(lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at)),
+        severity = lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at),
         conference,
         franchise,
         franchise_name,
@@ -1332,6 +1561,8 @@ build_commissioner_alerts <- function(
   if (include_inseason) {
     if (is.null(week) || is.na(week)) stop("week is required for in-season lineup alerts.", call. = FALSE)
     lineups <- cache_lineups_snapshot(season = season, week = week, force_live = force_live)
+    kickoffs <- read_nfl_team_kickoffs(season = season, week = week)
+    designation_history <- read_designation_snapshot_history(season = season, week = week)
     current_designations <- if (isTRUE(force_live)) {
       tryCatch(
         fetch_mfl_weekly_designations(season = season, week = week),
@@ -1349,7 +1580,10 @@ build_commissioner_alerts <- function(
       season = season,
       week = week,
       designation_snapshot = read_designation_snapshot(season, week),
-      current_designations = current_designations
+      designation_history = designation_history,
+      current_designations = current_designations,
+      kickoffs = kickoffs,
+      checked_at = checked_at
     )
   }
 
