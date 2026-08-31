@@ -1198,11 +1198,10 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
   player_checks <- lineups |>
     left_join(status_source, by = "player_id") |>
     mutate(
-      status_for_rule = coalesce(.data$designation_72h, .data$current_player_status),
       missing_72h_snapshot = is.na(.data$designation_72h),
       bye_week = unname(read_bye_weeks(season)[.data$player_team]),
       on_bye = !is.na(.data$bye_week) & .data$bye_week == .env$week,
-      bad_designation = inactive_designation(.data$status_for_rule)
+      bad_designation = !.data$missing_72h_snapshot & inactive_designation(.data$designation_72h)
     )
 
   designation_alerts <- player_checks |>
