@@ -91,6 +91,7 @@ normalize_rosters <- function(rosters, franchises = NULL) {
       player_team = as.character(coalesce_col(roster_tbl, c("team", "player_team"))),
       player_pos = as.character(coalesce_col(roster_tbl, c("pos", "position", "player_pos"))),
       roster_status = as.character(coalesce_col(roster_tbl, c("roster_status", "status"), "ROSTER")),
+      player_status = as.character(coalesce_col(roster_tbl, c("player_status", "injury_status", "injury", "inj"), NA_character_)),
       prev_salary = suppressWarnings(as.numeric(coalesce_col(roster_tbl, c("prev_salary", "salary", "roster_salary")))),
       prev_years = suppressWarnings(as.numeric(coalesce_col(roster_tbl, c("prev_years", "contract_years", "roster_years", "years")))),
       contract = as.character(coalesce_col(roster_tbl, c("contract", "contractInfo", "roster_contractInfo")))
@@ -136,7 +137,7 @@ normalize_rosters <- function(rosters, franchises = NULL) {
     filter(!is.na(.data$franchise), !is.na(.data$player), !is.na(.data$prev_salary), !is.na(.data$prev_years)) |>
     select(
       conference, franchise, franchise_name, player_id, player, player_name,
-      player_team, player_pos, roster_status, prev_salary, prev_years, franchise_salary_cap,
+      player_team, player_pos, roster_status, player_status, prev_salary, prev_years, franchise_salary_cap,
       contract, ext_marker, roster_last
     )
 }
@@ -144,6 +145,18 @@ normalize_rosters <- function(rosters, franchises = NULL) {
 fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
   conn <- connect_adl_mfl(season)
   rosters <- ffscrapr::ff_rosters(conn, week = week)
+  players_tbl <- ffscrapr::mfl_players(conn) |>
+    tibble::as_tibble()
+  players <- players_tbl |>
+    tibble::as_tibble() |>
+    transmute(
+      player_id = as.character(.data$player_id),
+      player_status = as.character(coalesce_col(players_tbl, c("status"), NA_character_))
+    ) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+  rosters <- rosters |>
+    mutate(player_id = as.character(.data$player_id)) |>
+    left_join(players, by = "player_id")
   franchises <- ffscrapr::ff_franchises(conn)
   normalize_rosters(rosters, franchises)
 }
