@@ -1493,11 +1493,11 @@ evaluate_illegal_lineup_alerts <- function(
   warning_franchise_ids <- player_checks |>
     filter(.data$player_warning_today) |>
     distinct(.data$franchise_id) |>
-    pull(.data$franchise_id)
+    pull(franchise_id)
 
   count_alerts <- count_alerts |>
     filter(.data$severity == "violation" | .data$franchise_id_temp %in% .env$warning_franchise_ids) |>
-    select(-.data$franchise_id_temp)
+    select(-franchise_id_temp)
 
   designation_violation_alerts <- player_checks |>
     filter(.data$designation_violation) |>
