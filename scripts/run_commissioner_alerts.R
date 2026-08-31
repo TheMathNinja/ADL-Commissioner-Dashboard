@@ -32,8 +32,16 @@ current_commissioner_alert_week <- function(today = Sys.Date(), season = get_cur
   max(1L, min(17L, floor(as.numeric(today - week_one_start) / 7) + 1L))
 }
 
+if (is.na(week) && mode %in% c("snapshot", "check", "inseason") && auto_week) {
+  week <- current_commissioner_alert_week(season = season)
+  if (!is.na(week)) message("Auto-selected Week ", week, " for in-season alerts.")
+}
+
 if (identical(mode, "snapshot")) {
-  if (is.na(week)) stop("--week is required for designation snapshots.", call. = FALSE)
+  if (is.na(week)) {
+    message("No current in-season week found; skipping designation snapshot.")
+    quit(save = "no")
+  }
   snapshot <- cache_designation_snapshot(season = season, week = week, force_live = TRUE)
   message("Wrote 72-hour designation snapshot with ", nrow(snapshot), " rows.")
   message(commissioner_alert_path("designation_snapshot", season, week))
@@ -97,11 +105,6 @@ if (identical(mode, "cutdown")) {
   }
 
   quit(save = "no")
-}
-
-if (is.na(week) && mode %in% c("check", "inseason") && auto_week) {
-  week <- current_commissioner_alert_week(season = season)
-  if (!is.na(week)) message("Auto-selected Week ", week, " for in-season alerts.")
 }
 
 include_offseason <- mode %in% c("check", "offseason")
