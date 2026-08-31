@@ -639,6 +639,22 @@ cache_lineups_snapshot <- function(season = get_current_season(), week, force_li
   lineups
 }
 
+fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
+  conn <- connect_adl_mfl(season)
+  raw <- ffscrapr::mfl_getendpoint(conn, "injuries", W = week)[["content"]][["injuries"]][["injury"]]
+
+  if (is.null(raw) || length(raw) == 0) {
+    return(tibble(player_id = character(), player_status = character()))
+  }
+
+  bind_rows(lapply(raw, tibble::as_tibble)) |>
+    transmute(
+      player_id = as.character(.data$id),
+      player_status = as.character(.data$status)
+    ) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+}
+
 cache_designation_snapshot <- function(season = get_current_season(), week = NULL, force_live = TRUE) {
   rosters <- load_current_rosters(
     force_live = force_live,
@@ -648,7 +664,23 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
     cache_path = commissioner_alert_path("designation_rosters_cache", season, week)
   )
 
+  weekly_designations <- if (force_live && !is.null(week) && !is.na(week)) {
+    tryCatch(
+      fetch_mfl_weekly_designations(season = season, week = week),
+      error = function(e) {
+        warning("MFL weekly designations unavailable; using roster player status: ", conditionMessage(e), call. = FALSE)
+        tibble(player_id = character(), player_status = character())
+      }
+    )
+  } else {
+    tibble(player_id = character(), player_status = character())
+  }
+
   snapshot <- rosters |>
+    left_join(
+      weekly_designations |> rename(weekly_player_status = .data$player_status),
+      by = "player_id"
+    ) |>
     transmute(
       captured_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
       season = .env$season,
@@ -660,7 +692,8 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
       player_name,
       player_team,
       player_pos,
-      roster_status = normalize_alert_status(.data$roster_status)
+      roster_status = normalize_alert_status(.data$roster_status),
+      player_status = coalesce(.data$weekly_player_status, .data$player_status)
     )
 
   write_csv(snapshot, commissioner_alert_path("designation_snapshot", season, week), na = "")
@@ -675,7 +708,8 @@ read_designation_snapshot <- function(season = get_current_season(), week = NULL
 
 inactive_designation <- function(x) {
   x <- toupper(trimws(as.character(x %||% "")))
-  grepl("\\(I\\)|\\(S\\)|(^|[^A-Z])I([^A-Z]|$)", x)
+  grepl("\\((I|H|O)\\)", x) |
+    x %in% c("I", "H", "O", "INJURED", "HOLDOUT", "OUT")
 }
 
 adl_lineup_position_rules <- function() {
@@ -1145,14 +1179,15 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
   status_source <- rosters |>
     transmute(
       player_id,
-      current_roster_status = normalize_alert_status(.data$roster_status)
+      current_roster_status = normalize_alert_status(.data$roster_status),
+      current_player_status = as.character(coalesce_col(rosters, c("player_status"), NA_character_))
     )
 
   if (!is.null(designation_snapshot)) {
     status_source <- designation_snapshot |>
       transmute(
         player_id,
-        designation_72h = normalize_alert_status(.data$roster_status)
+        designation_72h = as.character(coalesce_col(designation_snapshot, c("player_status", "roster_status"), NA_character_))
       ) |>
       right_join(status_source, by = "player_id")
   } else {
@@ -1163,7 +1198,7 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
   player_checks <- lineups |>
     left_join(status_source, by = "player_id") |>
     mutate(
-      status_for_rule = coalesce(.data$designation_72h, .data$current_roster_status),
+      status_for_rule = coalesce(.data$designation_72h, .data$current_player_status),
       missing_72h_snapshot = is.na(.data$designation_72h),
       bye_week = unname(read_bye_weeks(season)[.data$player_team]),
       on_bye = !is.na(.data$bye_week) & .data$bye_week == .env$week,
@@ -1178,11 +1213,11 @@ evaluate_illegal_lineup_alerts <- function(lineups, rosters, season = get_curren
       conference,
       franchise,
       franchise_name,
-      rule = "No starters with (I), (S), or I designation 72 hours before kickoff",
+      rule = "No starters with (I), (H), or (O) designation 72 hours before kickoff",
       observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
       details = if_else(
         .data$missing_72h_snapshot,
-        paste0("designation evidence missing; current status is ", .data$current_roster_status),
+        paste0("designation evidence missing; current status is ", .data$current_player_status),
         paste0("72-hour designation was ", .data$designation_72h)
       )
     )
