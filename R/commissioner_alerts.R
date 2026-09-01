@@ -1668,12 +1668,20 @@ evaluate_illegal_lineup_alerts <- function(
       bad_designation = .data$designation_violation
     )
 
-  player_warning_franchise_ids <- player_checks |>
-    filter(.data$player_warning_today) |>
-    distinct(.data$franchise_id) |>
-    pull(franchise_id)
+  player_warning_franchise_ids <- if ("franchise_id" %in% names(player_checks) && nrow(player_checks)) {
+    player_checks |>
+      filter(.data$player_warning_today) |>
+      distinct(.data$franchise_id) |>
+      pull(franchise_id)
+  } else {
+    character()
+  }
 
-  structural_warning_franchise_ids <- if (isTRUE(is_first_game_warning_day) && nrow(count_alerts)) {
+  structural_warning_franchise_ids <- if (
+    isTRUE(is_first_game_warning_day) &&
+      nrow(count_alerts) &&
+      "franchise_id_temp" %in% names(count_alerts)
+  ) {
     count_alerts |>
       filter(.data$severity == "warning") |>
       distinct(.data$franchise_id_temp) |>
