@@ -42,7 +42,6 @@ jobs:
       ADL_ALERT_TEST_WEEK: ${{ github.event.inputs.week }}
       ADL_ALERT_TEST_CHECKED_AT: ${{ github.event.inputs.checked_at }}
       ADL_ALERT_TEST_SEND_EMAIL: ${{ github.event.inputs.send_email }}
-      ADL_ALERT_DEBUG: true
       ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
       MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
       MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
