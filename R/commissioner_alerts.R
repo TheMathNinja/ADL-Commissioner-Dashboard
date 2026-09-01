@@ -915,7 +915,7 @@ select_72h_designations_for_lineup <- function(lineups, designation_history, kic
 inactive_designation <- function(x) {
   x <- toupper(trimws(as.character(x %||% "")))
   grepl("\\((S|I|H|O)\\)", x) |
-    x %in% c("S", "I", "H", "O", "SUSPENDED", "INJURED", "HOLDOUT", "OUT")
+    x %in% c("S", "I", "H", "O", "SUSPENDED", "INJURED", "INJURED RESERVE", "INJURED_RESERVE", "IR", "IR-R", "HOLDOUT", "OUT")
 }
 
 lineup_alert_severity <- function(kickoff_at, checked_at = Sys.time()) {
