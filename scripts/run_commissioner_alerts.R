@@ -43,7 +43,7 @@ if (identical(mode, "snapshot")) {
     quit(save = "no")
   }
   snapshot <- cache_designation_snapshot(season = season, week = week, force_live = TRUE)
-  message("Wrote 72-hour designation snapshot with ", nrow(snapshot), " rows.")
+  message("Wrote lineup designation snapshot with ", nrow(snapshot), " rows.")
   message(commissioner_alert_path("designation_snapshot", season, week))
   quit(save = "no")
 }
