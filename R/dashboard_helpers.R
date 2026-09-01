@@ -202,6 +202,19 @@ back_link <- function() {
   "<a class='back-link' href='index.html'>Back to Commissioner Dashboard</a>"
 }
 
+archive_link_parts <- function(label) {
+  label <- as.character(label %||% "")
+  match <- regexpr(" \\([^)]*\\)$", label)
+  if (match[[1]] < 0) {
+    return(list(link_label = label, suffix = ""))
+  }
+
+  list(
+    link_label = substr(label, 1L, match[[1]] - 1L),
+    suffix = substr(label, match[[1]] + 1L, nchar(label))
+  )
+}
+
 build_archive_links_html <- function(archive_files_public, archive_file_labels = NULL) {
   if (length(archive_files_public) == 0) {
     return("<p>No archived CSV files yet.</p>")
@@ -210,12 +223,18 @@ build_archive_links_html <- function(archive_files_public, archive_file_labels =
   if (is.null(archive_file_labels)) {
     archive_file_labels <- basename(sub("\\?.*$", "", archive_files_public))
   }
-  
+
+  archive_parts <- lapply(archive_file_labels, archive_link_parts)
+  link_labels <- vapply(archive_parts, `[[`, character(1), "link_label")
+  label_suffixes <- vapply(archive_parts, `[[`, character(1), "suffix")
+
   links <- paste0(
-    "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a></li>",
+    "<li><a href='", archive_files_public, "'>", link_labels, "</a>",
+    ifelse(nzchar(label_suffixes), paste0(" ", label_suffixes), ""),
+    "</li>",
     collapse = "\n"
   )
-  
+
   paste0("<ul>\n", links, "\n</ul>")
 }
 
