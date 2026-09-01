@@ -1189,6 +1189,87 @@ format_group_starter_shortage <- function(group_name, short, position_status) {
   paste0("Must start ", format_and_list(requirement_parts))
 }
 
+lineup_shortage_requirement_parts <- function(short, position_status) {
+  short <- as.integer(short %||% 0L)
+  if (short <= 0L) return(character())
+
+  below_minimum <- position_status |>
+    mutate(short = .data$min_starters - .data$starter_count) |>
+    filter(.data$short > 0L)
+
+  requirement_parts <- character()
+  adjusted_counts <- position_status
+
+  if (nrow(below_minimum)) {
+    required_min <- sum(below_minimum$short)
+    if (required_min >= short) {
+      remaining <- short
+      for (i in seq_len(nrow(below_minimum))) {
+        if (remaining <= 0L) break
+        needed <- min(below_minimum$short[[i]], remaining)
+        requirement_parts <- c(requirement_parts, paste(needed, "additional", below_minimum$player_pos[[i]]))
+        remaining <- remaining - needed
+      }
+      return(requirement_parts)
+    }
+
+    requirement_parts <- paste(below_minimum$short, "additional", below_minimum$player_pos)
+    adjusted_counts <- adjusted_counts |>
+      left_join(
+        below_minimum |> transmute(player_pos, min_short = .data$short),
+        by = "player_pos"
+      ) |>
+      mutate(
+        min_short = coalesce(.data$min_short, 0L),
+        starter_count = .data$starter_count + .data$min_short
+      ) |>
+      select(-min_short)
+  }
+
+  remaining_short <- short - sum(below_minimum$short)
+  if (remaining_short > 0L) {
+    group_rules <- adl_lineup_group_rules()
+    group_status <- adjusted_counts |>
+      filter(.data$lineup_group %in% group_rules$lineup_group) |>
+      group_by(.data$lineup_group) |>
+      summarise(group_starters = sum(.data$starter_count), .groups = "drop") |>
+      right_join(group_rules, by = "lineup_group") |>
+      mutate(
+        group_starters = coalesce(.data$group_starters, 0L),
+        short = .data$required_starters - .data$group_starters
+      ) |>
+      filter(.data$short > 0L)
+
+    if (nrow(group_status)) {
+      for (i in seq_len(nrow(group_status))) {
+        if (remaining_short <= 0L) break
+        group_name <- group_status$lineup_group[[i]]
+        needed <- min(group_status$short[[i]], remaining_short)
+        eligible_positions <- adjusted_counts |>
+          filter(.data$lineup_group == .env$group_name, .data$starter_count < .data$max_starters) |>
+          pull(.data$player_pos)
+        requirement_parts <- c(requirement_parts, paste(needed, "additional", paste(eligible_positions, collapse = "/")))
+        remaining_short <- remaining_short - needed
+      }
+    }
+  }
+
+  if (remaining_short > 0L) {
+    eligible_positions <- adjusted_counts |>
+      filter(.data$starter_count < .data$max_starters) |>
+      pull(.data$player_pos)
+    requirement_parts <- c(requirement_parts, paste(remaining_short, "additional", paste(eligible_positions, collapse = "/")))
+  }
+
+  requirement_parts
+}
+
+format_lineup_shortage <- function(short, position_status) {
+  parts <- lineup_shortage_requirement_parts(short, position_status)
+  if (!length(parts)) return("below required starter count")
+  paste0("Must start ", format_and_list(parts))
+}
+
 format_group_observed_note <- function(group_name, position_status) {
   group_positions <- position_status |>
     filter(.data$lineup_group == .env$group_name)
@@ -1348,13 +1429,10 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
     )
   } else if (starter_count < expected_starters) {
     missing_starters <- expected_starters - starter_count
-    eligible_positions <- position_status |>
-      filter(.data$starter_count < .data$max_starters) |>
-      pull(.data$player_pos)
     tibble(
       rule = paste0("Starting lineups require ", expected_starters, " total starters"),
       observed = paste0(starter_count, " total starters"),
-      details = format_additional_starters(missing_starters, eligible_positions)
+      details = format_lineup_shortage(missing_starters, position_status)
     )
   } else if (starter_count > expected_starters) {
     extra_starters <- starter_count - expected_starters
@@ -1564,14 +1642,29 @@ evaluate_illegal_lineup_alerts <- function(
     franchise = as.character(coalesce_col(roster_tbl, c("franchise"), NA_character_)),
     franchise_name = as.character(coalesce_col(roster_tbl, c("franchise_name"), NA_character_)),
     franchise_id = as.character(coalesce_col(roster_tbl, c("franchise_id"), NA_character_))
-  )
+  ) |>
+    filter(!is.na(.data$franchise), nzchar(.data$franchise)) |>
+    distinct(.data$franchise, .keep_all = TRUE)
   lineup_franchise_index <- tibble(
     conference = as.character(coalesce_col(lineup_tbl, c("conference"), NA_character_)),
     franchise = as.character(coalesce_col(lineup_tbl, c("franchise"), NA_character_)),
     franchise_name = as.character(coalesce_col(lineup_tbl, c("franchise_name"), NA_character_)),
     franchise_id = as.character(coalesce_col(lineup_tbl, c("franchise_id"), NA_character_))
-  )
-  franchise_index <- bind_rows(lineup_franchise_index, roster_franchise_index) |>
+  ) |>
+    filter(!is.na(.data$franchise), nzchar(.data$franchise)) |>
+    distinct(.data$franchise, .keep_all = TRUE)
+  franchise_index <- full_join(
+    lineup_franchise_index |> rename(lineup_franchise_id = .data$franchise_id),
+    roster_franchise_index |> rename(roster_franchise_id = .data$franchise_id),
+    by = "franchise",
+    suffix = c("_lineup", "_roster")
+  ) |>
+    transmute(
+      conference = coalesce(.data$conference_lineup, .data$conference_roster),
+      franchise,
+      franchise_name = coalesce(.data$franchise_name_lineup, .data$franchise_name_roster),
+      franchise_id = coalesce(.data$lineup_franchise_id, .data$roster_franchise_id, .data$franchise)
+    ) |>
     filter(!is.na(.data$franchise_id), nzchar(.data$franchise_id)) |>
     distinct(.data$franchise_id, .keep_all = TRUE)
   kickoffs <- kickoffs %||% read_nfl_team_kickoffs(season = season, week = week)
