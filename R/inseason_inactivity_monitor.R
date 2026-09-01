@@ -319,7 +319,7 @@ write_issued_inseason_inactivity <- function(issued, season = get_current_season
   write_csv(issued, inseason_inactivity_path("issued_violations", season), na = "")
 }
 
-build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time()) {
+build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
   candidates <- bind_rows(
     evaluate_final_roster_cutdown_inactivity(season),
     evaluate_repeated_roster_violations(season),
@@ -334,9 +334,11 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
     anti_join(issued |> distinct(.data$violation_key), by = "violation_key") |>
     arrange(.data$conference, .data$franchise, .data$rule)
 
-  write_csv(new_alerts, inseason_inactivity_path("alerts", season), na = "")
+  if (isTRUE(persist)) {
+    write_csv(new_alerts, inseason_inactivity_path("alerts", season), na = "")
+  }
 
-  if (nrow(new_alerts)) {
+  if (isTRUE(persist) && nrow(new_alerts)) {
     updated_issued <- bind_rows(
       issued,
       new_alerts |>
