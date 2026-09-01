@@ -721,6 +721,20 @@ fetch_live_lineups <- function(season = get_current_season(), week) {
   franchises <- ffscrapr::ff_franchises(conn)
   weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
   starters <- normalize_mfl_weekly_result_lineups(weekly_results)
+  players_raw <- tibble::as_tibble(ffscrapr::ff_players(conn))
+  players <- tibble(
+    player_id = as.character(coalesce_col(players_raw, c("player_id", "id"))),
+    player_name = as.character(coalesce_col(players_raw, c("player_name", "name", "player"))),
+    team = as.character(coalesce_col(players_raw, c("team", "player_team"))),
+    pos = as.character(coalesce_col(players_raw, c("pos", "position", "player_pos")))
+  ) |>
+    filter(!is.na(.data$player_id), nzchar(.data$player_id)) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+
+  starters <- starters |>
+    mutate(player_id = as.character(.data$player_id)) |>
+    left_join(players, by = "player_id")
+
   normalize_lineups(starters, franchises)
 }
 
@@ -1667,6 +1681,28 @@ evaluate_illegal_lineup_alerts <- function(
       player_lineup_severity = lineup_alert_severity(.data$kickoff_at, checked_at = .env$checked_at),
       bad_designation = .data$designation_violation
     )
+
+  if (!"franchise_id" %in% names(player_checks)) {
+    player_checks <- tibble(
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      franchise_id = character(),
+      player_id = character(),
+      player_name = character(),
+      player_team = character(),
+      player_pos = character(),
+      current_player_status = character(),
+      designation_72h = character(),
+      kickoff_at = as.POSIXct(character()),
+      player_warning_today = logical(),
+      current_bad_designation = logical(),
+      designation_violation = logical(),
+      on_bye = logical(),
+      bye_violation = logical(),
+      player_lineup_severity = character()
+    )
+  }
 
   player_warning_franchise_ids <- if ("franchise_id" %in% names(player_checks) && nrow(player_checks)) {
     player_checks |>
