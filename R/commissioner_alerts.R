@@ -1723,6 +1723,16 @@ evaluate_illegal_lineup_alerts <- function(
       bye_violation = logical(),
       player_lineup_severity = character()
     )
+  } else {
+    player_checks <- player_checks |>
+      distinct(
+        .data$franchise_id,
+        .data$player_id,
+        .data$current_player_status,
+        .data$designation_72h,
+        .data$on_bye,
+        .keep_all = TRUE
+      )
   }
 
   player_warning_franchise_ids <- if ("franchise_id" %in% names(player_checks) && nrow(player_checks)) {
