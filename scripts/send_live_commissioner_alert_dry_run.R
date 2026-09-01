@@ -42,7 +42,7 @@ if (is.na(week) && mode %in% c("check", "inseason") && auto_week) {
   if (!is.na(week)) message("Auto-selected Week ", week, " for in-season alerts.")
 }
 
-include_offseason <- mode %in% c("check", "offseason")
+include_offseason <- mode %in% c("check", "offseason", "inseason")
 include_inseason <- mode %in% c("check", "inseason") && !is.na(week)
 checked_at <- Sys.time()
 checked_date <- Sys.Date()
