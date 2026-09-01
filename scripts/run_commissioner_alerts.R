@@ -1,6 +1,9 @@
 library(dplyr)
 
 source("R/commissioner_alerts.R")
+if (file.exists("R/inseason_inactivity_monitor.R")) {
+  source("R/inseason_inactivity_monitor.R")
+}
 
 arg_value <- function(name, default = NULL) {
   args <- commandArgs(trailingOnly = TRUE)
@@ -117,6 +120,22 @@ alerts <- build_commissioner_alerts(
   include_inseason = include_inseason,
   force_live = force_live
 )
+
+if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts", mode = "function")) {
+  inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live)
+  if (nrow(inactivity_alerts)) {
+    inactivity_alerts <- inactivity_alerts |>
+      mutate(
+        week = if ("week" %in% names(inactivity_alerts)) .data$week else (if (is.na(.env$week)) NA_integer_ else .env$week),
+        checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+      ) |>
+      select(any_of(names(alerts)), everything())
+    alerts <- bind_rows(alerts, inactivity_alerts) |>
+      select(any_of(names(alerts)))
+    write_csv(alerts, commissioner_alert_path("alerts", season, if (is.na(week)) NULL else week), na = "")
+    write_commissioner_alert_report(alerts, season = season, week = if (is.na(week)) NULL else week, checked_at = Sys.time())
+  }
+}
 
 alerts_path <- commissioner_alert_path("alerts", season, if (is.na(week)) NULL else week)
 message("Wrote ", nrow(alerts), " commissioner alert row(s).")
