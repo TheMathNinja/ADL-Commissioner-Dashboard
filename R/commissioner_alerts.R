@@ -1775,6 +1775,7 @@ evaluate_illegal_lineup_alerts <- function(
 
   status_source <- rosters |>
     transmute(
+      franchise,
       player_id,
       current_roster_status = normalize_alert_status(.data$roster_status),
       current_player_status = as.character(coalesce_col(rosters, c("player_status"), NA_character_))
@@ -1785,7 +1786,10 @@ evaluate_illegal_lineup_alerts <- function(
       transmute(
         player_id,
         current_weekly_designation = as.character(coalesce_col(current_designations, c("player_status", "roster_status"), NA_character_))
-      )
+      ) |>
+      filter(!is.na(.data$current_weekly_designation), nzchar(.data$current_weekly_designation)) |>
+      arrange(desc(inactive_designation(.data$current_weekly_designation))) |>
+      distinct(.data$player_id, .keep_all = TRUE)
 
     status_source <- status_source |>
       left_join(current_designation_tbl, by = "player_id") |>
@@ -1810,7 +1814,7 @@ evaluate_illegal_lineup_alerts <- function(
 
   player_checks <- lineups |>
     mutate(player_team_key = mfl_player_team(.data$player_team)) |>
-    left_join(status_source, by = "player_id") |>
+    left_join(status_source, by = c("franchise", "player_id")) |>
     left_join(
       kickoffs |> rename(player_kickoff_at = kickoff_at),
       by = c("player_team_key" = "player_team")
@@ -2040,6 +2044,7 @@ build_commissioner_alerts <- function(
         filter(!is.na(.data$player_status), nzchar(.data$player_status))
 
       current_designations <- bind_rows(current_designations, snapshot_current_designations) |>
+        arrange(desc(inactive_designation(.data$player_status))) |>
         distinct(.data$player_id, .keep_all = TRUE)
     }
     alerts$illegal_lineup <- evaluate_illegal_lineup_alerts(
