@@ -110,7 +110,7 @@ jobs:
           offender_franchises <- unique(alerts$franchise)
           gm_outboxes <- character()
           if (length(offender_franchises)) {
-            for (franchise in head(offender_franchises, 2)) {
+            for (franchise in offender_franchises) {
               franchise_alerts <- alerts |> filter(.data$franchise == .env$franchise)
               title_prefix <- if (all(franchise_alerts$severity == "warning", na.rm = TRUE)) "ADL Roster Warning LIVE DRY RUN" else "ADL Roster Violation LIVE DRY RUN"
               gm_body <- render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = title_prefix)
