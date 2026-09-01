@@ -476,8 +476,8 @@ build_commissioner_alert_clean_archive_html <- function(clean_report_files_publi
   )
 }
 
-build_saladjcurator_html <- function(run_meta, archive_files_public) {
-  archive_links_html <- build_archive_links_html(archive_files_public)
+build_saladjcurator_html <- function(run_meta, archive_files_public, generated_at_by_file = list()) {
+  archive_links_html <- build_cap_links_html(archive_files_public, generated_at_by_file)
   last_checked <- if ("last_checked_display" %in% names(run_meta)) run_meta$last_checked_display[1] else run_meta$run_time_display[1]
   last_changed <- if ("last_changed_display" %in% names(run_meta)) run_meta$last_changed_display[1] else run_meta$run_time_display[1]
   changed_text <- if ("latest_csv_changed" %in% names(run_meta) && !is.na(run_meta$latest_csv_changed[1]) && isFALSE(run_meta$latest_csv_changed[1])) {
@@ -486,6 +486,8 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
     "A new actionable CSV was archived on the most recent check."
   }
   qualifying_rows <- if ("qualifying_rows" %in% names(run_meta)) run_meta$qualifying_rows[1] else NA_integer_
+  latest_archive_filename <- if ("latest_archive_filename" %in% names(run_meta)) as.character(run_meta$latest_archive_filename[1]) else ""
+  latest_archive_generated_at <- generated_at_by_file[[latest_archive_filename]]
   
   dashboard_page(
     "SalAdjCurator",
@@ -496,7 +498,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public) {
           <div class='stat'><span class='stat-label'>Last checked</span><span class='stat-value'>", last_checked, "</span></div>
           <div class='stat'><span class='stat-label'>Latest change</span><span class='stat-value'>", last_changed, "</span></div>
           <div class='stat'><span class='stat-label'>Current qualifying rows</span><span class='stat-value'>", qualifying_rows, "</span></div>
-          <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/", run_meta$latest_archive_filename[1], "'>", run_meta$latest_archive_filename[1], "</a></span></div>
+          <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/", latest_archive_filename, "'>", latest_archive_filename, "</a>", format_generated_at(latest_archive_generated_at), "</span></div>
         </div>
         <p><strong>Status:</strong> ", changed_text, "</p>
       </section>
@@ -651,5 +653,8 @@ build_daily_roster_snapshots_html <- function(
     )
   )
 }
+
+
+
 
 
