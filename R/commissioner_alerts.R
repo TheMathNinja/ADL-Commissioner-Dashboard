@@ -2098,7 +2098,7 @@ build_commissioner_alerts <- function(
       alerts$contract_years <- evaluate_contract_years_alerts(rosters)
     }
     if (isTRUE(include_salary_cap)) {
-      use_inseason_salary_accounting <- checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
+      use_inseason_salary_accounting <- isTRUE(include_inseason) || checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
       salary_cap_adjustments <- if (isTRUE(force_live)) {
         tryCatch(fetch_mfl_salary_cap_adjustments(season = season), error = function(e) {
           warning("MFL salary cap adjustments unavailable; using zero adjustments: ", conditionMessage(e), call. = FALSE)
@@ -2242,7 +2242,7 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
   header <- if (is.null(prefix)) {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0("**", franchise_label, " committed an inactivity violation: ", row$rule, "**")
+      paste0(franchise_label, " committed an inactivity violation: ", row$rule)
     } else
     if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
       paste0(franchise_label, " Rule Violation: ", row$rule)
@@ -2251,7 +2251,7 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
     }
   } else {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0("**", prefix, " committed an inactivity violation: ", row$rule, "**")
+      paste0(prefix, " committed an inactivity violation: ", row$rule)
     } else {
       paste0(prefix, ": ", row$rule)
     }
@@ -2346,7 +2346,7 @@ render_commissioner_alert_email <- function(
   for (alert_type in names(groups)) {
     rows <- groups[[alert_type]] |>
       arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
-    lines <- c(lines, paste0("**", alert_type, "**"), strrep("-", nchar(alert_type)))
+    lines <- c(lines, strrep("-", nchar(alert_type)), alert_type, strrep("-", nchar(alert_type)))
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_alert_detail_lines(row))
