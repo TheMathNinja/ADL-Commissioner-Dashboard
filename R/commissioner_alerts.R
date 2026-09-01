@@ -704,17 +704,48 @@ normalize_mfl_injury_designations <- function(raw) {
     distinct(.data$player_id, .keep_all = TRUE)
 }
 
-fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
-  conn <- connect_adl_mfl(season)
-  raw_payloads <- list(
-    tryCatch(
-      ffscrapr::mfl_getendpoint(conn, "injuries", W = week)[["content"]][["injuries"]][["injury"]],
-      error = function(e) NULL
+fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL) {
+  query <- list(
+    TYPE = "injuries",
+    L = as.integer(get_env_or_default("ADL_LEAGUE_ID", "60206")),
+    JSON = 1
+  )
+  if (!is.null(week) && !is.na(week)) query$W <- as.integer(week)
+
+  response <- tryCatch(
+    httr::GET(
+      url = paste0("https://api.myfantasyleague.com/", season, "/export"),
+      query = query,
+      httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
     ),
-    tryCatch(
-      ffscrapr::mfl_getendpoint(conn, "injuries")[["content"]][["injuries"]][["injury"]],
-      error = function(e) NULL
-    )
+    error = function(e) e
+  )
+
+  if (inherits(response, "error")) {
+    warning("MFL injury endpoint unavailable: ", conditionMessage(response), call. = FALSE)
+    return(NULL)
+  }
+
+  injury_text <- httr::content(response, "text", encoding = "UTF-8")
+  injury_json <- tryCatch(jsonlite::fromJSON(injury_text, flatten = TRUE), error = function(e) e)
+
+  if (inherits(injury_json, "error")) {
+    warning("Could not parse MFL injury endpoint response: ", conditionMessage(injury_json), call. = FALSE)
+    return(NULL)
+  }
+
+  if ("error" %in% names(injury_json)) {
+    warning("MFL injury endpoint returned error: ", injury_json$error$`$t` %||% "unknown error", call. = FALSE)
+    return(NULL)
+  }
+
+  injury_json[["injuries"]][["injury"]]
+}
+
+fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
+  raw_payloads <- list(
+    fetch_mfl_injury_payload(season = season, week = week),
+    fetch_mfl_injury_payload(season = season, week = NULL)
   )
 
   bind_rows(lapply(raw_payloads, normalize_mfl_injury_designations)) |>
