@@ -1086,6 +1086,26 @@ inactive_designation <- function(x) {
     )
 }
 
+lineup_inactive_designation_label <- function(x) {
+  x <- toupper(trimws(as.character(x %||% "")))
+  dplyr::case_when(
+    grepl("\\(S\\)", x) | x %in% c("S", "SUSP", "SUSPENDED") ~ "(S)",
+    grepl("\\(H\\)", x) | x %in% c("H", "HOLDOUT") ~ "(H)",
+    grepl("\\(O\\)", x) | x %in% c("O", "OUT") ~ "(O)",
+    grepl("\\(I\\)", x) | x %in% c(
+      "I",
+      "INJURED", "INJURED RESERVE", "INJURED_RESERVE",
+      "IR", "IR-R", "IR-PUP", "IR-NFI", "PUP", "NFI"
+    ) ~ "(I)",
+    TRUE ~ paste0("(", x, ")")
+  )
+}
+
+lineup_inactive_observed <- function(player_name, player_team, player_pos, player_status) {
+  player_label <- trimws(paste(player_name, player_team, player_pos))
+  paste0(player_label, " is inactive ", lineup_inactive_designation_label(player_status))
+}
+
 lineup_alert_severity <- function(kickoff_at, checked_at = Sys.time()) {
   kickoff_at <- as.POSIXct(kickoff_at, tz = "UTC")
   checked_at <- as.POSIXct(checked_at, tz = "UTC")
@@ -1954,7 +1974,7 @@ evaluate_illegal_lineup_alerts <- function(
       franchise,
       franchise_name,
       rule = "No inactive players allowed in starting lineup",
-      observed = paste0(.data$player_name, " is inactive due to ", .data$current_player_status),
+      observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
       details = ""
     )
 
@@ -1971,7 +1991,7 @@ evaluate_illegal_lineup_alerts <- function(
       franchise,
       franchise_name,
       rule = "No inactive players allowed in starting lineup",
-      observed = paste0(.data$player_name, " is inactive due to ", .data$current_player_status),
+      observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
       details = ""
     )
 
