@@ -1968,8 +1968,8 @@ evaluate_illegal_lineup_alerts <- function(
   designation_violation_alerts <- player_checks |>
     filter(.data$designation_violation) |>
     transmute(
-      alert_type = "Illegal Lineup",
-      severity = "violation",
+      alert_type = "Illegal Lineup Warning",
+      severity = "warning",
       conference,
       franchise,
       franchise_name,
@@ -2001,8 +2001,8 @@ evaluate_illegal_lineup_alerts <- function(
   bye_alerts <- if (nrow(bye_players)) {
     bye_players |>
       transmute(
-        alert_type = if_else(.data$bye_violation, "Illegal Lineup", "Illegal Lineup Warning"),
-        severity = if_else(.data$bye_violation, "violation", "warning"),
+        alert_type = "Illegal Lineup Warning",
+        severity = "warning",
         conference,
         franchise,
         franchise_name,
@@ -2038,6 +2038,34 @@ commissioner_alert_sort_order <- function(alert_type, rule) {
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & rule == "No starters on bye" ~ 4L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") ~ 5L,
     TRUE ~ 99L
+  )
+}
+
+commissioner_alert_franchise_order <- function(franchise) {
+  order_tbl <- c(
+    DAL = 1L, NYG = 2L, PHI = 3L, WAS = 4L,
+    CHI = 5L, DET = 6L, GBP = 7L, MIN = 8L,
+    ATL = 9L, CAR = 10L, NOS = 11L, TBB = 12L,
+    ARI = 13L, LAR = 14L, SFO = 15L, SEA = 16L,
+    BUF = 17L, MIA = 18L, NEP = 19L, NYJ = 20L,
+    BAL = 21L, CIN = 22L, CLE = 23L, PIT = 24L,
+    HOU = 25L, IND = 26L, JAC = 27L, TEN = 28L,
+    DEN = 29L, KCC = 30L, LVR = 31L, LAC = 32L
+  )
+  unname(order_tbl[toupper(trimws(as.character(franchise)))]) %||% 999L
+}
+
+commissioner_alert_count_label <- function(n, noun = "alert") {
+  paste0(n, " ", noun, if_else(as.integer(n) == 1L, "", "s"), " found.")
+}
+
+pluralize_alert_type <- function(alert_type, n) {
+  if (as.integer(n) == 1L) return(alert_type)
+  case_when(
+    alert_type == "Illegal Lineup Warning" ~ "Illegal Lineup Warnings",
+    alert_type == "Illegal Lineup" ~ "Illegal Lineups",
+    endsWith(alert_type, "y") ~ paste0(sub("y$", "ies", alert_type)),
+    TRUE ~ paste0(alert_type, "s")
   )
 }
 
@@ -2204,7 +2232,11 @@ read_commissioner_alert_reports <- function(max_reports = 10L) {
 render_alert_detail_lines <- function(row, prefix = NULL) {
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
   header <- if (is.null(prefix)) {
-    paste0(franchise_label, ": ", row$rule)
+    if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
+      paste0(franchise_label, " Rule Violation: ", row$rule)
+    } else {
+      paste0(franchise_label, ": ", row$rule)
+    }
   } else {
     paste0(prefix, ": ", row$rule)
   }
@@ -2236,6 +2268,15 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   c(lines, "")
 }
 
+render_gm_alert_rule_lines <- function(row) {
+  details <- row$details[[1]] %||% ""
+  lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
+  if (nzchar(trimws(details))) {
+    lines <- c(lines, paste0("Details: ", details))
+  }
+  c(lines, "")
+}
+
 commissioner_alert_date_label <- function(checked_date = Sys.Date()) {
   format(as.Date(checked_date), "%Y-%m-%d")
 }
@@ -2260,13 +2301,23 @@ render_commissioner_alert_email <- function(
     return(paste(c(title, "", compliance_line, "No ADL roster violations were found."), collapse = "\n"))
   }
 
+  alerts <- alerts |>
+    mutate(
+      alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule)),
+      franchise_sort_order = commissioner_alert_franchise_order(.data$franchise)
+    )
+
   groups <- split(alerts, alerts$alert_type)
-  lines <- c(title, "", compliance_line, paste0(nrow(alerts), " alert(s) found."), "")
+  group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
+  groups <- groups[order(group_order, names(group_order))]
+
+  lines <- c(title, "", compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
   if (isTRUE(gm_emails_sent)) {
     lines <- c(lines, "Individual emails have been sent to all franchises in violation.", "")
   }
   for (alert_type in names(groups)) {
-    rows <- groups[[alert_type]]
+    rows <- groups[[alert_type]] |>
+      arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
     lines <- c(lines, alert_type, strrep("-", nchar(alert_type)))
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
@@ -2288,13 +2339,28 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
     "",
     "This is a private commissioner alert for your franchise.",
     "",
-    paste0(nrow(alerts), " violation(s) found."),
+    commissioner_alert_count_label(nrow(alerts), "violation"),
     ""
   )
 
-  for (i in seq_len(nrow(alerts))) {
-    row <- alerts[i, ]
-    lines <- c(lines, render_alert_detail_lines(row, prefix = row$alert_type))
+  alerts <- alerts |>
+    mutate(
+      alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule))
+    ) |>
+    arrange(.data$alert_sort_order, .data$rule)
+
+  groups <- split(alerts, alerts$alert_type)
+  group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
+  groups <- groups[order(group_order, names(group_order))]
+
+  for (alert_type in names(groups)) {
+    rows <- groups[[alert_type]]
+    heading <- pluralize_alert_type(alert_type, nrow(rows))
+    lines <- c(lines, heading)
+    for (i in seq_len(nrow(rows))) {
+      row <- rows[i, ]
+      lines <- c(lines, render_gm_alert_rule_lines(row))
+    }
   }
 
   paste(lines, collapse = "\n")
