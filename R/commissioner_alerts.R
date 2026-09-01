@@ -1590,6 +1590,20 @@ evaluate_illegal_lineup_alerts <- function(
       )
   }))
 
+  if (!nrow(count_alerts)) {
+    count_alerts <- tibble(
+      alert_type = character(),
+      severity = character(),
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      franchise_id_temp = character(),
+      rule = character(),
+      observed = character(),
+      details = character()
+    )
+  }
+
   status_source <- rosters |>
     transmute(
       player_id,
