@@ -339,7 +339,7 @@ build_dashboard_index_html <- function(
     paste0(
       "<div class='tool-grid'>",
       tool_card(
-        "SalAdjCurator",
+        "SalAdj Curator",
         "Transaction review output for salary adjustments that need league-office handling.",
         "saladjcurator.html"
       ),
@@ -490,7 +490,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
   latest_archive_generated_at <- generated_at_by_file[[latest_archive_filename]]
   
   dashboard_page(
-    "SalAdjCurator",
+    "SalAdj Curator",
     paste0(
       back_link(),
       "<section class='panel'>
@@ -505,7 +505,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
       <section class='panel'>
         <h2>Instructions</h2>
         <p>
-        For 2026, SalAdjCurator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
+        For 2026, SalAdj Curator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
         Starting with May 1, 2026 transactions, this dashboard uses the automated ADL transaction scrape.
         </p>
         <p>
@@ -519,7 +519,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
         </p>
       </section>
       <section class='panel'>
-        <h2>SalAdjCurator Archive</h2>
+        <h2>SalAdj Curator Archive</h2>
         ", archive_links_html, "
       </section>"
     )
@@ -653,6 +653,8 @@ build_daily_roster_snapshots_html <- function(
     )
   )
 }
+
+
 
 
 
