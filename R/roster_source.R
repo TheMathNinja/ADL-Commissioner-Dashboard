@@ -314,7 +314,8 @@ fetch_mfl_roster_report_statuses <- function(conn, season = get_current_season()
     statuses <- tryCatch({
       response <- httr::GET(
         url,
-        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+        httr::timeout(as.numeric(get_env_or_default("ADL_MFL_VISIBLE_ROSTER_TIMEOUT_SECONDS", "8")))
       )
       html <- httr::content(response, "text", encoding = "UTF-8")
       doc <- rvest::read_html(html)
