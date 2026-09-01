@@ -57,10 +57,6 @@ build_snapshot_index <- function(snapshot_files) {
   }))
 
   snapshot_index %>%
-    dplyr::arrange(dplyr::desc(.data$snapshot_time_et)) %>%
-    dplyr::group_by(.data$snapshot_date_et) %>%
-    dplyr::slice(1) %>%
-    dplyr::ungroup() %>%
     dplyr::arrange(dplyr::desc(.data$snapshot_time_et))
 }
 
@@ -73,6 +69,29 @@ format_salary <- function(x) {
   )
 }
 
+read_daily_snapshot_bye_weeks <- function(season = current_season) {
+  path <- Sys.getenv("ADL_BYE_WEEKS_CSV", unset = file.path("data", paste0("nfl_bye_weeks_", season, ".csv")))
+  if (file.exists(path)) {
+    byes <- readr::read_csv(path, show_col_types = FALSE)
+    return(stats::setNames(as.integer(byes$week), as.character(byes$team)))
+  }
+
+  if (season == 2026L) {
+    return(c(
+      CAR = 5, KCC = 5,
+      CIN = 6, DET = 6, MIA = 6, MIN = 6,
+      BUF = 7, JAC = 7, LAC = 7, WAS = 7,
+      HOU = 8, NOS = 8, NYG = 8, SFO = 8,
+      PIT = 9, TEN = 9,
+      CHI = 10, DEN = 10, PHI = 10, TBB = 10,
+      ATL = 11, CLE = 11, GBP = 11, LAR = 11, NEP = 11, SEA = 11,
+      BAL = 13, IND = 13, LVR = 13, NYJ = 13,
+      ARI = 14, DAL = 14
+    ))
+  }
+
+  integer()
+}
 format_player_display <- function(player_name, player_team, player_pos) {
   suffix <- paste(
     dplyr::coalesce(player_team, ""),
@@ -103,7 +122,12 @@ write_public_roster_snapshot <- function(snapshot_file, public_file, franchises)
   if (!"roster_status" %in% names(snapshot)) snapshot$roster_status <- NA_character_
   if (!"player_team" %in% names(snapshot)) snapshot$player_team <- NA_character_
   if (!"player_pos" %in% names(snapshot)) snapshot$player_pos <- NA_character_
+  if (!"player_status" %in% names(snapshot)) snapshot$player_status <- NA_character_
+  if (!"injury_status" %in% names(snapshot)) snapshot$injury_status <- NA_character_
+  if (!"injury" %in% names(snapshot)) snapshot$injury <- NA_character_
+  if (!"inj" %in% names(snapshot)) snapshot$inj <- NA_character_
 
+  bye_weeks <- read_daily_snapshot_bye_weeks(current_season)
   position_order <- c("QB", "RB", "WR", "TE", "PK", "PN", "DT", "DE", "LB", "CB", "S")
 
   public_snapshot <- snapshot %>%
@@ -117,7 +141,16 @@ write_public_roster_snapshot <- function(snapshot_file, public_file, franchises)
       ),
       player_pos_sort = match(.data$player_pos, position_order),
       player_pos_sort = dplyr::coalesce(.data$player_pos_sort, length(position_order) + 1L),
-      player_last_name = player_last_name(.data$player_name)
+      player_last_name = player_last_name(.data$player_name),
+      injury_status_display = dplyr::coalesce(
+        as.character(.data$player_status),
+        as.character(.data$injury_status),
+        as.character(.data$injury),
+        as.character(.data$inj),
+        ""
+      ),
+      bye_week = unname(.env$bye_weeks[as.character(.data$player_team)]),
+      bye_week_display = dplyr::if_else(is.na(.data$bye_week), "", as.character(.data$bye_week))
     ) %>%
     dplyr::left_join(
       franchises %>%
@@ -143,6 +176,8 @@ write_public_roster_snapshot <- function(snapshot_file, public_file, franchises)
       FRANCHISE = .data$franchise_name,
       PLAYER_ID = .data$player_id,
       PLAYER = format_player_display(.data$player_name, .data$player_team, .data$player_pos),
+      INJURY = .data$injury_status_display,
+      BYE = .data$bye_week_display,
       SALARY = format_salary(.data$roster_salary),
       YEARS = .data$roster_years,
       CONTRACT = .data$roster_contractInfo,
@@ -367,6 +402,7 @@ if (nrow(snapshot_index) > 0) {
 
 snapshot_files_public <- file.path("downloads", "daily-roster-snapshots", snapshot_filenames)
 snapshot_files_public <- add_file_versions(snapshot_files_public)
+snapshot_files_public_by_filename <- stats::setNames(snapshot_files_public, snapshot_index$public_filename)
 snapshot_generated_at_by_file <- if (nrow(snapshot_index) > 0) {
   stats::setNames(
     as.list(format(snapshot_index$snapshot_time_et, "%m/%d/%Y %I:%M %p %Z")),
@@ -387,14 +423,8 @@ snapshot_checks_file <- file.path(
   paste0("saladj_roster_snapshot_checks_", current_season, ".csv")
 )
 
-latest_snapshot_date_et <- if (nrow(snapshot_index) > 0) {
-  as.Date(snapshot_index$snapshot_date_et[1])
-} else {
-  as.Date(NA)
-}
-
-no_change_check_text <- if (file.exists(snapshot_checks_file) && !is.na(latest_snapshot_date_et)) {
-  snapshot_checks <- readr::read_csv(
+snapshot_checks <- if (file.exists(snapshot_checks_file)) {
+  readr::read_csv(
     snapshot_checks_file,
     col_types = readr::cols(
       check_date_et = readr::col_date(),
@@ -403,7 +433,37 @@ no_change_check_text <- if (file.exists(snapshot_checks_file) && !is.na(latest_s
     ),
     show_col_types = FALSE
   )
+} else {
+  tibble::tibble(
+    check_date_et = as.Date(character()),
+    last_checked_at_et = character(),
+    snapshot_changed = logical(),
+    snapshot_file = character()
+  )
+}
 
+scheduled_changed_snapshot_files <- snapshot_checks %>%
+  dplyr::filter(.data$snapshot_changed) %>%
+  dplyr::pull(.data$snapshot_file) %>%
+  unique()
+
+daily_snapshot_index <- snapshot_index %>%
+  dplyr::filter(basename(.data$snapshot_file) %in% scheduled_changed_snapshot_files)
+manual_snapshot_index <- snapshot_index %>%
+  dplyr::filter(!basename(.data$snapshot_file) %in% scheduled_changed_snapshot_files)
+
+daily_snapshot_files_public <- unname(snapshot_files_public_by_filename[daily_snapshot_index$public_filename])
+manual_snapshot_files_public <- unname(snapshot_files_public_by_filename[manual_snapshot_index$public_filename])
+daily_snapshot_files_public <- daily_snapshot_files_public[!is.na(daily_snapshot_files_public)]
+manual_snapshot_files_public <- manual_snapshot_files_public[!is.na(manual_snapshot_files_public)]
+
+latest_snapshot_date_et <- if (nrow(snapshot_index) > 0) {
+  as.Date(snapshot_index$snapshot_date_et[1])
+} else {
+  as.Date(NA)
+}
+
+no_change_check_text <- if (nrow(snapshot_checks) > 0 && !is.na(latest_snapshot_date_et)) {
   snapshot_checks %>%
     dplyr::filter(
       .data$check_date_et > latest_snapshot_date_et,
@@ -422,7 +482,6 @@ no_change_check_text <- if (file.exists(snapshot_checks_file) && !is.na(latest_s
 } else {
   character()
 }
-
 # Publish salary cap accounting snapshots and summaries.
 cap_base_dir <- file.path("data", "cap_accounting", as.character(current_season))
 cap_snapshot_files_data <- list.files(
@@ -622,7 +681,9 @@ daily_roster_snapshots_html <- build_daily_roster_snapshots_html(
   snapshot_files_public = snapshot_files_public,
   latest_snapshot_public = latest_snapshot_public,
   generated_at_by_file = snapshot_generated_at_by_file,
-  no_change_check_text = no_change_check_text
+  no_change_check_text = no_change_check_text,
+  daily_snapshot_files_public = daily_snapshot_files_public,
+  manual_snapshot_files_public = manual_snapshot_files_public
 )
 
 writeLines(daily_roster_snapshots_html, file.path("docs", "daily-roster-snapshots.html"))
@@ -664,3 +725,6 @@ cap_accounting_html <- build_cap_accounting_html(
 writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))
 
 message("Dashboard build complete for season: ", current_season)
+
+
+
