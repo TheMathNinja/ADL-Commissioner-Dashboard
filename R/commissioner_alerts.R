@@ -721,9 +721,8 @@ fetch_live_lineups <- function(season = get_current_season(), week) {
   franchises <- ffscrapr::ff_franchises(conn)
   weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
   starters <- normalize_mfl_weekly_result_lineups(weekly_results)
-  players_raw <- ffscrapr::mfl_getendpoint(conn, "players")[
-    ["content"]
-  ][["players"]][["player"]]
+  players_response <- ffscrapr::mfl_getendpoint(conn, "players")
+  players_raw <- players_response[["content"]][["players"]][["player"]]
   player_records <- list_records(players_raw, record_names = c("id", "name", "team", "position"))
   players <- tibble(
     player_id = vapply(player_records, record_field, character(1), name = "id"),
