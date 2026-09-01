@@ -2014,6 +2014,11 @@ build_commissioner_alerts <- function(
     if (is.null(week) || is.na(week)) stop("week is required for in-season lineup alerts.", call. = FALSE)
     lineups <- cache_lineups_snapshot(season = season, week = week, force_live = force_live)
     kickoffs <- read_nfl_team_kickoffs(season = season, week = week)
+    designation_snapshot <- if (isTRUE(force_live)) {
+      cache_designation_snapshot(season = season, week = week, force_live = TRUE)
+    } else {
+      read_designation_snapshot(season, week)
+    }
     designation_history <- read_designation_snapshot_history(season = season, week = week)
     current_designations <- if (isTRUE(force_live)) {
       tryCatch(
@@ -2026,12 +2031,23 @@ build_commissioner_alerts <- function(
     } else {
       NULL
     }
+    if (!is.null(designation_snapshot) && nrow(designation_snapshot)) {
+      snapshot_current_designations <- designation_snapshot |>
+        transmute(
+          player_id,
+          player_status = as.character(coalesce_col(designation_snapshot, c("player_status", "roster_status"), NA_character_))
+        ) |>
+        filter(!is.na(.data$player_status), nzchar(.data$player_status))
+
+      current_designations <- bind_rows(current_designations, snapshot_current_designations) |>
+        distinct(.data$player_id, .keep_all = TRUE)
+    }
     alerts$illegal_lineup <- evaluate_illegal_lineup_alerts(
       lineups = lineups,
       rosters = rosters,
       season = season,
       week = week,
-      designation_snapshot = read_designation_snapshot(season, week),
+      designation_snapshot = designation_snapshot,
       designation_history = designation_history,
       current_designations = current_designations,
       kickoffs = kickoffs,
