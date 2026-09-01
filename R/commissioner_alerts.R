@@ -1036,6 +1036,11 @@ read_designation_snapshot_history <- function(season = get_current_season(), wee
     distinct(.data$player_id, .data$snapshot_time, .keep_all = TRUE)
 }
 
+lineup_designation_grace_hours <- function() {
+  value <- suppressWarnings(as.numeric(Sys.getenv("ADL_LINEUP_DESIGNATION_GRACE_HOURS", unset = "48")))
+  if (is.na(value) || value <= 0) 48 else value
+}
+
 select_72h_designations_for_lineup <- function(lineups, designation_history, kickoffs) {
   if (is.null(designation_history) || !nrow(designation_history) || is.null(kickoffs) || !nrow(kickoffs)) {
     return(tibble(
@@ -1065,7 +1070,10 @@ select_72h_designations_for_lineup <- function(lineups, designation_history, kic
         ),
       by = c("conference", "player_id")
     ) |>
-    filter(!is.na(.data$designation_snapshot_time), .data$designation_snapshot_time <= .data$kickoff_at - lubridate::hours(72)) |>
+    filter(
+      !is.na(.data$designation_snapshot_time),
+      .data$designation_snapshot_time <= .data$kickoff_at - lubridate::hours(lineup_designation_grace_hours())
+    ) |>
     arrange(.data$conference, .data$player_id, desc(.data$designation_snapshot_time)) |>
     group_by(.data$conference, .data$player_id) |>
     slice_head(n = 1L) |>
