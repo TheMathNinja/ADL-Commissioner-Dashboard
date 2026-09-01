@@ -721,12 +721,15 @@ fetch_live_lineups <- function(season = get_current_season(), week) {
   franchises <- ffscrapr::ff_franchises(conn)
   weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
   starters <- normalize_mfl_weekly_result_lineups(weekly_results)
-  players_raw <- tibble::as_tibble(ffscrapr::ff_players(conn))
+  players_raw <- ffscrapr::mfl_getendpoint(conn, "players")[
+    ["content"]
+  ][["players"]][["player"]]
+  player_records <- list_records(players_raw, record_names = c("id", "name", "team", "position"))
   players <- tibble(
-    player_id = as.character(coalesce_col(players_raw, c("player_id", "id"))),
-    player_name = as.character(coalesce_col(players_raw, c("player_name", "name", "player"))),
-    team = as.character(coalesce_col(players_raw, c("team", "player_team"))),
-    pos = as.character(coalesce_col(players_raw, c("pos", "position", "player_pos")))
+    player_id = vapply(player_records, record_field, character(1), name = "id"),
+    player_name = vapply(player_records, record_field, character(1), name = "name"),
+    team = vapply(player_records, record_field, character(1), name = "team"),
+    pos = vapply(player_records, record_field, character(1), name = "position")
   ) |>
     filter(!is.na(.data$player_id), nzchar(.data$player_id)) |>
     distinct(.data$player_id, .keep_all = TRUE)
