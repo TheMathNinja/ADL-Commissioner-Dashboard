@@ -755,7 +755,7 @@ cache_lineups_snapshot <- function(season = get_current_season(), week, force_li
 
 normalize_mfl_injury_designations <- function(raw) {
   if (is.null(raw) || length(raw) == 0) {
-    return(tibble(player_id = character(), player_status = character()))
+    return(tibble(player_id = character(), player_team = character(), player_status = character()))
   }
 
   raw_tbl <- if (is.data.frame(raw)) {
@@ -768,13 +768,15 @@ normalize_mfl_injury_designations <- function(raw) {
     tibble()
   }
 
-  if (!all(c("id", "status") %in% names(raw_tbl))) {
-    return(tibble(player_id = character(), player_status = character()))
+  id_cols <- intersect(c("id", "player_id", "player.id"), names(raw_tbl))
+  if (!length(id_cols) || !"status" %in% names(raw_tbl)) {
+    return(tibble(player_id = character(), player_team = character(), player_status = character()))
   }
 
   raw_tbl |>
     transmute(
-      player_id = as.character(.data$id),
+      player_id = as.character(coalesce_col(raw_tbl, c("id", "player_id", "player.id"))),
+      player_team = mfl_player_team(as.character(coalesce_col(raw_tbl, c("team", "player_team", "player.team"), NA_character_))),
       player_status = as.character(.data$status)
     ) |>
     filter(
@@ -783,7 +785,7 @@ normalize_mfl_injury_designations <- function(raw) {
       !is.na(.data$player_status),
       nzchar(.data$player_status)
     ) |>
-    distinct(.data$player_id, .keep_all = TRUE)
+    distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
 
 fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL) {
@@ -831,7 +833,7 @@ fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
   )
 
   bind_rows(lapply(raw_payloads, normalize_mfl_injury_designations)) |>
-    distinct(.data$player_id, .keep_all = TRUE)
+    distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
 
 mfl_player_team <- function(team) {
@@ -952,7 +954,7 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
   snapshot <- rosters |>
     left_join(
       weekly_designations |> rename(weekly_player_status = player_status),
-      by = "player_id"
+      by = c("player_id", "player_team")
     ) |>
     transmute(
       captured_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
@@ -1028,6 +1030,7 @@ read_designation_snapshot_history <- function(season = get_current_season(), wee
 select_72h_designations_for_lineup <- function(lineups, designation_history, kickoffs) {
   if (is.null(designation_history) || !nrow(designation_history) || is.null(kickoffs) || !nrow(kickoffs)) {
     return(tibble(
+      conference = character(),
       player_id = character(),
       designation_72h = character(),
       designation_snapshot_time = as.POSIXct(character()),
@@ -1037,6 +1040,7 @@ select_72h_designations_for_lineup <- function(lineups, designation_history, kic
 
   lineups |>
     transmute(
+      conference = as.character(.data$conference),
       player_id = as.character(.data$player_id),
       player_team = mfl_player_team(.data$player_team)
     ) |>
@@ -1045,18 +1049,19 @@ select_72h_designations_for_lineup <- function(lineups, designation_history, kic
     left_join(
       designation_history |>
         transmute(
+          conference = as.character(.data$conference),
           player_id = as.character(.data$player_id),
           designation_72h = as.character(coalesce_col(designation_history, c("player_status", "roster_status"), NA_character_)),
           designation_snapshot_time = .data$snapshot_time
         ),
-      by = "player_id"
+      by = c("conference", "player_id")
     ) |>
     filter(!is.na(.data$designation_snapshot_time), .data$designation_snapshot_time <= .data$kickoff_at - lubridate::hours(72)) |>
-    arrange(.data$player_id, desc(.data$designation_snapshot_time)) |>
-    group_by(.data$player_id) |>
+    arrange(.data$conference, .data$player_id, desc(.data$designation_snapshot_time)) |>
+    group_by(.data$conference, .data$player_id) |>
     slice_head(n = 1L) |>
     ungroup() |>
-    select(player_id, designation_72h, designation_snapshot_time, kickoff_at)
+    select(conference, player_id, designation_72h, designation_snapshot_time, kickoff_at)
 }
 
 inactive_designation <- function(x) {
@@ -1784,15 +1789,16 @@ evaluate_illegal_lineup_alerts <- function(
   if (!is.null(current_designations)) {
     current_designation_tbl <- current_designations |>
       transmute(
+        conference = as.character(.data$conference),
         player_id,
         current_weekly_designation = as.character(coalesce_col(current_designations, c("player_status", "roster_status"), NA_character_))
       ) |>
       filter(!is.na(.data$current_weekly_designation), nzchar(.data$current_weekly_designation)) |>
-      arrange(desc(inactive_designation(.data$current_weekly_designation))) |>
-      distinct(.data$player_id, .keep_all = TRUE)
+      arrange(.data$conference, .data$player_id, desc(inactive_designation(.data$current_weekly_designation))) |>
+      distinct(.data$conference, .data$player_id, .keep_all = TRUE)
 
     status_source <- status_source |>
-      left_join(current_designation_tbl, by = "player_id") |>
+      left_join(current_designation_tbl, by = c("conference", "player_id")) |>
       mutate(current_player_status = coalesce(na_if(.data$current_weekly_designation, ""), na_if(.data$current_player_status, ""))) |>
       select(-current_weekly_designation)
   }
@@ -1802,7 +1808,7 @@ evaluate_illegal_lineup_alerts <- function(
 
   if (!is.null(selected_designations) && nrow(selected_designations)) {
     status_source <- selected_designations |>
-      right_join(status_source, by = "player_id")
+      right_join(status_source, by = c("conference", "player_id"))
   } else {
     status_source <- status_source |>
       mutate(
