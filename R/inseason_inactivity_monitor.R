@@ -206,7 +206,7 @@ alert_report_date <- function(report_rows) {
   checked
 }
 
-evaluate_repeated_roster_violations <- function(season = get_current_season()) {
+evaluate_repeated_roster_violations <- function(season = get_current_season(), run_date = Sys.Date()) {
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports)) return(empty_inseason_inactivity_rows())
 
@@ -234,7 +234,8 @@ evaluate_repeated_roster_violations <- function(season = get_current_season()) {
         types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
         .groups = "drop"
       ) |>
-      filter(.data$days >= 2L) |>
+      mutate(qualifying_date = .data$first_date + 1L) |>
+      filter(.data$days >= 2L, .data$qualifying_date == as.Date(.env$run_date)) |>
       transmute(
         alert_type = "In-Season Inactivity Violation",
         severity = "violation",
@@ -242,9 +243,9 @@ evaluate_repeated_roster_violations <- function(season = get_current_season()) {
         franchise,
         franchise_name,
         rule = "Repeated illegal roster violation for two consecutive days at the early morning snapshot",
-        observed = paste0("Roster violations appeared from ", .data$first_date, " through ", .data$last_date, "."),
+        observed = paste0("Roster violations appeared on ", .data$first_date, " and ", .data$qualifying_date, "."),
         details = paste0("Violation types: ", .data$types),
-        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$first_date, sep = "|"),
+        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$qualifying_date, sep = "|"),
         season_phase = "inseason"
       )
   }))
@@ -320,9 +321,10 @@ write_issued_inseason_inactivity <- function(issued, season = get_current_season
 }
 
 build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
+  run_date <- as.Date(lubridate::with_tz(as.POSIXct(run_time, tz = 'UTC'), 'America/New_York'))
   candidates <- bind_rows(
     evaluate_final_roster_cutdown_inactivity(season),
-    evaluate_repeated_roster_violations(season),
+    evaluate_repeated_roster_violations(season, run_date = run_date),
     evaluate_confirmed_illegal_lineup_inactivity(season),
     evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
   ) |>
