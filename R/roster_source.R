@@ -104,6 +104,11 @@ mfl_player_team <- function(team) {
   )
 }
 
+roster_source_safe_file_slug <- function(x) {
+  x <- tolower(gsub("[^A-Za-z0-9]+", "_", x))
+  gsub("^_+|_+$", "", x)
+}
+
 normalize_rosters <- function(rosters, franchises = NULL) {
   roster_tbl <- tibble::as_tibble(rosters)
 
@@ -292,6 +297,12 @@ fetch_mfl_roster_report_statuses <- function(conn, season = get_current_season()
       html <- httr::content(response, "text", encoding = "UTF-8")
       doc <- rvest::read_html(html)
       tables <- rvest::html_elements(doc, "table")
+      if (tolower(Sys.getenv("ADL_ALERT_DEBUG", unset = "false")) %in% c("1", "true", "yes")) {
+        dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
+        writeLines(html, file.path("data", "commissioner_alerts", paste0("debug_roster_report_", roster_source_safe_file_slug(url), ".html")))
+        table_headers <- vapply(tables, function(table) paste(names(tryCatch(rvest::html_table(table, fill = TRUE), error = function(e) tibble())), collapse = " | "), character(1))
+        readr::write_csv(tibble(url = url, table_index = seq_along(table_headers), headers = table_headers), file.path("data", "commissioner_alerts", paste0("debug_roster_report_tables_", roster_source_safe_file_slug(url), ".csv")), na = "")
+      }
 
       bind_rows(lapply(tables, function(table) {
         parsed <- tryCatch(rvest::html_table(table, fill = TRUE), error = function(e) NULL)
@@ -318,6 +329,9 @@ fetch_mfl_roster_report_statuses <- function(conn, season = get_current_season()
         distinct(.data$player_id, .keep_all = TRUE)
     }, error = function(e) tibble(player_id = character(), player_status = character()))
 
+    if (tolower(Sys.getenv("ADL_ALERT_DEBUG", unset = "false")) %in% c("1", "true", "yes")) {
+      message("Visible MFL roster status fallback checked ", url, " and found ", nrow(statuses), " status row(s).")
+    }
     if (nrow(statuses)) return(statuses)
   }
 
