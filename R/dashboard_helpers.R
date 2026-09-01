@@ -593,12 +593,19 @@ build_cap_accounting_html <- function(
 build_daily_roster_snapshots_html <- function(
   snapshot_files_public,
   latest_snapshot_public = NA_character_,
+  generated_at_by_file = list(),
   no_change_check_text = character()
 ) {
-  snapshot_links_html <- build_archive_links_html(snapshot_files_public)
+  snapshot_links_html <- build_cap_links_html(snapshot_files_public, generated_at_by_file)
   latest_link_html <- if (!is.na(latest_snapshot_public) && nzchar(latest_snapshot_public)) {
     latest_snapshot_label <- basename(sub("\\?.*$", "", latest_snapshot_public))
-    paste0("<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>", latest_snapshot_label, "</a></p>")
+    paste0(
+      "<p><strong>Latest CSV:</strong> <a href='", latest_snapshot_public, "'>",
+      latest_snapshot_label,
+      "</a>",
+      format_generated_at(generated_at_by_file[[latest_snapshot_label]]),
+      "</p>"
+    )
   } else {
     "<p><strong>Latest CSV:</strong> Not available yet.</p>"
   }
