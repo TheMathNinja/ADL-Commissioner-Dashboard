@@ -1,0 +1,5 @@
+violation_key,issued_at,season,conference,franchise,franchise_name,rule
+repeated_roster_violation|2026|LVR|2026-06-30,2026-09-01 19:32:29 UTC,2026,AFC,LVR,Las Vegas Raiders,Repeated illegal roster violation for two consecutive days at the early morning snapshot
+repeated_roster_violation|2026|TEN|2026-08-20,2026-09-01 19:32:29 UTC,2026,AFC,TEN,Tennessee Titans,Repeated illegal roster violation for two consecutive days at the early morning snapshot
+repeated_roster_violation|2026|CAR|2026-06-30,2026-09-01 19:32:29 UTC,2026,NFC,CAR,Carolina Panthers,Repeated illegal roster violation for two consecutive days at the early morning snapshot
+repeated_roster_violation|2026|NYG|2026-06-30,2026-09-01 19:32:29 UTC,2026,NFC,NYG,New York Giants,Repeated illegal roster violation for two consecutive days at the early morning snapshot
