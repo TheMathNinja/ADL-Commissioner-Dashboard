@@ -31,6 +31,38 @@ commissioner_alert_report_path <- function(season = get_current_season(), week =
   )
 }
 
+commissioner_alert_report_metadata_path <- function(season = get_current_season(), week = NULL, checked_date = Sys.Date()) {
+  dir.create(commissioner_alert_report_dir(), recursive = TRUE, showWarnings = FALSE)
+  week_part <- if (is.null(week) || is.na(week)) "" else paste0("_week", sprintf("%02d", as.integer(week)))
+  file.path(
+    commissioner_alert_report_dir(),
+    paste0("commissioner_alert_report_metadata_", checked_date, "_", season, week_part, ".csv")
+  )
+}
+
+write_commissioner_alert_report <- function(alerts, season = get_current_season(), week = NULL, checked_at = Sys.time()) {
+  checked_at <- as.POSIXct(checked_at, tz = "UTC")
+  checked_date <- as.Date(lubridate::with_tz(checked_at, "America/New_York"))
+  report_path <- commissioner_alert_report_path(season, week, checked_date = checked_date)
+  metadata_path <- commissioner_alert_report_metadata_path(season, week, checked_date = checked_date)
+
+  write_csv(alerts, report_path, na = "")
+  write_csv(
+    tibble(
+      season = season,
+      week = week %||% NA_integer_,
+      checked_at = format(checked_at, "%Y-%m-%d %H:%M:%S %Z"),
+      checked_date = as.character(checked_date),
+      report_file = basename(report_path),
+      row_count = nrow(alerts)
+    ),
+    metadata_path,
+    na = ""
+  )
+
+  report_path
+}
+
 commissioner_salary_cap <- function(season = get_current_season()) {
   env_value <- suppressWarnings(as.numeric(Sys.getenv(paste0("ADL_SALARY_CAP_", season), unset = NA_character_)))
   if (!is.na(env_value)) return(env_value)
@@ -1657,7 +1689,7 @@ build_commissioner_alerts <- function(
     mutate(
       season = .env$season,
       week = .env$week %||% NA_integer_,
-      checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+      checked_at = format(as.POSIXct(.env$checked_at, tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z"),
       alert_sort_order = commissioner_alert_sort_order(.data$alert_type, .data$rule),
       .before = 1
     ) |>
@@ -1665,7 +1697,7 @@ build_commissioner_alerts <- function(
     select(-alert_sort_order)
 
   write_csv(result, commissioner_alert_path("alerts", season, week), na = "")
-  write_csv(result, commissioner_alert_report_path(season, week), na = "")
+  write_commissioner_alert_report(result, season = season, week = week, checked_at = checked_at)
   result
 }
 
@@ -1684,7 +1716,7 @@ build_roster_cutdown_alerts <- function(season = get_current_season(), cutdown_i
     select(-alert_sort_order)
 
   write_csv(alerts, commissioner_alert_path(paste0("alerts_", cutdown_id), season), na = "")
-  write_csv(alerts, commissioner_alert_report_path(season), na = "")
+  write_commissioner_alert_report(alerts, season = season, week = NULL, checked_at = Sys.time())
 
   list(
     alerts = alerts,
