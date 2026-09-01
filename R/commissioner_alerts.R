@@ -1598,7 +1598,11 @@ evaluate_illegal_lineup_alerts <- function(
     ) |>
     mutate(
       starter_count = coalesce(.data$starter_count, 0L),
-      severity = lineup_alert_severity(.data$lineup_lock_at, checked_at = .env$checked_at),
+      severity = if_else(
+        isTRUE(.env$is_first_game_warning_day),
+        "warning",
+        lineup_alert_severity(.data$lineup_lock_at, checked_at = .env$checked_at)
+      ),
       alert_type = lineup_alert_type(.data$severity)
     )
 
