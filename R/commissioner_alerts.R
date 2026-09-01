@@ -1775,7 +1775,7 @@ evaluate_illegal_lineup_alerts <- function(
 
   status_source <- rosters |>
     transmute(
-      franchise,
+      conference,
       player_id,
       current_roster_status = normalize_alert_status(.data$roster_status),
       current_player_status = as.character(coalesce_col(rosters, c("player_status"), NA_character_))
@@ -1814,7 +1814,7 @@ evaluate_illegal_lineup_alerts <- function(
 
   player_checks <- lineups |>
     mutate(player_team_key = mfl_player_team(.data$player_team)) |>
-    left_join(status_source, by = c("franchise", "player_id")) |>
+    left_join(status_source, by = c("conference", "player_id")) |>
     left_join(
       kickoffs |> rename(player_kickoff_at = kickoff_at),
       by = c("player_team_key" = "player_team")
