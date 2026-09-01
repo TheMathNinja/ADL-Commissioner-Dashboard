@@ -367,6 +367,14 @@ if (nrow(snapshot_index) > 0) {
 
 snapshot_files_public <- file.path("downloads", "daily-roster-snapshots", snapshot_filenames)
 snapshot_files_public <- add_file_versions(snapshot_files_public)
+snapshot_generated_at_by_file <- if (nrow(snapshot_index) > 0) {
+  stats::setNames(
+    as.list(format(snapshot_index$snapshot_time_et, "%m/%d/%Y %I:%M %p %Z")),
+    snapshot_index$public_filename
+  )
+} else {
+  list()
+}
 latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   snapshot_files_public[1]
 } else {
@@ -613,6 +621,7 @@ writeLines(saladj_html, file.path("docs", "saladjcurator.html"))
 daily_roster_snapshots_html <- build_daily_roster_snapshots_html(
   snapshot_files_public = snapshot_files_public,
   latest_snapshot_public = latest_snapshot_public,
+  generated_at_by_file = snapshot_generated_at_by_file,
   no_change_check_text = no_change_check_text
 )
 
