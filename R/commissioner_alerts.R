@@ -1422,6 +1422,7 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
     filter(.data$short > 0L)
 
   total_alerts <- if (starter_count < expected_starters && nrow(below_minimum)) {
+    missing_starters <- expected_starters - starter_count
     tibble(
       rule = paste0(
         "Starting lineups require ", .env$expected_starters,
@@ -1433,10 +1434,7 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
         paste(paste0(below_minimum$starter_count, " ", below_minimum$player_pos), collapse = ", "),
         ")"
       ),
-      details = paste0(
-        "Must start ",
-        format_and_list(paste(below_minimum$short, "additional", below_minimum$player_pos))
-      )
+      details = format_lineup_shortage(missing_starters, position_status)
     )
   } else if (starter_count < expected_starters) {
     missing_starters <- expected_starters - starter_count
@@ -1468,6 +1466,20 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
     filter(.data$short != 0L) |>
     mutate(lineup_group = factor(.data$lineup_group, levels = group_rules$lineup_group)) |>
     arrange(.data$lineup_group)
+
+  if (starter_count < expected_starters && nrow(group_status)) {
+    missing_starters <- expected_starters - starter_count
+    positive_group_short <- group_status |>
+      filter(.data$short > 0L) |>
+      summarise(total = sum(.data$short), .groups = "drop") |>
+      pull(.data$total)
+    positive_group_short <- positive_group_short %||% 0L
+
+    if (positive_group_short > 0L && positive_group_short <= missing_starters) {
+      group_status <- group_status |>
+        filter(.data$short < 0L)
+    }
+  }
 
   group_alerts <- if (nrow(group_status)) {
     group_details <- vapply(seq_len(nrow(group_status)), function(i) {
