@@ -337,6 +337,34 @@ missing_commissioner_alert_report_dates <- function(report_files, timezone = "Am
   sort(as.Date(missing_dates, origin = "1970-01-01"), decreasing = TRUE)
 }
 
+saladj_archive_metadata_file <- function(archive_file) {
+  file.path(
+    dirname(archive_file),
+    sub("_ADLSalAdjCurator\\.csv$", "_ADLSalAdjCurator_metadata.csv", basename(archive_file))
+  )
+}
+
+saladj_archive_generated_at <- function(archive_file) {
+  metadata_file <- saladj_archive_metadata_file(archive_file)
+  if (file.exists(metadata_file)) {
+    metadata <- tryCatch(readr::read_csv(metadata_file, show_col_types = FALSE), error = function(e) NULL)
+    if (!is.null(metadata) && nrow(metadata) && "generated_at_display" %in% names(metadata)) {
+      display <- as.character(metadata$generated_at_display[[1]])
+      if (nzchar(display)) return(display)
+    }
+    if (!is.null(metadata) && nrow(metadata) && "generated_at" %in% names(metadata)) {
+      return(format_checked_at_et(metadata$generated_at[[1]]))
+    }
+  }
+
+  generated_at <- file.info(archive_file)$mtime
+  format(lubridate::with_tz(generated_at, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
+}
+
+saladj_archive_generated_at_by_file <- function(archive_files) {
+  if (!length(archive_files)) return(list())
+  stats::setNames(as.list(vapply(archive_files, saladj_archive_generated_at, character(1))), basename(archive_files))
+}
 # Read metadata
 run_meta <- readr::read_csv("data/run_metadata.csv", show_col_types = FALSE)
 franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season, ".rds")))
@@ -379,6 +407,14 @@ if (length(archive_files_data) > 0) {
 
 # Public links for HTML
 archive_files_public <- file.path("downloads", archive_filenames)
+saladj_generated_at_by_file <- saladj_archive_generated_at_by_file(archive_files_data)
+if ("latest_archive_filename" %in% names(run_meta) && "last_changed_display" %in% names(run_meta) && nrow(run_meta) > 0) {
+  latest_archive_filename_for_meta <- as.character(run_meta$latest_archive_filename[[1]])
+  latest_changed_display_for_meta <- as.character(run_meta$last_changed_display[[1]])
+  if (nzchar(latest_archive_filename_for_meta) && nzchar(latest_changed_display_for_meta)) {
+    saladj_generated_at_by_file[[latest_archive_filename_for_meta]] <- latest_changed_display_for_meta
+  }
+}
 
 # Publish daily roster snapshots from the SalAdj roster snapshot history.
 snapshot_files_data <- list.files(
@@ -678,7 +714,8 @@ writeLines(index_html, file.path("docs", "index.html"))
 # Build SalAdjCurator page
 saladj_html <- build_saladjcurator_html(
   run_meta = run_meta,
-  archive_files_public = archive_files_public
+  archive_files_public = archive_files_public,
+  generated_at_by_file = saladj_generated_at_by_file
 )
 
 writeLines(saladj_html, file.path("docs", "saladjcurator.html"))
@@ -732,6 +769,10 @@ cap_accounting_html <- build_cap_accounting_html(
 writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))
 
 message("Dashboard build complete for season: ", current_season)
+
+
+
+
 
 
 
