@@ -143,10 +143,10 @@ write_public_roster_snapshot <- function(snapshot_file, public_file, franchises)
       player_pos_sort = dplyr::coalesce(.data$player_pos_sort, length(position_order) + 1L),
       player_last_name = player_last_name(.data$player_name),
       injury_status_display = dplyr::coalesce(
-        as.character(.data$player_status),
-        as.character(.data$injury_status),
-        as.character(.data$injury),
-        as.character(.data$inj),
+        dplyr::na_if(as.character(.data$player_status), ""),
+        dplyr::na_if(as.character(.data$injury_status), ""),
+        dplyr::na_if(as.character(.data$injury), ""),
+        dplyr::na_if(as.character(.data$inj), ""),
         ""
       ),
       bye_week = unname(.env$bye_weeks[as.character(.data$player_team)]),
