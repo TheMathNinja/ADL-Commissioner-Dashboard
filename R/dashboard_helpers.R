@@ -381,6 +381,7 @@ build_commissioner_alerts_html <- function(
   report_files_public = character(),
   latest_report_public = NA_character_,
   latest_report_rows = NA_integer_,
+  latest_report_generated_at = NA_character_,
   violation_report_files_public = character(),
   violation_report_file_labels = NULL,
   clean_archive_public = NA_character_,
@@ -396,7 +397,9 @@ build_commissioner_alerts_html <- function(
     paste0(
       "<p><strong>Latest Report:</strong> <a href='", latest_report_public, "'>",
       latest_report_label,
-      "</a></p>"
+      "</a>",
+      format_generated_at(latest_report_generated_at),
+      "</p>"
     )
   } else {
     "<p><strong>Latest Report:</strong> Not available yet.</p>"
