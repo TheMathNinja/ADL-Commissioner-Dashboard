@@ -1444,9 +1444,7 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
         format_and_list(paste(special_minimum$min_starters, special_minimum$player_pos))
       ),
       observed = paste0(
-        .env$starter_count, " total starters (",
-        paste(paste0(special_minimum$starter_count, " ", special_minimum$player_pos), collapse = ", "),
-        ")"
+        paste(paste0(special_minimum$starter_count, " ", special_minimum$player_pos), collapse = ", ")
       ),
       details = paste0(
         "Must start ",
