@@ -2,6 +2,11 @@ on:
   schedule:
     - cron: 5 */6 * 9-12,1 *
   workflow_dispatch:
+    inputs:
+      week:
+        description: Optional ADL week to snapshot manually, before auto week detection begins.
+        required: false
+        type: string
 
 name: lineup-designation-snapshots
 
@@ -20,6 +25,7 @@ jobs:
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_FORCE_LIVE: true
+      ADL_ALERT_WEEK: ${{ github.event.inputs.week }}
       ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
       MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
       MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
