@@ -142,6 +142,69 @@ normalize_rosters <- function(rosters, franchises = NULL) {
     )
 }
 
+normalize_mfl_roster_injuries <- function(injuries) {
+  if (is.null(injuries) || length(injuries) == 0) {
+    return(tibble(player_id = character(), player_status = character()))
+  }
+
+  injuries_tbl <- if (is.data.frame(injuries)) {
+    tibble::as_tibble(injuries)
+  } else if (is.list(injuries) && !is.null(names(injuries)) && all(c("id", "status") %in% names(injuries))) {
+    tibble::as_tibble(injuries)
+  } else if (is.list(injuries)) {
+    bind_rows(lapply(injuries, tibble::as_tibble))
+  } else {
+    tibble()
+  }
+
+  if (!all(c("id", "status") %in% names(injuries_tbl))) {
+    return(tibble(player_id = character(), player_status = character()))
+  }
+
+  injuries_tbl |>
+    transmute(
+      player_id = as.character(.data$id),
+      player_status = as.character(.data$status)
+    ) |>
+    filter(
+      !is.na(.data$player_id),
+      nzchar(.data$player_id),
+      !is.na(.data$player_status),
+      nzchar(.data$player_status)
+    ) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+}
+
+fetch_live_roster_injuries <- function(conn, season = get_current_season(), week = NULL) {
+  query <- list(
+    TYPE = "injuries",
+    L = as.integer(get_env_or_default("ADL_LEAGUE_ID", "60206")),
+    JSON = 1
+  )
+  if (!is.null(week) && !is.na(week)) query$W <- as.integer(week)
+
+  direct_payload <- tryCatch({
+    response <- httr::GET(
+      url = paste0("https://api.myfantasyleague.com/", season, "/export"),
+      query = query,
+      httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+    )
+    response_text <- httr::content(response, "text", encoding = "UTF-8")
+    response_json <- jsonlite::fromJSON(response_text, flatten = TRUE)
+    response_json[["injuries"]][["injury"]]
+  }, error = function(e) NULL)
+
+  ffscrapr_payload <- tryCatch(
+    ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]],
+    error = function(e) NULL
+  )
+
+  bind_rows(
+    normalize_mfl_roster_injuries(direct_payload),
+    normalize_mfl_roster_injuries(ffscrapr_payload)
+  ) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+}
 fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
   conn <- connect_adl_mfl(season)
   rosters <- ffscrapr::ff_rosters(conn, week = week)
@@ -154,9 +217,15 @@ fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
       player_status = as.character(coalesce_col(players_tbl, c("status"), NA_character_))
     ) |>
     distinct(.data$player_id, .keep_all = TRUE)
+  injuries <- fetch_live_roster_injuries(conn, season = season, week = week) |>
+    rename(injury_player_status = .data$player_status)
+
   rosters <- rosters |>
     mutate(player_id = as.character(.data$player_id)) |>
-    left_join(players, by = "player_id")
+    left_join(players, by = "player_id") |>
+    left_join(injuries, by = "player_id") |>
+    mutate(player_status = coalesce(na_if(.data$injury_player_status, ""), na_if(.data$player_status, ""))) |>
+    select(-injury_player_status)
   franchises <- ffscrapr::ff_franchises(conn)
   normalize_rosters(rosters, franchises)
 }
