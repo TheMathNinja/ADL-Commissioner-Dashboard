@@ -651,10 +651,76 @@ normalize_lineups <- function(starters, franchises = NULL) {
     select(conference, franchise, franchise_name, franchise_id, player_id, player_name, player_team, player_pos, lineup_slot)
 }
 
+list_records <- function(x, record_names = character()) {
+  if (is.null(x) || length(x) == 0) return(list())
+  if (is.data.frame(x)) {
+    return(lapply(seq_len(nrow(x)), function(i) x[i, , drop = FALSE]))
+  }
+  if (is.list(x) && !is.null(names(x)) && any(names(x) %in% record_names)) {
+    return(list(x))
+  }
+  if (is.list(x)) return(x)
+  list()
+}
+
+record_field <- function(x, name, default = NA_character_) {
+  if (is.null(x) || !name %in% names(x)) return(default)
+  value <- x[[name]]
+  if (is.null(value) || length(value) == 0) return(default)
+  if (is.data.frame(value)) return(as.character(value[[1]][[1]] %||% default))
+  as.character(value[[1]] %||% default)
+}
+
+normalize_mfl_weekly_result_lineups <- function(raw) {
+  matchups <- list_records(raw, record_names = c("franchise"))
+  rows <- list()
+
+  for (matchup in matchups) {
+    franchises <- list_records(matchup[["franchise"]], record_names = c("id", "player"))
+    for (franchise in franchises) {
+      franchise_id <- record_field(franchise, "id")
+      players <- list_records(franchise[["player"]], record_names = c("id", "status"))
+      for (player in players) {
+        rows[[length(rows) + 1L]] <- tibble(
+          franchise_id = franchise_id,
+          player_id = record_field(player, "id"),
+          starter_status = record_field(player, "status"),
+          should_start = suppressWarnings(as.numeric(record_field(player, "shouldStart", NA_character_))),
+          player_score = suppressWarnings(as.numeric(record_field(player, "score", NA_character_)))
+        )
+      }
+    }
+  }
+
+  if (!length(rows)) {
+    return(tibble(
+      franchise_id = character(),
+      player_id = character(),
+      starter_status = character(),
+      should_start = numeric(),
+      player_score = numeric()
+    ))
+  }
+
+  result <- bind_rows(rows) |>
+    filter(!is.na(.data$franchise_id), nzchar(.data$franchise_id), !is.na(.data$player_id), nzchar(.data$player_id)) |>
+    distinct(.data$franchise_id, .data$player_id, .keep_all = TRUE)
+
+  starter_status_key <- tolower(trimws(result$starter_status %||% character()))
+  starter_status_present <- any(nzchar(starter_status_key) & !is.na(starter_status_key))
+  if (starter_status_present) {
+    result <- result |>
+      filter(tolower(trimws(.data$starter_status)) %in% c("starter", "start", "s", "1", "true"))
+  }
+
+  result
+}
+
 fetch_live_lineups <- function(season = get_current_season(), week) {
   conn <- connect_adl_mfl(season)
-  starters <- ffscrapr::ff_starters(conn, season = season, week = week)
   franchises <- ffscrapr::ff_franchises(conn)
+  weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
+  starters <- normalize_mfl_weekly_result_lineups(weekly_results)
   normalize_lineups(starters, franchises)
 }
 
