@@ -258,15 +258,37 @@ mfl_roster_report_urls <- function(conn, season = get_current_season()) {
   unique(urls[nzchar(urls)])
 }
 
+extract_mfl_player_id_from_row <- function(row) {
+  hrefs <- rvest::html_attr(rvest::html_elements(row, "a"), "href")
+  hrefs <- hrefs[!is.na(hrefs)]
+  match <- regmatches(hrefs, regexpr("launch_player_modal\\('[0-9]+','[0-9]+'\\)|([?&](P|PLAYER|PLAYER_ID|PLAYERS)=|/player\\?P=)[0-9]+", hrefs, ignore.case = TRUE))
+  match <- match[nzchar(match)]
+  if (!length(match)) return(NA_character_)
+  sub(".*'([0-9]+)'\\)$|.*=([0-9]+)$", "\\1\\2", match[[1]])
+}
+
 extract_mfl_player_ids_from_rows <- function(rows) {
-  vapply(rows, function(row) {
-    hrefs <- rvest::html_attr(rvest::html_elements(row, "a"), "href")
-    hrefs <- hrefs[!is.na(hrefs)]
-    match <- regmatches(hrefs, regexpr("([?&](P|PLAYER|PLAYERS)=|/player\\?P=)[0-9]+", hrefs, ignore.case = TRUE))
-    match <- match[nzchar(match)]
-    if (!length(match)) return(NA_character_)
-    sub(".*=([0-9]+)$", "\\1", match[[1]])
-  }, character(1))
+  vapply(seq_along(rows), function(i) extract_mfl_player_id_from_row(rows[[i]]), character(1))
+}
+
+extract_mfl_visible_injury_statuses_from_rows <- function(rows) {
+  bind_rows(lapply(rows, function(row) {
+    player_id <- extract_mfl_player_id_from_row(row)
+    if (is.na(player_id) || !nzchar(player_id)) {
+      return(tibble(player_id = character(), player_status = character()))
+    }
+
+    status_nodes <- rvest::html_elements(row, ".injurystatus")
+    status_values <- rvest::html_attr(status_nodes, "title")
+    if (!length(status_values)) status_values <- rvest::html_text2(status_nodes)
+    status_values <- normalize_visible_injury_status(status_values)
+    status_values <- status_values[!is.na(status_values) & nzchar(status_values)]
+    if (!length(status_values)) {
+      return(tibble(player_id = character(), player_status = character()))
+    }
+
+    tibble(player_id = player_id, player_status = status_values[[1]])
+  }))
 }
 
 normalize_visible_injury_status <- function(x) {
@@ -305,13 +327,16 @@ fetch_mfl_roster_report_statuses <- function(conn, season = get_current_season()
       }
 
       bind_rows(lapply(tables, function(table) {
+        rows <- rvest::html_elements(table, "tr")
+        row_statuses <- extract_mfl_visible_injury_statuses_from_rows(rows)
+        if (nrow(row_statuses)) return(row_statuses)
+
         parsed <- tryCatch(rvest::html_table(table, fill = TRUE), error = function(e) NULL)
         if (is.null(parsed) || !nrow(parsed)) return(tibble(player_id = character(), player_status = character()))
 
         status_cols <- grep("inj|status", names(parsed), ignore.case = TRUE, value = TRUE)
         if (!length(status_cols)) return(tibble(player_id = character(), player_status = character()))
 
-        rows <- rvest::html_elements(table, "tr")
         ids <- extract_mfl_player_ids_from_rows(rows)
         ids <- tail(ids[!is.na(ids) & nzchar(ids)], nrow(parsed))
         if (length(ids) != nrow(parsed)) return(tibble(player_id = character(), player_status = character()))
