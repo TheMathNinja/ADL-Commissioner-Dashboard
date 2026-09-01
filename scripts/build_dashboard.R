@@ -183,6 +183,50 @@ report_date_from_commissioner_alert_file <- function(report_file) {
   suppressWarnings(as.Date(report_date_text))
 }
 
+commissioner_alert_report_metadata_file <- function(report_file) {
+  file.path(
+    dirname(report_file),
+    sub(
+      "^commissioner_alert_report_",
+      "commissioner_alert_report_metadata_",
+      basename(report_file)
+    )
+  )
+}
+
+format_checked_at_et <- function(checked_at) {
+  if (is.null(checked_at) || length(checked_at) == 0 || is.na(checked_at)) {
+    checked_at <- ""
+  }
+  checked_at <- trimws(as.character(checked_at))
+  if (!nzchar(checked_at)) return(NA_character_)
+
+  parsed <- suppressWarnings(as.POSIXct(checked_at, tz = "UTC"))
+  if (is.na(parsed)) {
+    parsed <- suppressWarnings(lubridate::ymd_hms(checked_at, tz = "UTC", quiet = TRUE))
+  }
+  if (is.na(parsed)) return(NA_character_)
+
+  format(lubridate::with_tz(parsed, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
+}
+
+commissioner_alert_report_generated_at <- function(report_file) {
+  metadata_file <- commissioner_alert_report_metadata_file(report_file)
+  if (file.exists(metadata_file)) {
+    metadata <- tryCatch(readr::read_csv(metadata_file, show_col_types = FALSE), error = function(e) NULL)
+    if (!is.null(metadata) && nrow(metadata) && "checked_at" %in% names(metadata)) {
+      return(format_checked_at_et(metadata$checked_at[[1]]))
+    }
+  }
+
+  report <- tryCatch(readr::read_csv(report_file, show_col_types = FALSE), error = function(e) NULL)
+  if (!is.null(report) && nrow(report) && "checked_at" %in% names(report)) {
+    return(format_checked_at_et(report$checked_at[[1]]))
+  }
+
+  NA_character_
+}
+
 count_csv_data_rows <- function(report_file) {
   if (!file.exists(report_file)) return(NA_integer_)
   rows <- tryCatch(
@@ -468,7 +512,7 @@ current_cap_summary_public <- if (length(cap_summary_files_public) > 0) {
 # Publish commissioner alert report history.
 commissioner_alert_report_files_data <- list.files(
   path = file.path("data", "commissioner_alert_reports"),
-  pattern = paste0("^commissioner_alert_report_.*_", current_season, ".*\\.csv$"),
+  pattern = paste0("^commissioner_alert_report_[0-9]{4}-[0-9]{2}-[0-9]{2}_", current_season, ".*\\.csv$"),
   full.names = TRUE
 )
 commissioner_alert_report_files_data <- sort(commissioner_alert_report_files_data, decreasing = TRUE)
@@ -544,7 +588,7 @@ latest_commissioner_alert_report_rows <- if (length(commissioner_alert_report_fi
   NA_integer_
 }
 latest_commissioner_alert_report_generated_at <- if (length(commissioner_alert_report_files_data) > 0) {
-  file_generated_at_et(commissioner_alert_report_files_data[1])[[basename(commissioner_alert_report_files_data[1])]]
+  commissioner_alert_report_generated_at(commissioner_alert_report_files_data[1])
 } else {
   NA_character_
 }
