@@ -1406,6 +1406,17 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
   position_status <- lineup_position_status(franchise_id, lineups)
   group_rules <- adl_lineup_group_rules()
 
+  if (starter_count == 0L) {
+    return(tibble(
+      rule = paste0("Starting lineups require ", expected_starters, " total starters"),
+      observed = "No starting lineup submitted",
+      details = paste0(
+        "Must submit a full starting lineup: 1 QB, 1-2 RB, 2-4 WR, 1-2 TE, ",
+        "1 PK, 1 PN, 2-3 DT, 2-3 DE, 1-3 LB, 2-4 CB and 2-3 S"
+      )
+    ))
+  }
+
   below_minimum <- position_status |>
     mutate(short = .data$min_starters - .data$starter_count) |>
     filter(.data$short > 0L)
