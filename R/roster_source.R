@@ -206,21 +206,29 @@ fetch_live_roster_injuries <- function(conn, season = get_current_season(), week
   )
   if (!is.null(week) && !is.na(week)) query$W <- as.integer(week)
 
-  direct_payload <- tryCatch({
-    response <- httr::GET(
-      url = paste0("https://api.myfantasyleague.com/", season, "/export"),
-      query = query,
-      httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
-    )
-    response_text <- httr::content(response, "text", encoding = "UTF-8")
-    response_json <- jsonlite::fromJSON(response_text, flatten = TRUE)
-    response_json[["injuries"]][["injury"]]
-  }, error = function(e) NULL)
+  direct_payload <- NULL
+  for (base_url in c("https://api.myfantasyleague.com", "http://football.myfantasyleague.com")) {
+    direct_payload <- tryCatch({
+      response <- httr::GET(
+        url = paste0(base_url, "/", season, "/export"),
+        query = query,
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+      )
+      response_text <- httr::content(response, "text", encoding = "UTF-8")
+      response_json <- jsonlite::fromJSON(response_text, flatten = TRUE)
+      if ("error" %in% names(response_json)) stop(response_json$error$`$t` %||% "MFL injuries error")
+      response_json[["injuries"]][["injury"]]
+    }, error = function(e) NULL)
+    if (!is.null(direct_payload) && length(direct_payload)) break
+  }
 
-  ffscrapr_payload <- tryCatch(
-    ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]],
-    error = function(e) NULL
-  )
+  ffscrapr_payload <- tryCatch({
+    if (!is.null(week) && !is.na(week)) {
+      ffscrapr::mfl_getendpoint(conn, endpoint = "injuries", W = as.integer(week))[["content"]][["injuries"]][["injury"]]
+    } else {
+      ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]]
+    }
+  }, error = function(e) NULL)
 
   bind_rows(
     normalize_mfl_roster_injuries(direct_payload),
