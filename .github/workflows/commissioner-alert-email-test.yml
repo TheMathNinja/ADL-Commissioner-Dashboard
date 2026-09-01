@@ -1,0 +1,108 @@
+on:
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: Email address that receives all test messages.
+        required: true
+        default: fili.mikey@gmail.com
+        type: string
+      week:
+        description: Sample week label for the test emails.
+        required: true
+        default: "11"
+        type: string
+
+name: commissioner-alert-email-test
+
+permissions:
+  contents: read
+
+jobs:
+  commissioner-alert-email-test:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: 2026
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_TEST_TO: ${{ github.event.inputs.recipient }}
+      ADL_ALERT_TEST_WEEK: ${{ github.event.inputs.week }}
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+
+    steps:
+      - name: Checkout dashboard repo
+        uses: actions/checkout@v4
+
+      - name: Create cache directories
+        run: |
+          mkdir -p "${R_LIBS_USER}"
+          mkdir -p data
+
+      - name: Restore R package library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-commissioner-alert-email-test-r-lib-v1-${{ hashFiles('.github/workflows/commissioner-alert-email-test.yml', 'DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-commissioner-alert-email-test-r-lib-v1-
+
+      - name: Install Ubuntu system libraries and R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            r-base \
+            r-base-dev \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libssl-dev \
+            libtiff5-dev \
+            libxml2-dev \
+            libuv1-dev \
+            pkg-config
+
+      - name: Install and verify R packages
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          options(repos = c(
+            ffverse = "https://ffverse.r-universe.dev",
+            CRAN = "https://cloud.r-project.org"
+          ))
+
+          packages <- c("curl", "dplyr", "ffscrapr", "lubridate", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+          if (length(missing) > 0) {
+            install.packages(
+              missing,
+              dependencies = c("Depends", "Imports", "LinkingTo"),
+              Ncpus = max(1, parallel::detectCores() - 1)
+            )
+          }
+
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) {
+            stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+          }
+
+      - name: Send sample commissioner alert emails
+        run: |
+          Rscript scripts/send_commissioner_alert_test_emails.R \
+            --season=${CURRENT_SEASON} \
+            --week="${ADL_ALERT_TEST_WEEK}" \
+            --to="${ADL_ALERT_TEST_TO}"
+
+      - name: Upload test outboxes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commissioner-alert-email-test-outboxes
+          path: data/commissioner_alerts/
