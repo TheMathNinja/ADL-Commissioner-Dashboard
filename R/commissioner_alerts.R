@@ -2346,7 +2346,7 @@ render_commissioner_alert_email <- function(
   for (alert_type in names(groups)) {
     rows <- groups[[alert_type]] |>
       arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
-    lines <- c(lines, alert_type, strrep("-", nchar(alert_type)))
+    lines <- c(lines, paste0("**", alert_type, "**"), strrep("-", nchar(alert_type)))
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_alert_detail_lines(row))
@@ -2384,7 +2384,7 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
   for (alert_type in names(groups)) {
     rows <- groups[[alert_type]]
     heading <- pluralize_alert_type(alert_type, nrow(rows))
-    lines <- c(lines, heading)
+    lines <- c(lines, paste0("**", heading, "**"))
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_gm_alert_rule_lines(row))
