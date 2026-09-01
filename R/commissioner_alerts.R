@@ -2040,6 +2040,7 @@ evaluate_illegal_lineup_alerts <- function(
 
 commissioner_alert_sort_order <- function(alert_type, rule) {
   case_when(
+    alert_type == "In-Season Inactivity Violation" ~ 0L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 21 total starters") ~ 1L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 7 offensive starters") ~ 2L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 12 defensive starters") ~ 3L,
@@ -2240,13 +2241,20 @@ read_commissioner_alert_reports <- function(max_reports = 10L) {
 render_alert_detail_lines <- function(row, prefix = NULL) {
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
   header <- if (is.null(prefix)) {
+    if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
+      paste0("**", franchise_label, " committed an inactivity violation: ", row$rule, "**")
+    } else
     if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
       paste0(franchise_label, " Rule Violation: ", row$rule)
     } else {
       paste0(franchise_label, ": ", row$rule)
     }
   } else {
-    paste0(prefix, ": ", row$rule)
+    if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
+      paste0("**", prefix, " committed an inactivity violation: ", row$rule, "**")
+    } else {
+      paste0(prefix, ": ", row$rule)
+    }
   }
 
   if (identical(row$alert_type[[1]], "Salary Cap Violation")) {
@@ -2277,6 +2285,18 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
 }
 
 render_gm_alert_rule_lines <- function(row) {
+  if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
+    details <- row$details[[1]] %||% ""
+    lines <- c(
+      paste0("**Your franchise committed an inactivity violation: ", row$rule[[1]], "**"),
+      paste0("Observed: ", row$observed)
+    )
+    if (nzchar(trimws(details))) {
+      lines <- c(lines, paste0("Details: ", details))
+    }
+    return(c(lines, ""))
+  }
+
   details <- row$details[[1]] %||% ""
   lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
   if (nzchar(trimws(details))) {
