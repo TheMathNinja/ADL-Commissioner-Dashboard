@@ -442,8 +442,15 @@ snapshot_checks <- if (file.exists(snapshot_checks_file)) {
   )
 }
 
+if (!"run_type" %in% names(snapshot_checks)) snapshot_checks$run_type <- NA_character_
+
 scheduled_changed_snapshot_files <- snapshot_checks %>%
-  dplyr::filter(.data$snapshot_changed) %>%
+  dplyr::mutate(
+    run_type = dplyr::coalesce(as.character(.data$run_type), ""),
+    check_hour_et = suppressWarnings(as.integer(stringr::str_match(.data$last_checked_at_et, " ([0-9]{2}):")[, 2])),
+    scheduled_check = .data$run_type == "schedule" | (!nzchar(.data$run_type) & !is.na(.data$check_hour_et) & .data$check_hour_et < 12L)
+  ) %>%
+  dplyr::filter(.data$snapshot_changed, .data$scheduled_check) %>%
   dplyr::pull(.data$snapshot_file) %>%
   unique()
 
@@ -725,6 +732,7 @@ cap_accounting_html <- build_cap_accounting_html(
 writeLines(cap_accounting_html, file.path("docs", "salary-cap-accounting.html"))
 
 message("Dashboard build complete for season: ", current_season)
+
 
 
 
