@@ -796,34 +796,42 @@ fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL)
   )
   if (!is.null(week) && !is.na(week)) query$W <- as.integer(week)
 
-  response <- tryCatch(
-    httr::GET(
-      url = paste0("https://api.myfantasyleague.com/", season, "/export"),
-      query = query,
-      httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
-    ),
-    error = function(e) e
-  )
+  response <- NULL
+  injury_json <- NULL
+  endpoint_error <- NULL
+  for (base_url in c("https://api.myfantasyleague.com", "http://football.myfantasyleague.com")) {
+    response <- tryCatch(
+      httr::GET(
+        url = paste0(base_url, "/", season, "/export"),
+        query = query,
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+      ),
+      error = function(e) e
+    )
 
-  if (inherits(response, "error")) {
-    warning("MFL injury endpoint unavailable: ", conditionMessage(response), call. = FALSE)
-    return(NULL)
+    if (inherits(response, "error")) {
+      endpoint_error <- conditionMessage(response)
+      next
+    }
+
+    injury_text <- httr::content(response, "text", encoding = "UTF-8")
+    injury_json <- tryCatch(jsonlite::fromJSON(injury_text, flatten = TRUE), error = function(e) e)
+
+    if (inherits(injury_json, "error")) {
+      endpoint_error <- conditionMessage(injury_json)
+      next
+    }
+
+    if ("error" %in% names(injury_json)) {
+      endpoint_error <- injury_json$error$`$t` %||% "unknown error"
+      next
+    }
+
+    return(injury_json[["injuries"]][["injury"]])
   }
 
-  injury_text <- httr::content(response, "text", encoding = "UTF-8")
-  injury_json <- tryCatch(jsonlite::fromJSON(injury_text, flatten = TRUE), error = function(e) e)
-
-  if (inherits(injury_json, "error")) {
-    warning("Could not parse MFL injury endpoint response: ", conditionMessage(injury_json), call. = FALSE)
-    return(NULL)
-  }
-
-  if ("error" %in% names(injury_json)) {
-    warning("MFL injury endpoint returned error: ", injury_json$error$`$t` %||% "unknown error", call. = FALSE)
-    return(NULL)
-  }
-
-  injury_json[["injuries"]][["injury"]]
+  warning("MFL injury endpoint returned error: ", endpoint_error %||% "unknown error", call. = FALSE)
+  NULL
 }
 
 fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
