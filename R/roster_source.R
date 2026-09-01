@@ -221,7 +221,8 @@ fetch_live_roster_injuries <- function(conn, season = get_current_season(), week
       response <- httr::GET(
         url = paste0(base_url, "/", season, "/export"),
         query = query,
-        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+        httr::timeout(as.numeric(get_env_or_default("ADL_MFL_INJURY_TIMEOUT_SECONDS", "4")))
       )
       response_text <- httr::content(response, "text", encoding = "UTF-8")
       response_json <- jsonlite::fromJSON(response_text, flatten = TRUE)
