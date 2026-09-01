@@ -110,7 +110,7 @@ if (identical(mode, "cutdown")) {
   quit(save = "no")
 }
 
-include_offseason <- mode %in% c("check", "offseason")
+include_offseason <- mode %in% c("check", "offseason", "inseason")
 include_inseason <- mode %in% c("check", "inseason") && !is.na(week)
 
 alerts <- build_commissioner_alerts(
