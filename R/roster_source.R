@@ -80,6 +80,26 @@ coalesce_col <- function(df, names, default = NA_character_) {
   df[[found[1]]]
 }
 
+mfl_player_team <- function(team) {
+  team <- toupper(trimws(as.character(team)))
+  dplyr::recode(
+    team,
+    ARZ = "ARI",
+    JAX = "JAC",
+    KC = "KCC",
+    GB = "GBP",
+    NO = "NOS",
+    NE = "NEP",
+    SF = "SFO",
+    TB = "TBB",
+    LA = "LAR",
+    STL = "LAR",
+    OAK = "LVR",
+    SD = "LAC",
+    .default = team
+  )
+}
+
 normalize_rosters <- function(rosters, franchises = NULL) {
   roster_tbl <- tibble::as_tibble(rosters)
 
@@ -88,10 +108,10 @@ normalize_rosters <- function(rosters, franchises = NULL) {
       franchise_id = as.character(coalesce_col(roster_tbl, c("franchise_id", "franchiseId"))),
       player_id = as.character(coalesce_col(roster_tbl, c("player_id", "playerId", "id"))),
       player_name = as.character(coalesce_col(roster_tbl, c("player_name", "player", "name"))),
-      player_team = as.character(coalesce_col(roster_tbl, c("team", "player_team"))),
-      player_pos = as.character(coalesce_col(roster_tbl, c("pos", "position", "player_pos"))),
+      player_team = as.character(coalesce_col(roster_tbl, c("team", "player_team", "nfl_team", "pro_team"))),
+      player_pos = as.character(coalesce_col(roster_tbl, c("pos", "position", "player_pos", "player_position"))),
       roster_status = as.character(coalesce_col(roster_tbl, c("roster_status", "status"), "ROSTER")),
-      player_status = as.character(coalesce_col(roster_tbl, c("player_status", "injury_status", "injury", "inj"), NA_character_)),
+      player_status = as.character(coalesce_col(roster_tbl, c("player_status", "injury_status", "injuryStatus", "injury_status_full", "injury", "inj", "status_code"), NA_character_)),
       prev_salary = suppressWarnings(as.numeric(coalesce_col(roster_tbl, c("prev_salary", "salary", "roster_salary")))),
       prev_years = suppressWarnings(as.numeric(coalesce_col(roster_tbl, c("prev_years", "contract_years", "roster_years", "years")))),
       contract = as.character(coalesce_col(roster_tbl, c("contract", "contractInfo", "roster_contractInfo")))
@@ -144,7 +164,7 @@ normalize_rosters <- function(rosters, franchises = NULL) {
 
 normalize_mfl_roster_injuries <- function(injuries) {
   if (is.null(injuries) || length(injuries) == 0) {
-    return(tibble(player_id = character(), player_status = character()))
+    return(tibble(player_id = character(), player_team = character(), player_status = character()))
   }
 
   injuries_tbl <- if (is.data.frame(injuries)) {
@@ -157,13 +177,15 @@ normalize_mfl_roster_injuries <- function(injuries) {
     tibble()
   }
 
-  if (!all(c("id", "status") %in% names(injuries_tbl))) {
-    return(tibble(player_id = character(), player_status = character()))
+  id_cols <- intersect(c("id", "player_id", "player.id"), names(injuries_tbl))
+  if (!length(id_cols) || !"status" %in% names(injuries_tbl)) {
+    return(tibble(player_id = character(), player_team = character(), player_status = character()))
   }
 
   injuries_tbl |>
     transmute(
-      player_id = as.character(.data$id),
+      player_id = as.character(coalesce_col(injuries_tbl, c("id", "player_id", "player.id"))),
+      player_team = as.character(coalesce_col(injuries_tbl, c("team", "player_team", "player.team"), NA_character_)),
       player_status = as.character(.data$status)
     ) |>
     filter(
@@ -172,7 +194,8 @@ normalize_mfl_roster_injuries <- function(injuries) {
       !is.na(.data$player_status),
       nzchar(.data$player_status)
     ) |>
-    distinct(.data$player_id, .keep_all = TRUE)
+    mutate(player_team = mfl_player_team(.data$player_team)) |>
+    distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
 
 fetch_live_roster_injuries <- function(conn, season = get_current_season(), week = NULL) {
@@ -203,7 +226,7 @@ fetch_live_roster_injuries <- function(conn, season = get_current_season(), week
     normalize_mfl_roster_injuries(direct_payload),
     normalize_mfl_roster_injuries(ffscrapr_payload)
   ) |>
-    distinct(.data$player_id, .keep_all = TRUE)
+    distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
 fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
   conn <- connect_adl_mfl(season)
@@ -221,9 +244,12 @@ fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
     rename(injury_player_status = .data$player_status)
 
   rosters <- rosters |>
-    mutate(player_id = as.character(.data$player_id)) |>
+    mutate(
+      player_id = as.character(.data$player_id),
+      player_team = mfl_player_team(as.character(coalesce_col(tibble::as_tibble(rosters), c("team", "player_team", "nfl_team", "pro_team"), NA_character_)))
+    ) |>
     left_join(players, by = "player_id") |>
-    left_join(injuries, by = "player_id") |>
+    left_join(injuries, by = c("player_id", "player_team")) |>
     mutate(player_status = coalesce(na_if(.data$injury_player_status, ""), na_if(.data$player_status, ""))) |>
     select(-injury_player_status)
   franchises <- ffscrapr::ff_franchises(conn)
