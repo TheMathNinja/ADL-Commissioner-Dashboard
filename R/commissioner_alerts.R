@@ -671,19 +671,53 @@ cache_lineups_snapshot <- function(season = get_current_season(), week, force_li
   lineups
 }
 
-fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
-  conn <- connect_adl_mfl(season)
-  raw <- ffscrapr::mfl_getendpoint(conn, "injuries", W = week)[["content"]][["injuries"]][["injury"]]
-
+normalize_mfl_injury_designations <- function(raw) {
   if (is.null(raw) || length(raw) == 0) {
     return(tibble(player_id = character(), player_status = character()))
   }
 
-  bind_rows(lapply(raw, tibble::as_tibble)) |>
+  raw_tbl <- if (is.data.frame(raw)) {
+    tibble::as_tibble(raw)
+  } else if (is.list(raw) && !is.null(names(raw)) && all(c("id", "status") %in% names(raw))) {
+    tibble::as_tibble(raw)
+  } else if (is.list(raw)) {
+    bind_rows(lapply(raw, tibble::as_tibble))
+  } else {
+    tibble()
+  }
+
+  if (!all(c("id", "status") %in% names(raw_tbl))) {
+    return(tibble(player_id = character(), player_status = character()))
+  }
+
+  raw_tbl |>
     transmute(
       player_id = as.character(.data$id),
       player_status = as.character(.data$status)
     ) |>
+    filter(
+      !is.na(.data$player_id),
+      nzchar(.data$player_id),
+      !is.na(.data$player_status),
+      nzchar(.data$player_status)
+    ) |>
+    distinct(.data$player_id, .keep_all = TRUE)
+}
+
+fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
+  conn <- connect_adl_mfl(season)
+  raw_payloads <- list(
+    tryCatch(
+      ffscrapr::mfl_getendpoint(conn, "injuries", W = week)[["content"]][["injuries"]][["injury"]],
+      error = function(e) NULL
+    ),
+    tryCatch(
+      ffscrapr::mfl_getendpoint(conn, "injuries")[["content"]][["injuries"]][["injury"]],
+      error = function(e) NULL
+    )
+  )
+
+  bind_rows(lapply(raw_payloads, normalize_mfl_injury_designations)) |>
     distinct(.data$player_id, .keep_all = TRUE)
 }
 
@@ -820,7 +854,7 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
       player_team,
       player_pos,
       roster_status = normalize_alert_status(.data$roster_status),
-      player_status = coalesce(.data$weekly_player_status, .data$player_status)
+      player_status = coalesce(na_if(.data$weekly_player_status, ""), na_if(.data$player_status, ""))
     )
 
   write_csv(snapshot, commissioner_alert_designation_snapshot_path(season, week, snapshot_time), na = "")
@@ -1475,7 +1509,7 @@ evaluate_illegal_lineup_alerts <- function(
 
     status_source <- status_source |>
       left_join(current_designation_tbl, by = "player_id") |>
-      mutate(current_player_status = coalesce(.data$current_weekly_designation, .data$current_player_status)) |>
+      mutate(current_player_status = coalesce(na_if(.data$current_weekly_designation, ""), na_if(.data$current_player_status, ""))) |>
       select(-current_weekly_designation)
   }
 
