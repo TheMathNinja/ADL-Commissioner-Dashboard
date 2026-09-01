@@ -327,21 +327,68 @@ build_manual_drop_salary_overrides <- function(current_season) {
     )
 }
 
-get_current_mfl_injuries <- function(conn) {
-  injuries <- tryCatch(
-    ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]],
-    error = function(e) NULL
-  )
-
+normalize_mfl_injuries <- function(injuries) {
   if (is.null(injuries) || length(injuries) == 0) {
     return(tibble::tibble(player_id = character(), player_status = character()))
   }
 
-  tibble::as_tibble(injuries) %>%
+  injuries_tbl <- if (is.data.frame(injuries)) {
+    tibble::as_tibble(injuries)
+  } else if (is.list(injuries) && !is.null(names(injuries)) && all(c("id", "status") %in% names(injuries))) {
+    tibble::as_tibble(injuries)
+  } else if (is.list(injuries)) {
+    dplyr::bind_rows(lapply(injuries, tibble::as_tibble))
+  } else {
+    tibble::tibble()
+  }
+
+  if (!all(c("id", "status") %in% names(injuries_tbl))) {
+    return(tibble::tibble(player_id = character(), player_status = character()))
+  }
+
+  injuries_tbl %>%
     dplyr::transmute(
       player_id = as.character(.data$id),
       player_status = as.character(.data$status)
     ) %>%
+    dplyr::filter(
+      !is.na(.data$player_id),
+      nzchar(.data$player_id),
+      !is.na(.data$player_status),
+      nzchar(.data$player_status)
+    ) %>%
+    dplyr::distinct(.data$player_id, .keep_all = TRUE)
+}
+
+current_mfl_injury_weeks <- function(season = get_current_season(), today = Sys.Date()) {
+  configured <- suppressWarnings(as.integer(Sys.getenv("ADL_INJURY_WEEK", unset = Sys.getenv("SNAPSHOT_WEEK", unset = NA_character_))))
+  if (!is.na(configured) && configured >= 0L) return(unique(c(0L, configured)))
+
+  week_one_start <- as.Date(Sys.getenv("ADL_WEEK_ONE_START", unset = paste0(season, "-09-10")))
+  if (is.na(week_one_start)) return(0L)
+
+  if (today < week_one_start) return(c(0L, 1L))
+
+  inferred <- floor(as.numeric(today - week_one_start) / 7) + 1L
+  inferred <- min(max(inferred, 1L), 18L)
+  unique(c(0L, inferred))
+}
+
+get_current_mfl_injuries <- function(conn) {
+  raw_payloads <- c(
+    list(tryCatch(
+      ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]],
+      error = function(e) NULL
+    )),
+    lapply(current_mfl_injury_weeks(conn$season), function(week) {
+      tryCatch(
+        ffscrapr::mfl_getendpoint(conn, endpoint = "injuries", W = week)[["content"]][["injuries"]][["injury"]],
+        error = function(e) NULL
+      )
+    })
+  )
+
+  dplyr::bind_rows(lapply(raw_payloads, normalize_mfl_injuries)) %>%
     dplyr::distinct(.data$player_id, .keep_all = TRUE)
 }
 normalize_and_dedupe_cache <- function(df) {
