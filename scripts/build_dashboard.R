@@ -543,6 +543,11 @@ latest_commissioner_alert_report_rows <- if (length(commissioner_alert_report_fi
 } else {
   NA_integer_
 }
+latest_commissioner_alert_report_generated_at <- if (length(commissioner_alert_report_files_data) > 0) {
+  file_generated_at_et(commissioner_alert_report_files_data[1])[[basename(commissioner_alert_report_files_data[1])]]
+} else {
+  NA_character_
+}
 
 # Build landing page
 index_html <- build_dashboard_index_html(
@@ -574,6 +579,7 @@ commissioner_alerts_html <- build_commissioner_alerts_html(
   report_files_public = commissioner_alert_report_files_public,
   latest_report_public = latest_commissioner_alert_report_public,
   latest_report_rows = latest_commissioner_alert_report_rows,
+  latest_report_generated_at = latest_commissioner_alert_report_generated_at,
   violation_report_files_public = commissioner_alert_report_files_with_violations_public,
   violation_report_file_labels = commissioner_alert_report_files_with_violations_labels,
   clean_archive_public = "downloads/commissioner-alerts/clean/",
