@@ -594,9 +594,12 @@ build_daily_roster_snapshots_html <- function(
   snapshot_files_public,
   latest_snapshot_public = NA_character_,
   generated_at_by_file = list(),
-  no_change_check_text = character()
+  no_change_check_text = character(),
+  daily_snapshot_files_public = snapshot_files_public,
+  manual_snapshot_files_public = character()
 ) {
-  snapshot_links_html <- build_cap_links_html(snapshot_files_public, generated_at_by_file)
+  daily_snapshot_links_html <- build_cap_links_html(daily_snapshot_files_public, generated_at_by_file)
+  manual_snapshot_links_html <- build_cap_links_html(manual_snapshot_files_public, generated_at_by_file)
   latest_link_html <- if (!is.na(latest_snapshot_public) && nzchar(latest_snapshot_public)) {
     latest_snapshot_label <- basename(sub("\\?.*$", "", latest_snapshot_public))
     paste0(
@@ -630,7 +633,7 @@ build_daily_roster_snapshots_html <- function(
         Daily Roster Snapshots exist to provide a consistent historical record of ADL roster movement for commissioner accounting purposes.
         This dashboard's script runs automatically each day at 5 a.m. Eastern, and also during manual or push-triggered runs.
         A new dated CSV is published only when the roster data changes from the latest saved snapshot.
-        The snapshots include roster, salary, contract, franchise, conference, and roster status information.
+        The snapshots include roster, salary, contract, bye week, injury status, franchise, conference, and roster status information.
         </p>
       </section>
       <section class='panel'>
@@ -638,9 +641,15 @@ build_daily_roster_snapshots_html <- function(
         ", no_change_html, "
       </section>
       <section class='panel'>
-        <h2>Snapshot Archive</h2>
-        ", snapshot_links_html, "
+        <h2>Daily Scheduled Snapshots</h2>
+        ", daily_snapshot_links_html, "
+      </section>
+      <section class='panel'>
+        <h2>Manual / Extra Snapshots</h2>
+        ", manual_snapshot_links_html, "
       </section>"
     )
   )
 }
+
+
