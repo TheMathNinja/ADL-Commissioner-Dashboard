@@ -1,0 +1,227 @@
+on:
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: Email address that receives all live dry-run messages.
+        required: true
+        default: fili.mikey@gmail.com
+        type: string
+      week:
+        description: MFL week to scrape.
+        required: true
+        default: "1"
+        type: string
+      checked_at:
+        description: Simulated check time in America/New_York.
+        required: true
+        default: "2026-09-10 06:15:00"
+        type: string
+      send_email:
+        description: Attempt to send emails to the test recipient.
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+name: live-commissioner-alert-dry-run
+
+permissions:
+  contents: read
+
+jobs:
+  live-commissioner-alert-dry-run:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: 2026
+      ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
+      ADL_CAP_ACCOUNTING_DIR: data/cap_accounting
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_TEST_TO: ${{ github.event.inputs.recipient }}
+      ADL_ALERT_TEST_WEEK: ${{ github.event.inputs.week }}
+      ADL_ALERT_TEST_CHECKED_AT: ${{ github.event.inputs.checked_at }}
+      ADL_ALERT_TEST_SEND_EMAIL: ${{ github.event.inputs.send_email }}
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+
+    steps:
+      - name: Checkout dashboard repo
+        uses: actions/checkout@v4
+
+      - name: Create cache directories
+        run: |
+          mkdir -p "${R_LIBS_USER}"
+          mkdir -p data/commissioner_alerts
+          mkdir -p "${ADL_RAW_LEAGUE_DATA_DIR}"
+
+      - name: Restore R package library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-live-commissioner-alert-dry-run-r-lib-v1-${{ hashFiles('.github/workflows/live-commissioner-alert-dry-run.yml', 'DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-commissioner-alert-r-lib-v1-
+            ${{ runner.os }}-live-commissioner-alert-dry-run-r-lib-v1-
+
+      - name: Install Ubuntu system libraries and R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            r-base \
+            r-base-dev \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libssl-dev \
+            libtiff5-dev \
+            libxml2-dev \
+            libuv1-dev \
+            pkg-config
+
+      - name: Install and verify R packages
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          options(repos = c(
+            ffverse = "https://ffverse.r-universe.dev",
+            CRAN = "https://cloud.r-project.org"
+          ))
+
+          packages <- c("curl", "dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+          if (length(missing) > 0) {
+            install.packages(
+              missing,
+              dependencies = c("Depends", "Imports", "LinkingTo"),
+              Ncpus = max(1, parallel::detectCores() - 1)
+            )
+          }
+
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) {
+            stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+          }
+
+      - name: Run live in-season dry-run
+        shell: Rscript {0}
+        run: |
+          library(dplyr)
+          library(lubridate)
+          library(readr)
+
+          source("R/commissioner_alerts.R")
+
+          season <- as.integer(Sys.getenv("CURRENT_SEASON", unset = "2026"))
+          week <- as.integer(Sys.getenv("ADL_ALERT_TEST_WEEK", unset = "1"))
+          recipient <- Sys.getenv("ADL_ALERT_TEST_TO", unset = "fili.mikey@gmail.com")
+          checked_at <- as.POSIXct(Sys.getenv("ADL_ALERT_TEST_CHECKED_AT", unset = "2026-09-10 06:15:00"), tz = "America/New_York")
+          send_email <- tolower(Sys.getenv("ADL_ALERT_TEST_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")
+          checked_date <- as.Date(with_tz(checked_at, "America/New_York"))
+          date_label <- commissioner_alert_date_label(checked_date)
+
+          alerts <- build_commissioner_alerts(
+            season = season,
+            week = week,
+            include_offseason = FALSE,
+            include_inseason = TRUE,
+            force_live = TRUE,
+            checked_at = checked_at
+          )
+
+          alerts_path <- commissioner_alert_path("live_inseason_dry_run_alerts", season, week)
+          write_csv(alerts, alerts_path, na = "")
+
+          commissioner_body <- render_commissioner_alert_email(
+            alerts,
+            season = season,
+            week = week,
+            checked_date = checked_date,
+            gm_emails_sent = FALSE,
+            title = paste0("ADL Commissioner Alerts LIVE DRY RUN - ", date_label, " Week ", week)
+          )
+          commissioner_outbox <- write_commissioner_alert_outbox(
+            commissioner_body,
+            season = season,
+            week = week,
+            name = "email_outbox_live_dry_run_commissioner_digest"
+          )
+
+          offender_franchises <- unique(alerts)
+          gm_outboxes <- character()
+          if (length(offender_franchises)) {
+            selected_franchises <- head(offender_franchises, 2)
+            for (franchise in selected_franchises) {
+              franchise_alerts <- alerts |> filter(.data == .env)
+              title_prefix <- if (all(franchise_alerts == "warning", na.rm = TRUE)) "ADL Roster Warning LIVE DRY RUN" else "ADL Roster Violation LIVE DRY RUN"
+              gm_body <- render_commissioner_gm_alert_email(
+                franchise_alerts,
+                season = season,
+                week = week,
+                checked_date = checked_date,
+                title_prefix = title_prefix
+              )
+              gm_outbox <- write_commissioner_alert_outbox(
+                gm_body,
+                season = season,
+                week = week,
+                name = paste0("email_outbox_live_dry_run_gm_", safe_file_slug(franchise))
+              )
+              gm_outboxes <- c(gm_outboxes, gm_outbox)
+            }
+          }
+
+          status_rows <- tibble(message = "commissioner_digest", sent = FALSE, reason = "not_requested", outbox_path = commissioner_outbox)
+          if (send_email) {
+            commissioner_status <- tryCatch(
+              send_alert_mail(
+                subject = paste0("TEST LIVE ADL Commissioner Alerts ", date_label, " Week ", week),
+                body = commissioner_body,
+                to = recipient
+              ),
+              error = function(e) list(sent = FALSE, reason = paste0("error: ", conditionMessage(e)))
+            )
+            status_rows <- tibble(message = "commissioner_digest", sent = isTRUE(commissioner_status), reason = commissioner_status, outbox_path = commissioner_outbox)
+
+            for (gm_outbox in gm_outboxes) {
+              gm_body <- paste(readLines(gm_outbox, warn = FALSE), collapse = "\n")
+              gm_name <- sub("^email_outbox_live_dry_run_gm_", "gm_", tools::file_path_sans_ext(basename(gm_outbox)))
+              gm_status <- tryCatch(
+                send_alert_mail(
+                  subject = paste0("TEST LIVE ", strsplit(gm_body, "\n")[[1]][[1]]),
+                  body = gm_body,
+                  to = recipient
+                ),
+                error = function(e) list(sent = FALSE, reason = paste0("error: ", conditionMessage(e)))
+              )
+              status_rows <- bind_rows(status_rows, tibble(message = gm_name, sent = isTRUE(gm_status), reason = gm_status, outbox_path = gm_outbox))
+            }
+          }
+
+          status_path <- commissioner_alert_path("live_inseason_dry_run_email_status", season, week)
+          write_csv(status_rows, status_path, na = "")
+
+          message("Live in-season dry run wrote ", nrow(alerts), " alert row(s): ", alerts_path)
+          message("Commissioner outbox: ", commissioner_outbox)
+          if (length(gm_outboxes)) message("GM outboxes:\n", paste(gm_outboxes, collapse = "\n"))
+          message("Email status: ", paste(status_rows, status_rows, status_rows, sep = "=", collapse = "; "))
+
+      - name: Upload live dry-run outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-commissioner-alert-dry-run-results
+          path: data/commissioner_alerts/
