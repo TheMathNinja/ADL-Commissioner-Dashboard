@@ -804,7 +804,8 @@ fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL)
       httr::GET(
         url = paste0(base_url, "/", season, "/export"),
         query = query,
-        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+        httr::timeout(as.numeric(get_env_or_default("ADL_MFL_INJURY_TIMEOUT_SECONDS", "4")))
       ),
       error = function(e) e
     )
