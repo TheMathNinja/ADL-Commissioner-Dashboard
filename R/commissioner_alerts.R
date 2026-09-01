@@ -1905,9 +1905,9 @@ evaluate_illegal_lineup_alerts <- function(
       conference,
       franchise,
       franchise_name,
-      rule = "No starters with (S), (I), (H), or (O) designation at kickoff after 72-hour grace period",
-      observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
-      details = paste0("72-hour designation was ", .data$designation_72h, "; current designation is ", .data$current_player_status)
+      rule = "No inactive players allowed in starting lineup",
+      observed = paste0(.data$player_name, " is inactive due to ", .data$current_player_status),
+      details = ""
     )
 
   designation_warning_alerts <- player_checks |>
@@ -1922,9 +1922,9 @@ evaluate_illegal_lineup_alerts <- function(
       conference,
       franchise,
       franchise_name,
-      rule = "No starters with (S), (I), (H), or (O) designation",
-      observed = paste0(.data$player_name, " ", .data$player_team, " ", .data$player_pos),
-      details = paste0("Current designation is ", .data$current_player_status, ".")
+      rule = "No inactive players allowed in starting lineup",
+      observed = paste0(.data$player_name, " is inactive due to ", .data$current_player_status),
+      details = ""
     )
 
   bye_players <- player_checks |>
