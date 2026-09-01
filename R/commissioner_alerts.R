@@ -1787,6 +1787,35 @@ evaluate_illegal_lineup_alerts <- function(
     )
 
   if (!is.null(current_designations)) {
+    if (!"conference" %in% names(current_designations)) {
+      designation_join_keys <- c("player_id", "player_team")
+      if (!"player_team" %in% names(current_designations)) {
+        current_designations$player_team <- NA_character_
+        designation_join_keys <- "player_id"
+      }
+
+      current_designations <- current_designations |>
+        mutate(
+          player_id = as.character(.data$player_id),
+          player_team = mfl_player_team(.data$player_team)
+        )
+      if (all(is.na(current_designations$player_team) | !nzchar(current_designations$player_team))) {
+        designation_join_keys <- "player_id"
+      }
+
+      current_designations <- current_designations |>
+        inner_join(
+          rosters |>
+            transmute(
+              conference = as.character(.data$conference),
+              player_id = as.character(.data$player_id),
+              player_team = mfl_player_team(.data$player_team)
+            ) |>
+            distinct(),
+          by = designation_join_keys
+        )
+    }
+
     current_designation_tbl <- current_designations |>
       transmute(
         conference = as.character(.data$conference),
@@ -2044,14 +2073,16 @@ build_commissioner_alerts <- function(
     if (!is.null(designation_snapshot) && nrow(designation_snapshot)) {
       snapshot_current_designations <- designation_snapshot |>
         transmute(
+          conference,
           player_id,
+          player_team,
           player_status = as.character(coalesce_col(designation_snapshot, c("player_status", "roster_status"), NA_character_))
         ) |>
         filter(!is.na(.data$player_status), nzchar(.data$player_status))
 
       current_designations <- bind_rows(current_designations, snapshot_current_designations) |>
-        arrange(desc(inactive_designation(.data$player_status))) |>
-        distinct(.data$player_id, .keep_all = TRUE)
+        arrange(.data$conference, .data$player_id, desc(inactive_designation(.data$player_status))) |>
+        distinct(.data$conference, .data$player_id, .keep_all = TRUE)
     }
     alerts$illegal_lineup <- evaluate_illegal_lineup_alerts(
       lineups = lineups,
