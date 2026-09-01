@@ -13,5 +13,6 @@ Imports:
     nflreadr,
     purrr,
     readr,
+    rvest,
     stringr,
     tibble
