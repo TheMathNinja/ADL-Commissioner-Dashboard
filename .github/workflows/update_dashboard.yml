@@ -28,6 +28,7 @@ jobs:
       RAW_CACHE_DIR: cache/raw_league_data
       RAW_CACHE_VERSION: v1
       R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_DASHBOARD_RUN_TYPE: ${{ github.event_name }}
 
     steps:
       - name: Check out repository
@@ -162,3 +163,4 @@ jobs:
           git add data docs
           git diff --cached --quiet || git commit -m "Automated dashboard update"
           git push
+
