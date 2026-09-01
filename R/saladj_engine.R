@@ -325,6 +325,24 @@ build_manual_drop_salary_overrides <- function(current_season) {
       "override_note"
     )
 }
+
+get_current_mfl_injuries <- function(conn) {
+  injuries <- tryCatch(
+    ffscrapr::mfl_getendpoint(conn, endpoint = "injuries")[["content"]][["injuries"]][["injury"]],
+    error = function(e) NULL
+  )
+
+  if (is.null(injuries) || length(injuries) == 0) {
+    return(tibble::tibble(player_id = character(), player_status = character()))
+  }
+
+  tibble::as_tibble(injuries) %>%
+    dplyr::transmute(
+      player_id = as.character(.data$id),
+      player_status = as.character(.data$status)
+    ) %>%
+    dplyr::distinct(.data$player_id, .keep_all = TRUE)
+}
 normalize_and_dedupe_cache <- function(df) {
   if (nrow(df) == 0) return(df)
   
@@ -647,6 +665,7 @@ tx <- tx %>%
 # Pull rosters once per run
 # ----------------------------
 
+injuries_now <- get_current_mfl_injuries(adl_conn)
 rosters_now <- ffscrapr::ff_rosters(adl_conn)
 
 salary_col <- intersect(names(rosters_now), c("salary", "player_salary", "contract_salary"))
@@ -667,6 +686,7 @@ if (!"pos" %in% names(rosters_now)) rosters_now$pos <- NA_character_
 
 rosters_now <- rosters_now %>%
   dplyr::mutate(player_id = as.character(.data$player_id)) %>%
+  dplyr::left_join(injuries_now, by = "player_id") %>%
   add_conf_fields("franchise_id") %>%
   dplyr::left_join(
     franchises %>%
@@ -695,6 +715,7 @@ current_roster_snapshot <- rosters_now %>%
     player_name = as.character(.data$player_name),
     player_team = as.character(.data$team),
     player_pos = as.character(.data$pos),
+    player_status = as.character(.data$player_status),
     roster_status = format_roster_status(.data$roster_status),
     roster_salary = .data$salary,
     roster_years = .data$contract_years,
@@ -1187,3 +1208,4 @@ message("Wrote: ", out_rds)
 message("Cached qualified rows: ", qualified_rds)
   final_out_csv
 }
+
