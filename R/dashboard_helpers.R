@@ -203,7 +203,10 @@ back_link <- function() {
 }
 
 archive_link_parts <- function(label) {
-  label <- as.character(label %||% "")
+  if (is.null(label) || length(label) == 0 || is.na(label)) {
+    label <- ""
+  }
+  label <- as.character(label)
   match <- regexpr(" \\([^)]*\\)$", label)
   if (match[[1]] < 0) {
     return(list(link_label = label, suffix = ""))
