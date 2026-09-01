@@ -250,7 +250,8 @@ record_roster_snapshot_check <- function(snapshot_dir, season, snapshot_time, sn
     check_date_et = as.character(as.Date(check_time_et, tz = "America/Toronto")),
     last_checked_at_et = format(check_time_et, "%m/%d/%Y %I:%M %p %Z"),
     snapshot_changed = snapshot_changed,
-    snapshot_file = basename(snapshot_file)
+    snapshot_file = basename(snapshot_file),
+    run_type = Sys.getenv("ADL_DASHBOARD_RUN_TYPE", unset = "unknown")
   )
 
   checks <- if (file.exists(check_file)) {
@@ -1208,4 +1209,5 @@ message("Wrote: ", out_rds)
 message("Cached qualified rows: ", qualified_rds)
   final_out_csv
 }
+
 
