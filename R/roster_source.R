@@ -2,6 +2,10 @@ library(dplyr)
 library(readr)
 library(tibble)
 
+`%||%` <- function(x, y) {
+  if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
+}
+
 get_env_or_default <- function(name, default = "") {
   value <- Sys.getenv(name, unset = default)
   if (is.na(value) || !nzchar(value)) default else value
@@ -236,6 +240,90 @@ fetch_live_roster_injuries <- function(conn, season = get_current_season(), week
   ) |>
     distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
+
+mfl_roster_report_urls <- function(conn, season = get_current_season()) {
+  league_id <- as.integer(get_env_or_default("ADL_LEAGUE_ID", "60206"))
+  league_url <- as.character(conn[["league_url"]] %||% conn[["url"]] %||% "")
+  report_path <- paste0("/" , season, "/options?L=", league_id, "&O=07")
+  urls <- c(
+    if (nzchar(league_url)) sub(paste0("/", season, "/.*$"), report_path, league_url) else character(),
+    paste0("https://www.myfantasyleague.com", report_path),
+    paste0("http://football.myfantasyleague.com", report_path)
+  )
+  unique(urls[nzchar(urls)])
+}
+
+extract_mfl_player_ids_from_rows <- function(rows) {
+  vapply(rows, function(row) {
+    hrefs <- rvest::html_attr(rvest::html_elements(row, "a"), "href")
+    hrefs <- hrefs[!is.na(hrefs)]
+    match <- regmatches(hrefs, regexpr("([?&](P|PLAYER|PLAYERS)=|/player\\?P=)[0-9]+", hrefs, ignore.case = TRUE))
+    match <- match[nzchar(match)]
+    if (!length(match)) return(NA_character_)
+    sub(".*=([0-9]+)$", "\\1", match[[1]])
+  }, character(1))
+}
+
+normalize_visible_injury_status <- function(x) {
+  x <- toupper(trimws(as.character(x)))
+  x <- gsub("\\s+", " ", x)
+  dplyr::case_when(
+    x %in% c("S", "(S)", "SUSP", "SUSPENDED") ~ "Suspended",
+    x %in% c("I", "(I)", "IR", "INJURED", "INJURED RESERVE", "INJURED_RESERVE", "IR-R", "IR-PUP", "IR-NFI", "PUP", "NFI") ~ x,
+    x %in% c("H", "(H)", "HOLDOUT") ~ "Holdout",
+    x %in% c("O", "(O)", "OUT") ~ "Out",
+    x %in% c("Q", "(Q)", "QUESTIONABLE") ~ "Questionable",
+    x %in% c("D", "(D)", "DOUBTFUL") ~ "Doubtful",
+    TRUE ~ NA_character_
+  )
+}
+
+fetch_mfl_roster_report_statuses <- function(conn, season = get_current_season()) {
+  if (!requireNamespace("rvest", quietly = TRUE)) {
+    return(tibble(player_id = character(), player_status = character()))
+  }
+
+  for (url in mfl_roster_report_urls(conn, season)) {
+    statuses <- tryCatch({
+      response <- httr::GET(
+        url,
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"))
+      )
+      html <- httr::content(response, "text", encoding = "UTF-8")
+      doc <- rvest::read_html(html)
+      tables <- rvest::html_elements(doc, "table")
+
+      bind_rows(lapply(tables, function(table) {
+        parsed <- tryCatch(rvest::html_table(table, fill = TRUE), error = function(e) NULL)
+        if (is.null(parsed) || !nrow(parsed)) return(tibble(player_id = character(), player_status = character()))
+
+        status_cols <- grep("inj|status", names(parsed), ignore.case = TRUE, value = TRUE)
+        if (!length(status_cols)) return(tibble(player_id = character(), player_status = character()))
+
+        rows <- rvest::html_elements(table, "tr")
+        ids <- extract_mfl_player_ids_from_rows(rows)
+        ids <- tail(ids[!is.na(ids) & nzchar(ids)], nrow(parsed))
+        if (length(ids) != nrow(parsed)) return(tibble(player_id = character(), player_status = character()))
+
+        tibble(
+          player_id = as.character(ids),
+          player_status = apply(parsed[, status_cols, drop = FALSE], 1, function(values) {
+            normalized <- normalize_visible_injury_status(values)
+            normalized <- normalized[!is.na(normalized) & nzchar(normalized)]
+            if (length(normalized)) normalized[[1]] else NA_character_
+          })
+        ) |>
+          filter(!is.na(.data$player_status), nzchar(.data$player_status))
+      })) |>
+        distinct(.data$player_id, .keep_all = TRUE)
+    }, error = function(e) tibble(player_id = character(), player_status = character()))
+
+    if (nrow(statuses)) return(statuses)
+  }
+
+  tibble(player_id = character(), player_status = character())
+}
+
 fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
   conn <- connect_adl_mfl(season)
   rosters <- ffscrapr::ff_rosters(conn, week = week)
@@ -250,6 +338,8 @@ fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
     distinct(.data$player_id, .keep_all = TRUE)
   injuries <- fetch_live_roster_injuries(conn, season = season, week = week) |>
     rename(injury_player_status = .data$player_status)
+  visible_statuses <- fetch_mfl_roster_report_statuses(conn, season = season) |>
+    rename(visible_player_status = .data$player_status)
 
   rosters <- rosters |>
     mutate(
@@ -258,8 +348,9 @@ fetch_live_rosters <- function(season = get_current_season(), week = NULL) {
     ) |>
     left_join(players, by = "player_id") |>
     left_join(injuries, by = c("player_id", "player_team")) |>
-    mutate(player_status = coalesce(na_if(.data$injury_player_status, ""), na_if(.data$player_status, ""))) |>
-    select(-injury_player_status)
+    left_join(visible_statuses, by = "player_id") |>
+    mutate(player_status = coalesce(na_if(.data$injury_player_status, ""), na_if(.data$visible_player_status, ""), na_if(.data$player_status, ""))) |>
+    select(-injury_player_status, -visible_player_status)
   franchises <- ffscrapr::ff_franchises(conn)
   normalize_rosters(rosters, franchises)
 }
