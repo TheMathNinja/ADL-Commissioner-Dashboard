@@ -1557,8 +1557,23 @@ evaluate_illegal_lineup_alerts <- function(
   kickoffs = NULL,
   checked_at = Sys.time()
 ) {
-  franchise_index <- rosters |>
-    distinct(.data$conference, .data$franchise, .data$franchise_name, .data$franchise_id)
+  roster_tbl <- tibble::as_tibble(rosters)
+  lineup_tbl <- tibble::as_tibble(lineups)
+  roster_franchise_index <- tibble(
+    conference = as.character(coalesce_col(roster_tbl, c("conference"), NA_character_)),
+    franchise = as.character(coalesce_col(roster_tbl, c("franchise"), NA_character_)),
+    franchise_name = as.character(coalesce_col(roster_tbl, c("franchise_name"), NA_character_)),
+    franchise_id = as.character(coalesce_col(roster_tbl, c("franchise_id"), NA_character_))
+  )
+  lineup_franchise_index <- tibble(
+    conference = as.character(coalesce_col(lineup_tbl, c("conference"), NA_character_)),
+    franchise = as.character(coalesce_col(lineup_tbl, c("franchise"), NA_character_)),
+    franchise_name = as.character(coalesce_col(lineup_tbl, c("franchise_name"), NA_character_)),
+    franchise_id = as.character(coalesce_col(lineup_tbl, c("franchise_id"), NA_character_))
+  )
+  franchise_index <- bind_rows(lineup_franchise_index, roster_franchise_index) |>
+    filter(!is.na(.data$franchise_id), nzchar(.data$franchise_id)) |>
+    distinct(.data$franchise_id, .keep_all = TRUE)
   kickoffs <- kickoffs %||% read_nfl_team_kickoffs(season = season, week = week)
   lineup_lock_times <- franchise_lineup_lock_times(lineups, kickoffs)
   checked_date <- lineup_alert_date(checked_at)
