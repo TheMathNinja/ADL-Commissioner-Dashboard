@@ -21,6 +21,25 @@ format_run_time <- function(x) {
   out
 }
 
+saladj_archive_metadata_file <- function(archive_file) {
+  file.path(
+    dirname(archive_file),
+    sub("_ADLSalAdjCurator\\.csv$", "_ADLSalAdjCurator_metadata.csv", basename(archive_file))
+  )
+}
+
+write_saladj_archive_metadata <- function(archive_file, generated_at, rows) {
+  readr::write_csv(
+    tibble::tibble(
+      archive_filename = basename(archive_file),
+      generated_at = format(generated_at, "%Y-%m-%d %H:%M:%S %Z"),
+      generated_at_display = format_run_time(generated_at),
+      rows = rows
+    ),
+    saladj_archive_metadata_file(archive_file),
+    na = ""
+  )
+}
 normalize_for_compare <- function(df) {
   if (is.null(df)) return(NULL)
   df <- as.data.frame(df, stringsAsFactors = FALSE)
@@ -112,6 +131,7 @@ should_publish_archive <- output_changed || !file.exists(latest_csv) || archive_
 if (should_publish_archive) {
   readr::write_csv(saladj_rows, latest_csv, na = "")
   readr::write_csv(saladj_rows, archive_file, na = "")
+  write_saladj_archive_metadata(archive_file, run_time_toronto, nrow(saladj_rows))
   latest_archive_data_path <- archive_file
   latest_archive_filename <- archive_filename
   last_changed_display <- run_time_display
@@ -147,3 +167,4 @@ run_meta <- tibble::tibble(
 readr::write_csv(run_meta, metadata_file)
 
 message("SalAdjCurator script ran successfully with ", nrow(saladj_rows), " qualifying rows")
+
