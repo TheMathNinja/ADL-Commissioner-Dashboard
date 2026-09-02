@@ -39,13 +39,29 @@ if (is.na(gm_count) || gm_count < 0L) gm_count <- 2L
 
 if (is.na(week) && mode %in% c("check", "inseason") && auto_week) {
   week <- current_commissioner_alert_week(season = season)
-  if (!is.na(week)) message("Auto-selected Week ", week, " for in-season alerts.")
+  if (is.na(week) && identical(mode, "inseason")) {
+    week <- 1L
+    message("Explicit in-season dry run before Week 1; using current submitted Week 1 lineups.")
+  } else if (!is.na(week)) {
+    message("Auto-selected Week ", week, " for in-season alerts.")
+  }
 }
 
 include_offseason <- mode %in% c("check", "offseason", "inseason")
 include_inseason <- mode %in% c("check", "inseason") && !is.na(week)
 checked_at <- Sys.time()
-checked_date <- Sys.Date()
+if (identical(mode, "inseason") && !is.na(week)) {
+  kickoffs_for_test_clock <- tryCatch(read_nfl_team_kickoffs(season = season, week = week), error = function(e) NULL)
+  first_game_date <- if (!is.null(kickoffs_for_test_clock) && nrow(kickoffs_for_test_clock)) lineup_week_first_game_date(kickoffs_for_test_clock) else as.Date(NA)
+  if (!is.na(first_game_date)) {
+    checked_at <- as.POSIXct(paste(first_game_date, "06:15:00"), tz = "America/New_York")
+    message("Explicit in-season dry run clock set to first game morning: ", format(checked_at, "%Y-%m-%d %H:%M:%S %Z"))
+  } else {
+    checked_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown") + lubridate::days(1)
+    message("Explicit in-season dry run clock set after final cutdown: ", format(checked_at, "%Y-%m-%d %H:%M:%S %Z"))
+  }
+}
+checked_date <- as.Date(lubridate::with_tz(as.POSIXct(checked_at, tz = "UTC"), "America/New_York"))
 
 alerts <- build_commissioner_alerts(
   season = season,
