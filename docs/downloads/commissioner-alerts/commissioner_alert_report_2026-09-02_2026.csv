@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details
+2026,,2026-09-02 14:30:14 UTC,Salary Cap Violation,violation,NFC,NYG,New York Giants,Top 43 Salaries plus cap adjustments exceeds franchise cap of $248.62m.,$249.85m,"Top 43 Salaries: $257.49m
+Salary Adjustments: -$7.64m
+Total Expenditures: $249.85m
+$1.23m over cap."
