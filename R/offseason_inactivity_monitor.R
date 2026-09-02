@@ -65,6 +65,18 @@ parse_et_datetime <- function(x) {
   as.POSIXct(x, tz = "America/New_York")
 }
 
+parse_mfl_activity_time <- function(x) {
+  raw <- trimws(as.character(x %||% NA_character_))
+  raw[!nzchar(raw)] <- NA_character_
+  numeric_time <- suppressWarnings(as.numeric(raw))
+  out <- suppressWarnings(as.POSIXct(numeric_time, origin = "1970-01-01", tz = "UTC"))
+  fallback <- suppressWarnings(lubridate::ymd_hms(raw, quiet = TRUE, tz = "America/New_York"))
+  fallback_date <- suppressWarnings(lubridate::ymd(raw, quiet = TRUE, tz = "America/New_York"))
+  out[is.na(out)] <- fallback[is.na(out)]
+  out[is.na(out)] <- fallback_date[is.na(out)]
+  out
+}
+
 offseason_config_messages <- function(config) {
   needed_pre_ufa <- c("R/F", "FT", "RFA", "B/R", "UDFA")
   pre_ufa <- config |> filter(.data$event_type == "pre_ufa_auction")
@@ -162,9 +174,7 @@ normalize_activity_records <- function(records, source, franchises) {
   }
   franchise_id <- as.character(coalesce_record_col(tbl, c("franchise_id", "franchiseId", "franchise"), NA_character_))
   occurred_at_raw <- as.character(coalesce_record_col(tbl, c("timestamp", "timestamp_formatted", "date", "created", "when"), NA_character_))
-  occurred_at <- suppressWarnings(as.POSIXct(as.numeric(occurred_at_raw), origin = "1970-01-01", tz = "America/New_York"))
-  fallback_time <- suppressWarnings(as.POSIXct(occurred_at_raw, tz = "America/New_York"))
-  occurred_at[is.na(occurred_at)] <- fallback_time[is.na(occurred_at)]
+  occurred_at <- parse_mfl_activity_time(occurred_at_raw)
   id_lookup <- adl_franchise_id_lookup()
   normalized <- tibble(
     source = source,
