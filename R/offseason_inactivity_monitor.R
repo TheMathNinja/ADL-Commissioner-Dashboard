@@ -293,6 +293,10 @@ adl_offseason_waiver_claim_run_at <- function(drop_time) {
   next_adl_waiver_run_at(drop_time + lubridate::hours(48))
 }
 
+safe_offseason_waiver_claim_run_at <- function(drop_time) {
+  tryCatch(adl_offseason_waiver_claim_run_at(drop_time), error = function(e) as.POSIXct(NA))
+}
+
 evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, season = get_current_season()) {
   tx <- normalize_activity_records(activity$transactions, "transactions", franchises)
   if (!nrow(tx)) return(empty_inactivity_rows())
@@ -313,7 +317,14 @@ evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, seaso
       nzchar(.data$player_id),
       .data$type_desc == "dropped" | grepl("\\bdrop|dropped\\b", .data$event_text, ignore.case = TRUE)
     ) |>
-    transmute(player_id, drop_time = .data$occurred_at, legal_claim_run_at = adl_offseason_waiver_claim_run_at(.data$occurred_at))
+    transmute(player_id, drop_time = .data$occurred_at) |>
+    mutate(
+      legal_claim_run_at = as.POSIXct(
+        vapply(seq_along(.data$drop_time), function(i) as.numeric(safe_offseason_waiver_claim_run_at(.data$drop_time[[i]])), numeric(1)),
+        origin = "1970-01-01",
+        tz = "UTC"
+      )
+    )
 
   waiver_adds |>
     left_join(drops, by = "player_id") |>
@@ -389,13 +400,14 @@ evaluate_repeated_offseason_roster_violations <- function(season = get_current_s
       group_by(.data$conference, .data$franchise, .data$franchise_name, .data$streak_id) |>
       summarize(
         first_date = min(.data$report_date),
-        third_date = sort(unique(.data$report_date))[[3]],
         last_date = max(.data$report_date),
         days = n_distinct(.data$report_date),
+        dates = list(sort(unique(.data$report_date))),
         types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
         .groups = "drop"
       ) |>
       filter(.data$days >= 3L) |>
+      mutate(third_date = as.Date(vapply(.data$dates, function(x) as.character(x[[3]]), character(1)))) |>
       transmute(
         alert_type = "Offseason Inactivity Violation",
         severity = "violation",
