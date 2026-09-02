@@ -306,6 +306,9 @@ evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, seaso
       !is.na(.data$occurred_at),
       !is.na(.data$franchise),
       nzchar(.data$franchise),
+      !is.na(.data$player_id),
+      nzchar(.data$player_id),
+      toupper(.data$player_id) != "NA",
       .data$type_desc %in% c("added", "claimed") | grepl("waiver", paste(.data$type, .data$type_desc, .data$event_text), ignore.case = TRUE)
     )
   if (!nrow(waiver_adds)) return(empty_inactivity_rows())
@@ -315,6 +318,7 @@ evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, seaso
       !is.na(.data$occurred_at),
       !is.na(.data$player_id),
       nzchar(.data$player_id),
+      toupper(.data$player_id) != "NA",
       .data$type_desc == "dropped" | grepl("\\bdrop|dropped\\b", .data$event_text, ignore.case = TRUE)
     ) |>
     transmute(player_id, drop_time = .data$occurred_at) |>
@@ -343,7 +347,7 @@ evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, seaso
       franchise,
       franchise_name,
       rule = "Illegal offseason waiver claim",
-      observed = paste0(coalesce(.data$player_name, .data$player_id), " was added without a matching legal offseason waiver window."),
+      observed = paste0(if_else(!is.na(.data$player_name) & nzchar(.data$player_name) & toupper(.data$player_name) != "NA", .data$player_name, .data$player_id), " was added without a matching legal offseason waiver window."),
       details = if_else(
         is.na(.data$latest_drop_time),
         "No prior drop was found for this player in league transaction history.",
