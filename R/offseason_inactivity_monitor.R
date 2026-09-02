@@ -261,13 +261,14 @@ evaluate_ufa_auction_bid_gaps <- function(bids, config, franchises) {
   window <- config |> filter(.data$event_type == "ufa_auction_first_three_days") |> mutate(start_at = parse_et_datetime(.data$start_at), end_at = parse_et_datetime(.data$end_at)) |> filter(!is.na(.data$start_at), !is.na(.data$end_at)) |> slice_head(n = 1)
   if (!nrow(window)) return(empty_inactivity_rows())
   bind_rows(lapply(seq_len(nrow(franchises)), function(i) {
-    franchise <- franchises[i, ]
-    times <- bids |> filter(.data$franchise == franchise$franchise[[1]], .data$occurred_at >= window$start_at[[1]], .data$occurred_at <= window$end_at[[1]]) |> pull(.data$occurred_at) |> sort()
+    franchise_row <- franchises[i, ]
+    franchise_code <- franchise_row$franchise[[1]]
+    times <- bids |> filter(.data$franchise == .env$franchise_code, .data$occurred_at >= window$start_at[[1]], .data$occurred_at <= window$end_at[[1]]) |> pull(.data$occurred_at) |> sort()
     checkpoints <- sort(c(window$start_at[[1]], times, window$end_at[[1]]))
     gaps <- diff(as.numeric(checkpoints)) / 3600
     if (!length(gaps) || max(gaps, na.rm = TRUE) < 24) return(empty_inactivity_rows())
     gap_index <- which.max(gaps)
-    tibble(alert_type = "Offseason Inactivity Violation", severity = "violation", conference = franchise$conference[[1]], franchise = franchise$franchise[[1]], franchise_name = franchise$franchise_name[[1]], rule = "Must not go 24 hours without submitting an auction bid during the first 3 days of UFA", observed = paste0(sprintf("%.1f", gaps[[gap_index]]), " hours between UFA bids/checkpoints"), details = paste0("Gap from ", format(checkpoints[[gap_index]], "%Y-%m-%d %H:%M %Z"), " to ", format(checkpoints[[gap_index + 1L]], "%Y-%m-%d %H:%M %Z")), violation_key = paste("ufa_bid_gap", franchise$franchise[[1]], format(checkpoints[[gap_index]], "%Y%m%d%H%M"), sep = "|"), season_phase = "offseason")
+    tibble(alert_type = "Offseason Inactivity Violation", severity = "violation", conference = franchise_row$conference[[1]], franchise = franchise_row$franchise[[1]], franchise_name = franchise_row$franchise_name[[1]], rule = "Must not go 24 hours without submitting an auction bid during the first 3 days of UFA", observed = paste0(sprintf("%.1f", gaps[[gap_index]]), " hours between UFA bids/checkpoints"), details = paste0("Gap from ", format(checkpoints[[gap_index]], "%Y-%m-%d %H:%M %Z"), " to ", format(checkpoints[[gap_index + 1L]], "%Y-%m-%d %H:%M %Z")), violation_key = paste("ufa_bid_gap", franchise_row$franchise[[1]], format(checkpoints[[gap_index]], "%Y%m%d%H%M"), sep = "|"), season_phase = "offseason")
   }))
 }
 
