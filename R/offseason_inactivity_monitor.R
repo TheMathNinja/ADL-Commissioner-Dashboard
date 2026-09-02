@@ -285,6 +285,11 @@ next_adl_waiver_run_at <- function(x) {
 }
 
 adl_offseason_waiver_claim_run_at <- function(drop_time) {
+  if (!inherits(drop_time, "POSIXt")) {
+    drop_time <- parse_mfl_activity_time(drop_time)
+  } else {
+    drop_time <- suppressWarnings(as.POSIXct(as.numeric(drop_time), origin = "1970-01-01", tz = "UTC"))
+  }
   next_adl_waiver_run_at(drop_time + lubridate::hours(48))
 }
 
