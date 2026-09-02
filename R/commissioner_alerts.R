@@ -2296,6 +2296,9 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   }
 
   details <- row$details[[1]] %||% ""
+  if (identical(row$alert_type[[1]], "Roster Cap Violation") || identical(row$observed[[1]], "No starting lineup submitted")) {
+    details <- ""
+  }
   lines <- if (is.null(prefix)) {
     c(header, paste0("Observed: ", row$observed))
   } else {
@@ -2323,6 +2326,9 @@ render_gm_alert_rule_lines <- function(row) {
   }
 
   details <- row$details[[1]] %||% ""
+  if (identical(row$alert_type[[1]], "Roster Cap Violation") || identical(row$observed[[1]], "No starting lineup submitted")) {
+    details <- ""
+  }
   lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
   if (nzchar(trimws(details))) {
     if (identical(row$alert_type[[1]], "Salary Cap Warning")) {
