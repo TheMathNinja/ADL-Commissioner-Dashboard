@@ -127,7 +127,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/offseason_inactivity data/source/offseason_inactivity_windows_${CURRENT_SEASON}.csv
+          mkdir -p data/offseason_inactivity data/source
+          git add data/offseason_inactivity data/source/offseason_inactivity_windows_${CURRENT_SEASON}.csv || true
           git diff --cached --quiet && exit 0
           git commit -m "Automated offseason inactivity monitor"
 
