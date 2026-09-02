@@ -281,7 +281,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise,
           franchise_name,
           rule = paste0("Maximum ", .env$max_active_taxi, " players on Active Roster + Taxi Squad"),
-          observed = paste0(.data$active_plus_taxi, " active/taxi players"),
+          observed = paste0(.data$active_plus_taxi, " Active + Taxi players"),
           details = paste0(.data$active_plus_taxi - .env$max_active_taxi, " above maximum")
         )
     },
@@ -295,7 +295,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise,
           franchise_name,
           rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
-          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout active/taxi players"),
+          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
           details = paste0(.data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi, " above maximum")
         )
     },
@@ -2129,7 +2129,7 @@ build_commissioner_alerts <- function(
         NULL
       }
       alerts$salary_cap <- if (isTRUE(use_inseason_salary_accounting)) {
-        evaluate_salary_cap_average_warnings(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
+        evaluate_salary_cap_average_warnings(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments, target_week = if (isTRUE(include_inseason) && !is.null(week) && !is.na(week)) week else NULL)
       } else {
         evaluate_salary_cap_alerts(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
       }
