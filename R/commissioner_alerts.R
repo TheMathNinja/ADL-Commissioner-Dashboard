@@ -679,7 +679,9 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
     franchises <- list_records(matchup[["franchise"]], record_names = c("id", "player"))
     for (franchise in franchises) {
       franchise_id <- record_field(franchise, "id")
-      players <- list_records(franchise[["player"]], record_names = c("id", "status"))
+      players_raw <- franchise[["player"]]
+      if (is.null(players_raw) && !is.null(franchise[["players"]])) players_raw <- franchise[["players"]][["player"]]
+      players <- list_records(players_raw, record_names = c("id", "status"))
       for (player in players) {
         rows[[length(rows) + 1L]] <- tibble(
           franchise_id = franchise_id,
@@ -719,8 +721,27 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
 fetch_live_lineups <- function(season = get_current_season(), week) {
   conn <- connect_adl_mfl(season)
   franchises <- ffscrapr::ff_franchises(conn)
-  weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
-  starters <- normalize_mfl_weekly_result_lineups(weekly_results)
+
+  live_scoring <- tryCatch(
+    ffscrapr::mfl_getendpoint(conn, "liveScoring", W = week, DETAILS = 1)[["content"]][["liveScoring"]][["matchup"]],
+    error = function(e) {
+      warning("MFL liveScoring lineup source unavailable; trying weeklyResults: ", conditionMessage(e), call. = FALSE)
+      NULL
+    }
+  )
+  starters <- normalize_mfl_weekly_result_lineups(live_scoring)
+
+  if (!nrow(starters)) {
+    weekly_results <- tryCatch(
+      ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]],
+      error = function(e) {
+        warning("MFL weeklyResults lineup source unavailable: ", conditionMessage(e), call. = FALSE)
+        NULL
+      }
+    )
+    starters <- normalize_mfl_weekly_result_lineups(weekly_results)
+  }
+
   players_response <- ffscrapr::mfl_getendpoint(conn, "players")
   players_raw <- players_response[["content"]][["players"]][["player"]]
   player_records <- list_records(players_raw, record_names = c("id", "name", "team", "position"))
