@@ -16,7 +16,18 @@ offseason_inactivity_config_path <- function(season = get_current_season()) {
 }
 
 empty_inactivity_rows <- function() {
-  tibble(alert_type = character(), severity = character(), conference = character(), franchise = character(), franchise_name = character(), rule = character(), observed = character(), details = character())
+  tibble(
+    alert_type = character(),
+    severity = character(),
+    conference = character(),
+    franchise = character(),
+    franchise_name = character(),
+    rule = character(),
+    observed = character(),
+    details = character(),
+    violation_key = character(),
+    season_phase = character()
+  )
 }
 
 offseason_inactivity_config_template <- function(season = get_current_season()) {
@@ -116,7 +127,8 @@ fetch_offseason_activity_records <- function(season = get_current_season()) {
   list(
     transactions = collect_named_records(safe_mfl_endpoint(conn, "transactions"), c("franchise_id", "franchise", "timestamp", "type", "comments", "description")),
     draft_results = collect_named_records(safe_mfl_endpoint(conn, "draftResults"), c("franchise_id", "franchise", "round", "pick", "comments", "timestamp")),
-    auction_results = collect_named_records(safe_mfl_endpoint(conn, "auctionResults"), c("franchise_id", "franchise", "timestamp", "amount", "bid", "player_id", "auction"))
+    auction_results = collect_named_records(safe_mfl_endpoint(conn, "auctionResults"), c("franchise_id", "franchise", "timestamp", "amount", "bid", "player_id", "auction")),
+    polls = safe_mfl_endpoint(conn, "polls")
   )
 }
 
@@ -132,20 +144,76 @@ coalesce_record_col <- function(tbl, candidates, default = NA_character_) {
 
 normalize_activity_records <- function(records, source, franchises) {
   tbl <- tibble::as_tibble(records)
-  if (!nrow(tbl)) return(tibble(source = character(), franchise_id = character(), conference = character(), franchise = character(), franchise_name = character(), occurred_at = as.POSIXct(character()), round = integer(), event_text = character()))
+  if (!nrow(tbl)) {
+    return(tibble(
+      source = character(),
+      franchise_id = character(),
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      player_id = character(),
+      player_name = character(),
+      occurred_at = as.POSIXct(character()),
+      round = integer(),
+      type = character(),
+      type_desc = character(),
+      event_text = character()
+    ))
+  }
   franchise_id <- as.character(coalesce_record_col(tbl, c("franchise_id", "franchiseId", "franchise"), NA_character_))
   occurred_at_raw <- as.character(coalesce_record_col(tbl, c("timestamp", "timestamp_formatted", "date", "created", "when"), NA_character_))
   occurred_at <- suppressWarnings(as.POSIXct(as.numeric(occurred_at_raw), origin = "1970-01-01", tz = "America/New_York"))
   fallback_time <- suppressWarnings(as.POSIXct(occurred_at_raw, tz = "America/New_York"))
   occurred_at[is.na(occurred_at)] <- fallback_time[is.na(occurred_at)]
   id_lookup <- adl_franchise_id_lookup()
-  normalized <- tibble(source = source, franchise_id = franchise_id, round = suppressWarnings(as.integer(coalesce_record_col(tbl, c("round", "draft_round"), NA_character_))), occurred_at = occurred_at, event_text = record_text(tbl)) |>
+  normalized <- tibble(
+    source = source,
+    franchise_id = franchise_id,
+    player_id = as.character(coalesce_record_col(tbl, c("player_id", "playerId", "player", "id"), NA_character_)),
+    player_name = as.character(coalesce_record_col(tbl, c("player_name", "playerName", "name"), NA_character_)),
+    round = suppressWarnings(as.integer(coalesce_record_col(tbl, c("round", "draft_round"), NA_character_))),
+    occurred_at = occurred_at,
+    type = toupper(as.character(coalesce_record_col(tbl, c("type", "transaction_type"), NA_character_))),
+    type_desc = tolower(as.character(coalesce_record_col(tbl, c("type_desc", "typeDescription", "description"), NA_character_))),
+    event_text = record_text(tbl)
+  ) |>
     mutate(franchise_code = toupper(.data$franchise_id), franchise_id_padded = if_else(grepl("^[0-9]+$", .data$franchise_id), sprintf("%04d", suppressWarnings(as.integer(.data$franchise_id))), NA_character_)) |>
     left_join(id_lookup, by = c("franchise_id_padded" = "franchise_id")) |>
     mutate(franchise = coalesce(.data$franchise, .env$franchises$franchise[match(.data$franchise_code, toupper(.env$franchises$franchise))]))
   normalized |>
     left_join(franchises, by = "franchise") |>
-    select(.data$source, .data$franchise_id, .data$conference, .data$franchise, .data$franchise_name, .data$occurred_at, .data$round, .data$event_text)
+    select(.data$source, .data$franchise_id, .data$conference, .data$franchise, .data$franchise_name, .data$player_id, .data$player_name, .data$occurred_at, .data$round, .data$type, .data$type_desc, .data$event_text)
+}
+
+evaluate_poll_endpoint_availability <- function(activity) {
+  if (is.null(activity$polls)) {
+    return(tibble(
+      alert_type = "Offseason Inactivity Review Gap",
+      severity = "info",
+      conference = NA_character_,
+      franchise = NA_character_,
+      franchise_name = "League",
+      rule = "Bylaw first-round voting check",
+      observed = "MFL polls endpoint was not available to the monitor in this run.",
+      details = "ffscrapr has no dedicated polls wrapper, but MFL export supports generic endpoint requests such as TYPE=polls. First-round bylaw voting can be automated after we confirm the poll payload includes voter/franchise participation.",
+      violation_key = NA_character_,
+      season_phase = "offseason"
+    ))
+  }
+
+  poll_count <- length(collect_named_records(activity$polls, c("question", "poll", "id", "votes")))
+  tibble(
+    alert_type = "Offseason Inactivity Review",
+    severity = "info",
+    conference = NA_character_,
+    franchise = NA_character_,
+    franchise_name = "League",
+    rule = "Bylaw first-round voting check",
+    observed = paste0("MFL TYPE=polls endpoint responded with ", poll_count, " poll-like record(s)."),
+    details = "This review does not yet issue bylaw-vote inactivity violations; next step is mapping poll votes to franchise IDs for the specific first-round amendment polls.",
+    violation_key = NA_character_,
+    season_phase = "offseason"
+  )
 }
 
 evaluate_rookie_draft_clock_expirations <- function(activity, franchises) {
@@ -158,7 +226,7 @@ evaluate_rookie_draft_clock_expirations <- function(activity, franchises) {
     group_by(.data$conference, .data$franchise, .data$franchise_name) |>
     summarize(early_round_expirations = sum(.data$round %in% 1:2, na.rm = TRUE), late_round_expirations = sum(.data$round %in% 3:5, na.rm = TRUE), total_expirations = n(), .groups = "drop") |>
     filter(.data$early_round_expirations >= 1L | .data$late_round_expirations >= 2L) |>
-    transmute(alert_type = "Offseason Inactivity Violation", severity = "violation", conference, franchise, franchise_name, rule = "Rookie Draft clock may expire at most 0 times in Rounds 1-2 and at most once in Rounds 3-5", observed = paste0(.data$early_round_expirations, " Rounds 1-2 expiration(s); ", .data$late_round_expirations, " Rounds 3-5 expiration(s)"), details = paste0(.data$total_expirations, " total rookie draft clock expiration(s) found"))
+    transmute(alert_type = "Offseason Inactivity Violation", severity = "violation", conference, franchise, franchise_name, rule = "Rookie Draft clock may expire at most 0 times in Rounds 1-2 and at most once in Rounds 3-5", observed = paste0(.data$early_round_expirations, " Rounds 1-2 expiration(s); ", .data$late_round_expirations, " Rounds 3-5 expiration(s)"), details = paste0(.data$total_expirations, " total rookie draft clock expiration(s) found"), violation_key = paste("rookie_draft_clock", .data$franchise, sep = "|"), season_phase = "offseason")
   bind_rows(all_expirations, violations)
 }
 
@@ -176,7 +244,7 @@ evaluate_pre_ufa_auction_participation <- function(bids, config, franchises) {
     left_join(participation |> group_by(.data$franchise) |> summarize(auction_bid_count = n_distinct(.data$event_name), auctions = paste(sort(unique(.data$event_name)), collapse = ", "), .groups = "drop"), by = "franchise") |>
     mutate(auction_bid_count = coalesce(.data$auction_bid_count, 0L), auctions = if_else(nzchar(coalesce(.data$auctions, "")), .data$auctions, "none")) |>
     filter(.data$auction_bid_count <= 1L) |>
-    transmute(alert_type = "Offseason Inactivity Violation", severity = "violation", conference, franchise, franchise_name, rule = "Must place bids in at least 2 pre-UFA auctions: R/F, FT, RFA, B/R, and UDFA", observed = paste0(.data$auction_bid_count, " pre-UFA auction(s) with a bid"), details = paste0("Auctions with bids: ", .data$auctions))
+    transmute(alert_type = "Offseason Inactivity Violation", severity = "violation", conference, franchise, franchise_name, rule = "Must place bids in at least 2 pre-UFA auctions: R/F, FT, RFA, B/R, and UDFA", observed = paste0(.data$auction_bid_count, " pre-UFA auction(s) with a bid"), details = paste0("Auctions with bids: ", .data$auctions), violation_key = paste("pre_ufa_participation", .data$franchise, sep = "|"), season_phase = "offseason")
 }
 
 evaluate_ufa_auction_bid_gaps <- function(bids, config, franchises) {
@@ -189,15 +257,213 @@ evaluate_ufa_auction_bid_gaps <- function(bids, config, franchises) {
     gaps <- diff(as.numeric(checkpoints)) / 3600
     if (!length(gaps) || max(gaps, na.rm = TRUE) < 24) return(empty_inactivity_rows())
     gap_index <- which.max(gaps)
-    tibble(alert_type = "Offseason Inactivity Violation", severity = "violation", conference = franchise$conference[[1]], franchise = franchise$franchise[[1]], franchise_name = franchise$franchise_name[[1]], rule = "Must not go 24 hours without submitting an auction bid during the first 3 days of UFA", observed = paste0(sprintf("%.1f", gaps[[gap_index]]), " hours between UFA bids/checkpoints"), details = paste0("Gap from ", format(checkpoints[[gap_index]], "%Y-%m-%d %H:%M %Z"), " to ", format(checkpoints[[gap_index + 1L]], "%Y-%m-%d %H:%M %Z")) )
+    tibble(alert_type = "Offseason Inactivity Violation", severity = "violation", conference = franchise$conference[[1]], franchise = franchise$franchise[[1]], franchise_name = franchise$franchise_name[[1]], rule = "Must not go 24 hours without submitting an auction bid during the first 3 days of UFA", observed = paste0(sprintf("%.1f", gaps[[gap_index]]), " hours between UFA bids/checkpoints"), details = paste0("Gap from ", format(checkpoints[[gap_index]], "%Y-%m-%d %H:%M %Z"), " to ", format(checkpoints[[gap_index + 1L]], "%Y-%m-%d %H:%M %Z")), violation_key = paste("ufa_bid_gap", franchise$franchise[[1]], format(checkpoints[[gap_index]], "%Y%m%d%H%M"), sep = "|"), season_phase = "offseason")
   }))
+}
+
+next_adl_waiver_run_at <- function(x) {
+  x_local <- lubridate::with_tz(x, "America/New_York")
+  run_at <- as.POSIXct(paste0(format(as.Date(x_local), "%Y-%m-%d"), " 05:00:00"), tz = "America/New_York")
+  run_at <- dplyr::if_else(x_local <= run_at, run_at, run_at + lubridate::days(1))
+  lubridate::with_tz(run_at, "UTC")
+}
+
+adl_offseason_waiver_claim_run_at <- function(drop_time) {
+  next_adl_waiver_run_at(drop_time + lubridate::hours(48))
+}
+
+evaluate_offseason_illegal_waiver_claims <- function(activity, franchises, season = get_current_season()) {
+  tx <- normalize_activity_records(activity$transactions, "transactions", franchises)
+  if (!nrow(tx)) return(empty_inactivity_rows())
+
+  waiver_adds <- tx |>
+    filter(
+      !is.na(.data$occurred_at),
+      !is.na(.data$franchise),
+      nzchar(.data$franchise),
+      .data$type_desc %in% c("added", "claimed") | grepl("waiver", paste(.data$type, .data$type_desc, .data$event_text), ignore.case = TRUE)
+    )
+  if (!nrow(waiver_adds)) return(empty_inactivity_rows())
+
+  drops <- tx |>
+    filter(
+      !is.na(.data$occurred_at),
+      !is.na(.data$player_id),
+      nzchar(.data$player_id),
+      .data$type_desc == "dropped" | grepl("\\bdrop|dropped\\b", .data$event_text, ignore.case = TRUE)
+    ) |>
+    transmute(player_id, drop_time = .data$occurred_at, legal_claim_run_at = adl_offseason_waiver_claim_run_at(.data$occurred_at))
+
+  waiver_adds |>
+    left_join(drops, by = "player_id") |>
+    group_by(.data$conference, .data$franchise, .data$franchise_name, .data$player_id, .data$player_name, .data$occurred_at) |>
+    summarize(
+      has_legal_drop = any(.data$legal_claim_run_at == next_adl_waiver_run_at(.data$occurred_at), na.rm = TRUE),
+      latest_drop_time = if (all(is.na(.data$drop_time))) as.POSIXct(NA) else max(.data$drop_time, na.rm = TRUE),
+      expected_run_at = if (all(is.na(.data$legal_claim_run_at))) as.POSIXct(NA) else max(.data$legal_claim_run_at, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    filter(!.data$has_legal_drop) |>
+    transmute(
+      alert_type = "Offseason Inactivity Violation",
+      severity = "violation",
+      conference,
+      franchise,
+      franchise_name,
+      rule = "Illegal offseason waiver claim",
+      observed = paste0(coalesce(.data$player_name, .data$player_id), " was added without a matching legal offseason waiver window."),
+      details = if_else(
+        is.na(.data$latest_drop_time),
+        "No prior drop was found for this player in league transaction history.",
+        paste0(
+          "Latest drop: ", format(lubridate::with_tz(.data$latest_drop_time, "America/New_York"), "%Y-%m-%d %H:%M %Z"),
+          "; expected legal waiver run: ", format(lubridate::with_tz(.data$expected_run_at, "America/New_York"), "%Y-%m-%d %H:%M %Z")
+        )
+      ),
+      violation_key = paste("offseason_illegal_waiver", season, .data$franchise, .data$player_id, format(as.Date(.data$occurred_at), "%Y-%m-%d"), sep = "|"),
+      season_phase = "offseason"
+    )
+}
+
+read_archived_commissioner_alert_reports <- function(season = get_current_season()) {
+  files <- list.files(
+    commissioner_alert_report_dir(),
+    pattern = paste0("^commissioner_alert_report_.*_", season, "[.]csv$"),
+    full.names = TRUE
+  )
+  if (!length(files)) return(tibble())
+
+  bind_rows(lapply(files, function(path) {
+    report <- tryCatch(read_csv(path, show_col_types = FALSE), error = function(e) tibble())
+    if (!nrow(report)) return(tibble())
+    report |> mutate(report_file = basename(path), .before = 1)
+  }))
+}
+
+archived_report_date <- function(report_rows) {
+  checked <- suppressWarnings(as.Date(report_rows$checked_at))
+  fallback <- suppressWarnings(as.Date(sub("^commissioner_alert_report_([0-9-]+).*", "\\1", report_rows$report_file)))
+  checked[is.na(checked)] <- fallback[is.na(checked)]
+  checked
+}
+
+evaluate_repeated_offseason_roster_violations <- function(season = get_current_season()) {
+  reports <- read_archived_commissioner_alert_reports(season)
+  if (!nrow(reports)) return(empty_inactivity_rows())
+
+  roster_types <- c("Roster Cap Violation", "Contract Years Violation", "Salary Cap Violation")
+  daily <- reports |>
+    mutate(report_date = archived_report_date(dplyr::pick(dplyr::everything()))) |>
+    filter(.data$alert_type %in% roster_types, !is.na(.data$franchise), nzchar(.data$franchise), !is.na(.data$report_date)) |>
+    group_by(.data$conference, .data$franchise, .data$franchise_name, .data$report_date) |>
+    summarize(types = paste(sort(unique(.data$alert_type)), collapse = ", "), .groups = "drop") |>
+    arrange(.data$franchise, .data$report_date)
+
+  bind_rows(lapply(split(daily, daily$franchise), function(rows) {
+    rows <- rows |> arrange(.data$report_date)
+    if (nrow(rows) < 3L) return(empty_inactivity_rows())
+    breaks <- c(TRUE, diff(as.integer(rows$report_date)) != 1L)
+    rows$streak_id <- cumsum(breaks)
+    rows |>
+      group_by(.data$conference, .data$franchise, .data$franchise_name, .data$streak_id) |>
+      summarize(
+        first_date = min(.data$report_date),
+        third_date = sort(unique(.data$report_date))[[3]],
+        last_date = max(.data$report_date),
+        days = n_distinct(.data$report_date),
+        types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
+        .groups = "drop"
+      ) |>
+      filter(.data$days >= 3L) |>
+      transmute(
+        alert_type = "Offseason Inactivity Violation",
+        severity = "violation",
+        conference,
+        franchise,
+        franchise_name,
+        rule = "Repeated illegal roster violation for three consecutive days at the early morning snapshot",
+        observed = paste0("Roster violations appeared from ", .data$first_date, " through ", .data$last_date, "."),
+        details = paste0("Violation types: ", .data$types, "; inactivity violation would be triggered on ", .data$third_date, "."),
+        violation_key = paste("offseason_repeated_roster", season, .data$franchise, .data$first_date, sep = "|"),
+        season_phase = "offseason"
+      )
+  }))
+}
+
+evaluate_ufa_signing_deadline_review <- function(config, season = get_current_season()) {
+  deadline <- config |>
+    filter(.data$event_type == "roster_deadline", grepl("UFA signing", .data$event_name, ignore.case = TRUE)) |>
+    mutate(deadline_at = parse_et_datetime(.data$deadline_at)) |>
+    slice_head(n = 1)
+  if (!nrow(deadline) || is.na(deadline$deadline_at[[1]])) return(empty_inactivity_rows())
+
+  reports <- read_archived_commissioner_alert_reports(season)
+  report_dates <- if (nrow(reports)) unique(archived_report_date(reports)) else as.Date(character())
+  deadline_date <- as.Date(lubridate::with_tz(deadline$deadline_at[[1]], "America/New_York"))
+
+  if (!deadline_date %in% report_dates) {
+    return(tibble(
+      alert_type = "Offseason Inactivity Review Gap",
+      severity = "info",
+      conference = NA_character_,
+      franchise = NA_character_,
+      franchise_name = "League",
+      rule = "Illegal roster at UFA signing deadline / failed UFA signing deadline review",
+      observed = paste0("No archived commissioner alert report was found for ", deadline_date, "."),
+      details = "The 2026 UFA signing deadline cannot be reconstructed reliably from the current archive. Future seasons should use a scheduled deadline scrape at the exact deadline.",
+      violation_key = NA_character_,
+      season_phase = "offseason"
+    ))
+  }
+
+  empty_inactivity_rows()
 }
 
 evaluate_roster_deadline_inactivity <- function(season, config, force_live = TRUE) {
   deadlines <- config |> filter(.data$event_type == "roster_deadline") |> mutate(deadline_at = parse_et_datetime(.data$deadline_at)) |> filter(!is.na(.data$deadline_at), .data$deadline_at <= Sys.time())
   if (!nrow(deadlines)) return(empty_inactivity_rows())
-  rosters <- load_current_rosters(force_live = force_live, source = "auto", season = season)
-  bind_rows(lapply(seq_len(nrow(deadlines)), function(i) { deadline <- deadlines[i, ]; rule <- commissioner_alert_roster_cap_rule(season = season, checked_at = deadline$deadline_at[[1]]); evaluate_roster_cap_alerts(rosters, rule = rule, season = season, checked_at = deadline$deadline_at[[1]]) |> mutate(alert_type = "Offseason Inactivity Violation", rule = paste0(deadline$event_name[[1]], ": ", .data$rule)) }))
+  reports <- read_archived_commissioner_alert_reports(season)
+  report_dates <- if (nrow(reports)) unique(archived_report_date(reports)) else as.Date(character())
+
+  bind_rows(lapply(seq_len(nrow(deadlines)), function(i) {
+    deadline <- deadlines[i, ]
+    deadline_date <- as.Date(lubridate::with_tz(deadline$deadline_at[[1]], "America/New_York"))
+    if (!deadline_date %in% report_dates) {
+      return(tibble(
+        alert_type = "Offseason Inactivity Review Gap",
+        severity = "info",
+        conference = NA_character_,
+        franchise = NA_character_,
+        franchise_name = "League",
+        rule = paste0(deadline$event_name[[1]], ": illegal roster deadline check"),
+        observed = paste0("No archived commissioner alert report was found for ", deadline_date, "."),
+        details = "This deadline cannot be reconstructed reliably from live roster state after the fact. Future seasons should use a scheduled deadline scrape at the exact deadline.",
+        violation_key = NA_character_,
+        season_phase = "offseason"
+      ))
+    }
+
+    reports |>
+      mutate(report_date = archived_report_date(dplyr::pick(dplyr::everything()))) |>
+      filter(
+        .data$report_date == deadline_date,
+        .data$alert_type %in% c("Roster Cap Violation", "Contract Years Violation", "Salary Cap Violation"),
+        !is.na(.data$franchise),
+        nzchar(.data$franchise)
+      ) |>
+      transmute(
+        alert_type = "Offseason Inactivity Violation",
+        severity = "violation",
+        conference,
+        franchise,
+        franchise_name,
+        rule = paste0(deadline$event_name[[1]], ": illegal roster at deadline"),
+        observed = paste(.data$alert_type, .data$observed, sep = " - "),
+        details = .data$details,
+        violation_key = paste("offseason_roster_deadline", season, deadline$event_name[[1]], .data$franchise, sep = "|"),
+        season_phase = "offseason"
+      )
+  }))
 }
 
 build_offseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE) {
@@ -205,8 +471,19 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
-  alerts <- bind_rows(config_warning_rows(offseason_config_messages(config), season = season), evaluate_rookie_draft_clock_expirations(activity, franchises), evaluate_pre_ufa_auction_participation(bids, config, franchises), evaluate_ufa_auction_bid_gaps(bids, config, franchises), evaluate_roster_deadline_inactivity(season, config, force_live = force_live)) |>
+  alerts <- bind_rows(
+    config_warning_rows(offseason_config_messages(config), season = season),
+    evaluate_poll_endpoint_availability(activity),
+    evaluate_rookie_draft_clock_expirations(activity, franchises),
+    evaluate_pre_ufa_auction_participation(bids, config, franchises),
+    evaluate_ufa_auction_bid_gaps(bids, config, franchises),
+    evaluate_offseason_illegal_waiver_claims(activity, franchises, season = season),
+    evaluate_repeated_offseason_roster_violations(season),
+    evaluate_ufa_signing_deadline_review(config, season = season),
+    evaluate_roster_deadline_inactivity(season, config, force_live = force_live)
+  ) |>
     mutate(season = .env$season, checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), .before = 1) |>
+    distinct(.data$alert_type, .data$franchise, .data$rule, .data$observed, .keep_all = TRUE) |>
     arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise)
   write_csv(alerts, offseason_inactivity_path("alerts", season), na = "")
   alerts
