@@ -273,6 +273,7 @@ evaluate_ufa_auction_bid_gaps <- function(bids, config, franchises) {
 }
 
 next_adl_waiver_run_at <- function(x) {
+  if (!inherits(x, "POSIXt")) x <- parse_mfl_activity_time(x)
   x_local <- lubridate::with_tz(x, "America/New_York")
   run_at <- as.POSIXct(paste0(format(as.Date(x_local), "%Y-%m-%d"), " 05:00:00"), tz = "America/New_York")
   run_at <- dplyr::if_else(x_local <= run_at, run_at, run_at + lubridate::days(1))
