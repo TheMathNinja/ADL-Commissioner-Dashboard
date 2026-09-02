@@ -469,7 +469,8 @@ evaluate_salary_cap_average_warnings <- function(
   rosters,
   season = get_current_season(),
   salary_cap_adjustments = NULL,
-  summary = read_cap_accounting_summary(season)
+  summary = read_cap_accounting_summary(season),
+  target_week = NULL
 ) {
   current <- current_cap_accounting_expenditure(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
 
@@ -483,6 +484,9 @@ evaluate_salary_cap_average_warnings <- function(
   } else {
     summary_tbl <- tibble::as_tibble(summary)
     weeks <- cap_accounting_week_numbers(summary_tbl)
+    if (!is.null(target_week) && !is.na(target_week)) {
+      weeks <- weeks[weeks < as.integer(target_week)]
+    }
 
     bind_rows(lapply(seq_len(nrow(summary_tbl)), function(i) {
       row <- summary_tbl[i, , drop = FALSE]
