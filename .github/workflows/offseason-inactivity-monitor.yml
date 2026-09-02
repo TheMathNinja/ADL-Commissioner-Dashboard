@@ -109,7 +109,7 @@ jobs:
             CRAN = "https://cloud.r-project.org"
           ))
 
-          packages <- c("curl", "dplyr", "ffscrapr", "readr", "tibble")
+          packages <- c("curl", "dplyr", "ffscrapr", "lubridate", "readr", "tibble")
           missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
           if (length(missing) > 0) {
             install.packages(missing, dependencies = c("Depends", "Imports", "LinkingTo"), Ncpus = max(1, parallel::detectCores() - 1))
