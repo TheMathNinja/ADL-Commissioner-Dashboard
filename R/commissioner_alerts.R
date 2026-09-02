@@ -2321,7 +2321,11 @@ render_gm_alert_rule_lines <- function(row) {
   details <- row$details[[1]] %||% ""
   lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
   if (nzchar(trimws(details))) {
-    lines <- c(lines, paste0("Details: ", details))
+    if (identical(row$alert_type[[1]], "Salary Cap Warning")) {
+      lines <- c(lines, details)
+    } else {
+      lines <- c(lines, paste0("Details: ", details))
+    }
   }
   c(lines, "")
 }
