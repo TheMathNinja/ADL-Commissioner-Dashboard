@@ -487,21 +487,40 @@ evaluate_roster_deadline_inactivity <- function(season, config, force_live = TRU
   }))
 }
 
+offseason_review_error_row <- function(component, error) {
+  tibble(
+    alert_type = "Offseason Inactivity Review Gap",
+    severity = "info",
+    conference = NA_character_,
+    franchise = NA_character_,
+    franchise_name = "League",
+    rule = component,
+    observed = "This review component could not be completed from the available data.",
+    details = conditionMessage(error),
+    violation_key = NA_character_,
+    season_phase = "offseason"
+  )
+}
+
+safe_offseason_review <- function(component, expr) {
+  tryCatch(expr, error = function(e) offseason_review_error_row(component, e))
+}
+
 build_offseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE) {
   config <- read_offseason_inactivity_config(season)
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
   alerts <- bind_rows(
-    config_warning_rows(offseason_config_messages(config), season = season),
-    evaluate_poll_endpoint_availability(activity),
-    evaluate_rookie_draft_clock_expirations(activity, franchises),
-    evaluate_pre_ufa_auction_participation(bids, config, franchises),
-    evaluate_ufa_auction_bid_gaps(bids, config, franchises),
-    evaluate_offseason_illegal_waiver_claims(activity, franchises, season = season),
-    evaluate_repeated_offseason_roster_violations(season),
-    evaluate_ufa_signing_deadline_review(config, season = season),
-    evaluate_roster_deadline_inactivity(season, config, force_live = force_live)
+    safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
+    safe_offseason_review("Bylaw first-round voting check", evaluate_poll_endpoint_availability(activity)),
+    safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises)),
+    safe_offseason_review("Pre-UFA auction participation", evaluate_pre_ufa_auction_participation(bids, config, franchises)),
+    safe_offseason_review("UFA first-three-days 24-hour bid gaps", evaluate_ufa_auction_bid_gaps(bids, config, franchises)),
+    safe_offseason_review("Illegal offseason waiver claims", evaluate_offseason_illegal_waiver_claims(activity, franchises, season = season)),
+    safe_offseason_review("Repeated offseason roster violations", evaluate_repeated_offseason_roster_violations(season)),
+    safe_offseason_review("UFA signing deadline review", evaluate_ufa_signing_deadline_review(config, season = season)),
+    safe_offseason_review("Roster deadline inactivity checks", evaluate_roster_deadline_inactivity(season, config, force_live = force_live))
   ) |>
     mutate(season = .env$season, checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), .before = 1) |>
     distinct(.data$alert_type, .data$franchise, .data$rule, .data$observed, .keep_all = TRUE) |>
