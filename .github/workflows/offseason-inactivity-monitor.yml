@@ -2,6 +2,23 @@ on:
   schedule:
     - cron: 0 17 31 8 *
   workflow_dispatch:
+    inputs:
+      send_email:
+        description: Send offseason inactivity emails
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      send_empty:
+        description: Send an email even when no issues are found
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 name: offseason-inactivity-monitor
 
@@ -19,7 +36,8 @@ jobs:
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
-      ADL_INACTIVITY_SEND_EMAIL: true
+      ADL_INACTIVITY_SEND_EMAIL: ${{ github.event_name == 'schedule' && 'true' || inputs.send_email }}
+      ADL_INACTIVITY_SEND_EMPTY: ${{ github.event_name == 'schedule' && 'true' || inputs.send_empty }}
       ADL_INACTIVITY_FORCE_LIVE: true
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
@@ -102,7 +120,7 @@ jobs:
 
       - name: Run offseason inactivity monitor
         run: |
-          Rscript scripts/run_offseason_inactivity_monitor.R --season=${CURRENT_SEASON} --force-live --send-email --send-empty
+          Rscript scripts/run_offseason_inactivity_monitor.R --season=${CURRENT_SEASON} --force-live
 
       - name: Commit inactivity outputs
         if: always()
