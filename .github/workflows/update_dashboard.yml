@@ -173,6 +173,35 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data docs
-          git diff --cached --quiet || git commit -m "Automated dashboard update"
-          git push
+          git diff --cached --quiet && exit 0
+          git commit -m "Automated dashboard update"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase --autostash origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Failed to push dashboard update after 3 attempts."
+          exit 1
+
+      - name: Upload SalAdj recovery outputs
+        if: failure() && steps.localtime.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: saladj-recovery-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: |
+            data/SalAdjCurator_${{ env.CURRENT_SEASON }}.csv
+            data/SalAdjCurator_${{ env.CURRENT_SEASON }}.rds
+            data/SalAdjCurator_latest.csv
+            data/saladj_qualified_${{ env.CURRENT_SEASON }}.rds
+            data/run_metadata.csv
+            data/saladj_email_status.csv
+            data/archive/*ADLSalAdjCurator*
+            data/roster_snapshots/saladj_roster_snapshot_${{ env.CURRENT_SEASON }}*.csv
 
