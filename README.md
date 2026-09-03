@@ -141,7 +141,7 @@ R/offseason\_inactivity\_monitor.R checks offseason inactivity policies and reus
 
 Annual Season Rollover Checklist:
 
-At the start of each ADL season, update CURRENT\_SEASON in the GitHub Actions workflows and create/update data/source/offseason\_inactivity\_windows\_<season>.csv. Codex should explicitly prompt for every date/value below before enabling the new season's daily checks.
+At the start of each ADL season, update CURRENT\_SEASON in the GitHub Actions workflows and create/update data/source/offseason\_inactivity\_windows\_<season>.csv. Codex should explicitly prompt the commissioner for the ADL-controlled dates/values below before enabling the new season's daily checks. NFL schedule-derived values should be fetched by Codex from authoritative NFL schedule data, not requested from the commissioner.
 
 Required annual date fields:
 
@@ -152,18 +152,21 @@ Required annual date fields:
 - pre\_ufa\_auction, B/R: start\_at and end\_at.
 - pre\_ufa\_auction, UDFA: start\_at and end\_at. Salary-below-UDFA adjustment checks begin after this window ends.
 - ufa\_auction, UFA Auction: start\_at. Bid-adjustment checks begin at 12:00:01 a.m. ET on the eighth day of this auction.
-- ufa\_auction\_first\_three\_days, UFA: start\_at and end\_at. Used for the 24-hour no-bid inactivity rule during the first three UFA days.
 - roster\_deadline, UFA signing deadline: deadline\_at.
-- roster\_deadline, Rookie signing deadline: deadline\_at.
 - roster\_cutdown\_1: date/time, configured in R/commissioner\_alerts.R defaults or ADL\_ROSTER\_CUTDOWN\_1\_AT.
 - final\_roster\_cutdown: date/time, configured in R/commissioner\_alerts.R defaults or ADL\_FINAL\_ROSTER\_CUTDOWN\_AT. The late-offseason NG bid-adjustment rule stops at this deadline, and in-season salary accounting begins after this deadline.
-- ADL\_WEEK\_ONE\_START: first date used to infer the active in-season fantasy week for lineup checks.
+
+Automatically derived annual dates:
+
+- UFA first-three-days window: derived from ufa\_auction start\_at through start\_at + 72 hours for the 24-hour no-bid inactivity rule.
+- Rookie signing deadline: July 1 at 12:00 a.m. ET every season unless the bylaws change.
+- ADL\_WEEK\_ONE\_START and weekly NFL game dates/kickoffs: derived from NFL schedule data, normally through nflreadr.
+- NFL bye weeks: derived from NFL schedule data by finding teams without a game in each regular-season week. This is used for roster snapshot display and lineup warning checks.
 
 Required annual values:
 
 - ADL salary cap baseline and individual franchise salary caps from MFL.
 - ADL SD minimum, via ADL\_SD\_MIN\_<season> or the fallback table in R/commissioner\_alerts.R.
-- NFL bye weeks, if the dashboard's fallback table is not current.
 - Commissioner digest franchises and optional extra recipients/CCs if roles changed.
 
 One-time checks:
