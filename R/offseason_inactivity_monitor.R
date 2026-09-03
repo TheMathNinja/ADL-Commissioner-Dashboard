@@ -76,11 +76,11 @@ empty_inactivity_rows <- function() {
 
 offseason_inactivity_config_template <- function(season = get_current_season()) {
   tibble(
-    event_type = c("rookie_draft", rep("pre_ufa_auction", 5), "ufa_auction_first_three_days", "roster_deadline", "roster_deadline"),
-    event_name = c("Rookie Draft", "R/F", "FT", "RFA", "B/R", "UDFA", "UFA", "UFA signing deadline", "Rookie signing deadline"),
-    start_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
-    end_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
-    deadline_at = c(NA_character_, rep(NA_character_, 6), NA_character_, NA_character_)
+    event_type = c("rookie_draft", rep("pre_ufa_auction", 5), "ufa_auction", "ufa_auction_first_three_days", "roster_deadline", "roster_deadline"),
+    event_name = c("Rookie Draft", "R/F", "FT", "RFA", "B/R", "UDFA", "UFA Auction", "UFA", "UFA signing deadline", "Rookie signing deadline"),
+    start_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_, NA_character_),
+    end_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_, NA_character_),
+    deadline_at = c(NA_character_, rep(NA_character_, 7), NA_character_, NA_character_)
   )
 }
 
