@@ -346,7 +346,10 @@ pre_ufa_auction_participation_events <- function(bids, config) {
 pre_ufa_auction_participation_detail <- function(bids, config, franchises) {
   events <- pre_ufa_auction_participation_events(bids, config)
   participation_events <- events |>
-    filter(.data$event_kind == "bid")
+    filter(
+      .data$event_kind == "bid" |
+        (.data$event_name %in% c("R/F", "UDFA") & .data$event_kind == "nomination")
+    )
   franchise_order <- franchises |> transmute(franchise, franchise_sort_order = row_number())
 
   franchises |>
