@@ -106,6 +106,22 @@ format_player_display <- function(player_name, player_team, player_pos) {
   )
 }
 
+format_injury_display <- function(x) {
+  status <- toupper(stringr::str_squish(dplyr::coalesce(as.character(x), "")))
+  status <- stringr::str_replace_all(status, "[()]", "")
+
+  dplyr::case_when(
+    !nzchar(status) ~ "",
+    status %in% c("H", "HOLDOUT") ~ "H",
+    status %in% c("S", "SUSPENDED") ~ "S",
+    status %in% c("O", "OUT") ~ "O",
+    status %in% c("I", "IR", "IR-R", "INJURED", "INJURED RESERVE", "INJURED_RESERVE") ~ "I",
+    status %in% c("D", "DOUBTFUL") ~ "D",
+    status %in% c("Q", "QUESTIONABLE") ~ "Q",
+    status %in% c("P", "PROBABLE") ~ "P",
+    TRUE ~ as.character(x)
+  )
+}
 player_last_name <- function(player_name) {
   player_name <- dplyr::coalesce(player_name, "")
   ifelse(
@@ -344,21 +360,57 @@ saladj_archive_metadata_file <- function(archive_file) {
   )
 }
 
+saladj_archive_date_from_filename <- function(archive_file) {
+  parts <- stringr::str_match(
+    basename(archive_file),
+    "^(\\d{4})_(\\d{2})_(\\d{2})_ADLSalAdjCurator\\.csv$"
+  )
+  if (is.na(parts[1, 1])) {
+    return(NA)
+  }
+  as.Date(paste(parts[1, 2], parts[1, 3], parts[1, 4], sep = "-"))
+}
+
+format_saladj_archive_date <- function(archive_file) {
+  archive_date <- saladj_archive_date_from_filename(archive_file)
+  if (is.na(archive_date)) {
+    return("")
+  }
+  paste0(
+    as.integer(format(archive_date, "%m")),
+    "/",
+    as.integer(format(archive_date, "%d")),
+    "/",
+    format(archive_date, "%Y")
+  )
+}
+
 saladj_archive_generated_at <- function(archive_file) {
+  archive_date <- saladj_archive_date_from_filename(archive_file)
+  archive_date_display <- format_saladj_archive_date(archive_file)
   metadata_file <- saladj_archive_metadata_file(archive_file)
   if (file.exists(metadata_file)) {
     metadata <- tryCatch(readr::read_csv(metadata_file, show_col_types = FALSE), error = function(e) NULL)
     if (!is.null(metadata) && nrow(metadata) && "generated_at_display" %in% names(metadata)) {
       display <- as.character(metadata$generated_at_display[[1]])
-      if (nzchar(display)) return(display)
+      metadata_date <- if ("generated_at" %in% names(metadata)) {
+        as.Date(suppressWarnings(as.POSIXct(metadata$generated_at[[1]], tz = "America/Toronto")))
+      } else {
+        suppressWarnings(lubridate::mdy(stringr::str_extract(display, "\\d{1,2}/\\d{1,2}/\\d{4}")))
+      }
+      if (nzchar(display) && !is.na(archive_date) && !is.na(metadata_date) && identical(archive_date, metadata_date)) {
+        return(display)
+      }
     }
     if (!is.null(metadata) && nrow(metadata) && "generated_at" %in% names(metadata)) {
-      return(format_checked_at_et(metadata$generated_at[[1]]))
+      metadata_date <- as.Date(suppressWarnings(as.POSIXct(metadata$generated_at[[1]], tz = "America/Toronto")))
+      if (!is.na(archive_date) && !is.na(metadata_date) && identical(archive_date, metadata_date)) {
+        return(format_checked_at_et(metadata$generated_at[[1]]))
+      }
     }
   }
 
-  generated_at <- file.info(archive_file)$mtime
-  format(lubridate::with_tz(generated_at, "America/Toronto"), "%m/%d/%Y %I:%M %p %Z")
+  archive_date_display
 }
 
 saladj_archive_generated_at_by_file <- function(archive_files) {
