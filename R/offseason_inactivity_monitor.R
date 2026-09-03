@@ -345,19 +345,30 @@ pre_ufa_auction_participation_events <- function(bids, config) {
 
 pre_ufa_auction_participation_detail <- function(bids, config, franchises) {
   events <- pre_ufa_auction_participation_events(bids, config)
+  participation_events <- events |>
+    filter(.data$event_kind == "bid" | (.data$event_kind == "nomination" & !.data$commissioner_initiated))
   franchise_order <- franchises |> transmute(franchise, franchise_sort_order = row_number())
 
   franchises |>
     left_join(
-      events |>
+      participation_events |>
         group_by(.data$franchise) |>
         summarize(
           auction_bid_count = n_distinct(.data$event_name),
+          qualifying_auction_event_count = n(),
+          auctions = paste(sort(unique(.data$event_name)), collapse = ", "),
+          event_kinds = paste(sort(unique(.data$event_kind)), collapse = ", "),
+          .groups = "drop"
+        ),
+      by = "franchise"
+    ) |>
+    left_join(
+      events |>
+        group_by(.data$franchise) |>
+        summarize(
           auction_event_count = n(),
           nomination_event_count = sum(.data$event_kind == "nomination", na.rm = TRUE),
           commissioner_initiated_event_count = sum(.data$commissioner_initiated, na.rm = TRUE),
-          auctions = paste(sort(unique(.data$event_name)), collapse = ", "),
-          event_kinds = paste(sort(unique(.data$event_kind)), collapse = ", "),
           .groups = "drop"
         ),
       by = "franchise"
@@ -365,6 +376,7 @@ pre_ufa_auction_participation_detail <- function(bids, config, franchises) {
     left_join(franchise_order, by = "franchise") |>
     mutate(
       auction_bid_count = coalesce(.data$auction_bid_count, 0L),
+      qualifying_auction_event_count = coalesce(.data$qualifying_auction_event_count, 0L),
       auction_event_count = coalesce(.data$auction_event_count, 0L),
       nomination_event_count = coalesce(.data$nomination_event_count, 0L),
       commissioner_initiated_event_count = coalesce(.data$commissioner_initiated_event_count, 0L),
