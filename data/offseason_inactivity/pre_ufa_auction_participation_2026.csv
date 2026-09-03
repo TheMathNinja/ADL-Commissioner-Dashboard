@@ -1,33 +1,33 @@
 conference,franchise,franchise_name,auction_bid_count,qualifying_auction_event_count,auctions,event_kinds,auction_event_count,nomination_event_count,commissioner_initiated_event_count
-AFC,BAL,Baltimore Ravens,4,104,"B/R, R/F, RFA, UDFA",bid,144,17,0
-AFC,BUF,Buffalo Bills,2,33,"R/F, UDFA",bid,47,8,0
-AFC,CIN,Cincinnati Bengals,3,28,"B/R, R/F, UDFA",bid,41,5,0
-AFC,CLE,Cleveland Browns,3,19,"B/R, R/F, RFA",bid,38,8,0
-AFC,DEN,Denver Broncos,3,35,"B/R, R/F, UDFA",bid,88,29,0
-AFC,HOU,Houston Texans,2,20,"R/F, UDFA",bid,49,17,0
-AFC,IND,Indianapolis Colts,3,41,"FT, R/F, UDFA",bid,60,12,0
-AFC,JAC,Jacksonville Jaguars,2,20,"R/F, UDFA",bid,42,11,0
-AFC,KCC,Kansas City Chiefs,4,36,"B/R, R/F, RFA, UDFA",bid,86,38,0
-AFC,LAC,Los Angeles Chargers,2,15,"R/F, UDFA",bid,32,11,0
-AFC,LVR,Las Vegas Raiders,5,28,"B/R, FT, R/F, RFA, UDFA",bid,36,4,0
-AFC,MIA,Miami Dolphins,3,7,"B/R, R/F, UDFA",bid,18,6,0
-AFC,NEP,New England Patriots,3,30,"B/R, R/F, UDFA",bid,60,15,0
-AFC,NYJ,New York Jets,3,13,"B/R, FT, UDFA",bid,28,8,0
-AFC,PIT,Pittsburgh Steelers,2,11,"B/R, R/F",bid,27,7,0
-AFC,TEN,Tennessee Titans,4,53,"B/R, R/F, RFA, UDFA",bid,91,20,0
-NFC,ARI,Arizona Cardinals,4,32,"B/R, R/F, RFA, UDFA",bid,52,7,0
-NFC,ATL,Atlanta Falcons,4,21,"B/R, R/F, RFA, UDFA",bid,76,28,0
-NFC,CAR,Carolina Panthers,3,16,"B/R, R/F, UDFA",bid,36,14,0
-NFC,CHI,Chicago Bears,3,30,"B/R, R/F, UDFA",bid,64,24,0
-NFC,DAL,Dallas Cowboys,4,47,"B/R, R/F, RFA, UDFA",bid,103,32,0
-NFC,DET,Detroit Lions,4,39,"B/R, R/F, RFA, UDFA",bid,89,26,0
-NFC,GBP,Green Bay Packers,2,18,"R/F, UDFA",bid,32,8,0
-NFC,LAR,Los Angeles Rams,3,21,"B/R, R/F, UDFA",bid,59,21,0
-NFC,MIN,Minnesota Vikings,4,42,"B/R, R/F, RFA, UDFA",bid,86,25,0
-NFC,NOS,New Orleans Saints,2,28,"R/F, UDFA",bid,58,14,0
-NFC,NYG,New York Giants,5,19,"B/R, FT, R/F, RFA, UDFA",bid,68,33,0
-NFC,PHI,Philadelphia Eagles,4,26,"B/R, R/F, RFA, UDFA",bid,47,11,0
-NFC,SEA,Seattle Seahawks,4,50,"B/R, R/F, RFA, UDFA",bid,85,14,0
-NFC,SFO,San Francisco 49ers,3,20,"B/R, R/F, UDFA",bid,34,8,0
-NFC,TBB,Tampa Bay Buccaneers,4,28,"B/R, R/F, RFA, UDFA",bid,54,14,0
-NFC,WAS,Washington Commanders,4,36,"B/R, R/F, RFA, UDFA",bid,61,13,0
+AFC,BAL,Baltimore Ravens,4,119,"B/R, R/F, RFA, UDFA","bid, nomination",144,17,0
+AFC,BUF,Buffalo Bills,2,41,"R/F, UDFA","bid, nomination",47,8,0
+AFC,CIN,Cincinnati Bengals,3,29,"B/R, R/F, UDFA","bid, nomination",41,5,0
+AFC,CLE,Cleveland Browns,3,23,"B/R, R/F, RFA","bid, nomination",38,8,0
+AFC,DEN,Denver Broncos,3,62,"B/R, R/F, UDFA","bid, nomination",88,29,0
+AFC,HOU,Houston Texans,2,35,"R/F, UDFA","bid, nomination",49,17,0
+AFC,IND,Indianapolis Colts,3,50,"FT, R/F, UDFA","bid, nomination",60,12,0
+AFC,JAC,Jacksonville Jaguars,2,30,"R/F, UDFA","bid, nomination",42,11,0
+AFC,KCC,Kansas City Chiefs,4,72,"B/R, R/F, RFA, UDFA","bid, nomination",86,38,0
+AFC,LAC,Los Angeles Chargers,2,26,"R/F, UDFA","bid, nomination",32,11,0
+AFC,LVR,Las Vegas Raiders,5,30,"B/R, FT, R/F, RFA, UDFA","bid, nomination",36,4,0
+AFC,MIA,Miami Dolphins,3,12,"B/R, R/F, UDFA","bid, nomination",18,6,0
+AFC,NEP,New England Patriots,3,42,"B/R, R/F, UDFA","bid, nomination",60,15,0
+AFC,NYJ,New York Jets,4,18,"B/R, FT, R/F, UDFA","bid, nomination",28,8,0
+AFC,PIT,Pittsburgh Steelers,2,18,"B/R, R/F","bid, nomination",27,7,0
+AFC,TEN,Tennessee Titans,4,68,"B/R, R/F, RFA, UDFA","bid, nomination",91,20,0
+NFC,ARI,Arizona Cardinals,4,37,"B/R, R/F, RFA, UDFA","bid, nomination",52,7,0
+NFC,ATL,Atlanta Falcons,4,47,"B/R, R/F, RFA, UDFA","bid, nomination",76,28,0
+NFC,CAR,Carolina Panthers,3,28,"B/R, R/F, UDFA","bid, nomination",36,14,0
+NFC,CHI,Chicago Bears,3,51,"B/R, R/F, UDFA","bid, nomination",64,24,0
+NFC,DAL,Dallas Cowboys,4,76,"B/R, R/F, RFA, UDFA","bid, nomination",103,32,0
+NFC,DET,Detroit Lions,4,62,"B/R, R/F, RFA, UDFA","bid, nomination",89,26,0
+NFC,GBP,Green Bay Packers,2,23,"R/F, UDFA","bid, nomination",32,8,0
+NFC,LAR,Los Angeles Rams,3,41,"B/R, R/F, UDFA","bid, nomination",59,21,0
+NFC,MIN,Minnesota Vikings,4,63,"B/R, R/F, RFA, UDFA","bid, nomination",86,25,0
+NFC,NOS,New Orleans Saints,2,40,"R/F, UDFA","bid, nomination",58,14,0
+NFC,NYG,New York Giants,5,48,"B/R, FT, R/F, RFA, UDFA","bid, nomination",68,33,0
+NFC,PHI,Philadelphia Eagles,4,36,"B/R, R/F, RFA, UDFA","bid, nomination",47,11,0
+NFC,SEA,Seattle Seahawks,4,62,"B/R, R/F, RFA, UDFA","bid, nomination",85,14,0
+NFC,SFO,San Francisco 49ers,3,26,"B/R, R/F, UDFA","bid, nomination",34,8,0
+NFC,TBB,Tampa Bay Buccaneers,4,37,"B/R, R/F, RFA, UDFA","bid, nomination",54,14,0
+NFC,WAS,Washington Commanders,4,48,"B/R, R/F, RFA, UDFA","bid, nomination",61,13,0
