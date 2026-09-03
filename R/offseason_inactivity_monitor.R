@@ -76,11 +76,11 @@ empty_inactivity_rows <- function() {
 
 offseason_inactivity_config_template <- function(season = get_current_season()) {
   tibble(
-    event_type = c("rookie_draft", rep("pre_ufa_auction", 5), "ufa_auction", "ufa_auction_first_three_days", "roster_deadline", "roster_deadline"),
-    event_name = c("Rookie Draft", "R/F", "FT", "RFA", "B/R", "UDFA", "UFA Auction", "UFA", "UFA signing deadline", "Rookie signing deadline"),
-    start_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_, NA_character_),
-    end_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_, NA_character_),
-    deadline_at = c(NA_character_, rep(NA_character_, 7), NA_character_, NA_character_)
+    event_type = c("rookie_draft", rep("pre_ufa_auction", 5), "ufa_auction", "roster_deadline", "roster_deadline"),
+    event_name = c("Rookie Draft", "R/F", "FT", "RFA", "B/R", "UDFA", "UFA Auction", "UFA signing deadline", "Rookie signing deadline"),
+    start_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
+    end_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
+    deadline_at = c(NA_character_, rep(NA_character_, 6), NA_character_, paste0(season, "-07-01 00:00:00"))
   )
 }
 
@@ -124,13 +124,13 @@ parse_mfl_activity_time <- function(x) {
 offseason_config_messages <- function(config) {
   needed_pre_ufa <- c("R/F", "FT", "RFA", "B/R", "UDFA")
   pre_ufa <- config |> filter(.data$event_type == "pre_ufa_auction")
-  ufa <- config |> filter(.data$event_type == "ufa_auction_first_three_days")
+  ufa <- config |> filter(.data$event_type == "ufa_auction")
   deadlines <- config |> filter(.data$event_type == "roster_deadline")
   messages <- character()
   missing_pre_ufa <- setdiff(needed_pre_ufa, pre_ufa$event_name)
   if (length(missing_pre_ufa)) messages <- c(messages, paste0("Missing pre-UFA auction windows: ", paste(missing_pre_ufa, collapse = ", ")))
   if (nrow(pre_ufa) < 5L || any(is.na(parse_et_datetime(pre_ufa$start_at))) || any(is.na(parse_et_datetime(pre_ufa$end_at)))) messages <- c(messages, "One or more pre-UFA auction windows are missing start_at/end_at.")
-  if (!nrow(ufa) || is.na(parse_et_datetime(ufa$start_at[[1]])) || is.na(parse_et_datetime(ufa$end_at[[1]]))) messages <- c(messages, "Missing UFA first-three-days start_at/end_at.")
+  if (!nrow(ufa) || is.na(parse_et_datetime(ufa$start_at[[1]]))) messages <- c(messages, "Missing UFA auction start_at.")
   if (!nrow(deadlines) || any(is.na(parse_et_datetime(deadlines$deadline_at)))) messages <- c(messages, "One or more roster deadline rows are missing deadline_at.")
   messages
 }
@@ -312,7 +312,18 @@ evaluate_pre_ufa_auction_participation <- function(bids, config, franchises) {
 }
 
 evaluate_ufa_auction_bid_gaps <- function(bids, config, franchises) {
-  window <- config |> filter(.data$event_type == "ufa_auction_first_three_days") |> mutate(start_at = parse_et_datetime(.data$start_at), end_at = parse_et_datetime(.data$end_at)) |> filter(!is.na(.data$start_at), !is.na(.data$end_at)) |> slice_head(n = 1)
+  window <- config |>
+    filter(.data$event_type == "ufa_auction") |>
+    mutate(start_at = parse_et_datetime(.data$start_at), end_at = .data$start_at + lubridate::hours(72)) |>
+    filter(!is.na(.data$start_at), !is.na(.data$end_at)) |>
+    slice_head(n = 1)
+  if (!nrow(window)) {
+    window <- config |>
+      filter(.data$event_type == "ufa_auction_first_three_days") |>
+      mutate(start_at = parse_et_datetime(.data$start_at), end_at = parse_et_datetime(.data$end_at)) |>
+      filter(!is.na(.data$start_at), !is.na(.data$end_at)) |>
+      slice_head(n = 1)
+  }
   if (!nrow(window)) return(empty_inactivity_rows())
   bind_rows(lapply(seq_len(nrow(franchises)), function(i) {
     franchise_row <- franchises[i, ]
