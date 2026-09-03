@@ -139,6 +139,39 @@ Offseason Inactivity Monitor:
 
 R/offseason\_inactivity\_monitor.R checks offseason inactivity policies and reuses the commissioner-alert email plumbing. Season-specific date windows live in data/source/offseason\_inactivity\_windows\_<season>.csv and should be updated each offseason before running retroactive auction-window checks.
 
+Annual Season Rollover Checklist:
+
+At the start of each ADL season, update CURRENT\_SEASON in the GitHub Actions workflows and create/update data/source/offseason\_inactivity\_windows\_<season>.csv. Codex should explicitly prompt for every date/value below before enabling the new season's daily checks.
+
+Required annual date fields:
+
+- rookie\_draft, Rookie Draft: end\_at. Once this passes, rookie draft clock-expiration checks stop for the season.
+- pre\_ufa\_auction, R/F: start\_at and end\_at.
+- pre\_ufa\_auction, FT: start\_at and end\_at.
+- pre\_ufa\_auction, RFA: start\_at and end\_at.
+- pre\_ufa\_auction, B/R: start\_at and end\_at.
+- pre\_ufa\_auction, UDFA: start\_at and end\_at. Salary-below-UDFA adjustment checks begin after this window ends.
+- ufa\_auction, UFA Auction: start\_at. Bid-adjustment checks begin at 12:00:01 a.m. ET on the eighth day of this auction.
+- ufa\_auction\_first\_three\_days, UFA: start\_at and end\_at. Used for the 24-hour no-bid inactivity rule during the first three UFA days.
+- roster\_deadline, UFA signing deadline: deadline\_at.
+- roster\_deadline, Rookie signing deadline: deadline\_at.
+- roster\_cutdown\_1: date/time, configured in R/commissioner\_alerts.R defaults or ADL\_ROSTER\_CUTDOWN\_1\_AT.
+- final\_roster\_cutdown: date/time, configured in R/commissioner\_alerts.R defaults or ADL\_FINAL\_ROSTER\_CUTDOWN\_AT. The late-offseason NG bid-adjustment rule stops at this deadline, and in-season salary accounting begins after this deadline.
+- ADL\_WEEK\_ONE\_START: first date used to infer the active in-season fantasy week for lineup checks.
+
+Required annual values:
+
+- ADL salary cap baseline and individual franchise salary caps from MFL.
+- ADL SD minimum, via ADL\_SD\_MIN\_<season> or the fallback table in R/commissioner\_alerts.R.
+- NFL bye weeks, if the dashboard's fallback table is not current.
+- Commissioner digest franchises and optional extra recipients/CCs if roles changed.
+
+One-time checks:
+
+- Deadline-based checks should be scheduled/run once at the deadline and then treated as complete.
+- Draft-clock checks should not continue after the rookie draft end date.
+- Issued inactivity violations are tracked in data/offseason\_inactivity/issued\_violations\_<season>.csv and data/inseason\_inactivity/issued\_violations\_<season>.csv so daily monitors only email newly confirmed violations.
+
 Additional GitHub Actions secrets needed for commissioner alert emails:
 
 - ADL_ALERT_EMAIL_FROM
