@@ -280,53 +280,59 @@ evaluate_poll_endpoint_availability <- function(activity) {
 }
 
 poll_audit_records <- function(activity, franchises) {
-  records <- collect_named_records(
-    activity$polls,
-    c("id", "poll_id", "poll", "question", "votes", "vote", "voted", "answer", "franchise", "franchise_id")
-  )
-  tbl <- tibble::as_tibble(records)
-  if (!nrow(tbl)) {
+  poll_records <- list()
+  visit_poll_records <- function(value) {
+    if (is.null(value) || !is.list(value)) return(invisible(NULL))
+    value_names <- names(value) %||% character()
+    if ("answer" %in% value_names && length(intersect(value_names, c("id", "question", "author", "hasVoted")))) {
+      poll_records[[length(poll_records) + 1L]] <<- value
+      return(invisible(NULL))
+    }
+    invisible(lapply(value, visit_poll_records))
+  }
+  visit_poll_records(activity$polls)
+
+  if (!length(poll_records)) {
     return(tibble(
       poll_id = character(),
       question = character(),
-      franchise_id = character(),
-      franchise = character(),
-      franchise_name = character(),
-      vote_value = character(),
-      voted_flag = character(),
-      answer_value = character(),
-      record_names = character(),
-      raw_text = character()
+      author = character(),
+      has_voted = character(),
+      expires = character(),
+      multiple_choice = character(),
+      answer_id = character(),
+      answer_text = character(),
+      answer_votes = character(),
+      raw_poll_text = character()
     ))
   }
 
-  id_lookup <- adl_franchise_id_lookup()
-  franchise_id <- as.character(coalesce_record_col(tbl, c("franchise_id", "franchiseId", "franchise"), NA_character_))
-  normalized <- tibble(
-    poll_id = as.character(coalesce_record_col(tbl, c("poll_id", "pollId", "id", "poll"), NA_character_)),
-    question = as.character(coalesce_record_col(tbl, c("question", "title", "poll_question", "caption"), NA_character_)),
-    franchise_id = franchise_id,
-    vote_value = as.character(coalesce_record_col(tbl, c("votes", "vote", "choice", "selected", "selected_answer"), NA_character_)),
-    voted_flag = as.character(coalesce_record_col(tbl, c("voted", "has_voted", "already_voted"), NA_character_)),
-    answer_value = as.character(coalesce_record_col(tbl, c("answer", "answers", "answer_id", "answerId"), NA_character_)),
-    record_names = vapply(seq_len(nrow(tbl)), function(i) paste(names(tbl)[!is.na(tbl[i, ])], collapse = "|"), character(1)),
-    raw_text = record_text(tbl)
-  ) |>
-    mutate(
-      franchise_code = toupper(.data$franchise_id),
-      franchise_id_padded = if_else(
-        grepl("^[0-9]+$", .data$franchise_id),
-        sprintf("%04d", suppressWarnings(as.integer(.data$franchise_id))),
-        NA_character_
-      )
-    ) |>
-    left_join(id_lookup, by = c(franchise_id_padded = "franchise_id")) |>
-    mutate(franchise = coalesce(.data$franchise, .env$franchises$franchise[match(.data$franchise_code, toupper(.env$franchises$franchise))])) |>
-    left_join(franchises, by = "franchise") |>
-    select(.data$poll_id, .data$question, .data$franchise_id, .data$franchise, .data$franchise_name, .data$vote_value, .data$voted_flag, .data$answer_value, .data$record_names, .data$raw_text)
+  bind_rows(lapply(poll_records, function(poll) {
+    answers <- poll$answer %||% list()
+    if (inherits(answers, "data.frame")) {
+      answers <- lapply(seq_len(nrow(answers)), function(i) as.list(answers[i, , drop = FALSE]))
+    } else if (is.list(answers) && length(answers) && !is.null(names(answers)) && length(intersect(names(answers), c("id", "text", "votes")))) {
+      answers <- list(answers)
+    }
+    if (!length(answers)) answers <- list(list(id = NA_character_, text = NA_character_, votes = NA_character_))
 
-  normalized |>
-    distinct(.data$poll_id, .data$franchise_id, .data$raw_text, .keep_all = TRUE)
+    bind_rows(lapply(answers, function(answer) {
+      answer <- as.list(answer)
+      tibble(
+        poll_id = as.character(poll$id %||% NA_character_),
+        question = as.character(poll$question %||% NA_character_),
+        author = as.character(poll$author %||% NA_character_),
+        has_voted = as.character(poll$hasVoted %||% NA_character_),
+        expires = as.character(poll$expires %||% NA_character_),
+        multiple_choice = as.character(poll$multiple_choice %||% NA_character_),
+        answer_id = as.character(answer$id %||% NA_character_),
+        answer_text = as.character(answer$text %||% NA_character_),
+        answer_votes = as.character(answer$votes %||% NA_character_),
+        raw_poll_text = paste(capture.output(str(poll, max.level = 2)), collapse = " ")
+      )
+    }))
+  })) |>
+    distinct(.data$poll_id, .data$answer_id, .keep_all = TRUE)
 }
 
 evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config = NULL) {
