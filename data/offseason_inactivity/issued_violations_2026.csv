@@ -1,0 +1,12 @@
+violation_key,issued_at,season,conference,franchise,franchise_name,rule,season_phase
+ufa_bid_gap|BUF|202606151200,2026-09-03 00:07:51 UTC,2026,AFC,BUF,Buffalo Bills,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
+ufa_bid_gap|CIN|202606151200,2026-09-03 00:07:51 UTC,2026,AFC,CIN,Cincinnati Bengals,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
+ufa_bid_gap|IND|202606171152,2026-09-03 00:07:51 UTC,2026,AFC,IND,Indianapolis Colts,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
+ufa_bid_gap|LVR|202606151206,2026-09-03 00:07:51 UTC,2026,AFC,LVR,Las Vegas Raiders,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
+offseason_repeated_roster|2026|LVR|2026-06-30,2026-09-03 00:07:51 UTC,2026,AFC,LVR,Las Vegas Raiders,Repeated illegal roster violation for three consecutive days at the early morning snapshot,offseason
+offseason_roster_deadline|2026|Rookie signing deadline|LVR,2026-09-03 00:07:51 UTC,2026,AFC,LVR,Las Vegas Raiders,Rookie signing deadline: illegal roster at deadline,offseason
+offseason_repeated_roster|2026|CAR|2026-06-30,2026-09-03 00:07:51 UTC,2026,NFC,CAR,Carolina Panthers,Repeated illegal roster violation for three consecutive days at the early morning snapshot,offseason
+offseason_roster_deadline|2026|Rookie signing deadline|CAR,2026-09-03 00:07:51 UTC,2026,NFC,CAR,Carolina Panthers,Rookie signing deadline: illegal roster at deadline,offseason
+offseason_repeated_roster|2026|NYG|2026-06-30,2026-09-03 00:07:51 UTC,2026,NFC,NYG,New York Giants,Repeated illegal roster violation for three consecutive days at the early morning snapshot,offseason
+offseason_roster_deadline|2026|Rookie signing deadline|NYG,2026-09-03 00:07:51 UTC,2026,NFC,NYG,New York Giants,Rookie signing deadline: illegal roster at deadline,offseason
+ufa_bid_gap|SEA|202606171041,2026-09-03 00:07:51 UTC,2026,NFC,SEA,Seattle Seahawks,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
