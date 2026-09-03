@@ -154,6 +154,239 @@ salary_cap_suspension_excluded_rows <- function(rosters) {
   status == "SUSPENDED"
 }
 
+adl_sd_minimum <- function(season = get_current_season()) {
+  configured <- suppressWarnings(as.numeric(Sys.getenv(paste0("ADL_SD_MIN_", season), unset = NA_character_)))
+  if (!is.na(configured)) return(configured)
+  mins <- c(
+    `2020` = 1.32,
+    `2021` = 1.22,
+    `2022` = 1.39,
+    `2023` = 1.50,
+    `2024` = 1.70,
+    `2025` = 1.86,
+    `2026` = 2.01
+  )
+  value <- mins[[as.character(season)]]
+  if (is.null(value) || is.na(value)) {
+    stop("Missing ADL SD minimum for ", season, ". Set ADL_SD_MIN_", season, ".", call. = FALSE)
+  }
+  value
+}
+
+round_up_to_tenth <- function(x) {
+  ceiling(as.numeric(x) * 10) / 10
+}
+
+read_commissioner_offseason_windows <- function(season = get_current_season()) {
+  path <- Sys.getenv("ADL_INACTIVITY_CONFIG", unset = file.path("data", "source", paste0("offseason_inactivity_windows_", season, ".csv")))
+  if (!file.exists(path)) return(tibble(event_type = character(), event_name = character(), start_at = character(), end_at = character(), deadline_at = character()))
+  read_csv(path, show_col_types = FALSE) |>
+    mutate(across(everything(), ~ trimws(as.character(.x))))
+}
+
+parse_commissioner_et_datetime <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x[!nzchar(x)] <- NA_character_
+  as.POSIXct(x, tz = "America/New_York")
+}
+
+commissioner_window_time <- function(season = get_current_season(), event_type, event_name = NULL, field = "end_at", default = NA) {
+  windows <- read_commissioner_offseason_windows(season)
+  row <- windows |>
+    filter(.data$event_type == .env$event_type)
+  if (!is.null(event_name)) {
+    row <- row |> filter(toupper(.data$event_name) == toupper(.env$event_name))
+  }
+  row <- row |> slice_head(n = 1)
+  if (!nrow(row) || !field %in% names(row)) return(default)
+  parsed <- parse_commissioner_et_datetime(row[[field]][[1]])
+  if (is.na(parsed)) default else parsed
+}
+
+udfa_salary_check_start <- function(season = get_current_season()) {
+  commissioner_window_time(
+    season = season,
+    event_type = "pre_ufa_auction",
+    event_name = "UDFA",
+    field = "end_at",
+    default = as.POSIXct(paste0(season, "-05-15 00:00:00"), tz = "America/New_York")
+  )
+}
+
+ufa_ng_bid_adjustment_start <- function(season = get_current_season()) {
+  ufa_start <- commissioner_window_time(
+    season = season,
+    event_type = "ufa_auction_first_three_days",
+    event_name = "UFA",
+    field = "start_at",
+    default = as.POSIXct(paste0(season, "-06-15 12:00:00"), tz = "America/New_York")
+  )
+  start_date <- as.Date(lubridate::with_tz(ufa_start, "America/New_York")) + 7
+  as.POSIXct(paste0(start_date, " 00:00:01"), tz = "America/New_York")
+}
+
+derive_udfa_price <- function(rosters, season = get_current_season()) {
+  roster_tbl <- tibble::as_tibble(rosters) |>
+    mutate(
+      contract = as.character(.data$contract %||% ""),
+      prev_salary = suppressWarnings(as.numeric(.data$prev_salary))
+    ) |>
+    filter(
+      grepl(paste0("\\b", .env$season, "\\s+UDFA\\b"), .data$contract, ignore.case = TRUE),
+      !is.na(.data$prev_salary),
+      .data$prev_salary > 0
+    )
+  if (!nrow(roster_tbl)) return(NA_real_)
+
+  roster_tbl |>
+    count(.data$prev_salary, sort = TRUE) |>
+    arrange(desc(.data$n), .data$prev_salary) |>
+    slice_head(n = 1) |>
+    pull(.data$prev_salary)
+}
+
+commissioner_only_alert_types <- function() {
+  c("Salary Adjustments")
+}
+
+is_commissioner_only_alert <- function(alerts) {
+  alert_tbl <- tibble::as_tibble(alerts)
+  if (!nrow(alert_tbl)) return(logical())
+  explicit <- if ("commissioner_only" %in% names(alert_tbl)) {
+    coalesce(as.logical(alert_tbl$commissioner_only), FALSE)
+  } else {
+    rep(FALSE, nrow(alert_tbl))
+  }
+  explicit | alert_tbl$alert_type %in% commissioner_only_alert_types()
+}
+
+empty_adjustment_alert_rows <- function() {
+  tibble(
+    alert_type = character(),
+    severity = character(),
+    conference = character(),
+    franchise = character(),
+    franchise_name = character(),
+    rule = character(),
+    observed = character(),
+    details = character(),
+    commissioner_only = logical()
+  )
+}
+
+evaluate_salary_adjustment_alerts <- function(rosters, season = get_current_season(), checked_at = Sys.time()) {
+  if (as.POSIXct(checked_at, tz = "America/New_York") < udfa_salary_check_start(season)) {
+    return(empty_adjustment_alert_rows())
+  }
+  udfa_price <- derive_udfa_price(rosters, season = season)
+  if (is.na(udfa_price)) return(empty_adjustment_alert_rows())
+
+  rosters |>
+    mutate(prev_salary = suppressWarnings(as.numeric(.data$prev_salary))) |>
+    filter(!is.na(.data$prev_salary), .data$prev_salary + 0.0001 < .env$udfa_price) |>
+    transmute(
+      alert_type = "Salary Adjustments",
+      severity = "warning",
+      conference,
+      franchise = NA_character_,
+      franchise_name = NA_character_,
+      rule = "Salary adjustment needed",
+      observed = paste0(.data$player, " in ", .data$conference, " has salary below UDFA. Please adjust."),
+      details = paste0("Current salary: ", format_millions(.data$prev_salary), "; UDFA salary: ", format_millions(.env$udfa_price), "."),
+      commissioner_only = TRUE
+    )
+}
+
+collect_commissioner_named_records <- function(x, names_any = character()) {
+  out <- list()
+  visit <- function(value) {
+    if (is.null(value)) return(NULL)
+    if (inherits(value, "data.frame")) {
+      out[[length(out) + 1L]] <<- tibble::as_tibble(value)
+      return(NULL)
+    }
+    if (!is.list(value)) return(NULL)
+    value_names <- names(value) %||% character()
+    if (length(value_names) && length(intersect(tolower(value_names), tolower(names_any)))) {
+      out[[length(out) + 1L]] <<- tibble::as_tibble(as.list(value))
+    }
+    invisible(lapply(value, visit))
+  }
+  visit(x)
+  if (!length(out)) return(tibble())
+  bind_rows(out)
+}
+
+normalize_commissioner_auction_records <- function(records, rosters) {
+  tbl <- tibble::as_tibble(records)
+  if (!nrow(tbl)) {
+    return(tibble(player_id = character(), player_name = character(), bid_amount = numeric()))
+  }
+  player_id <- as.character(coalesce_col(tbl, c("player_id", "playerId", "player", "id"), NA_character_))
+  player_name <- as.character(coalesce_col(tbl, c("player_name", "playerName", "name"), NA_character_))
+  bid_raw <- as.character(coalesce_col(tbl, c("amount", "bid", "highBid", "currentBid", "current_bid", "price", "salary"), NA_character_))
+  player_lookup <- rosters |>
+    distinct(.data$player_id, .data$player, .data$player_name, .data$player_team, .data$player_pos)
+  tibble(player_id = player_id, player_name = player_name, bid_amount = suppressWarnings(as.numeric(gsub("[$,]", "", bid_raw)))) |>
+    filter(!is.na(.data$player_id), nzchar(.data$player_id), !is.na(.data$bid_amount)) |>
+    left_join(player_lookup, by = "player_id") |>
+    mutate(
+      player_label = coalesce(
+        .data$player,
+        trimws(paste(.data$player_name, .data$player_team, .data$player_pos)),
+        .data$player_name,
+        .data$player_id
+      )
+    ) |>
+    distinct(.data$player_id, .data$bid_amount, .keep_all = TRUE)
+}
+
+fetch_mfl_auction_adjustment_records <- function(season = get_current_season(), rosters) {
+  if (!requireNamespace("ffscrapr", quietly = TRUE)) return(tibble())
+  conn <- connect_adl_mfl(season)
+  payloads <- lapply(c("auctionResults", "auctions", "auction"), function(endpoint) {
+    tryCatch(
+      ffscrapr::mfl_getendpoint(conn, endpoint)[["content"]],
+      error = function(e) NULL
+    )
+  })
+  records <- bind_rows(lapply(payloads, collect_commissioner_named_records, names_any = c("player_id", "playerId", "player", "amount", "bid", "highBid", "currentBid", "price")))
+  normalize_commissioner_auction_records(records, rosters)
+}
+
+evaluate_bid_adjustment_alerts <- function(rosters, season = get_current_season(), checked_at = Sys.time(), force_live = FALSE) {
+  checked_at <- as.POSIXct(checked_at, tz = "America/New_York")
+  if (checked_at < ufa_ng_bid_adjustment_start(season) || checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
+    return(empty_adjustment_alert_rows())
+  }
+  if (!isTRUE(force_live)) return(empty_adjustment_alert_rows())
+
+  sd_min <- adl_sd_minimum(season)
+  required_bid <- round_up_to_tenth(sd_min)
+  auction_records <- tryCatch(
+    fetch_mfl_auction_adjustment_records(season = season, rosters = rosters),
+    error = function(e) {
+      warning("MFL auction records unavailable for bid-adjustment check: ", conditionMessage(e), call. = FALSE)
+      tibble()
+    }
+  )
+  if (!nrow(auction_records)) return(empty_adjustment_alert_rows())
+
+  auction_records |>
+    filter(.data$bid_amount > 0, .data$bid_amount + 0.0001 < .env$sd_min) |>
+    transmute(
+      alert_type = "Salary Adjustments",
+      severity = "warning",
+      conference = NA_character_,
+      franchise = NA_character_,
+      franchise_name = NA_character_,
+      rule = "Bid adjustment needed",
+      observed = paste0(.data$player_label, " needs an auction bid adjustment up to an SD minimum bid (", format_millions(.env$required_bid), ")."),
+      details = paste0("Current auction bid: ", format_millions(.data$bid_amount), "; SD Minimum: ", format_millions(.env$sd_min), "."),
+      commissioner_only = TRUE
+    )
+}
+
 commissioner_alert_cutdown_datetime <- function(season = get_current_season(), cutdown_id) {
   defaults <- tibble(
     cutdown_id = c("roster_cutdown_1", "final_roster_cutdown"),
@@ -281,7 +514,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise,
           franchise_name,
           rule = paste0("Maximum ", .env$max_active_taxi, " players on Active Roster + Taxi Squad"),
-          observed = paste0(.data$active_plus_taxi, " Active + Taxi players"),
+          observed = paste0(.data$active_plus_taxi, " active/taxi players"),
           details = paste0(.data$active_plus_taxi - .env$max_active_taxi, " above maximum")
         )
     },
@@ -295,7 +528,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise,
           franchise_name,
           rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
-          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
+          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout active/taxi players"),
           details = paste0(.data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi, " above maximum")
         )
     },
@@ -469,8 +702,7 @@ evaluate_salary_cap_average_warnings <- function(
   rosters,
   season = get_current_season(),
   salary_cap_adjustments = NULL,
-  summary = read_cap_accounting_summary(season),
-  target_week = NULL
+  summary = read_cap_accounting_summary(season)
 ) {
   current <- current_cap_accounting_expenditure(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
 
@@ -484,9 +716,6 @@ evaluate_salary_cap_average_warnings <- function(
   } else {
     summary_tbl <- tibble::as_tibble(summary)
     weeks <- cap_accounting_week_numbers(summary_tbl)
-    if (!is.null(target_week) && !is.na(target_week)) {
-      weeks <- weeks[weeks < as.integer(target_week)]
-    }
 
     bind_rows(lapply(seq_len(nrow(summary_tbl)), function(i) {
       row <- summary_tbl[i, , drop = FALSE]
@@ -683,9 +912,7 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
     franchises <- list_records(matchup[["franchise"]], record_names = c("id", "player"))
     for (franchise in franchises) {
       franchise_id <- record_field(franchise, "id")
-      players_raw <- franchise[["player"]]
-      if (is.null(players_raw) && !is.null(franchise[["players"]])) players_raw <- franchise[["players"]][["player"]]
-      players <- list_records(players_raw, record_names = c("id", "status"))
+      players <- list_records(franchise[["player"]], record_names = c("id", "status"))
       for (player in players) {
         rows[[length(rows) + 1L]] <- tibble(
           franchise_id = franchise_id,
@@ -725,27 +952,8 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
 fetch_live_lineups <- function(season = get_current_season(), week) {
   conn <- connect_adl_mfl(season)
   franchises <- ffscrapr::ff_franchises(conn)
-
-  live_scoring <- tryCatch(
-    ffscrapr::mfl_getendpoint(conn, "liveScoring", W = week, DETAILS = 1)[["content"]][["liveScoring"]][["matchup"]],
-    error = function(e) {
-      warning("MFL liveScoring lineup source unavailable; trying weeklyResults: ", conditionMessage(e), call. = FALSE)
-      NULL
-    }
-  )
-  starters <- normalize_mfl_weekly_result_lineups(live_scoring)
-
-  if (!nrow(starters)) {
-    weekly_results <- tryCatch(
-      ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]],
-      error = function(e) {
-        warning("MFL weeklyResults lineup source unavailable: ", conditionMessage(e), call. = FALSE)
-        NULL
-      }
-    )
-    starters <- normalize_mfl_weekly_result_lineups(weekly_results)
-  }
-
+  weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
+  starters <- normalize_mfl_weekly_result_lineups(weekly_results)
   players_response <- ffscrapr::mfl_getendpoint(conn, "players")
   players_raw <- players_response[["content"]][["players"]][["player"]]
   player_records <- list_records(players_raw, record_names = c("id", "name", "team", "position"))
@@ -2066,6 +2274,7 @@ evaluate_illegal_lineup_alerts <- function(
 commissioner_alert_sort_order <- function(alert_type, rule) {
   case_when(
     alert_type == "In-Season Inactivity Violation" ~ 0L,
+    alert_type == "Salary Adjustments" ~ 1L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 21 total starters") ~ 1L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 7 offensive starters") ~ 2L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 12 defensive starters") ~ 3L,
@@ -2117,13 +2326,18 @@ build_commissioner_alerts <- function(
   rosters <- load_current_rosters(force_live = force_live, source = "auto", season = season, week = week)
   alerts <- list()
 
+  alerts$adjustments <- bind_rows(
+    evaluate_salary_adjustment_alerts(rosters, season = season, checked_at = checked_at),
+    evaluate_bid_adjustment_alerts(rosters, season = season, checked_at = checked_at, force_live = force_live)
+  )
+
   if (include_offseason) {
     alerts$roster_cap <- evaluate_roster_cap_alerts(rosters, rule = roster_cap_rule, season = season, checked_at = checked_at)
     if (isTRUE(include_contract_years)) {
       alerts$contract_years <- evaluate_contract_years_alerts(rosters)
     }
     if (isTRUE(include_salary_cap)) {
-      use_inseason_salary_accounting <- isTRUE(include_inseason) || checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
+      use_inseason_salary_accounting <- checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
       salary_cap_adjustments <- if (isTRUE(force_live)) {
         tryCatch(fetch_mfl_salary_cap_adjustments(season = season), error = function(e) {
           warning("MFL salary cap adjustments unavailable; using zero adjustments: ", conditionMessage(e), call. = FALSE)
@@ -2133,7 +2347,7 @@ build_commissioner_alerts <- function(
         NULL
       }
       alerts$salary_cap <- if (isTRUE(use_inseason_salary_accounting)) {
-        evaluate_salary_cap_average_warnings(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments, target_week = if (isTRUE(include_inseason) && !is.null(week) && !is.na(week)) week else NULL)
+        evaluate_salary_cap_average_warnings(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
       } else {
         evaluate_salary_cap_alerts(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
       }
@@ -2264,10 +2478,19 @@ read_commissioner_alert_reports <- function(max_reports = 10L) {
 }
 
 render_alert_detail_lines <- function(row, prefix = NULL) {
+  if (identical(row$alert_type[[1]], "Salary Adjustments")) {
+    lines <- c(row$observed[[1]] %||% row$rule[[1]])
+    details <- row$details[[1]] %||% ""
+    if (nzchar(trimws(details))) {
+      lines <- c(lines, paste0("Details: ", details))
+    }
+    return(c(lines, ""))
+  }
+
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
   header <- if (is.null(prefix)) {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0(franchise_label, " committed an inactivity violation: ", row$rule)
+      paste0("**", franchise_label, " committed an inactivity violation: ", row$rule, "**")
     } else
     if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
       paste0(franchise_label, " Rule Violation: ", row$rule)
@@ -2276,7 +2499,7 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
     }
   } else {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0(prefix, " committed an inactivity violation: ", row$rule)
+      paste0("**", prefix, " committed an inactivity violation: ", row$rule, "**")
     } else {
       paste0(prefix, ": ", row$rule)
     }
@@ -2296,9 +2519,6 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   }
 
   details <- row$details[[1]] %||% ""
-  if (identical(row$alert_type[[1]], "Roster Cap Violation") || identical(row$observed[[1]], "No starting lineup submitted")) {
-    details <- ""
-  }
   lines <- if (is.null(prefix)) {
     c(header, paste0("Observed: ", row$observed))
   } else {
@@ -2326,16 +2546,9 @@ render_gm_alert_rule_lines <- function(row) {
   }
 
   details <- row$details[[1]] %||% ""
-  if (identical(row$alert_type[[1]], "Roster Cap Violation") || identical(row$observed[[1]], "No starting lineup submitted")) {
-    details <- ""
-  }
   lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
   if (nzchar(trimws(details))) {
-    if (identical(row$alert_type[[1]], "Salary Cap Warning")) {
-      lines <- c(lines, details)
-    } else {
-      lines <- c(lines, paste0("Details: ", details))
-    }
+    lines <- c(lines, paste0("Details: ", details))
   }
   c(lines, "")
 }
@@ -2381,7 +2594,7 @@ render_commissioner_alert_email <- function(
   for (alert_type in names(groups)) {
     rows <- groups[[alert_type]] |>
       arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
-    lines <- c(lines, strrep("-", nchar(alert_type)), alert_type, strrep("-", nchar(alert_type)))
+    lines <- c(lines, paste0("**", alert_type, "**"), strrep("-", nchar(alert_type)))
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_alert_detail_lines(row))
@@ -2669,7 +2882,27 @@ send_commissioner_alert_email <- function(
     ))
   }
 
-  offender_franchises <- unique(alerts$franchise)
+  offender_alerts <- alerts |>
+    filter(
+      !is_commissioner_only_alert(dplyr::pick(dplyr::everything())),
+      !is.na(.data$franchise),
+      nzchar(.data$franchise)
+    )
+  offender_franchises <- unique(offender_alerts$franchise)
+  if (!length(offender_franchises)) {
+    body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
+    outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
+    digest_status <- send_alert_mail(subject = subject, body = body, to = recipients$email)
+    return(tibble(
+      sent = isTRUE(digest_status$sent),
+      reason = digest_status$reason,
+      outbox_path = outbox_path,
+      recipients_path = recipients_path,
+      recipients = paste(recipients$email, collapse = ", "),
+      gm_emails_sent = 0L
+    ))
+  }
+
   offender_recipients <- tryCatch(
     fetch_mfl_franchise_recipients(season = season, franchises = offender_franchises),
     error = function(e) e
@@ -2684,7 +2917,7 @@ send_commissioner_alert_email <- function(
   write_csv(offender_recipients, offender_recipient_path, na = "")
 
   gm_status <- bind_rows(lapply(offender_franchises, function(franchise) {
-    franchise_alerts <- alerts |> filter(.data$franchise == .env$franchise)
+    franchise_alerts <- offender_alerts |> filter(.data$franchise == .env$franchise)
     franchise_recipients <- offender_recipients |> filter(toupper(.data$franchise) == toupper(.env$franchise))
     gm_to <- franchise_recipients$email
     gm_cc <- conference_cc_email(franchise_alerts$conference[[1]])
