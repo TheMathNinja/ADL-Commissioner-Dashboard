@@ -76,11 +76,11 @@ empty_inactivity_rows <- function() {
 
 offseason_inactivity_config_template <- function(season = get_current_season()) {
   tibble(
-    event_type = c(rep("pre_ufa_auction", 5), "ufa_auction_first_three_days", "roster_deadline", "roster_deadline"),
-    event_name = c("R/F", "FT", "RFA", "B/R", "UDFA", "UFA", "UFA signing deadline", "Rookie signing deadline"),
-    start_at = c(rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
-    end_at = c(rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
-    deadline_at = c(rep(NA_character_, 6), NA_character_, NA_character_)
+    event_type = c("rookie_draft", rep("pre_ufa_auction", 5), "ufa_auction_first_three_days", "roster_deadline", "roster_deadline"),
+    event_name = c("Rookie Draft", "R/F", "FT", "RFA", "B/R", "UDFA", "UFA", "UFA signing deadline", "Rookie signing deadline"),
+    start_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
+    end_at = c(NA_character_, rep(NA_character_, 5), NA_character_, NA_character_, NA_character_),
+    deadline_at = c(NA_character_, rep(NA_character_, 6), NA_character_, NA_character_)
   )
 }
 
@@ -140,6 +140,15 @@ config_warning_rows <- function(messages, season = get_current_season()) {
   tibble(alert_type = "Offseason Inactivity Monitor", severity = "info", conference = NA_character_, franchise = NA_character_, franchise_name = "League", rule = "Offseason inactivity monitor configuration", observed = paste(messages, collapse = "; "), details = paste0("Add dates to ", offseason_inactivity_config_path(season), " before running retroactive auction-window and deadline checks."))
 }
 
+rookie_draft_check_is_active <- function(config, now = Sys.time()) {
+  window <- config |>
+    filter(.data$event_type == "rookie_draft") |>
+    mutate(end_at = parse_et_datetime(.data$end_at)) |>
+    filter(!is.na(.data$end_at)) |>
+    slice_head(n = 1)
+  if (!nrow(window)) return(TRUE)
+  now <= window$end_at[[1]]
+}
 
 adl_franchise_id_lookup <- function() {
   tibble(
@@ -270,7 +279,8 @@ evaluate_poll_endpoint_availability <- function(activity) {
   )
 }
 
-evaluate_rookie_draft_clock_expirations <- function(activity, franchises) {
+evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config = NULL) {
+  if (!is.null(config) && !rookie_draft_check_is_active(config)) return(empty_inactivity_rows())
   events <- bind_rows(normalize_activity_records(activity$draft_results, "draftResults", franchises), normalize_activity_records(activity$transactions, "transactions", franchises)) |>
     filter(grepl("expire|expired|timer|clock", .data$event_text, ignore.case = TRUE), grepl("draft", .data$event_text, ignore.case = TRUE), !is.na(.data$franchise)) |>
     distinct(.data$franchise, .data$round, .data$event_text, .keep_all = TRUE)
@@ -574,7 +584,7 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
     safe_offseason_review("Bylaw first-round voting check", evaluate_poll_endpoint_availability(activity)),
-    safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises)),
+    safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises, config = config)),
     safe_offseason_review("Pre-UFA auction participation", evaluate_pre_ufa_auction_participation(bids, config, franchises)),
     safe_offseason_review("UFA first-three-days 24-hour bid gaps", evaluate_ufa_auction_bid_gaps(bids, config, franchises)),
     safe_offseason_review("Illegal offseason waiver claims", evaluate_offseason_illegal_waiver_claims(activity, franchises, season = season)),
