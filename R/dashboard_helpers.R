@@ -262,18 +262,19 @@ build_archive_links_with_warnings_html <- function(archive_files_public, warning
   paste0("<ul>\n", links, "\n</ul>")
 }
 
-format_generated_at <- function(generated_at) {
+format_generated_at <- function(generated_at, label = "generated") {
   if (is.null(generated_at) || length(generated_at) == 0 || is.na(generated_at) || !nzchar(generated_at)) {
     return("")
   }
 
-  paste0(" <span class='generated-at'>(generated ", generated_at, ")</span>")
+  paste0(" <span class='generated-at'>(", label, " ", generated_at, ")</span>")
 }
 
 build_cap_links_html <- function(
   archive_files_public,
   generated_at_by_file = list(),
   warnings_by_file = list(),
+  generated_at_label = "generated",
   empty_text = "No archived CSV files yet."
 ) {
   if (length(archive_files_public) == 0) {
@@ -285,7 +286,7 @@ build_cap_links_html <- function(
   links <- paste0(
     "<li><a href='", archive_files_public, "'>", archive_file_labels, "</a>",
     vapply(archive_file_labels, function(label) {
-      format_generated_at(generated_at_by_file[[label]])
+      format_generated_at(generated_at_by_file[[label]], label = generated_at_label)
     }, character(1), USE.NAMES = FALSE),
     vapply(archive_file_labels, function(label) {
       warnings <- warnings_by_file[[label]]
@@ -477,7 +478,7 @@ build_commissioner_alert_clean_archive_html <- function(clean_report_files_publi
 }
 
 build_saladjcurator_html <- function(run_meta, archive_files_public, generated_at_by_file = list()) {
-  archive_links_html <- build_cap_links_html(archive_files_public, generated_at_by_file)
+  archive_links_html <- build_cap_links_html(archive_files_public, generated_at_by_file, generated_at_label = "reflects")
   last_checked <- if ("last_checked_display" %in% names(run_meta)) run_meta$last_checked_display[1] else run_meta$run_time_display[1]
   last_changed <- if ("last_changed_display" %in% names(run_meta)) run_meta$last_changed_display[1] else run_meta$run_time_display[1]
   changed_text <- if ("latest_csv_changed" %in% names(run_meta) && !is.na(run_meta$latest_csv_changed[1]) && isFALSE(run_meta$latest_csv_changed[1])) {
@@ -498,7 +499,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
           <div class='stat'><span class='stat-label'>Last checked</span><span class='stat-value'>", last_checked, "</span></div>
           <div class='stat'><span class='stat-label'>Latest change</span><span class='stat-value'>", last_changed, "</span></div>
           <div class='stat'><span class='stat-label'>Current qualifying rows</span><span class='stat-value'>", qualifying_rows, "</span></div>
-          <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/", latest_archive_filename, "'>", latest_archive_filename, "</a>", format_generated_at(latest_archive_generated_at), "</span></div>
+          <div class='stat'><span class='stat-label'>Latest CSV</span><span class='stat-value'><a href='downloads/", latest_archive_filename, "'>", latest_archive_filename, "</a>", format_generated_at(latest_archive_generated_at, label = "reflects"), "</span></div>
         </div>
         <p><strong>Status:</strong> ", changed_text, "</p>
       </section>
