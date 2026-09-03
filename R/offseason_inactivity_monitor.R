@@ -299,8 +299,9 @@ normalize_bid_events <- function(activity, franchises) {
     filter(!is.na(.data$franchise), grepl("bid|auction", .data$event_text, ignore.case = TRUE)) |>
     mutate(
       event_kind = case_when(
-        grepl("nominat", .data$event_text, ignore.case = TRUE) ~ "nomination",
-        grepl("bid", .data$event_text, ignore.case = TRUE) ~ "bid",
+        grepl("nominat|AUCTION_INIT", .data$event_text, ignore.case = TRUE) ~ "nomination",
+        grepl("AUCTION_BID|bid", .data$event_text, ignore.case = TRUE) ~ "bid",
+        grepl("AUCTION_WON", .data$event_text, ignore.case = TRUE) ~ "win",
         TRUE ~ "auction"
       ),
       commissioner_initiated = grepl("\\(C\\)|commissioner", .data$event_text, ignore.case = TRUE)
