@@ -1,10 +1,18 @@
 on:
   schedule:
-    - cron: 0 17 31 8 *
+    - cron: 15 10 * * *
   workflow_dispatch:
     inputs:
       send_email:
         description: Send offseason inactivity emails
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      mark_issued:
+        description: Mark newly found violations as already issued without sending email
         required: false
         default: "false"
         type: choice
@@ -37,7 +45,8 @@ jobs:
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_INACTIVITY_SEND_EMAIL: ${{ github.event_name == 'schedule' && 'true' || inputs.send_email }}
-      ADL_INACTIVITY_SEND_EMPTY: ${{ github.event_name == 'schedule' && 'true' || inputs.send_empty }}
+      ADL_INACTIVITY_SEND_EMPTY: ${{ github.event_name == 'schedule' && 'false' || inputs.send_empty }}
+      ADL_INACTIVITY_MARK_ISSUED: ${{ inputs.mark_issued }}
       ADL_INACTIVITY_FORCE_LIVE: true
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
