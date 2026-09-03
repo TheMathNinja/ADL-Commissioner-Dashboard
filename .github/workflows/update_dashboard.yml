@@ -29,6 +29,18 @@ jobs:
       RAW_CACHE_VERSION: v1
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_DASHBOARD_RUN_TYPE: ${{ github.event_name }}
+      ADL_SALADJ_SEND_EMAIL: true
+      ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
+      ADL_ALERT_NFC_CC: ${{ secrets.ADL_ALERT_NFC_CC }}
+      ADL_ALERT_AFC_CC: ${{ secrets.ADL_ALERT_AFC_CC }}
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_ALERT_EMAIL_TO: ${{ secrets.ADL_ALERT_EMAIL_TO }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
 
     steps:
       - name: Check out repository
@@ -115,7 +127,7 @@ jobs:
           dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
           .libPaths(Sys.getenv("R_LIBS_USER"))
 
-          packages <- c("dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          packages <- c("curl", "dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
           missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 
           if (length(missing) > 0) {
