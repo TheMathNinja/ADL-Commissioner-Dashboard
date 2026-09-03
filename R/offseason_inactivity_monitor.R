@@ -279,6 +279,56 @@ evaluate_poll_endpoint_availability <- function(activity) {
   )
 }
 
+poll_audit_records <- function(activity, franchises) {
+  records <- collect_named_records(
+    activity$polls,
+    c("id", "poll_id", "poll", "question", "votes", "vote", "voted", "answer", "franchise", "franchise_id")
+  )
+  tbl <- tibble::as_tibble(records)
+  if (!nrow(tbl)) {
+    return(tibble(
+      poll_id = character(),
+      question = character(),
+      franchise_id = character(),
+      franchise = character(),
+      franchise_name = character(),
+      vote_value = character(),
+      voted_flag = character(),
+      answer_value = character(),
+      record_names = character(),
+      raw_text = character()
+    ))
+  }
+
+  id_lookup <- adl_franchise_id_lookup()
+  franchise_id <- as.character(coalesce_record_col(tbl, c("franchise_id", "franchiseId", "franchise"), NA_character_))
+  normalized <- tibble(
+    poll_id = as.character(coalesce_record_col(tbl, c("poll_id", "pollId", "id", "poll"), NA_character_)),
+    question = as.character(coalesce_record_col(tbl, c("question", "title", "poll_question", "caption"), NA_character_)),
+    franchise_id = franchise_id,
+    vote_value = as.character(coalesce_record_col(tbl, c("votes", "vote", "choice", "selected", "selected_answer"), NA_character_)),
+    voted_flag = as.character(coalesce_record_col(tbl, c("voted", "has_voted", "already_voted"), NA_character_)),
+    answer_value = as.character(coalesce_record_col(tbl, c("answer", "answers", "answer_id", "answerId"), NA_character_)),
+    record_names = vapply(seq_len(nrow(tbl)), function(i) paste(names(tbl)[!is.na(tbl[i, ])], collapse = "|"), character(1)),
+    raw_text = record_text(tbl)
+  ) |>
+    mutate(
+      franchise_code = toupper(.data$franchise_id),
+      franchise_id_padded = if_else(
+        grepl("^[0-9]+$", .data$franchise_id),
+        sprintf("%04d", suppressWarnings(as.integer(.data$franchise_id))),
+        NA_character_
+      )
+    ) |>
+    left_join(id_lookup, by = c(franchise_id_padded = "franchise_id")) |>
+    mutate(franchise = coalesce(.data$franchise, .env$franchises$franchise[match(.data$franchise_code, toupper(.env$franchises$franchise))])) |>
+    left_join(franchises, by = "franchise") |>
+    select(.data$poll_id, .data$question, .data$franchise_id, .data$franchise, .data$franchise_name, .data$vote_value, .data$voted_flag, .data$answer_value, .data$record_names, .data$raw_text)
+
+  normalized |>
+    distinct(.data$poll_id, .data$franchise_id, .data$raw_text, .keep_all = TRUE)
+}
+
 evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config = NULL) {
   if (!is.null(config) && !rookie_draft_check_is_active(config)) return(empty_inactivity_rows())
   events <- bind_rows(normalize_activity_records(activity$draft_results, "draftResults", franchises), normalize_activity_records(activity$transactions, "transactions", franchises)) |>
@@ -679,8 +729,12 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
+  poll_audit <- safe_offseason_review("MFL poll audit", poll_audit_records(activity, franchises))
   pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
   pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
+  if ("poll_id" %in% names(poll_audit)) {
+    write_csv(poll_audit, offseason_inactivity_path("poll_audit", season), na = "")
+  }
   if ("event_name" %in% names(pre_ufa_events)) {
     write_csv(pre_ufa_events, offseason_inactivity_path("pre_ufa_auction_participation_events", season), na = "")
   }
