@@ -12,7 +12,14 @@ source("R/saladj_engine.R")
 current_season <- get_current_season()
 
 format_run_time <- function(x) {
-  out <- format(x, "%m/%d/%Y %I:%M %p %Z")
+  if (!inherits(x, "POSIXt")) {
+    x_chr <- as.character(x)
+    x <- suppressWarnings(as.POSIXct(x_chr, tz = "America/Toronto"))
+    if (is.na(x) && !is.na(suppressWarnings(as.numeric(x_chr)))) {
+      x <- as.POSIXct(as.numeric(x_chr), origin = "1970-01-01", tz = "UTC")
+    }
+  }
+  out <- format(lubridate::with_tz(x, "America/Toronto"), format = "%m/%d/%Y %I:%M %p %Z")
   out <- gsub("^0", "", out)
   out <- gsub("/0", "/", out)
   out <- gsub(" 0", " ", out)
