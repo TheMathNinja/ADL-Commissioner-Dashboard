@@ -216,11 +216,20 @@ udfa_salary_check_start <- function(season = get_current_season()) {
 ufa_ng_bid_adjustment_start <- function(season = get_current_season()) {
   ufa_start <- commissioner_window_time(
     season = season,
-    event_type = "ufa_auction_first_three_days",
-    event_name = "UFA",
+    event_type = "ufa_auction",
+    event_name = "UFA Auction",
     field = "start_at",
-    default = as.POSIXct(paste0(season, "-06-15 12:00:00"), tz = "America/New_York")
+    default = NA
   )
+  if (is.na(ufa_start)) {
+    ufa_start <- commissioner_window_time(
+      season = season,
+      event_type = "ufa_auction_first_three_days",
+      event_name = "UFA",
+      field = "start_at",
+      default = as.POSIXct(paste0(season, "-06-15 12:00:00"), tz = "America/New_York")
+    )
+  }
   start_date <- as.Date(lubridate::with_tz(ufa_start, "America/New_York")) + 7
   as.POSIXct(paste0(start_date, " 00:00:01"), tz = "America/New_York")
 }
