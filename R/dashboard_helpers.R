@@ -504,16 +504,24 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
         <p><strong>Status:</strong> ", changed_text, "</p>
       </section>
       <section class='panel'>
-        <h2>Instructions</h2>
+        <h2>Purpose</h2>
+        <p>
+        SalAdj Curator collects ADL transactions that may require commissioner salary-adjustment entry, including above-minimum salary drops and cash trades.
+        It is meant to give commissioners one current CSV plus a dated archive of prior actionable outputs.
+        </p>
+        <h2>Notes</h2>
+        <p>
+        The automated dashboard runner checks SalAdj Curator daily at 5 a.m. Eastern time.
+        Manual and code-triggered runs may also refresh the page, but a new dated SalAdj CSV is archived only when the actionable output changes.
+        When new rows are archived, commissioners receive an email digest titled &quot;There are new salary adjustments to enter.&quot;
+        </p>
         <p>
         For 2026, SalAdj Curator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
         Starting with May 1, 2026 transactions, this dashboard uses the automated ADL transaction scrape.
-        </p>
-        <p>
-        The manual seed is intentional.
         Through the NFL Draft date, April 23, 2026, offseason auction activity such as FT and B/R can create drops that should not be counted as ordinary salary-adjustment drops by the scraper.
         April 24-30, 2026 entries are also seeded from Contract Admin because they occurred before the scrape feed was running reliably.
         </p>
+        <h2>Instructions</h2>
         <p>
         Copy and paste DATE through CONTRACT columns and TR/IB through NOTES columns into the ADL Contract Admin sheet for each conference.
         This dashboard does not track Suspended status ((S) column) or July 1 Tenders (JT column); enter those manually when needed.
