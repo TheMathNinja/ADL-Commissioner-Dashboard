@@ -297,16 +297,87 @@ evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config
 normalize_bid_events <- function(activity, franchises) {
   bind_rows(normalize_activity_records(activity$transactions, "transactions", franchises), normalize_activity_records(activity$auction_results, "auctionResults", franchises)) |>
     filter(!is.na(.data$franchise), grepl("bid|auction", .data$event_text, ignore.case = TRUE)) |>
+    mutate(
+      event_kind = case_when(
+        grepl("nominat", .data$event_text, ignore.case = TRUE) ~ "nomination",
+        grepl("bid", .data$event_text, ignore.case = TRUE) ~ "bid",
+        TRUE ~ "auction"
+      ),
+      commissioner_initiated = grepl("\\(C\\)|commissioner", .data$event_text, ignore.case = TRUE)
+    ) |>
     distinct(.data$franchise, .data$occurred_at, .data$event_text, .keep_all = TRUE)
 }
 
-evaluate_pre_ufa_auction_participation <- function(bids, config, franchises) {
+pre_ufa_auction_windows <- function(config) {
   windows <- config |> filter(.data$event_type == "pre_ufa_auction") |> mutate(start_at = parse_et_datetime(.data$start_at), end_at = parse_et_datetime(.data$end_at)) |> filter(!is.na(.data$start_at), !is.na(.data$end_at))
-  if (nrow(windows) < 5L) return(empty_inactivity_rows())
-  participation <- bind_rows(lapply(seq_len(nrow(windows)), function(i) { window <- windows[i, ]; bids |> filter(.data$occurred_at >= window$start_at[[1]], .data$occurred_at <= window$end_at[[1]]) |> distinct(.data$franchise) |> transmute(franchise, event_name = window$event_name[[1]]) }))
+  windows
+}
+
+pre_ufa_auction_participation_events <- function(bids, config) {
+  windows <- pre_ufa_auction_windows(config)
+  if (!nrow(windows) || !nrow(bids)) {
+    return(tibble(
+      event_name = character(),
+      franchise = character(),
+      occurred_at = as.POSIXct(character()),
+      event_kind = character(),
+      commissioner_initiated = logical(),
+      event_text = character()
+    ))
+  }
+
+  bind_rows(lapply(seq_len(nrow(windows)), function(i) {
+    window <- windows[i, ]
+    bids |>
+      filter(.data$occurred_at >= window$start_at[[1]], .data$occurred_at <= window$end_at[[1]]) |>
+      transmute(
+        event_name = window$event_name[[1]],
+        franchise,
+        occurred_at,
+        event_kind = coalesce(.data$event_kind, "auction"),
+        commissioner_initiated = coalesce(.data$commissioner_initiated, FALSE),
+        event_text
+      )
+  })) |>
+    distinct(.data$event_name, .data$franchise, .data$occurred_at, .data$event_text, .keep_all = TRUE)
+}
+
+pre_ufa_auction_participation_detail <- function(bids, config, franchises) {
+  events <- pre_ufa_auction_participation_events(bids, config)
+  franchise_order <- franchises |> transmute(franchise, franchise_sort_order = row_number())
+
   franchises |>
-    left_join(participation |> group_by(.data$franchise) |> summarize(auction_bid_count = n_distinct(.data$event_name), auctions = paste(sort(unique(.data$event_name)), collapse = ", "), .groups = "drop"), by = "franchise") |>
-    mutate(auction_bid_count = coalesce(.data$auction_bid_count, 0L), auctions = if_else(nzchar(coalesce(.data$auctions, "")), .data$auctions, "none")) |>
+    left_join(
+      events |>
+        group_by(.data$franchise) |>
+        summarize(
+          auction_bid_count = n_distinct(.data$event_name),
+          auction_event_count = n(),
+          nomination_event_count = sum(.data$event_kind == "nomination", na.rm = TRUE),
+          commissioner_initiated_event_count = sum(.data$commissioner_initiated, na.rm = TRUE),
+          auctions = paste(sort(unique(.data$event_name)), collapse = ", "),
+          event_kinds = paste(sort(unique(.data$event_kind)), collapse = ", "),
+          .groups = "drop"
+        ),
+      by = "franchise"
+    ) |>
+    left_join(franchise_order, by = "franchise") |>
+    mutate(
+      auction_bid_count = coalesce(.data$auction_bid_count, 0L),
+      auction_event_count = coalesce(.data$auction_event_count, 0L),
+      nomination_event_count = coalesce(.data$nomination_event_count, 0L),
+      commissioner_initiated_event_count = coalesce(.data$commissioner_initiated_event_count, 0L),
+      auctions = if_else(nzchar(coalesce(.data$auctions, "")), .data$auctions, "none"),
+      event_kinds = if_else(nzchar(coalesce(.data$event_kinds, "")), .data$event_kinds, "none")
+    ) |>
+    arrange(.data$franchise_sort_order) |>
+    select(-.data$franchise_sort_order)
+}
+
+evaluate_pre_ufa_auction_participation <- function(bids, config, franchises) {
+  windows <- pre_ufa_auction_windows(config)
+  if (nrow(windows) < 5L) return(empty_inactivity_rows())
+  pre_ufa_auction_participation_detail(bids, config, franchises) |>
     filter(.data$auction_bid_count <= 1L) |>
     transmute(alert_type = "Offseason Inactivity Violation", severity = "violation", conference, franchise, franchise_name, rule = "Must place bids in at least 2 pre-UFA auctions: R/F, FT, RFA, B/R, and UDFA", observed = paste0(.data$auction_bid_count, " pre-UFA auction(s) with a bid"), details = paste0("Auctions with bids: ", .data$auctions), violation_key = paste("pre_ufa_participation", .data$franchise, sep = "|"), season_phase = "offseason")
 }
@@ -592,6 +663,14 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
+  pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
+  pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
+  if ("event_name" %in% names(pre_ufa_events)) {
+    write_csv(pre_ufa_events, offseason_inactivity_path("pre_ufa_auction_participation_events", season), na = "")
+  }
+  if ("auction_bid_count" %in% names(pre_ufa_detail)) {
+    write_csv(pre_ufa_detail, offseason_inactivity_path("pre_ufa_auction_participation", season), na = "")
+  }
   candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
     safe_offseason_review("Bylaw first-round voting check", evaluate_poll_endpoint_availability(activity)),
