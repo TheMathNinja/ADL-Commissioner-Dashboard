@@ -1,12 +1,12 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 2 new row(s) at 9/3/2026 9:40 a.m. EDT.
+SalAdj Curator published 2 new row(s) at 9/3/2026 4:37 p.m. EDT.
 Dashboard CSV: 2026_09_03_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 AFC
 ---
-- 9/1/2026 08:33:10 | NEP | Christian Rozeboom | salary $4.07; 1 yr; 2024 iEXT
-- 9/1/2026 08:57:44 | NEP | Joseph Ossai | salary $3.64; 2 yr; 2025 iEXT
+- 9/3/2026 15:23:30 | BAL | Noah Brown | salary $2.06; 1 yr; 2024 UFA; notes: PENDING WAIVER UNTIL 09/05/2026 05:00 AM EDT; SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
+- 9/3/2026 15:23:30 | BAL | Khalen Saunders | salary $2.06; 1 yr; 2024 UFA; notes: PENDING WAIVER UNTIL 09/05/2026 05:00 AM EDT; SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
 
