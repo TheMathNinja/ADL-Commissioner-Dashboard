@@ -11,6 +11,50 @@ offseason_inactivity_path <- function(name, season = get_current_season(), ext =
   file.path(offseason_inactivity_dir(), paste0(name, "_", season, ".", ext))
 }
 
+read_offseason_inactivity_issued <- function(season = get_current_season()) {
+  path <- offseason_inactivity_path("issued_violations", season)
+  if (!file.exists(path)) {
+    return(tibble(
+      violation_key = character(),
+      issued_at = character(),
+      season = integer(),
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      rule = character(),
+      season_phase = character()
+    ))
+  }
+  read_csv(path, show_col_types = FALSE) |>
+    mutate(violation_key = as.character(.data$violation_key))
+}
+
+write_offseason_inactivity_issued <- function(issued, season = get_current_season()) {
+  issued |>
+    distinct(.data$violation_key, .keep_all = TRUE) |>
+    arrange(.data$issued_at, .data$conference, .data$franchise, .data$rule) |>
+    write_csv(offseason_inactivity_path("issued_violations", season), na = "")
+}
+
+mark_offseason_inactivity_issued <- function(alerts, season = get_current_season(), run_time = Sys.time()) {
+  new_issued <- alerts |>
+    filter(.data$severity == "violation", !is.na(.data$violation_key), nzchar(.data$violation_key)) |>
+    transmute(
+      violation_key = .data$violation_key,
+      issued_at = format(.env$run_time, "%Y-%m-%d %H:%M:%S %Z"),
+      season = .env$season,
+      conference = .data$conference,
+      franchise = .data$franchise,
+      franchise_name = .data$franchise_name,
+      rule = .data$rule,
+      season_phase = .data$season_phase
+    )
+  if (!nrow(new_issued)) return(read_offseason_inactivity_issued(season))
+  issued <- bind_rows(read_offseason_inactivity_issued(season), new_issued)
+  write_offseason_inactivity_issued(issued, season = season)
+  read_offseason_inactivity_issued(season)
+}
+
 offseason_inactivity_config_path <- function(season = get_current_season()) {
   Sys.getenv("ADL_INACTIVITY_CONFIG", unset = file.path("data", "source", paste0("offseason_inactivity_windows_", season, ".csv")))
 }
@@ -522,12 +566,12 @@ safe_offseason_review <- function(component, expr) {
   tryCatch(expr, error = function(e) offseason_review_error_row(component, e))
 }
 
-build_offseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE) {
+build_offseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, include_info = FALSE, run_time = Sys.time()) {
   config <- read_offseason_inactivity_config(season)
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
-  alerts <- bind_rows(
+  candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
     safe_offseason_review("Bylaw first-round voting check", evaluate_poll_endpoint_availability(activity)),
     safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises)),
@@ -538,8 +582,25 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
     safe_offseason_review("UFA signing deadline review", evaluate_ufa_signing_deadline_review(config, season = season)),
     safe_offseason_review("Roster deadline inactivity checks", evaluate_roster_deadline_inactivity(season, config, force_live = force_live))
   ) |>
-    mutate(season = .env$season, checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), .before = 1) |>
+    mutate(season = .env$season, checked_at = format(.env$run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1) |>
     distinct(.data$alert_type, .data$franchise, .data$rule, .data$observed, .keep_all = TRUE) |>
+    arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise)
+  write_csv(candidates, offseason_inactivity_path("review", season), na = "")
+
+  issued <- read_offseason_inactivity_issued(season) |>
+    filter(!is.na(.data$violation_key), nzchar(.data$violation_key)) |>
+    distinct(.data$violation_key)
+
+  new_violations <- candidates |>
+    filter(.data$severity == "violation", !is.na(.data$violation_key), nzchar(.data$violation_key)) |>
+    anti_join(issued, by = "violation_key")
+
+  alerts <- if (isTRUE(include_info)) {
+    bind_rows(new_violations, candidates |> filter(.data$severity != "violation"))
+  } else {
+    new_violations
+  }
+  alerts <- alerts |>
     arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise)
   write_csv(alerts, offseason_inactivity_path("alerts", season), na = "")
   alerts
