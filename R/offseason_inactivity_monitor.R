@@ -189,11 +189,15 @@ safe_mfl_endpoint <- function(conn, endpoint, ...) {
 fetch_offseason_activity_records <- function(season = get_current_season()) {
   if (!requireNamespace("ffscrapr", quietly = TRUE)) stop("Package ffscrapr is required for the offseason inactivity monitor.", call. = FALSE)
   conn <- connect_adl_mfl(season)
+  franchise_ids <- adl_franchise_id_lookup()$franchise_id
   list(
     transactions = collect_named_records(safe_mfl_endpoint(conn, "transactions"), c("franchise_id", "franchise", "timestamp", "type", "comments", "description")),
     draft_results = collect_named_records(safe_mfl_endpoint(conn, "draftResults"), c("franchise_id", "franchise", "round", "pick", "comments", "timestamp")),
     auction_results = collect_named_records(safe_mfl_endpoint(conn, "auctionResults"), c("franchise_id", "franchise", "timestamp", "amount", "bid", "player_id", "auction")),
-    polls = safe_mfl_endpoint(conn, "polls")
+    polls = safe_mfl_endpoint(conn, "polls"),
+    polls_by_franchise = setNames(lapply(franchise_ids, function(franchise_id) {
+      safe_mfl_endpoint(conn, "polls", FRANCHISE_ID = franchise_id)
+    }), franchise_ids)
   )
 }
 
@@ -333,6 +337,40 @@ poll_audit_records <- function(activity, franchises) {
     }))
   })) |>
     distinct(.data$poll_id, .data$answer_id, .keep_all = TRUE)
+}
+
+poll_franchise_audit_records <- function(activity, franchises) {
+  payloads <- c(list(`0000` = activity$polls), activity$polls_by_franchise %||% list())
+  if (!length(payloads)) {
+    return(tibble(
+      request_franchise_id = character(),
+      request_franchise = character(),
+      request_franchise_name = character(),
+      poll_id = character(),
+      question = character(),
+      author = character(),
+      has_voted = character(),
+      expires = character(),
+      multiple_choice = character(),
+      answer_id = character(),
+      answer_text = character(),
+      answer_votes = character(),
+      raw_poll_text = character()
+    ))
+  }
+
+  id_lookup <- adl_franchise_id_lookup()
+  bind_rows(lapply(names(payloads), function(franchise_id) {
+    franchise_code <- id_lookup$franchise[match(franchise_id, id_lookup$franchise_id)] %||% NA_character_
+    request_name <- franchises$franchise_name[match(franchise_code, franchises$franchise)] %||% NA_character_
+    poll_audit_records(list(polls = payloads[[franchise_id]]), franchises) |>
+      mutate(
+        request_franchise_id = .env$franchise_id,
+        request_franchise = .env$franchise_code,
+        request_franchise_name = .env$request_name,
+        .before = 1
+      )
+  }))
 }
 
 evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config = NULL) {
@@ -736,10 +774,14 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   activity <- fetch_offseason_activity_records(season = season)
   bids <- normalize_bid_events(activity, franchises)
   poll_audit <- safe_offseason_review("MFL poll audit", poll_audit_records(activity, franchises))
+  poll_franchise_audit <- safe_offseason_review("MFL poll franchise audit", poll_franchise_audit_records(activity, franchises))
   pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
   pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
   if ("poll_id" %in% names(poll_audit)) {
     write_csv(poll_audit, offseason_inactivity_path("poll_audit", season), na = "")
+  }
+  if ("request_franchise_id" %in% names(poll_franchise_audit)) {
+    write_csv(poll_franchise_audit, offseason_inactivity_path("poll_franchise_audit", season), na = "")
   }
   if ("event_name" %in% names(pre_ufa_events)) {
     write_csv(pre_ufa_events, offseason_inactivity_path("pre_ufa_auction_participation_events", season), na = "")
