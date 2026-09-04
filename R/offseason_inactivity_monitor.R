@@ -191,6 +191,7 @@ fetch_offseason_activity_records <- function(season = get_current_season()) {
   conn <- connect_adl_mfl(season)
   franchise_ids <- adl_franchise_id_lookup()$franchise_id
   list(
+    conn = conn,
     transactions = collect_named_records(safe_mfl_endpoint(conn, "transactions"), c("franchise_id", "franchise", "timestamp", "type", "comments", "description")),
     draft_results = collect_named_records(safe_mfl_endpoint(conn, "draftResults"), c("franchise_id", "franchise", "round", "pick", "comments", "timestamp")),
     auction_results = collect_named_records(safe_mfl_endpoint(conn, "auctionResults"), c("franchise_id", "franchise", "timestamp", "amount", "bid", "player_id", "auction")),
@@ -199,6 +200,84 @@ fetch_offseason_activity_records <- function(season = get_current_season()) {
       safe_mfl_endpoint(conn, "polls", FRANCHISE_ID = franchise_id)
     }), franchise_ids)
   )
+}
+
+fetch_mfl_poll_page_html <- function(conn, season = get_current_season(), option = "69") {
+  if (!requireNamespace("httr", quietly = TRUE)) stop("Package httr is required to fetch the MFL poll page.", call. = FALSE)
+  league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  if (!nzchar(league_id)) league_id <- "60206"
+  url <- sprintf("https://www46.myfantasyleague.com/%s/options?L=%s&O=%s", season, league_id, option)
+  response <- httr::GET(
+    url,
+    httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+    conn$auth_cookie,
+    httr::timeout(30)
+  )
+  if (httr::http_error(response)) stop("MFL poll page request failed with HTTP ", httr::status_code(response), ".", call. = FALSE)
+  httr::content(response, "text", encoding = "UTF-8")
+}
+
+parse_mfl_poll_footer_date <- function(footer) {
+  footer <- trimws(as.character(footer %||% ""))
+  if (!nzchar(footer)) return(as.Date(NA))
+  matched <- regexec("Closed\\s+\\w+\\s+([A-Za-z]+\\s+\\d{1,2}).*\\s+(\\d{4})", footer, ignore.case = TRUE)
+  parts <- regmatches(footer, matched)[[1]]
+  if (length(parts) < 3) return(as.Date(NA))
+  suppressWarnings(as.Date(lubridate::mdy(paste(parts[[2]], parts[[3]]))))
+}
+
+split_mfl_title_voters <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  if (!nzchar(x)) return(character())
+  voters <- trimws(unlist(strsplit(x, ",", fixed = TRUE)))
+  voters[nzchar(voters)]
+}
+
+parse_mfl_poll_page_votes <- function(html, franchises) {
+  if (!requireNamespace("xml2", quietly = TRUE)) stop("Package xml2 is required to parse the MFL poll page.", call. = FALSE)
+  if (!requireNamespace("rvest", quietly = TRUE)) stop("Package rvest is required to parse the MFL poll page.", call. = FALSE)
+  doc <- xml2::read_html(html)
+  poll_nodes <- rvest::html_elements(doc, xpath = "//*[starts-with(@id, 'poll_')]")
+  if (!length(poll_nodes)) {
+    return(tibble(
+      poll_id = character(),
+      poll_question = character(),
+      poll_closed_date = as.Date(character()),
+      answer = character(),
+      votes = integer(),
+      voter_name = character(),
+      voter_franchise = character()
+    ))
+  }
+
+  bind_rows(lapply(poll_nodes, function(node) {
+    poll_id <- sub("^poll_", "", rvest::html_attr(node, "id") %||% NA_character_)
+    question <- rvest::html_text2(rvest::html_element(node, ".poll-question"))
+    footer <- rvest::html_text2(rvest::html_element(node, ".reportfooter"))
+    closed_date <- parse_mfl_poll_footer_date(footer)
+    rows <- rvest::html_elements(node, "tr")
+
+    bind_rows(lapply(rows, function(row) {
+      label <- rvest::html_text2(rvest::html_element(row, ".inputlabel"))
+      label <- sub(":\\s*$", "", trimws(label))
+      if (!nzchar(label) || identical(label, "Total Votes")) return(NULL)
+      link <- rvest::html_element(row, "a[title]")
+      voter_names <- split_mfl_title_voters(rvest::html_attr(link, "title"))
+      if (!length(voter_names)) return(NULL)
+      vote_count <- suppressWarnings(as.integer(rvest::html_text2(rvest::html_element(row, "td:nth-child(2)"))))
+      tibble(
+        poll_id = poll_id,
+        poll_question = question,
+        poll_closed_date = closed_date,
+        answer = label,
+        votes = vote_count,
+        voter_name = voter_names
+      )
+    }))
+  })) |>
+    left_join(franchises |> distinct(.data$franchise, .data$franchise_name), by = c("voter_name" = "franchise_name")) |>
+    mutate(voter_franchise = .data$franchise) |>
+    select(.data$poll_id, .data$poll_question, .data$poll_closed_date, .data$answer, .data$votes, .data$voter_name, .data$voter_franchise)
 }
 
 record_text <- function(tbl) {
@@ -281,6 +360,143 @@ evaluate_poll_endpoint_availability <- function(activity) {
     violation_key = NA_character_,
     season_phase = "offseason"
   )
+}
+
+evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season = get_current_season()) {
+  if (!nrow(poll_page_votes)) {
+    return(tibble(
+      alert_type = "Offseason Inactivity Review Gap",
+      severity = "info",
+      conference = NA_character_,
+      franchise = NA_character_,
+      franchise_name = "League",
+      rule = "First-round bylaw amendment poll voting",
+      observed = "MFL poll page did not return parseable answer-level voter lists.",
+      details = "The monitor expects voter names in the MFL League Polls page answer-count title attributes.",
+      violation_key = NA_character_,
+      season_phase = "offseason"
+    ))
+  }
+
+  poll_summary <- poll_page_votes |>
+    distinct(.data$poll_id, .data$poll_question, .data$poll_closed_date)
+  v1 <- poll_summary |>
+    filter(grepl("^V1(\\b|\\s*:)", trimws(.data$poll_question), ignore.case = TRUE), !is.na(.data$poll_closed_date)) |>
+    arrange(.data$poll_closed_date, .data$poll_id) |>
+    slice_head(n = 1)
+
+  if (!nrow(v1)) {
+    return(tibble(
+      alert_type = "Offseason Inactivity Review Gap",
+      severity = "info",
+      conference = NA_character_,
+      franchise = NA_character_,
+      franchise_name = "League",
+      rule = "First-round bylaw amendment poll voting",
+      observed = "No parseable V1 poll with a closed date was found on the MFL League Polls page.",
+      details = "The voting inactivity rule needs the V1 poll date to identify the first wave of amendment polls.",
+      violation_key = NA_character_,
+      season_phase = "offseason"
+    ))
+  }
+
+  wave_date <- v1$poll_closed_date[[1]]
+  first_wave_polls <- poll_summary |>
+    filter(.data$poll_closed_date == .env$wave_date)
+  first_wave_votes <- poll_page_votes |>
+    filter(.data$poll_id %in% first_wave_polls$poll_id, !is.na(.data$voter_franchise), nzchar(.data$voter_franchise)) |>
+    distinct(.data$voter_franchise, .data$poll_id)
+  participation <- franchises |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name) |>
+    left_join(
+      first_wave_votes |>
+        count(.data$voter_franchise, name = "first_wave_polls_voted"),
+      by = c("franchise" = "voter_franchise")
+    ) |>
+    mutate(first_wave_polls_voted = coalesce(.data$first_wave_polls_voted, 0L))
+
+  violations <- participation |>
+    filter(.data$first_wave_polls_voted == 0L) |>
+    transmute(
+      alert_type = "Offseason Inactivity Violation",
+      severity = "violation",
+      conference,
+      franchise,
+      franchise_name,
+      rule = "Must vote in at least one first-round bylaw amendment poll",
+      observed = paste0("0 votes recorded across ", nrow(first_wave_polls), " first-wave poll(s) closed on ", format(.env$wave_date, "%Y-%m-%d"), "."),
+      details = paste0("First wave anchored by V1 poll: ", v1$poll_question[[1]]),
+      violation_key = paste("bylaw_first_wave_no_vote", season, format(.env$wave_date, "%Y-%m-%d"), .data$franchise, sep = "|"),
+      season_phase = "offseason"
+    )
+
+  info <- tibble(
+    alert_type = "Offseason Inactivity Review",
+    severity = "info",
+    conference = NA_character_,
+    franchise = NA_character_,
+    franchise_name = "League",
+    rule = "First-round bylaw amendment poll voting",
+    observed = paste0(nrow(first_wave_polls), " first-wave poll(s) found using V1 close date ", format(wave_date, "%Y-%m-%d"), ". ", nrow(violations), " franchise(s) voted in none of them."),
+    details = paste(sort(first_wave_polls$poll_question), collapse = " | "),
+    violation_key = NA_character_,
+    season_phase = "offseason"
+  )
+
+  bind_rows(info, violations)
+}
+
+poll_first_wave_participation_records <- function(poll_page_votes, franchises) {
+  if (!nrow(poll_page_votes)) {
+    return(tibble(
+      wave_date = as.Date(character()),
+      first_wave_poll_count = integer(),
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      first_wave_polls_voted = integer(),
+      voted_poll_ids = character(),
+      voted_poll_questions = character()
+    ))
+  }
+
+  poll_summary <- poll_page_votes |>
+    distinct(.data$poll_id, .data$poll_question, .data$poll_closed_date)
+  v1 <- poll_summary |>
+    filter(grepl("^V1(\\b|\\s*:)", trimws(.data$poll_question), ignore.case = TRUE), !is.na(.data$poll_closed_date)) |>
+    arrange(.data$poll_closed_date, .data$poll_id) |>
+    slice_head(n = 1)
+  if (!nrow(v1)) return(tibble())
+
+  wave_date <- v1$poll_closed_date[[1]]
+  first_wave_polls <- poll_summary |>
+    filter(.data$poll_closed_date == .env$wave_date)
+  first_wave_votes <- poll_page_votes |>
+    filter(.data$poll_id %in% first_wave_polls$poll_id, !is.na(.data$voter_franchise), nzchar(.data$voter_franchise)) |>
+    distinct(.data$voter_franchise, .data$poll_id, .data$poll_question)
+
+  franchises |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name) |>
+    left_join(
+      first_wave_votes |>
+        group_by(.data$voter_franchise) |>
+        summarize(
+          first_wave_polls_voted = n_distinct(.data$poll_id),
+          voted_poll_ids = paste(sort(unique(.data$poll_id)), collapse = ", "),
+          voted_poll_questions = paste(sort(unique(.data$poll_question)), collapse = " | "),
+          .groups = "drop"
+        ),
+      by = c("franchise" = "voter_franchise")
+    ) |>
+    mutate(
+      wave_date = .env$wave_date,
+      first_wave_poll_count = nrow(first_wave_polls),
+      first_wave_polls_voted = coalesce(.data$first_wave_polls_voted, 0L),
+      voted_poll_ids = coalesce(.data$voted_poll_ids, ""),
+      voted_poll_questions = coalesce(.data$voted_poll_questions, "")
+    ) |>
+    select(.data$wave_date, .data$first_wave_poll_count, .data$conference, .data$franchise, .data$franchise_name, .data$first_wave_polls_voted, .data$voted_poll_ids, .data$voted_poll_questions) |>
+    arrange(.data$conference, .data$franchise)
 }
 
 poll_audit_records <- function(activity, franchises) {
@@ -779,6 +995,13 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   bids <- normalize_bid_events(activity, franchises)
   poll_audit <- safe_offseason_review("MFL poll audit", poll_audit_records(activity, franchises))
   poll_franchise_audit <- safe_offseason_review("MFL poll franchise audit", poll_franchise_audit_records(activity, franchises))
+  poll_page_html <- safe_offseason_review("MFL poll page fetch", fetch_mfl_poll_page_html(activity$conn, season = season))
+  poll_page_votes <- if (is.character(poll_page_html) && length(poll_page_html) == 1L) {
+    safe_offseason_review("MFL poll page vote audit", parse_mfl_poll_page_votes(poll_page_html, franchises))
+  } else {
+    tibble()
+  }
+  poll_first_wave_participation <- safe_offseason_review("MFL first-wave poll participation", poll_first_wave_participation_records(poll_page_votes, franchises))
   pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
   pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
   if ("poll_id" %in% names(poll_audit)) {
@@ -786,6 +1009,12 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   }
   if ("request_franchise_id" %in% names(poll_franchise_audit)) {
     write_csv(poll_franchise_audit, offseason_inactivity_path("poll_franchise_audit", season), na = "")
+  }
+  if ("voter_franchise" %in% names(poll_page_votes)) {
+    write_csv(poll_page_votes, offseason_inactivity_path("poll_page_votes", season), na = "")
+  }
+  if ("first_wave_polls_voted" %in% names(poll_first_wave_participation)) {
+    write_csv(poll_first_wave_participation, offseason_inactivity_path("poll_first_wave_participation", season), na = "")
   }
   if ("event_name" %in% names(pre_ufa_events)) {
     write_csv(pre_ufa_events, offseason_inactivity_path("pre_ufa_auction_participation_events", season), na = "")
@@ -795,7 +1024,7 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   }
   candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
-    safe_offseason_review("Bylaw first-round voting check", evaluate_poll_endpoint_availability(activity)),
+    safe_offseason_review("Bylaw first-round voting check", evaluate_bylaw_first_wave_voting(poll_page_votes, franchises, season = season)),
     safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises, config = config)),
     safe_offseason_review("Pre-UFA auction participation", evaluate_pre_ufa_auction_participation(bids, config, franchises)),
     safe_offseason_review("UFA first-three-days 24-hour bid gaps", evaluate_ufa_auction_bid_gaps(bids, config, franchises)),
