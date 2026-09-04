@@ -361,8 +361,12 @@ poll_franchise_audit_records <- function(activity, franchises) {
 
   id_lookup <- adl_franchise_id_lookup()
   bind_rows(lapply(names(payloads), function(franchise_id) {
-    franchise_code <- id_lookup$franchise[match(franchise_id, id_lookup$franchise_id)] %||% NA_character_
-    request_name <- franchises$franchise_name[match(franchise_code, franchises$franchise)] %||% NA_character_
+    franchise_code <- id_lookup$franchise[match(franchise_id, id_lookup$franchise_id)]
+    if (!length(franchise_code) || is.na(franchise_code)) franchise_code <- NA_character_
+    request_name <- franchises$franchise_name[match(franchise_code, franchises$franchise)]
+    if (!length(request_name) || is.na(request_name)) {
+      request_name <- if (identical(franchise_id, "0000")) "Commissioner" else NA_character_
+    }
     poll_audit_records(list(polls = payloads[[franchise_id]]), franchises) |>
       mutate(
         request_franchise_id = .env$franchise_id,
