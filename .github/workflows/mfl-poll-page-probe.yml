@@ -88,7 +88,7 @@ jobs:
           tables <- rvest::html_table(doc, fill = TRUE)
           if (length(tables)) {
             for (i in seq_along(tables)) {
-              readr::write_csv(tibble::as_tibble(tables[[i]]), file.path("data/poll_page_probe", sprintf("mfl_options_%s_table_%02d.csv", option, i)), na = "")
+              readr::write_csv(tibble::as_tibble(tables[[i]], .name_repair = "unique"), file.path("data/poll_page_probe", sprintf("mfl_options_%s_table_%02d.csv", option, i)), na = "")
             }
           }
 
