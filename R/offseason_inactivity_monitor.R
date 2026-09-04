@@ -362,7 +362,7 @@ evaluate_poll_endpoint_availability <- function(activity) {
   )
 }
 
-evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season = get_current_season()) {
+evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season = get_current_season(), run_time = Sys.time()) {
   if (!nrow(poll_page_votes)) {
     return(tibble(
       alert_type = "Offseason Inactivity Review Gap",
@@ -401,6 +401,8 @@ evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season
   }
 
   wave_date <- v1$poll_closed_date[[1]]
+  trigger_date <- wave_date + 7L
+  current_date <- as.Date(lubridate::with_tz(as.POSIXct(run_time), "America/New_York"))
   first_wave_polls <- poll_summary |>
     filter(.data$poll_closed_date == .env$wave_date)
   first_wave_votes <- poll_page_votes |>
@@ -415,20 +417,24 @@ evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season
     ) |>
     mutate(first_wave_polls_voted = coalesce(.data$first_wave_polls_voted, 0L))
 
-  violations <- participation |>
-    filter(.data$first_wave_polls_voted == 0L) |>
-    transmute(
-      alert_type = "Offseason Inactivity Violation",
-      severity = "violation",
-      conference,
-      franchise,
-      franchise_name,
-      rule = "Must vote in at least one first-round bylaw amendment poll",
-      observed = paste0("0 votes recorded across ", nrow(first_wave_polls), " first-wave poll(s) closed on ", format(.env$wave_date, "%Y-%m-%d"), "."),
-      details = paste0("First wave anchored by V1 poll: ", v1$poll_question[[1]]),
-      violation_key = paste("bylaw_first_wave_no_vote", season, format(.env$wave_date, "%Y-%m-%d"), .data$franchise, sep = "|"),
-      season_phase = "offseason"
-    )
+  violations <- if (current_date >= trigger_date) {
+    participation |>
+      filter(.data$first_wave_polls_voted == 0L) |>
+      transmute(
+        alert_type = "Offseason Inactivity Violation",
+        severity = "violation",
+        conference,
+        franchise,
+        franchise_name,
+        rule = "Must vote in at least one first-round bylaw amendment poll",
+        observed = paste0("0 votes recorded across ", nrow(first_wave_polls), " first-wave poll(s) closed on ", format(.env$wave_date, "%Y-%m-%d"), "."),
+        details = paste0("First wave anchored by V1 poll: ", v1$poll_question[[1]], "; alert eligible on ", format(.env$trigger_date, "%Y-%m-%d"), "."),
+        violation_key = paste("bylaw_first_wave_no_vote", season, format(.env$wave_date, "%Y-%m-%d"), .data$franchise, sep = "|"),
+        season_phase = "offseason"
+      )
+  } else {
+    empty_inactivity_rows()
+  }
 
   info <- tibble(
     alert_type = "Offseason Inactivity Review",
@@ -437,8 +443,8 @@ evaluate_bylaw_first_wave_voting <- function(poll_page_votes, franchises, season
     franchise = NA_character_,
     franchise_name = "League",
     rule = "First-round bylaw amendment poll voting",
-    observed = paste0(nrow(first_wave_polls), " first-wave poll(s) found using V1 close date ", format(wave_date, "%Y-%m-%d"), ". ", nrow(violations), " franchise(s) voted in none of them."),
-    details = paste(sort(first_wave_polls$poll_question), collapse = " | "),
+    observed = paste0(nrow(first_wave_polls), " first-wave poll(s) found using V1 close date ", format(wave_date, "%Y-%m-%d"), ". ", nrow(participation |> filter(.data$first_wave_polls_voted == 0L)), " franchise(s) voted in none of them."),
+    details = paste0("Alert eligible on ", format(trigger_date, "%Y-%m-%d"), "; checked on ", format(current_date, "%Y-%m-%d"), ". Polls: ", paste(sort(first_wave_polls$poll_question), collapse = " | ")),
     violation_key = NA_character_,
     season_phase = "offseason"
   )
@@ -1024,7 +1030,7 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   }
   candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
-    safe_offseason_review("Bylaw first-round voting check", evaluate_bylaw_first_wave_voting(poll_page_votes, franchises, season = season)),
+    safe_offseason_review("Bylaw first-round voting check", evaluate_bylaw_first_wave_voting(poll_page_votes, franchises, season = season, run_time = run_time)),
     safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises, config = config)),
     safe_offseason_review("Pre-UFA auction participation", evaluate_pre_ufa_auction_participation(bids, config, franchises)),
     safe_offseason_review("UFA first-three-days 24-hour bid gaps", evaluate_ufa_auction_bid_gaps(bids, config, franchises)),
