@@ -65,6 +65,7 @@ jobs:
 
           season <- as.integer(Sys.getenv("CURRENT_SEASON", unset = "2026"))
           league_id <- Sys.getenv("ADL_LEAGUE_ID", unset = "60206")
+          if (!nzchar(league_id)) league_id <- "60206"
           option <- Sys.getenv("MFL_OPTION", unset = "69")
           conn <- connect_adl_mfl(season)
           url <- sprintf("https://www46.myfantasyleague.com/%s/options?L=%s&O=%s", season, league_id, option)
