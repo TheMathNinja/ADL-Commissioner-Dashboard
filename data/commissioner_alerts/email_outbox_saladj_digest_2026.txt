@@ -1,12 +1,11 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 2 new row(s) at 9/3/2026 4:37 p.m. EDT.
-Dashboard CSV: 2026_09_03_ADLSalAdjCurator.csv
+SalAdj Curator published 1 new row(s) at 9/4/2026 9:37 a.m. EDT.
+Dashboard CSV: 2026_09_04_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
-AFC
+NFC
 ---
-- 9/3/2026 15:23:30 | BAL | Noah Brown | salary $2.06; 1 yr; 2024 UFA; notes: PENDING WAIVER UNTIL 09/05/2026 05:00 AM EDT; SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
-- 9/3/2026 15:23:30 | BAL | Khalen Saunders | salary $2.06; 1 yr; 2024 UFA; notes: PENDING WAIVER UNTIL 09/05/2026 05:00 AM EDT; SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
+- 9/2/2026 23:01:08 | WAS | Zach Harrison | salary $2.9; 1 yr; 2026 UFA
 
