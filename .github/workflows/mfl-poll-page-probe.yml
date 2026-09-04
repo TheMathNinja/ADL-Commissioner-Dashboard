@@ -1,0 +1,114 @@
+on:
+  workflow_dispatch:
+    inputs:
+      option:
+        description: MFL option number to probe.
+        required: true
+        default: "69"
+        type: string
+
+name: mfl-poll-page-probe
+
+permissions:
+  contents: read
+
+jobs:
+  mfl-poll-page-probe:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: 2026
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+      MFL_OPTION: ${{ github.event.inputs.option }}
+
+    steps:
+      - name: Checkout dashboard repo
+        uses: actions/checkout@v4
+
+      - name: Install Ubuntu system libraries and R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            r-base \
+            r-base-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            pkg-config
+
+      - name: Install and verify R packages
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          options(repos = c(
+            ffverse = "https://ffverse.r-universe.dev",
+            CRAN = "https://cloud.r-project.org"
+          ))
+          packages <- c("ffscrapr", "httr", "readr", "rvest", "tibble", "xml2")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(missing) > 0) {
+            install.packages(missing, dependencies = c("Depends", "Imports", "LinkingTo"), Ncpus = max(1, parallel::detectCores() - 1))
+          }
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+
+      - name: Probe authenticated poll page
+        shell: Rscript {0}
+        run: |
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          source("R/config_helpers.R")
+          source("R/mfl_helpers.R")
+
+          season <- as.integer(Sys.getenv("CURRENT_SEASON", unset = "2026"))
+          league_id <- Sys.getenv("ADL_LEAGUE_ID", unset = "60206")
+          option <- Sys.getenv("MFL_OPTION", unset = "69")
+          conn <- connect_adl_mfl(season)
+          url <- sprintf("https://www46.myfantasyleague.com/%s/options?L=%s&O=%s", season, league_id, option)
+
+          response <- httr::GET(
+            url,
+            httr::user_agent(Sys.getenv("MFL_USER_AGENT", unset = "ADLCommissionerDashboard")),
+            conn$auth_cookie,
+            httr::timeout(30)
+          )
+          html <- httr::content(response, "text", encoding = "UTF-8")
+
+          dir.create("data/poll_page_probe", recursive = TRUE, showWarnings = FALSE)
+          writeLines(html, file.path("data/poll_page_probe", paste0("mfl_options_", option, ".html")))
+
+          doc <- xml2::read_html(html)
+          text <- rvest::html_text2(doc)
+          writeLines(text, file.path("data/poll_page_probe", paste0("mfl_options_", option, ".txt")))
+
+          tables <- rvest::html_table(doc, fill = TRUE)
+          if (length(tables)) {
+            for (i in seq_along(tables)) {
+              readr::write_csv(tibble::as_tibble(tables[[i]]), file.path("data/poll_page_probe", sprintf("mfl_options_%s_table_%02d.csv", option, i)), na = "")
+            }
+          }
+
+          needle <- "Franchises who have not yet voted in this poll"
+          cat("status:", httr::status_code(response), "\n")
+          cat("url:", url, "\n")
+          cat("html_chars:", nchar(html), "\n")
+          cat("tables:", length(tables), "\n")
+          cat("contains_not_yet_voted_phrase:", grepl(needle, text, fixed = TRUE), "\n")
+
+          lines <- unlist(strsplit(text, "\n", fixed = TRUE))
+          idx <- grep("Franchises who have not yet voted|Franchises who have voted|not yet voted|voted in this poll", lines, ignore.case = TRUE)
+          if (length(idx)) {
+            for (i in unique(pmax(1, idx - 3):pmin(length(lines), idx + 12))) {
+              cat(sprintf("%04d: %s\n", i, lines[[i]]))
+            }
+          }
+
+      - name: Upload poll page probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfl-poll-page-probe
+          path: data/poll_page_probe/
