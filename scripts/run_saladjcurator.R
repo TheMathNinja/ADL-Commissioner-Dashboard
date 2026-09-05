@@ -166,7 +166,7 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, seas
   }
 
   status <- send_alert_mail(
-    subject = "There are new salary adjustments to enter",
+    subject = "[ADL Commissioner Alerts] There are new salary adjustments to enter",
     body = body,
     to = recipients$email
   )
