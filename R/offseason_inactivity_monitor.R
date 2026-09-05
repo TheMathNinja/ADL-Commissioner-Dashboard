@@ -615,9 +615,46 @@ evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config
 }
 
 normalize_bid_events <- function(activity, franchises) {
+  parse_auction_token <- function(event_text, field) {
+    text <- as.character(event_text %||% "")
+    m <- regexec("\\b(AUCTION_INIT|AUCTION_BID|AUCTION_WON)\\s+([0-9]{4})\\s+([^\\s|]+)\\|([0-9.]+)\\|", text, ignore.case = TRUE)
+    parts <- regmatches(text, m)
+    vapply(parts, function(x) {
+      if (length(x) < 5L) return(NA_character_)
+      switch(
+        field,
+        type = x[[2]],
+        franchise_id = x[[3]],
+        player_id = x[[4]],
+        amount = x[[5]],
+        NA_character_
+      )
+    }, character(1))
+  }
+
+  parse_forced_bid_franchise <- function(event_text) {
+    text <- as.character(event_text %||% "")
+    m <- regexec("\\|\\s*([^|]+?)\\s+forced bid increase\\b", text, ignore.case = TRUE)
+    parts <- regmatches(text, m)
+    vapply(parts, function(x) {
+      if (length(x) < 2L) return(NA_character_)
+      trimws(x[[2]])
+    }, character(1))
+  }
+
+  franchise_name_lookup <- franchises |>
+    transmute(franchise_name_key = toupper(trimws(.data$franchise_name)), forced_franchise = .data$franchise)
+
   bind_rows(normalize_activity_records(activity$transactions, "transactions", franchises), normalize_activity_records(activity$auction_results, "auctionResults", franchises)) |>
     filter(!is.na(.data$franchise), grepl("bid|auction", .data$event_text, ignore.case = TRUE)) |>
     mutate(
+      auction_event_type = toupper(parse_auction_token(.data$event_text, "type")),
+      auction_franchise_id = parse_auction_token(.data$event_text, "franchise_id"),
+      auction_player_id = parse_auction_token(.data$event_text, "player_id"),
+      auction_amount_raw = suppressWarnings(as.numeric(parse_auction_token(.data$event_text, "amount"))),
+      auction_amount = .data$auction_amount_raw / 1000,
+      auction_forced_franchise_name = parse_forced_bid_franchise(.data$event_text),
+      auction_forced_franchise_key = toupper(trimws(.data$auction_forced_franchise_name)),
       event_kind = case_when(
         grepl("nominat|AUCTION_INIT", .data$event_text, ignore.case = TRUE) ~ "nomination",
         grepl("AUCTION_BID|bid", .data$event_text, ignore.case = TRUE) ~ "bid",
@@ -626,7 +663,150 @@ normalize_bid_events <- function(activity, franchises) {
       ),
       commissioner_initiated = grepl("\\(C\\)|commissioner", .data$event_text, ignore.case = TRUE)
     ) |>
+    left_join(franchise_name_lookup, by = c("auction_forced_franchise_key" = "franchise_name_key")) |>
+    mutate(
+      auction_player_id = coalesce(.data$auction_player_id, .data$player_id),
+      auction_high_bidder_franchise = coalesce(.data$forced_franchise, .data$franchise)
+    ) |>
+    select(-.data$auction_forced_franchise_key, -.data$forced_franchise) |>
     distinct(.data$franchise, .data$occurred_at, .data$event_text, .keep_all = TRUE)
+}
+
+late_ufa_ng_bid_prohibition_window <- function(config, season = get_current_season()) {
+  start_at <- ufa_ng_bid_adjustment_start(season)
+  end_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
+  tibble(start_at = start_at, end_at = end_at)
+}
+
+late_ufa_ng_bid_sequence_events <- function(bids, config, season = get_current_season()) {
+  window <- late_ufa_ng_bid_prohibition_window(config, season = season)
+  if (!nrow(bids) || is.na(window$start_at[[1]]) || is.na(window$end_at[[1]])) {
+    return(tibble())
+  }
+
+  bids |>
+    filter(
+      !is.na(.data$occurred_at),
+      .data$occurred_at >= window$start_at[[1]],
+      .data$occurred_at < window$end_at[[1]],
+      .data$event_kind %in% c("bid", "nomination", "win")
+    ) |>
+    mutate(
+      auction_high_bidder_franchise = coalesce(.data$auction_high_bidder_franchise, .data$franchise),
+      auction_player_id = coalesce(.data$auction_player_id, .data$player_id)
+    ) |>
+    arrange(.data$auction_player_id, .data$occurred_at, .data$auction_amount_raw)
+}
+
+evaluate_offseason_illegal_ng_bid_sequences <- function(bids, config, franchises, season = get_current_season()) {
+  events <- late_ufa_ng_bid_sequence_events(bids, config, season = season)
+  if (!nrow(events)) return(empty_inactivity_rows())
+
+  sd_min <- adl_sd_minimum(season)
+  required_bid <- round_up_to_tenth(sd_min)
+  franchise_lookup <- franchises |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name)
+
+  bid_events <- events |>
+    filter(
+      .data$event_kind == "bid",
+      !is.na(.data$auction_player_id),
+      nzchar(.data$auction_player_id),
+      !is.na(.data$auction_amount),
+      !is.na(.data$auction_high_bidder_franchise),
+      nzchar(.data$auction_high_bidder_franchise)
+    ) |>
+    group_by(.data$auction_player_id) |>
+    arrange(.data$occurred_at, .data$auction_amount_raw, .by_group = TRUE) |>
+    mutate(
+      previous_high_bidder = dplyr::lag(.data$auction_high_bidder_franchise),
+      high_bidder_changed = is.na(.data$previous_high_bidder) | .data$auction_high_bidder_franchise != .data$previous_high_bidder
+    ) |>
+    ungroup()
+
+  if (!nrow(bid_events)) return(empty_inactivity_rows())
+
+  violations <- bind_rows(lapply(split(bid_events, bid_events$auction_player_id), function(player_events) {
+    player_events <- player_events |> arrange(.data$occurred_at, .data$auction_amount_raw)
+    below_sd <- player_events |>
+      filter(
+        .data$auction_amount > 0,
+        .data$auction_amount < .env$sd_min,
+        .data$high_bidder_changed
+      )
+    if (!nrow(below_sd)) return(tibble())
+
+    bind_rows(lapply(seq_len(nrow(below_sd)), function(i) {
+      earlier <- below_sd[i, ]
+      later <- player_events |>
+        filter(
+          .data$occurred_at > earlier$occurred_at[[1]],
+          .data$auction_amount >= .env$sd_min,
+          .data$auction_high_bidder_franchise != earlier$auction_high_bidder_franchise[[1]]
+        ) |>
+        slice_head(n = 1)
+      if (!nrow(later)) return(tibble())
+      tibble(
+        offender_franchise = earlier$auction_high_bidder_franchise[[1]],
+        auction_player_id = earlier$auction_player_id[[1]],
+        player_name = earlier$player_name[[1]],
+        below_sd_amount = earlier$auction_amount[[1]],
+        below_sd_at = earlier$occurred_at[[1]],
+        later_amount = later$auction_amount[[1]],
+        later_high_bidder = later$auction_high_bidder_franchise[[1]],
+        later_at = later$occurred_at[[1]]
+      )
+    }))
+  }))
+
+  if (!nrow(violations)) return(empty_inactivity_rows())
+
+  violations |>
+    left_join(franchise_lookup, by = c("offender_franchise" = "franchise")) |>
+    left_join(
+      franchise_lookup |>
+        transmute(later_high_bidder = .data$franchise, later_high_bidder_name = .data$franchise_name),
+      by = "later_high_bidder"
+    ) |>
+    mutate(
+      player_label = if_else(
+        !is.na(.data$player_name) & nzchar(.data$player_name) & toupper(.data$player_name) != "NA",
+        .data$player_name,
+        .data$auction_player_id
+      )
+    ) |>
+    distinct(.data$offender_franchise, .data$auction_player_id, .keep_all = TRUE) |>
+    transmute(
+      alert_type = "Offseason Inactivity Violation",
+      severity = "violation",
+      conference,
+      franchise = .data$offender_franchise,
+      franchise_name,
+      rule = "Must not place an NG bid below SD minimum during the late-offseason prohibition period",
+      observed = paste0(
+        .data$player_label,
+        " was high bidder at ",
+        format_millions(.data$below_sd_amount),
+        " below SD minimum, then later bid to at least ",
+        format_millions(.env$sd_min),
+        " with a different high bidder."
+      ),
+      details = paste0(
+        "Below-SD high bid: ",
+        format(lubridate::with_tz(.data$below_sd_at, "America/New_York"), "%Y-%m-%d %H:%M %Z"),
+        "; later high bidder: ",
+        coalesce(.data$later_high_bidder_name, .data$later_high_bidder),
+        " at ",
+        format_millions(.data$later_amount),
+        " on ",
+        format(lubridate::with_tz(.data$later_at, "America/New_York"), "%Y-%m-%d %H:%M %Z"),
+        "; legal minimum bid: ",
+        format_millions(.env$required_bid),
+        "."
+      ),
+      violation_key = paste("offseason_illegal_ng_bid", season, .data$offender_franchise, .data$auction_player_id, format(as.Date(.data$below_sd_at), "%Y-%m-%d"), sep = "|"),
+      season_phase = "offseason"
+    )
 }
 
 pre_ufa_auction_windows <- function(config) {
@@ -1010,6 +1190,8 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   poll_first_wave_participation <- safe_offseason_review("MFL first-wave poll participation", poll_first_wave_participation_records(poll_page_votes, franchises))
   pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
   pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
+  late_ufa_ng_events <- safe_offseason_review("Late-offseason NG bid sequence events", late_ufa_ng_bid_sequence_events(bids, config, season = season))
+  late_ufa_ng_violations <- safe_offseason_review("Illegal late-offseason NG bid sequences", evaluate_offseason_illegal_ng_bid_sequences(bids, config, franchises, season = season))
   if ("poll_id" %in% names(poll_audit)) {
     write_csv(poll_audit, offseason_inactivity_path("poll_audit", season), na = "")
   }
@@ -1028,12 +1210,19 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   if ("auction_bid_count" %in% names(pre_ufa_detail)) {
     write_csv(pre_ufa_detail, offseason_inactivity_path("pre_ufa_auction_participation", season), na = "")
   }
+  if ("auction_player_id" %in% names(late_ufa_ng_events)) {
+    write_csv(late_ufa_ng_events, offseason_inactivity_path("late_ufa_ng_bid_sequence_events", season), na = "")
+  }
+  if ("violation_key" %in% names(late_ufa_ng_violations)) {
+    write_csv(late_ufa_ng_violations, offseason_inactivity_path("late_ufa_ng_bid_sequence_violations", season), na = "")
+  }
   candidates <- bind_rows(
     safe_offseason_review("Offseason inactivity monitor configuration", config_warning_rows(offseason_config_messages(config), season = season)),
     safe_offseason_review("Bylaw first-round voting check", evaluate_bylaw_first_wave_voting(poll_page_votes, franchises, season = season, run_time = run_time)),
     safe_offseason_review("Rookie Draft clock expirations", evaluate_rookie_draft_clock_expirations(activity, franchises, config = config)),
     safe_offseason_review("Pre-UFA auction participation", evaluate_pre_ufa_auction_participation(bids, config, franchises)),
     safe_offseason_review("UFA first-three-days 24-hour bid gaps", evaluate_ufa_auction_bid_gaps(bids, config, franchises)),
+    late_ufa_ng_violations,
     safe_offseason_review("Illegal offseason waiver claims", evaluate_offseason_illegal_waiver_claims(activity, franchises, season = season)),
     safe_offseason_review("Repeated offseason roster violations", evaluate_repeated_offseason_roster_violations(season)),
     safe_offseason_review("UFA signing deadline review", evaluate_ufa_signing_deadline_review(config, season = season)),
