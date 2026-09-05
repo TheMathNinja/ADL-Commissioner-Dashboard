@@ -617,7 +617,7 @@ evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config
 normalize_bid_events <- function(activity, franchises) {
   parse_auction_token <- function(event_text, field) {
     text <- as.character(event_text %||% "")
-    m <- regexec("\\b(AUCTION_INIT|AUCTION_BID|AUCTION_WON)\\s+([0-9]{4})\\s+([^\\s|]+)\\|([0-9.]+)\\|", text, ignore.case = TRUE)
+    m <- regexec("\\b(AUCTION_INIT|AUCTION_BID|AUCTION_WON)\\s+([0-9]{4})(?:\\s+[^|\\s]+)*\\s+([^\\s|]+)\\|([0-9.]+)\\|", text, ignore.case = TRUE, perl = TRUE)
     parts <- regmatches(text, m)
     vapply(parts, function(x) {
       if (length(x) < 5L) return(NA_character_)
@@ -652,7 +652,7 @@ normalize_bid_events <- function(activity, franchises) {
       auction_franchise_id = parse_auction_token(.data$event_text, "franchise_id"),
       auction_player_id = parse_auction_token(.data$event_text, "player_id"),
       auction_amount_raw = suppressWarnings(as.numeric(parse_auction_token(.data$event_text, "amount"))),
-      auction_amount = .data$auction_amount_raw / 1000,
+      auction_amount = if_else(.data$auction_amount_raw > 100, .data$auction_amount_raw / 1000, .data$auction_amount_raw),
       auction_forced_franchise_name = parse_forced_bid_franchise(.data$event_text),
       auction_forced_franchise_key = toupper(trimws(.data$auction_forced_franchise_name)),
       event_kind = case_when(
