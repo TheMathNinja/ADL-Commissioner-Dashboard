@@ -195,11 +195,33 @@ fetch_offseason_activity_records <- function(season = get_current_season()) {
     transactions = collect_named_records(safe_mfl_endpoint(conn, "transactions"), c("franchise_id", "franchise", "timestamp", "type", "comments", "description")),
     draft_results = collect_named_records(safe_mfl_endpoint(conn, "draftResults"), c("franchise_id", "franchise", "round", "pick", "comments", "timestamp")),
     auction_results = collect_named_records(safe_mfl_endpoint(conn, "auctionResults"), c("franchise_id", "franchise", "timestamp", "amount", "bid", "player_id", "auction")),
+    players = safe_mfl_endpoint(conn, "players"),
     polls = safe_mfl_endpoint(conn, "polls"),
     polls_by_franchise = setNames(lapply(franchise_ids, function(franchise_id) {
       safe_mfl_endpoint(conn, "polls", FRANCHISE_ID = franchise_id)
     }), franchise_ids)
   )
+}
+
+player_lookup_records <- function(activity) {
+  records <- collect_named_records(activity$players, c("id", "player_id", "name", "team", "position"))
+  tbl <- tibble::as_tibble(records)
+  if (!nrow(tbl)) {
+    return(tibble(player_id = character(), player_label = character()))
+  }
+  player_id <- as.character(coalesce_record_col(tbl, c("id", "player_id", "playerId", "player"), NA_character_))
+  player_name <- as.character(coalesce_record_col(tbl, c("name", "player_name", "playerName"), NA_character_))
+  player_team <- as.character(coalesce_record_col(tbl, c("team", "nfl_team", "player_team"), NA_character_))
+  player_pos <- as.character(coalesce_record_col(tbl, c("position", "pos", "player_pos"), NA_character_))
+
+  tibble(player_id = player_id, player_name = player_name, player_team = player_team, player_pos = player_pos) |>
+    filter(!is.na(.data$player_id), nzchar(.data$player_id), toupper(.data$player_id) != "NA") |>
+    mutate(
+      player_label = trimws(paste(.data$player_name, .data$player_team, .data$player_pos)),
+      player_label = if_else(nzchar(.data$player_label) & !grepl("^NA( NA)*$", .data$player_label), .data$player_label, .data$player_id)
+    ) |>
+    distinct(.data$player_id, .keep_all = TRUE) |>
+    select(.data$player_id, .data$player_label)
 }
 
 fetch_mfl_poll_page_html <- function(conn, season = get_current_season(), option = "69") {
@@ -698,7 +720,7 @@ late_ufa_ng_bid_sequence_events <- function(bids, config, season = get_current_s
     arrange(.data$auction_player_id, .data$occurred_at, .data$auction_amount_raw)
 }
 
-evaluate_offseason_illegal_ng_bid_sequences <- function(bids, config, franchises, season = get_current_season()) {
+evaluate_offseason_illegal_ng_bid_sequences <- function(bids, config, franchises, player_lookup = tibble(), season = get_current_season()) {
   events <- late_ufa_ng_bid_sequence_events(bids, config, season = season)
   if (!nrow(events)) return(empty_inactivity_rows())
 
@@ -764,15 +786,22 @@ evaluate_offseason_illegal_ng_bid_sequences <- function(bids, config, franchises
   violations |>
     left_join(franchise_lookup, by = c("offender_franchise" = "franchise")) |>
     left_join(
+      player_lookup |>
+        distinct(.data$player_id, .data$player_label),
+      by = c("auction_player_id" = "player_id")
+    ) |>
+    left_join(
       franchise_lookup |>
         transmute(later_high_bidder = .data$franchise, later_high_bidder_name = .data$franchise_name),
       by = "later_high_bidder"
     ) |>
     mutate(
       player_label = if_else(
-        !is.na(.data$player_name) & nzchar(.data$player_name) & toupper(.data$player_name) != "NA",
+        !is.na(.data$player_label) & nzchar(.data$player_label) & toupper(.data$player_label) != "NA",
+        .data$player_label,
+        if_else(!is.na(.data$player_name) & nzchar(.data$player_name) & toupper(.data$player_name) != "NA",
         .data$player_name,
-        .data$auction_player_id
+        .data$auction_player_id)
       )
     ) |>
     distinct(.data$offender_franchise, .data$auction_player_id, .keep_all = TRUE) |>
@@ -1178,6 +1207,7 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   config <- read_offseason_inactivity_config(season)
   franchises <- franchise_lookup_table(season = season, force_live = force_live)
   activity <- fetch_offseason_activity_records(season = season)
+  player_lookup <- player_lookup_records(activity)
   bids <- normalize_bid_events(activity, franchises)
   poll_audit <- safe_offseason_review("MFL poll audit", poll_audit_records(activity, franchises))
   poll_franchise_audit <- safe_offseason_review("MFL poll franchise audit", poll_franchise_audit_records(activity, franchises))
@@ -1191,7 +1221,7 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
   pre_ufa_events <- safe_offseason_review("Pre-UFA auction participation events", pre_ufa_auction_participation_events(bids, config))
   pre_ufa_detail <- safe_offseason_review("Pre-UFA auction participation detail", pre_ufa_auction_participation_detail(bids, config, franchises))
   late_ufa_ng_events <- safe_offseason_review("Late-offseason NG bid sequence events", late_ufa_ng_bid_sequence_events(bids, config, season = season))
-  late_ufa_ng_violations <- safe_offseason_review("Illegal late-offseason NG bid sequences", evaluate_offseason_illegal_ng_bid_sequences(bids, config, franchises, season = season))
+  late_ufa_ng_violations <- safe_offseason_review("Illegal late-offseason NG bid sequences", evaluate_offseason_illegal_ng_bid_sequences(bids, config, franchises, player_lookup = player_lookup, season = season))
   if ("poll_id" %in% names(poll_audit)) {
     write_csv(poll_audit, offseason_inactivity_path("poll_audit", season), na = "")
   }
