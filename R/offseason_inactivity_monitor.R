@@ -617,16 +617,16 @@ evaluate_rookie_draft_clock_expirations <- function(activity, franchises, config
 normalize_bid_events <- function(activity, franchises) {
   parse_auction_token <- function(event_text, field) {
     text <- as.character(event_text %||% "")
-    m <- regexec("\\b(AUCTION_INIT|AUCTION_BID|AUCTION_WON)\\s+([0-9]{4})(?:\\s+[^|\\s]+)*\\s+([^\\s|]+)\\|([0-9.]+)\\|", text, ignore.case = TRUE, perl = TRUE)
+    m <- regexec("\\b(AUCTION_INIT|AUCTION_BID|AUCTION_WON)(?:\\s+[^|\\s]+)*\\s+([^\\s|]+)\\|([0-9.]+)\\|", text, ignore.case = TRUE, perl = TRUE)
     parts <- regmatches(text, m)
     vapply(parts, function(x) {
-      if (length(x) < 5L) return(NA_character_)
+      if (length(x) < 4L) return(NA_character_)
       switch(
         field,
         type = x[[2]],
-        franchise_id = x[[3]],
-        player_id = x[[4]],
-        amount = x[[5]],
+        franchise_id = NA_character_,
+        player_id = x[[3]],
+        amount = x[[4]],
         NA_character_
       )
     }, character(1))
