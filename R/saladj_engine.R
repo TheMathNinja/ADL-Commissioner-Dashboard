@@ -182,6 +182,44 @@ expand_mfl_player_list_transactions <- function(tx) {
   dplyr::bind_rows(tx, expanded)
 }
 
+normalize_raw_mfl_transactions <- function(raw_transactions) {
+  if (is.null(raw_transactions) || length(raw_transactions) == 0) {
+    return(tibble::tibble())
+  }
+
+  raw_tbl <- if (is.data.frame(raw_transactions)) {
+    tibble::as_tibble(raw_transactions)
+  } else if (is.list(raw_transactions) && is.null(names(raw_transactions))) {
+    dplyr::bind_rows(lapply(raw_transactions, function(row) tibble::as_tibble(as.list(row))))
+  } else if (is.list(raw_transactions)) {
+    tibble::as_tibble(as.list(raw_transactions))
+  } else {
+    tibble::tibble()
+  }
+
+  if (!nrow(raw_tbl)) return(raw_tbl)
+  if (!"franchise_id" %in% names(raw_tbl) && "franchise" %in% names(raw_tbl)) {
+    raw_tbl <- raw_tbl %>% dplyr::rename(franchise_id = .data$franchise)
+  }
+  if (!"comments" %in% names(raw_tbl)) raw_tbl$comments <- NA_character_
+  if (!"player_name" %in% names(raw_tbl)) raw_tbl$player_name <- NA_character_
+  if (!"player_id" %in% names(raw_tbl)) raw_tbl$player_id <- NA_character_
+  if (!"trade_partner" %in% names(raw_tbl)) raw_tbl$trade_partner <- NA_character_
+  if (!"added" %in% names(raw_tbl)) raw_tbl$added <- NA_character_
+  if (!"dropped" %in% names(raw_tbl)) raw_tbl$dropped <- NA_character_
+  if (!"type_desc" %in% names(raw_tbl)) raw_tbl$type_desc <- NA_character_
+
+  raw_tbl
+}
+
+fetch_raw_mfl_transactions <- function(conn) {
+  raw <- tryCatch(
+    ffscrapr::mfl_getendpoint(conn, endpoint = "transactions")[["content"]][["transactions"]][["transaction"]],
+    error = function(e) NULL
+  )
+  normalize_raw_mfl_transactions(raw)
+}
+
 is_salary_adjustment_drop <- function(type, type_desc) {
   tolower(as.character(type_desc)) == "dropped" &
     toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER")
@@ -740,7 +778,10 @@ existing_keys <- character(0)
 # Pull transactions (all post-cutoff, since cache is rebuilt every run)
 # ----------------------------
 
-tx <- ffscrapr::ff_transactions(adl_conn)
+tx <- dplyr::bind_rows(
+  ffscrapr::ff_transactions(adl_conn),
+  fetch_raw_mfl_transactions(adl_conn)
+)
 
 if (!"comments" %in% names(tx)) tx$comments <- NA_character_
 if (!"player_name" %in% names(tx)) tx$player_name <- NA_character_
@@ -847,7 +888,9 @@ tx_enriched <- tx %>%
   dplyr::left_join(franchises %>% dplyr::select(franchise_id, abbrev), by = "franchise_id") %>%
   dplyr::mutate(
     PLAYER = nflreadr::clean_player_names(dplyr::coalesce(.data$player_name, "")),
-    DATE_raw = lubridate::ymd_hms(.data$timestamp, quiet = TRUE, tz = "UTC")
+    DATE_raw = lubridate::ymd_hms(.data$timestamp, quiet = TRUE, tz = "UTC"),
+    DATE_raw_fallback = suppressWarnings(as.POSIXct(as.numeric(.data$timestamp), origin = "1970-01-01", tz = "UTC")),
+    DATE_raw = dplyr::coalesce(.data$DATE_raw, .data$DATE_raw_fallback)
   )
 
 if (all(is.na(tx_enriched$DATE_raw))) {
@@ -857,6 +900,7 @@ if (all(is.na(tx_enriched$DATE_raw))) {
 }
 
 tx_enriched <- tx_enriched %>%
+  dplyr::select(-dplyr::any_of("DATE_raw_fallback")) %>%
   dplyr::mutate(DATE_local = lubridate::with_tz(.data$DATE_raw, tzone = "America/Toronto")) %>%
   dplyr::filter(.data$DATE_local > cutoff_end_local) %>%
   dplyr::select(-"DATE_local") %>%
