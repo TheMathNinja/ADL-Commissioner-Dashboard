@@ -1,2 +1,2 @@
 season,run_time_display,last_checked_display,last_changed_display,latest_csv_changed,latest_csv_data_path,latest_archive_data_path,latest_archive_filename,qualifying_rows
-2026,9/5/2026 11:03 p.m. EDT,9/5/2026 11:03 p.m. EDT,9/5/2026 11:03 p.m. EDT,TRUE,data/SalAdjCurator_latest.csv,data/archive/2026_09_05_ADLSalAdjCurator.csv,2026_09_05_ADLSalAdjCurator.csv,48
+2026,9/5/2026 11:12 p.m. EDT,9/5/2026 11:12 p.m. EDT,9/5/2026 11:12 p.m. EDT,TRUE,data/SalAdjCurator_latest.csv,data/archive/2026_09_05_ADLSalAdjCurator.csv,2026_09_05_ADLSalAdjCurator.csv,228
