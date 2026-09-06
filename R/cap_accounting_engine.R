@@ -111,7 +111,12 @@ make_transaction_row_key <- function(df) {
 
 is_fg_contract <- function(contract_info) {
   x <- dplyr::coalesce(contract_info, "")
-  stringr::str_detect(x, "(1\\.XX|2\\.XX|FT|TT|5YO)")
+  stringr::str_detect(x, "\\b1\\.(XX|[0-9]{2})\\b|\\b(FT|TT|5YO)\\b")
+}
+
+is_second_round_cap_penalty_contract <- function(contract_info) {
+  x <- dplyr::coalesce(contract_info, "")
+  stringr::str_detect(x, "\\b2\\.(XX|[0-9]{2})\\b")
 }
 
 has_plus_contract <- function(contract_info) {
@@ -360,7 +365,8 @@ build_waiver_corrections <- function(
         abs(.data$current_player_salary - .data$salary_snap) < 0.001 &
         dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, ""),
       salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= vet_min) |
-        is_fg_contract(.data$info_snap),
+        is_fg_contract(.data$info_snap) |
+        is_second_round_cap_penalty_contract(.data$info_snap),
       qualifies = .data$salary_or_contract_qualifies | .data$missing_salary_snapshot
     ) %>%
     dplyr::filter(.data$qualifies, !.data$waiver_claimed) %>%
