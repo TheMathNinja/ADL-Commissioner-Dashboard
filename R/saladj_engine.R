@@ -222,7 +222,7 @@ fetch_raw_mfl_transactions <- function(conn) {
 
 is_salary_adjustment_drop <- function(type, type_desc) {
   tolower(as.character(type_desc)) == "dropped" &
-    toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER")
+    toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER", "BBID_WAIVER")
 }
 
 normalize_transaction_bind_types <- function(tx) {
@@ -244,7 +244,7 @@ normalize_transaction_bind_types <- function(tx) {
 
 is_fg <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
-  stringr::str_detect(x, "(1\\.XX|FT|TT|5YO)")
+  stringr::str_detect(x, "\\b1\\.(XX|[0-9]{2})\\b|\\b(FT|TT|5YO)\\b")
 }
 
 is_second_round_cap_penalty_contract <- function(contractInfo) {
