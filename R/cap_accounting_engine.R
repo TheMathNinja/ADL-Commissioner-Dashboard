@@ -111,12 +111,12 @@ make_transaction_row_key <- function(df) {
 
 is_fg_contract <- function(contract_info) {
   x <- dplyr::coalesce(contract_info, "")
-  stringr::str_detect(x, "\\b1\\.(XX|[0-9]{2})\\b|\\b(FT|TT|5YO)\\b")
+  stringr::str_detect(x, "\\b1\\.[0-9]{2}\\b|\\b(FT|TT|5YO)\\b")
 }
 
 is_second_round_cap_penalty_contract <- function(contract_info) {
   x <- dplyr::coalesce(contract_info, "")
-  stringr::str_detect(x, "\\b2\\.(XX|[0-9]{2})\\b")
+  stringr::str_detect(x, "\\b2\\.[0-9]{2}\\b")
 }
 
 has_plus_contract <- function(contract_info) {
