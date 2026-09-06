@@ -244,12 +244,12 @@ normalize_transaction_bind_types <- function(tx) {
 
 is_fg <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
-  stringr::str_detect(x, "\\b1\\.(XX|[0-9]{2})\\b|\\b(FT|TT|5YO)\\b")
+  stringr::str_detect(x, "\\b1\\.[0-9]{2}\\b|\\b(FT|TT|5YO)\\b")
 }
 
 is_second_round_cap_penalty_contract <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
-  stringr::str_detect(x, "\\b2\\.(XX|[0-9]{2})\\b")
+  stringr::str_detect(x, "\\b2\\.[0-9]{2}\\b")
 }
 
 has_plus <- function(contractInfo) {
