@@ -152,6 +152,10 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display) {
   paste(lines, collapse = "\n")
 }
 
+saladj_email_subject <- function() {
+  "[ADL Commissioner Alerts] New salary adjustments to enter"
+}
+
 send_saladj_email <- function(new_rows, archive_filename, run_time_display, season = get_current_season()) {
   body <- render_saladj_email(new_rows, archive_filename, run_time_display)
   outbox_path <- write_commissioner_alert_outbox(body, season = season, name = "email_outbox_saladj_digest")
@@ -166,7 +170,7 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, seas
   }
 
   status <- send_alert_mail(
-    subject = "[ADL Commissioner Alerts] There are new salary adjustments to enter",
+    subject = saladj_email_subject(),
     body = body,
     to = recipients$email
   )
