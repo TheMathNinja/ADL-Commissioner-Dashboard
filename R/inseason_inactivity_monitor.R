@@ -20,12 +20,36 @@ empty_inseason_inactivity_rows <- function() {
     conference = character(),
     franchise = character(),
     franchise_name = character(),
+    violation_category = character(),
     rule = character(),
     observed = character(),
     details = character(),
     violation_key = character(),
     season_phase = character()
   )
+}
+
+inseason_inactivity_category <- function(alerts) {
+  if (!nrow(alerts)) return(alerts)
+  existing <- if ("violation_category" %in% names(alerts)) alerts$violation_category else rep(NA_character_, nrow(alerts))
+  violation_key <- if ("violation_key" %in% names(alerts)) alerts$violation_key else rep("", nrow(alerts))
+  rule <- if ("rule" %in% names(alerts)) alerts$rule else rep("", nrow(alerts))
+  alerts |>
+    mutate(
+      violation_category = coalesce(
+        na_if(as.character(.env$existing), ""),
+        case_when(
+          grepl("^final_roster_cutdown", .env$violation_key) ~ "Illegal Roster at Cutdown",
+          grepl("^illegal_waiver_claim", .env$violation_key) ~ "Illegal Waiver Claim",
+          grepl("^illegal_lineup", .env$violation_key) ~ "Illegal Lineup",
+          grepl("^repeated_roster_violation", .env$violation_key) ~ "Roster Snapshot Violation",
+          grepl("Temporary Eligibility", .env$rule, ignore.case = TRUE) ~ "Temporary Eligibility Abuse",
+          grepl("log.?in|login", .env$rule, ignore.case = TRUE) ~ "Login Inactivity",
+          grepl("Drop.*Deadline", .env$rule, ignore.case = TRUE) ~ "Drop Deadline Violation",
+          TRUE ~ NA_character_
+        )
+      )
+    )
 }
 
 adl_franchise_id_lookup <- function() {
@@ -206,7 +230,7 @@ alert_report_date <- function(report_rows) {
   checked
 }
 
-evaluate_repeated_roster_violations <- function(season = get_current_season(), run_date = Sys.Date()) {
+evaluate_repeated_roster_violations <- function(season = get_current_season()) {
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports)) return(empty_inseason_inactivity_rows())
 
@@ -234,8 +258,7 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
         types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
         .groups = "drop"
       ) |>
-      mutate(qualifying_date = .data$first_date + 1L) |>
-      filter(.data$days >= 2L, .data$qualifying_date == as.Date(.env$run_date)) |>
+      filter(.data$days >= 2L) |>
       transmute(
         alert_type = "In-Season Inactivity Violation",
         severity = "violation",
@@ -243,9 +266,9 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
         franchise,
         franchise_name,
         rule = "Repeated illegal roster violation for two consecutive days at the early morning snapshot",
-        observed = paste0("Roster violations appeared on ", .data$first_date, " and ", .data$qualifying_date, "."),
+        observed = paste0("Roster violations appeared from ", .data$first_date, " through ", .data$last_date, "."),
         details = paste0("Violation types: ", .data$types),
-        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$qualifying_date, sep = "|"),
+        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$first_date, sep = "|"),
         season_phase = "inseason"
       )
   }))
@@ -321,13 +344,13 @@ write_issued_inseason_inactivity <- function(issued, season = get_current_season
 }
 
 build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
-  run_date <- as.Date(lubridate::with_tz(as.POSIXct(run_time, tz = 'UTC'), 'America/New_York'))
   candidates <- bind_rows(
     evaluate_final_roster_cutdown_inactivity(season),
-    evaluate_repeated_roster_violations(season, run_date = run_date),
+    evaluate_repeated_roster_violations(season),
     evaluate_confirmed_illegal_lineup_inactivity(season),
     evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
   ) |>
+    inseason_inactivity_category() |>
     distinct(.data$violation_key, .keep_all = TRUE) |>
     mutate(season = .env$season, checked_at = format(run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1)
 
@@ -350,6 +373,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
           conference,
           franchise,
           franchise_name,
+          violation_category,
           rule,
           issued_at = format(run_time, "%Y-%m-%d %H:%M:%S %Z")
         )
@@ -373,19 +397,22 @@ inseason_inactivity_cumulative_summary <- function(season = get_current_season()
     arrange(desc(.data$inseason_violations), .data$franchise)
 }
 
-render_inseason_inactivity_email <- function(alerts, season = get_current_season(), title = paste0("ADL In-Season Inactivity Violation Report - ", commissioner_alert_date_label())) {
+render_inseason_inactivity_email <- function(alerts, season = get_current_season(), title = paste0("In-Season Inactivity Violations - ", commissioner_alert_date_label())) {
   cumulative <- inseason_inactivity_cumulative_summary(season)
   if (!nrow(alerts)) {
     return(paste(c(title, "", "No new in-season inactivity violations were found."), collapse = "\n"))
   }
 
+  alerts <- inseason_inactivity_category(alerts)
   lines <- c(title, "", commissioner_alert_count_label(nrow(alerts)), "")
   for (i in seq_len(nrow(alerts))) {
     row <- alerts[i, ]
     label <- row$franchise_name[[1]] %||% row$franchise[[1]]
+    category <- row$violation_category[[1]] %||% row$rule[[1]]
     lines <- c(
       lines,
-      paste0("In-Season Inactivity Violation - ", label),
+      paste0(label, ": ", category),
+      "",
       paste0("Rule: ", row$rule[[1]]),
       paste0("Observed: ", row$observed[[1]])
     )
@@ -440,7 +467,7 @@ send_inseason_inactivity_email <- function(alerts, season = get_current_season()
     gm_body <- render_inseason_inactivity_email(
       franchise_alerts,
       season = season,
-      title = paste0("ADL In-Season Inactivity Violation - ", franchise_alerts$franchise_name[[1]], " - ", commissioner_alert_date_label())
+      title = paste0("In-Season Inactivity Violations - ", commissioner_alert_date_label())
     )
     gm_outbox <- write_commissioner_alert_outbox(gm_body, season = season, name = paste0("email_outbox_inseason_inactivity_gm_", safe_file_slug(franchise)))
     if (!length(gm_to)) {
