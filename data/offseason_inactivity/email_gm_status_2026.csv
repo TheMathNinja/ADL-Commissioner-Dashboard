@@ -1,0 +1,4 @@
+franchise,sent,reason,outbox_path,recipients,cc
+HOU,TRUE,sent,data/commissioner_alerts/email_outbox_offseason_inactivity_gm_hou_2026.txt,"xylarboden@gmail.com, trh14310@gmail.com",andrewrmast@gmail.com
+DAL,TRUE,sent,data/commissioner_alerts/email_outbox_offseason_inactivity_gm_dal_2026.txt,seth.coven@gmail.com,wittecarson@gmail.com
+WAS,TRUE,sent,data/commissioner_alerts/email_outbox_offseason_inactivity_gm_was_2026.txt,chasemarak@yahoo.com,wittecarson@gmail.com

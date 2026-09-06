@@ -10,3 +10,6 @@ offseason_roster_deadline|2026|Rookie signing deadline|CAR,2026-09-03 00:07:51 U
 offseason_repeated_roster|2026|NYG|2026-06-30,2026-09-03 00:07:51 UTC,2026,NFC,NYG,New York Giants,Repeated illegal roster violation for three consecutive days at the early morning snapshot,offseason
 offseason_roster_deadline|2026|Rookie signing deadline|NYG,2026-09-03 00:07:51 UTC,2026,NFC,NYG,New York Giants,Rookie signing deadline: illegal roster at deadline,offseason
 ufa_bid_gap|SEA|202606171041,2026-09-03 00:07:51 UTC,2026,NFC,SEA,Seattle Seahawks,Must not go 24 hours without submitting an auction bid during the first 3 days of UFA,offseason
+offseason_illegal_ng_bid|2026|HOU|10783|2026-09-06,2026-09-06 13:42:28 UTC,2026,AFC,HOU,Houston Texans,Must not place an NG bid below SD minimum during the late-offseason prohibition period,offseason
+offseason_illegal_ng_bid|2026|DAL|15871|2026-09-03,2026-09-06 13:42:28 UTC,2026,NFC,DAL,Dallas Cowboys,Must not place an NG bid below SD minimum during the late-offseason prohibition period,offseason
+offseason_illegal_ng_bid|2026|WAS|15871|2026-09-03,2026-09-06 13:42:28 UTC,2026,NFC,WAS,Washington Commanders,Must not place an NG bid below SD minimum during the late-offseason prohibition period,offseason
