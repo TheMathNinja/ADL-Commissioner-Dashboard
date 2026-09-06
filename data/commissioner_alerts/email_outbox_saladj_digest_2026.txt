@@ -1,16 +1,22 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 3 new row(s) at 9/5/2026 11:34 p.m. EDT.
-Dashboard CSV: 2026_09_05_ADLSalAdjCurator.csv
+SalAdj Curator published 9 new row(s) at 9/6/2026 8:58 a.m. EDT.
+Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_06_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 AFC
 ---
-- 8/26/2026 22:31:19 | MIA | Drew Sanders | salary $1.84; 1 yr; 2023 2.11
+- 9/4/2026 17:14:05 | DEN | Evan Engram | salary $6.48; 1 yr; 2025 UFA
 
 NFC
 ---
-- 8/31/2026 19:32:25 | ARI | Junior Colson | salary $1.93; 2 yr; 2024 2.07
-- 9/5/2026 05:00:00 | ATL | Michael Mayer | salary $2.78; 1 yr; 2023 1.15; notes: PENDING WAIVER UNTIL 09/06/2026 05:00 AM EDT
+- 9/4/2026 18:31:16 | CAR | Jartavius Martin | salary $1.84; 1 yr; 2023 2.11
+- 9/4/2026 18:31:16 | CAR | Dante Stills | salary $2.04; 1 yr; 2025 oEXT
+- 9/4/2026 18:32:55 | CAR | Isiah Pacheco | salary $5.88; 1 yr; 2025 SRFA
+- 9/5/2026 05:00:00 | ATL | Michael Mayer | salary $2.78; 1 yr; 2023 1.15; notes: 2023 1.15
+- 9/5/2026 23:49:02 | DET | Alex Wright | salary $3.95; 2 yr; 2025 iEXT; notes: PENDING WAIVER UNTIL 09/07/2026 05:00 AM EDT
+- 9/6/2026 03:43:45 | CHI | Kendre Miller | salary $2.34; 1 yr; 2023 2.03; notes: PENDING WAIVER UNTIL 09/07/2026 05:00 AM EDT
+- 9/6/2026 03:43:45 | CHI | Marvin Mims | salary $1.8; 1 yr; 2023 2.12; notes: PENDING WAIVER UNTIL 09/07/2026 05:00 AM EDT
+- 9/6/2026 03:43:45 | CHI | Jaylen Wright | salary $1.73; 2 yr; 2024 2.11; notes: PENDING WAIVER UNTIL 09/07/2026 05:00 AM EDT
 
