@@ -21,6 +21,7 @@ read_offseason_inactivity_issued <- function(season = get_current_season()) {
       conference = character(),
       franchise = character(),
       franchise_name = character(),
+      violation_category = character(),
       rule = character(),
       season_phase = character()
     ))
@@ -38,6 +39,7 @@ write_offseason_inactivity_issued <- function(issued, season = get_current_seaso
 
 mark_offseason_inactivity_issued <- function(alerts, season = get_current_season(), run_time = Sys.time()) {
   new_issued <- alerts |>
+    offseason_inactivity_category() |>
     filter(.data$severity == "violation", !is.na(.data$violation_key), nzchar(.data$violation_key)) |>
     transmute(
       violation_key = .data$violation_key,
@@ -46,6 +48,7 @@ mark_offseason_inactivity_issued <- function(alerts, season = get_current_season
       conference = .data$conference,
       franchise = .data$franchise,
       franchise_name = .data$franchise_name,
+      violation_category = .data$violation_category,
       rule = .data$rule,
       season_phase = .data$season_phase
     )
@@ -66,12 +69,40 @@ empty_inactivity_rows <- function() {
     conference = character(),
     franchise = character(),
     franchise_name = character(),
+    violation_category = character(),
     rule = character(),
     observed = character(),
     details = character(),
     violation_key = character(),
     season_phase = character()
   )
+}
+
+offseason_inactivity_category <- function(alerts) {
+  if (!nrow(alerts)) return(alerts)
+  existing <- if ("violation_category" %in% names(alerts)) alerts$violation_category else rep(NA_character_, nrow(alerts))
+  violation_key <- if ("violation_key" %in% names(alerts)) alerts$violation_key else rep("", nrow(alerts))
+  rule <- if ("rule" %in% names(alerts)) alerts$rule else rep("", nrow(alerts))
+  alerts |>
+    mutate(
+      violation_category = coalesce(
+        na_if(as.character(.env$existing), ""),
+        case_when(
+          grepl("^bylaw_first_wave_no_vote", .env$violation_key) ~ "Voting",
+          grepl("^rookie_draft_clock", .env$violation_key) ~ "Rookie Draft Clock",
+          grepl("^offseason_illegal_waiver", .env$violation_key) ~ "Illegal Waiver Claim",
+          grepl("^offseason_illegal_ng_bid", .env$violation_key) ~ "Illegal Bid",
+          grepl("^pre_ufa_participation", .env$violation_key) ~ "Early Auction Participation",
+          grepl("^ufa_bid_gap", .env$violation_key) ~ "UFA bidding inactivity",
+          grepl("^offseason_repeated_roster", .env$violation_key) ~ "Roster Snapshot Violation",
+          grepl("^offseason_roster_deadline", .env$violation_key) & grepl("UFA", .env$rule, ignore.case = TRUE) ~ "UFA contract inactivity",
+          grepl("^offseason_roster_deadline", .env$violation_key) ~ "Roster Snapshot Violation",
+          grepl("ROD", .env$rule, ignore.case = TRUE) ~ "ROD",
+          grepl("tag", .env$rule, ignore.case = TRUE) ~ "Tag Use",
+          TRUE ~ NA_character_
+        )
+      )
+    )
 }
 
 offseason_inactivity_config_template <- function(season = get_current_season()) {
@@ -1258,9 +1289,10 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
     safe_offseason_review("UFA signing deadline review", evaluate_ufa_signing_deadline_review(config, season = season)),
     safe_offseason_review("Roster deadline inactivity checks", evaluate_roster_deadline_inactivity(season, config, force_live = force_live))
   ) |>
+    offseason_inactivity_category() |>
     mutate(season = .env$season, checked_at = format(.env$run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1) |>
     distinct(.data$alert_type, .data$franchise, .data$rule, .data$observed, .keep_all = TRUE) |>
-    arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise)
+    arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise, .data$violation_category)
   write_csv(candidates, offseason_inactivity_path("review", season), na = "")
 
   issued <- read_offseason_inactivity_issued(season) |>
@@ -1277,16 +1309,31 @@ build_offseason_inactivity_alerts <- function(season = get_current_season(), for
     new_violations
   }
   alerts <- alerts |>
-    arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise)
+    arrange(desc(.data$severity == "violation"), .data$alert_type, .data$conference, .data$franchise, .data$violation_category)
   write_csv(alerts, offseason_inactivity_path("alerts", season), na = "")
   alerts
 }
 
-render_offseason_inactivity_email <- function(alerts, title = paste0("ADL Offseason Inactivity Monitor - ", commissioner_alert_date_label())) {
+render_offseason_inactivity_email <- function(alerts, title = paste0("Offseason Inactivity Violations - ", commissioner_alert_date_label())) {
   if (!nrow(alerts)) return(paste(c(title, "", "No offseason inactivity issues were found."), collapse = "\n"))
+  alerts <- offseason_inactivity_category(alerts)
   violation_count <- sum(alerts$severity == "violation", na.rm = TRUE)
-  lines <- c(title, "", paste0(violation_count, " violation(s) found."), "")
-  for (i in seq_len(nrow(alerts))) { row <- alerts[i, ]; label <- row$franchise_name[[1]] %||% "League"; lines <- c(lines, paste0(row$alert_type[[1]], " - ", label), paste0("Rule: ", row$rule[[1]]), paste0("Observed: ", row$observed[[1]])); if (nzchar(trimws(row$details[[1]] %||% ""))) lines <- c(lines, paste0("Details: ", row$details[[1]])); lines <- c(lines, "") }
+  lines <- c(title, "", commissioner_alert_count_label(violation_count, "violation"), "")
+  for (i in seq_len(nrow(alerts))) {
+    row <- alerts[i, ]
+    label <- row$franchise_name[[1]] %||% "League"
+    category <- row$violation_category[[1]] %||% row$alert_type[[1]]
+    section_header <- if (identical(row$severity[[1]], "violation")) {
+      paste0(label, ": ", category)
+    } else {
+      paste0(row$alert_type[[1]], " - ", label)
+    }
+    lines <- c(lines, section_header, "", paste0("Rule: ", row$rule[[1]]), paste0("Observed: ", row$observed[[1]]))
+    if (nzchar(trimws(row$details[[1]] %||% ""))) {
+      lines <- c(lines, paste0("Details: ", row$details[[1]]))
+    }
+    lines <- c(lines, "")
+  }
   paste(lines, collapse = "\n")
 }
 
@@ -1304,7 +1351,7 @@ send_offseason_inactivity_email <- function(alerts, season = get_current_season(
     franchise_alerts <- violation_alerts |> filter(.data$franchise == .env$franchise)
     gm_to <- offender_recipients |> filter(toupper(.data$franchise) == toupper(.env$franchise)) |> pull(.data$email)
     gm_cc <- conference_cc_email(franchise_alerts$conference[[1]])
-    gm_body <- render_offseason_inactivity_email(franchise_alerts, title = paste0("ADL Offseason Inactivity Violation - ", franchise_alerts$franchise_name[[1]], " - ", commissioner_alert_date_label()))
+    gm_body <- render_offseason_inactivity_email(franchise_alerts, title = paste0("Offseason Inactivity Violations - ", commissioner_alert_date_label()))
     gm_outbox <- write_commissioner_alert_outbox(gm_body, season = season, name = paste0("email_outbox_offseason_inactivity_gm_", safe_file_slug(franchise)))
     if (!length(gm_to)) return(tibble(franchise = franchise, sent = FALSE, reason = "offender_email_not_found", outbox_path = gm_outbox, recipients = "", cc = gm_cc))
     status <- send_alert_mail(subject = paste0("ADL Offseason Inactivity Violation ", commissioner_alert_date_label()), body = gm_body, to = gm_to, cc = gm_cc)
