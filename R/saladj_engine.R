@@ -244,7 +244,12 @@ normalize_transaction_bind_types <- function(tx) {
 
 is_fg <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
-  stringr::str_detect(x, "(1\\.XX|2\\.XX|FT|TT|5YO)")
+  stringr::str_detect(x, "(1\\.XX|FT|TT|5YO)")
+}
+
+is_second_round_cap_penalty_contract <- function(contractInfo) {
+  x <- dplyr::coalesce(contractInfo, "")
+  stringr::str_detect(x, "\\b2\\.(XX|[0-9]{2})\\b")
 }
 
 has_plus <- function(contractInfo) {
@@ -1224,7 +1229,8 @@ sd_rows <- tx_enriched %>%
       .data$DATE_raw >= missing_snapshot_review_start,
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
     salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
-      is_fg(.data$info_snap),
+      is_fg(.data$info_snap) |
+      is_second_round_cap_penalty_contract(.data$info_snap),
     qualifies = .data$salary_or_contract_qualifies |
       .data$recent_missing_snapshot_review
   ) %>%
