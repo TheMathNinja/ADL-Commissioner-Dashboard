@@ -1,18 +1,11 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 5 new row(s) at 9/5/2026 8:48 a.m. EDT.
+SalAdj Curator published 1 new row(s) at 9/5/2026 11:03 p.m. EDT.
 Dashboard CSV: 2026_09_05_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
-AFC
----
-- 9/3/2026 15:23:30 | BAL | Noah Brown | salary $2.06; 1 yr; 2024 UFA; notes: SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
-- 9/3/2026 15:23:30 | BAL | Khalen Saunders | salary $2.06; 1 yr; 2024 UFA; notes: SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> BAL
-- 9/4/2026 17:14:05 | DEN | Evan Engram | salary $6.48; 1 yr; 2025 UFA; notes: PENDING WAIVER UNTIL 09/06/2026 05:00 AM EDT
-
 NFC
 ---
-- 9/4/2026 18:31:16 | CAR | Dante Stills | salary $2.04; 1 yr; 2025 oEXT; notes: PENDING WAIVER UNTIL 09/06/2026 05:00 AM EDT
-- 9/4/2026 18:32:55 | CAR | Isiah Pacheco | salary $5.88; 1 yr; 2025 SRFA; notes: PENDING WAIVER UNTIL 09/06/2026 05:00 AM EDT
+- 9/5/2026 05:00:00 | ATL | Michael Mayer | salary $2.78; 1 yr; 2023 1.15; notes: PENDING WAIVER UNTIL 09/06/2026 05:00 AM EDT
 
