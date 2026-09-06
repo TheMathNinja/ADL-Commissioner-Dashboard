@@ -225,6 +225,23 @@ is_salary_adjustment_drop <- function(type, type_desc) {
     toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER")
 }
 
+normalize_transaction_bind_types <- function(tx) {
+  if (is.null(tx)) return(tibble::tibble())
+  if (!nrow(tx)) return(tibble::as_tibble(tx))
+  tx <- tibble::as_tibble(tx)
+
+  char_cols <- intersect(
+    names(tx),
+    c(
+      "timestamp", "type", "type_desc", "franchise_id", "franchise",
+      "player_id", "player_name", "comments", "trade_partner", "added", "dropped",
+      "transaction_id", "trans_id", "id", "transactionId"
+    )
+  )
+  tx %>%
+    dplyr::mutate(dplyr::across(dplyr::all_of(char_cols), as.character))
+}
+
 is_fg <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
   stringr::str_detect(x, "(1\\.XX|2\\.XX|FT|TT|5YO)")
@@ -779,8 +796,8 @@ existing_keys <- character(0)
 # ----------------------------
 
 tx <- dplyr::bind_rows(
-  ffscrapr::ff_transactions(adl_conn),
-  fetch_raw_mfl_transactions(adl_conn)
+  normalize_transaction_bind_types(ffscrapr::ff_transactions(adl_conn)),
+  normalize_transaction_bind_types(fetch_raw_mfl_transactions(adl_conn))
 )
 
 if (!"comments" %in% names(tx)) tx$comments <- NA_character_
