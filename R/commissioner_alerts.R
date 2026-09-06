@@ -2497,9 +2497,10 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   }
 
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
+  violation_category <- row$violation_category[[1]] %||% row$rule[[1]]
   header <- if (is.null(prefix)) {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0("**", franchise_label, " committed an inactivity violation: ", row$rule, "**")
+      paste0(franchise_label, ": ", violation_category)
     } else
     if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
       paste0(franchise_label, " Rule Violation: ", row$rule)
@@ -2508,7 +2509,7 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
     }
   } else {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
-      paste0("**", prefix, " committed an inactivity violation: ", row$rule, "**")
+      paste0(prefix, ": ", violation_category)
     } else {
       paste0(prefix, ": ", row$rule)
     }
@@ -2544,8 +2545,10 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
 render_gm_alert_rule_lines <- function(row) {
   if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
     details <- row$details[[1]] %||% ""
+    violation_category <- row$violation_category[[1]] %||% row$rule[[1]]
     lines <- c(
-      paste0("**Your franchise committed an inactivity violation: ", row$rule[[1]], "**"),
+      paste0("Your franchise: ", violation_category),
+      paste0("Rule: ", row$rule[[1]]),
       paste0("Observed: ", row$observed)
     )
     if (nzchar(trimws(details))) {
