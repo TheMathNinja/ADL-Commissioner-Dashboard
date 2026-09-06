@@ -121,6 +121,15 @@ format_saladj_digest_row <- function(row) {
   paste0("- ", date, " | ", fran, " | ", player, if (length(details)) paste0(" | ", paste(details, collapse = "; ")) else "")
 }
 
+saladj_public_csv_url <- function(archive_filename) {
+  filename <- basename(as.character(archive_filename %||% ""))
+  if (!nzchar(filename)) return("")
+  paste0(
+    "https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/",
+    utils::URLencode(filename, reserved = TRUE)
+  )
+}
+
 render_saladj_email <- function(new_rows, archive_filename, run_time_display) {
   title <- "There are new salary adjustments to enter"
   if (!nrow(new_rows)) {
@@ -134,7 +143,7 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display) {
     title,
     "",
     paste0("SalAdj Curator published ", nrow(new_rows), " new row(s) at ", run_time_display, "."),
-    paste0("Dashboard CSV: ", archive_filename),
+    paste0("Dashboard CSV: ", saladj_public_csv_url(archive_filename)),
     "",
     "Please enter the following new salary adjustments in the Contract Admin sheet.",
     ""
