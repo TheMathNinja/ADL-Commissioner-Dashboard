@@ -225,11 +225,6 @@ is_salary_adjustment_drop <- function(type, type_desc) {
     toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER")
 }
 
-is_current_season_minimum_contract <- function(contract_info, season = current_season) {
-  info <- toupper(trimws(as.character(contract_info %||% "")))
-  grepl(paste0("\\b", season, "\\s+(R/F|ERFA|UDFA)\\b"), info)
-}
-
 normalize_transaction_bind_types <- function(tx) {
   if (is.null(tx)) return(tibble::tibble())
   if (!nrow(tx)) return(tibble::as_tibble(tx))
@@ -1230,13 +1225,7 @@ sd_rows <- tx_enriched %>%
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
     salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
       is_fg(.data$info_snap),
-    below_udfa_contract_qualifies = !.data$missing_salary_snapshot &
-      !is.na(.data$salary_snap) &
-      .data$salary_snap > 0 &
-      .data$salary_snap + 0.0001 < sd_min &
-      !is_current_season_minimum_contract(.data$info_snap, current_season),
     qualifies = .data$salary_or_contract_qualifies |
-      .data$below_udfa_contract_qualifies |
       .data$recent_missing_snapshot_review
   ) %>%
   dplyr::filter(.data$qualifies) %>%
@@ -1290,10 +1279,6 @@ sd_rows <- tx_enriched %>%
         dplyr::coalesce(.data$salary_snapshot_source_abbrev, .data$salary_snapshot_franchise_id, "SOURCE"),
         " -> ",
         dplyr::coalesce(.data$abbrev, .data$franchise_id, "DROP TEAM")
-      ),
-      .data$below_udfa_contract_qualifies ~ paste0(
-        "BELOW UDFA MINIMUM; CHECK/ADJUST TO ",
-        "$", format(round(sd_min, 2), nsmall = 2), "m"
       ),
       .data$RVSD_flag ~ "NG PPE",
       .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
