@@ -513,7 +513,7 @@ build_saladjcurator_html <- function(run_meta, archive_files_public, generated_a
         <p>
         The automated dashboard runner checks SalAdj Curator daily at 5 a.m. Eastern time.
         Manual and code-triggered runs may also refresh the page, but a new dated SalAdj CSV is archived only when the actionable output changes.
-        When new rows are archived, commissioners receive an email digest titled &quot;[ADL Commissioner Alerts] There are new salary adjustments to enter.&quot;
+        When new rows are archived, commissioners receive an email digest titled &quot;[ADL Commissioner Alerts] New salary adjustments to enter.&quot;
         </p>
         <p>
         For 2026, SalAdj Curator uses manually seeded Contract Admin rows for all present-season entries before May 1, 2026.
