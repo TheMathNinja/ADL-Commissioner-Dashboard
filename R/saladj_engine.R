@@ -143,6 +143,50 @@ make_row_key <- function(df) {
   )
 }
 
+split_mfl_player_list <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  if (!nzchar(x)) return(character())
+  ids <- trimws(unlist(strsplit(x, ",", fixed = TRUE)))
+  ids[nzchar(ids)]
+}
+
+expand_mfl_player_list_transactions <- function(tx) {
+  if (!nrow(tx)) return(tx)
+  if (!"added" %in% names(tx)) tx$added <- NA_character_
+  if (!"dropped" %in% names(tx)) tx$dropped <- NA_character_
+  if (!"type_desc" %in% names(tx)) tx$type_desc <- NA_character_
+  if (!"player_id" %in% names(tx)) tx$player_id <- NA_character_
+  if (!"player_name" %in% names(tx)) tx$player_name <- NA_character_
+
+  expanded <- dplyr::bind_rows(lapply(seq_len(nrow(tx)), function(i) {
+    row <- tx[i, , drop = FALSE]
+    dplyr::bind_rows(
+      lapply(split_mfl_player_list(row$added[[1]]), function(player_id) {
+        out <- row
+        out$player_id <- player_id
+        out$player_name <- NA_character_
+        out$type_desc <- "added"
+        out
+      }),
+      lapply(split_mfl_player_list(row$dropped[[1]]), function(player_id) {
+        out <- row
+        out$player_id <- player_id
+        out$player_name <- NA_character_
+        out$type_desc <- "dropped"
+        out
+      })
+    )
+  }))
+
+  if (!nrow(expanded)) return(tx)
+  dplyr::bind_rows(tx, expanded)
+}
+
+is_salary_adjustment_drop <- function(type, type_desc) {
+  tolower(as.character(type_desc)) == "dropped" &
+    toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER")
+}
+
 is_fg <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
   stringr::str_detect(x, "(1\\.XX|2\\.XX|FT|TT|5YO)")
@@ -702,6 +746,11 @@ if (!"comments" %in% names(tx)) tx$comments <- NA_character_
 if (!"player_name" %in% names(tx)) tx$player_name <- NA_character_
 if (!"player_id" %in% names(tx)) tx$player_id <- NA_character_
 if (!"trade_partner" %in% names(tx)) tx$trade_partner <- NA_character_
+if (!"added" %in% names(tx)) tx$added <- NA_character_
+if (!"dropped" %in% names(tx)) tx$dropped <- NA_character_
+if (!"type_desc" %in% names(tx)) tx$type_desc <- NA_character_
+
+tx <- expand_mfl_player_list_transactions(tx)
 
 tx <- tx %>%
   dplyr::mutate(
@@ -827,6 +876,7 @@ historical_roster_matches <- tx_enriched %>%
   dplyr::ungroup() %>%
   dplyr::transmute(
     row_key = .data$row_key,
+    player_name_snap = .data$player_name,
     salary_snap = .data$roster_salary,
     years_snap = .data$roster_years,
     info_snap = .data$roster_contractInfo,
@@ -836,7 +886,7 @@ historical_roster_matches <- tx_enriched %>%
   )
 
 drop_events <- tx_enriched %>%
-  dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
+  dplyr::filter(is_salary_adjustment_drop(.data$type, .data$type_desc)) %>%
   dplyr::select(
     drop_row_key = .data$row_key,
     player_id = .data$player_id,
@@ -917,6 +967,7 @@ contract_preserving_roster_matches <- latest_arrival_before_drop %>%
   dplyr::ungroup() %>%
   dplyr::transmute(
     row_key = .data$drop_row_key,
+    fallback_player_name_snap = .data$player_name,
     fallback_salary_snap = .data$roster_salary,
     fallback_years_snap = .data$roster_years,
     fallback_info_snap = .data$roster_contractInfo,
@@ -945,6 +996,7 @@ current_same_conf_player <- current_roster_snapshot %>%
   dplyr::transmute(
     player_id = .data$player_id,
     CONF = .data$CONF,
+    current_player_name = .data$player_name,
     current_player_salary = .data$roster_salary,
     current_player_years = .data$roster_years,
     current_player_contractInfo = .data$roster_contractInfo,
@@ -969,7 +1021,14 @@ tx_enriched <- tx_enriched %>%
     salary_snapshot_time = dplyr::coalesce(.data$salary_snapshot_time, .data$fallback_salary_snapshot_time),
     salary_snapshot_match_type = dplyr::coalesce(.data$salary_snapshot_match_type, .data$fallback_salary_snapshot_match_type),
     salary_snapshot_franchise_id = dplyr::coalesce(.data$salary_snapshot_franchise_id, .data$fallback_salary_snapshot_franchise_id),
-    salary_snapshot_source_abbrev = franchise_id_to_abbrev(.data$salary_snapshot_franchise_id, franchises)
+    salary_snapshot_source_abbrev = franchise_id_to_abbrev(.data$salary_snapshot_franchise_id, franchises),
+    PLAYER = dplyr::coalesce(
+      dplyr::na_if(.data$PLAYER, ""),
+      dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$player_name_snap, "")), ""),
+      dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$fallback_player_name_snap, "")), ""),
+      dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$current_player_name, "")), ""),
+      .data$player_id
+    )
   )
 
 # ----------------------------
@@ -1086,7 +1145,7 @@ if (nrow(trade_groups) > 0) {
 # ----------------------------
 
 sd_rows <- tx_enriched %>%
-  dplyr::filter(.data$type == "FREE_AGENT", .data$type_desc == "dropped") %>%
+  dplyr::filter(is_salary_adjustment_drop(.data$type, .data$type_desc)) %>%
   dplyr::mutate(
     missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
     waiver_matures_at = waiver_maturity_time(.data$DATE_raw, waiver_short_window_start),
