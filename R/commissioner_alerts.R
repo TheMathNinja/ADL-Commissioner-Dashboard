@@ -1211,6 +1211,15 @@ supplement_roster_player_statuses <- function(rosters, season = get_current_seas
   )
   if (!nrow(designations)) return(rosters)
 
+  designations <- designations |>
+    mutate(
+      is_ir_status = roster_ir_designation(.data$player_status),
+      is_suspended_status = salary_cap_suspension_excluded_rows(dplyr::pick(dplyr::everything()))
+    ) |>
+    arrange(.data$player_id, desc(.data$is_ir_status), desc(.data$is_suspended_status)) |>
+    distinct(.data$player_id, .keep_all = TRUE) |>
+    select(.data$player_id, .data$player_status)
+
   rosters |>
     mutate(
       player_id = as.character(.data$player_id),
@@ -1218,7 +1227,7 @@ supplement_roster_player_statuses <- function(rosters, season = get_current_seas
     ) |>
     left_join(
       designations |> rename(supplement_player_status = .data$player_status),
-      by = c("player_id", "player_team")
+      by = "player_id"
     ) |>
     mutate(player_status = coalesce(na_if(.data$supplement_player_status, ""), na_if(.data$player_status, ""))) |>
     select(-supplement_player_status)
