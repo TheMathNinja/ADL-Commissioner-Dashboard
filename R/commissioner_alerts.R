@@ -1220,7 +1220,7 @@ supplement_roster_player_statuses <- function(rosters, season = get_current_seas
       designations |> rename(supplement_player_status = .data$player_status),
       by = c("player_id", "player_team")
     ) |>
-    mutate(player_status = coalesce(na_if(.data$player_status, ""), na_if(.data$supplement_player_status, ""))) |>
+    mutate(player_status = coalesce(na_if(.data$supplement_player_status, ""), na_if(.data$player_status, ""))) |>
     select(-supplement_player_status)
 }
 
