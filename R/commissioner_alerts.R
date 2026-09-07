@@ -150,8 +150,12 @@ salary_cap_uses_all_roster_salaries <- function(season = get_current_season(), c
 
 salary_cap_suspension_excluded_rows <- function(rosters) {
   roster_tbl <- tibble::as_tibble(rosters)
-  status <- toupper(normalize_alert_status(coalesce_col(roster_tbl, c("roster_status", "status"), "")))
-  status == "SUSPENDED"
+  status <- toupper(trimws(as.character(coalesce_col(
+    roster_tbl,
+    c("player_status", "injury_status", "injuryStatus", "injury_status_full", "injury", "inj", "status_code", "status"),
+    ""
+  ))))
+  status %in% c("S", "(S)", "SUSP", "SUSPENDED") | grepl("SUSP", status)
 }
 
 adl_sd_minimum <- function(season = get_current_season()) {
@@ -482,13 +486,20 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
   max_non_exempt_active_taxi <- rule$max_non_exempt_active_taxi
   max_exempt_active_taxi <- rule$max_exempt_active_taxi
   exempt_statuses <- toupper(rule$exempt_statuses %||% character())
+  roster_tbl <- tibble::as_tibble(rosters)
 
   roster_counts <- rosters |>
     mutate(
       roster_status = normalize_alert_status(.data$roster_status),
-      roster_status_key = toupper(.data$roster_status),
+      player_status = as.character(coalesce_col(.env$roster_tbl, c("player_status", "injury_status", "injuryStatus", "injury", "inj", "status_code"), NA_character_)),
+      player_status_key = toupper(trimws(.data$player_status)),
+      player_exempt_status = case_when(
+        .data$player_status_key %in% c("S", "(S)", "SUSP", "SUSPENDED") | grepl("SUSP", .data$player_status_key) ~ "SUSPENDED",
+        .data$player_status_key %in% c("H", "(H)", "HOLDOUT") | grepl("HOLDOUT", .data$player_status_key) ~ "HOLDOUT",
+        TRUE ~ NA_character_
+      ),
       active_taxi_player = .data$roster_status %in% c("Active", "Taxi"),
-      exempt_player = .data$roster_status_key %in% .env$exempt_statuses
+      exempt_player = .data$active_taxi_player & .data$player_exempt_status %in% .env$exempt_statuses
     ) |>
     group_by(.data$conference, .data$franchise, .data$franchise_name) |>
     summarize(
@@ -537,7 +548,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise,
           franchise_name,
           rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
-          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout active/taxi players"),
+          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
           details = paste0(.data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi, " above maximum")
         )
     },
