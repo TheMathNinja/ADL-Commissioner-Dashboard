@@ -81,6 +81,11 @@ jobs:
             ${{ runner.os }}-commissioner-alert-live-dry-run-r-lib-v1-
             ${{ runner.os }}-commissioner-alert-r-lib-v1-
 
+      - name: Clear stale dry-run outboxes
+        run: |
+          rm -rf data/commissioner_alerts
+          mkdir -p data/commissioner_alerts
+
       - name: Install Ubuntu system libraries and R
         run: |
           sudo apt-get update
