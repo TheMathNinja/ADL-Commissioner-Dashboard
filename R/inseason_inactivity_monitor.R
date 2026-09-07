@@ -230,14 +230,26 @@ alert_report_date <- function(report_rows) {
   checked
 }
 
-evaluate_repeated_roster_violations <- function(season = get_current_season()) {
+evaluate_repeated_roster_violations <- function(season = get_current_season(), run_time = Sys.time()) {
+  run_time <- as.POSIXct(run_time, tz = "America/New_York")
+  final_cutdown_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
+  if (run_time < final_cutdown_at) return(empty_inseason_inactivity_rows())
+
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports)) return(empty_inseason_inactivity_rows())
 
   roster_types <- c("Roster Cap Violation", "Contract Years Violation", "Salary Cap Warning", "Salary Cap Violation")
+  today <- as.Date(lubridate::with_tz(run_time, "America/New_York"))
+  final_cutdown_date <- as.Date(lubridate::with_tz(final_cutdown_at, "America/New_York"))
   daily <- reports |>
     mutate(report_date = alert_report_date(dplyr::pick(dplyr::everything()))) |>
-    filter(.data$alert_type %in% roster_types, !is.na(.data$franchise), nzchar(.data$franchise), !is.na(.data$report_date)) |>
+    filter(
+      .data$alert_type %in% roster_types,
+      !is.na(.data$franchise),
+      nzchar(.data$franchise),
+      !is.na(.data$report_date),
+      .data$report_date >= .env$final_cutdown_date
+    ) |>
     group_by(.data$conference, .data$franchise, .data$franchise_name, .data$report_date) |>
     summarize(types = paste(sort(unique(.data$alert_type)), collapse = ", "), .groups = "drop") |>
     arrange(.data$franchise, .data$report_date)
@@ -258,7 +270,7 @@ evaluate_repeated_roster_violations <- function(season = get_current_season()) {
         types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
         .groups = "drop"
       ) |>
-      filter(.data$days >= 2L) |>
+      filter(.data$days == 2L, .data$last_date == .env$today) |>
       transmute(
         alert_type = "In-Season Inactivity Violation",
         severity = "violation",
@@ -274,11 +286,15 @@ evaluate_repeated_roster_violations <- function(season = get_current_season()) {
   }))
 }
 
-evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season()) {
+evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season(), run_time = Sys.time()) {
+  run_time <- as.POSIXct(run_time, tz = "America/New_York")
+  final_cutdown_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
+  if (run_time < final_cutdown_at) return(empty_inseason_inactivity_rows())
+
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports)) return(empty_inseason_inactivity_rows())
 
-  deadline_date <- as.Date(commissioner_alert_cutdown_datetime(season, "final_roster_cutdown"))
+  deadline_date <- as.Date(lubridate::with_tz(final_cutdown_at, "America/New_York"))
   reports |>
     mutate(report_date = alert_report_date(dplyr::pick(dplyr::everything()))) |>
     filter(
@@ -344,9 +360,14 @@ write_issued_inseason_inactivity <- function(issued, season = get_current_season
 }
 
 build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
+  run_time <- as.POSIXct(run_time, tz = "America/New_York")
+  if (run_time < commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
+    return(empty_inseason_inactivity_rows())
+  }
+
   candidates <- bind_rows(
-    evaluate_final_roster_cutdown_inactivity(season),
-    evaluate_repeated_roster_violations(season),
+    evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
+    evaluate_repeated_roster_violations(season, run_time = run_time),
     evaluate_confirmed_illegal_lineup_inactivity(season),
     evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
   ) |>
