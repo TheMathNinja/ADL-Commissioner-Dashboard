@@ -2409,7 +2409,7 @@ build_commissioner_alerts <- function(
   roster_cap_rule = NULL,
   checked_at = Sys.time()
 ) {
-  rosters <- load_current_rosters(force_live = force_live, source = "auto", season = season, week = week)
+  rosters <- load_current_rosters(force_live = force_live, source = if (force_live) "live" else "auto", season = season, week = week)
   alerts <- list()
 
   alerts$adjustments <- bind_rows(
@@ -2505,7 +2505,7 @@ build_commissioner_alerts <- function(
 }
 
 build_roster_cutdown_alerts <- function(season = get_current_season(), cutdown_id, force_live = TRUE) {
-  rosters <- load_current_rosters(force_live = force_live, source = "auto", season = season, week = NULL)
+  rosters <- load_current_rosters(force_live = force_live, source = if (force_live) "live" else "auto", season = season, week = NULL)
   rule <- roster_cutdown_rule(season = season, cutdown_id = cutdown_id)
   alerts <- evaluate_roster_cap_alerts(rosters, rule = rule, season = season, checked_at = commissioner_alert_cutdown_datetime(season, cutdown_id)) |>
     mutate(
