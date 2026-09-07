@@ -158,6 +158,25 @@ salary_cap_suspension_excluded_rows <- function(rosters) {
   status %in% c("S", "(S)", "SUSP", "SUSPENDED") | grepl("SUSP", status)
 }
 
+roster_ir_designation <- function(x) {
+  status <- toupper(trimws(as.character(x %||% "")))
+  grepl("\\(I\\)", status) |
+    status %in% c(
+      "I",
+      "INJURED", "INJURED RESERVE", "INJURED_RESERVE",
+      "IR", "IR-R", "IR-PUP", "IR-NFI", "PUP", "NFI"
+    )
+}
+
+roster_move_details_needed <- function(details, needed) {
+  details <- as.character(details %||% "")
+  parts <- trimws(strsplit(details, ";", fixed = TRUE)[[1]])
+  parts <- parts[nzchar(parts)]
+  needed <- suppressWarnings(as.integer(needed %||% 0L))
+  if (!length(parts) || is.na(needed) || needed <= 0L) return("")
+  paste(head(parts, needed), collapse = "; ")
+}
+
 adl_sd_minimum <- function(season = get_current_season()) {
   configured <- suppressWarnings(as.numeric(Sys.getenv(paste0("ADL_SD_MIN_", season), unset = NA_character_)))
   if (!is.na(configured)) return(configured)
@@ -491,15 +510,18 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
   roster_counts <- rosters |>
     mutate(
       roster_status = normalize_alert_status(.data$roster_status),
-      player_status = as.character(coalesce_col(.env$roster_tbl, c("player_status", "injury_status", "injuryStatus", "injury", "inj", "status_code"), NA_character_)),
+      player_status = as.character(coalesce_col(.env$roster_tbl, c("player_status", "injury_status", "injuryStatus", "injury_status_full", "injury", "inj", "status_code"), NA_character_)),
       player_status_key = toupper(trimws(.data$player_status)),
+      player_label = as.character(coalesce_col(.env$roster_tbl, c("player", "player_name", "name", "player_id"), "Unknown player")),
       player_exempt_status = case_when(
         .data$player_status_key %in% c("S", "(S)", "SUSP", "SUSPENDED") | grepl("SUSP", .data$player_status_key) ~ "SUSPENDED",
         .data$player_status_key %in% c("H", "(H)", "HOLDOUT") | grepl("HOLDOUT", .data$player_status_key) ~ "HOLDOUT",
         TRUE ~ NA_character_
       ),
       active_taxi_player = .data$roster_status %in% c("Active", "Taxi"),
-      exempt_player = .data$active_taxi_player & .data$player_exempt_status %in% .env$exempt_statuses
+      exempt_player = .data$active_taxi_player & .data$player_exempt_status %in% .env$exempt_statuses,
+      ir_move_candidate = .data$active_taxi_player & !.data$exempt_player & roster_ir_designation(.data$player_status),
+      ir_move_detail = paste0(.data$player_label, " from ", .data$roster_status, " to Injured Reserve")
     ) |>
     group_by(.data$conference, .data$franchise, .data$franchise_name) |>
     summarize(
@@ -508,6 +530,8 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
       active_plus_taxi = sum(.data$roster_status %in% c("Active", "Taxi"), na.rm = TRUE),
       non_exempt_active_plus_taxi = sum(.data$active_taxi_player & !.data$exempt_player, na.rm = TRUE),
       exempt_active_plus_taxi = sum(.data$exempt_player, na.rm = TRUE),
+      ir_movable_active_taxi = sum(.data$ir_move_candidate, na.rm = TRUE),
+      ir_move_details = paste(.data$ir_move_detail[.data$ir_move_candidate], collapse = "; "),
       .groups = "drop"
     )
 
@@ -526,7 +550,7 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
       ),
     if (!is.null(max_active_taxi)) {
       roster_counts |>
-        filter(.data$active_plus_taxi > .env$max_active_taxi) |>
+        filter(.data$active_plus_taxi > .env$max_active_taxi, .data$active_plus_taxi - .data$ir_movable_active_taxi > .env$max_active_taxi) |>
         transmute(
           alert_type = "Roster Cap Violation",
           severity = "violation",
@@ -538,9 +562,30 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           details = paste0(.data$active_plus_taxi - .env$max_active_taxi, " above maximum")
         )
     },
+    if (!is.null(max_active_taxi)) {
+      roster_counts |>
+        filter(.data$active_plus_taxi > .env$max_active_taxi, .data$active_plus_taxi - .data$ir_movable_active_taxi <= .env$max_active_taxi) |>
+        transmute(
+          alert_type = "Roster Warning",
+          severity = "warning",
+          conference,
+          franchise,
+          franchise_name,
+          rule = paste0("Maximum ", .env$max_active_taxi, " players on Active Roster + Taxi Squad"),
+          observed = paste0(.data$active_plus_taxi, " active/taxi players"),
+          details = paste0(
+            "Move ",
+            unname(mapply(roster_move_details_needed, .data$ir_move_details, .data$active_plus_taxi - .env$max_active_taxi)),
+            " to be fully compliant."
+          )
+        )
+    },
     if (!is.null(max_non_exempt_active_taxi)) {
       roster_counts |>
-        filter(.data$non_exempt_active_plus_taxi > .env$max_non_exempt_active_taxi) |>
+        filter(
+          .data$non_exempt_active_plus_taxi > .env$max_non_exempt_active_taxi,
+          .data$non_exempt_active_plus_taxi - .data$ir_movable_active_taxi > .env$max_non_exempt_active_taxi
+        ) |>
         transmute(
           alert_type = "Roster Cap Violation",
           severity = "violation",
@@ -550,6 +595,27 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
           observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
           details = paste0(.data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi, " above maximum")
+        )
+    },
+    if (!is.null(max_non_exempt_active_taxi)) {
+      roster_counts |>
+        filter(
+          .data$non_exempt_active_plus_taxi > .env$max_non_exempt_active_taxi,
+          .data$non_exempt_active_plus_taxi - .data$ir_movable_active_taxi <= .env$max_non_exempt_active_taxi
+        ) |>
+        transmute(
+          alert_type = "Roster Warning",
+          severity = "warning",
+          conference,
+          franchise,
+          franchise_name,
+          rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
+          observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
+          details = paste0(
+            "Move ",
+            unname(mapply(roster_move_details_needed, .data$ir_move_details, .data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi)),
+            " to be fully compliant."
+          )
         )
     },
     if (!is.null(max_exempt_active_taxi)) {
