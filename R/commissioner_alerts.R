@@ -1192,6 +1192,38 @@ fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
     distinct(.data$player_id, .data$player_team, .keep_all = TRUE)
 }
 
+commissioner_alert_status_week <- function(season = get_current_season(), week = NULL, checked_at = Sys.time()) {
+  if (!is.null(week) && !is.na(week)) return(as.integer(week))
+  week_one_start <- salary_cap_week_one_start(season)
+  checked_date <- as.Date(lubridate::with_tz(as.POSIXct(checked_at, tz = "UTC"), "America/New_York"))
+  if (is.na(week_one_start) || checked_date < week_one_start) return(1L)
+  max(1L, min(17L, floor(as.numeric(checked_date - week_one_start) / 7) + 1L))
+}
+
+supplement_roster_player_statuses <- function(rosters, season = get_current_season(), week = NULL, checked_at = Sys.time()) {
+  status_week <- commissioner_alert_status_week(season = season, week = week, checked_at = checked_at)
+  designations <- tryCatch(
+    fetch_mfl_weekly_designations(season = season, week = status_week),
+    error = function(e) {
+      warning("MFL roster status supplement unavailable: ", conditionMessage(e), call. = FALSE)
+      tibble(player_id = character(), player_team = character(), player_status = character())
+    }
+  )
+  if (!nrow(designations)) return(rosters)
+
+  rosters |>
+    mutate(
+      player_id = as.character(.data$player_id),
+      player_team = mfl_player_team(as.character(.data$player_team))
+    ) |>
+    left_join(
+      designations |> rename(supplement_player_status = .data$player_status),
+      by = c("player_id", "player_team")
+    ) |>
+    mutate(player_status = coalesce(na_if(.data$player_status, ""), na_if(.data$supplement_player_status, ""))) |>
+    select(-supplement_player_status)
+}
+
 mfl_player_team <- function(team) {
   team <- toupper(trimws(as.character(team %||% "")))
   dplyr::recode(
@@ -2438,6 +2470,9 @@ build_commissioner_alerts <- function(
   checked_at = Sys.time()
 ) {
   rosters <- load_current_rosters(force_live = force_live, source = if (force_live) "live" else "auto", season = season, week = week)
+  if (isTRUE(force_live)) {
+    rosters <- supplement_roster_player_statuses(rosters, season = season, week = week, checked_at = checked_at)
+  }
   alerts <- list()
 
   alerts$adjustments <- bind_rows(
