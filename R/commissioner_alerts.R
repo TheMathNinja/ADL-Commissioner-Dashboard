@@ -727,6 +727,29 @@ cap_accounting_week_numbers <- function(summary_tbl) {
   sort(unique(weeks[!is.na(weeks)]))
 }
 
+salary_cap_week_one_start <- function(season = get_current_season()) {
+  as.Date(Sys.getenv("ADL_WEEK_ONE_START", unset = paste0(season, "-09-10")))
+}
+
+salary_cap_snapshot_datetime <- function(season = get_current_season(), week) {
+  week_one_start <- salary_cap_week_one_start(season)
+  if (is.na(week_one_start) || is.na(suppressWarnings(as.integer(week)))) {
+    return(as.POSIXct(NA))
+  }
+  snapshot_date <- week_one_start + (as.integer(week) - 1L) * 7L + 5L
+  as.POSIXct(paste0(snapshot_date, " 03:30:00"), tz = "America/New_York")
+}
+
+salary_cap_completed_weeks <- function(season = get_current_season(), checked_at = Sys.time(), weeks = integer()) {
+  checked_at <- as.POSIXct(checked_at, tz = "America/New_York")
+  weeks <- suppressWarnings(as.integer(weeks))
+  weeks <- weeks[!is.na(weeks)]
+  weeks[vapply(weeks, function(week) {
+    snapshot_at <- salary_cap_snapshot_datetime(season, week)
+    !is.na(snapshot_at) && checked_at >= snapshot_at
+  }, logical(1))]
+}
+
 cap_accounting_week_expenditure <- function(row, week) {
   final <- cap_numeric(cap_col(row, paste0("W", week, "_Final")))
   if (!is.na(final)) return(final)
@@ -788,7 +811,8 @@ evaluate_salary_cap_average_warnings <- function(
   rosters,
   season = get_current_season(),
   salary_cap_adjustments = NULL,
-  summary = read_cap_accounting_summary(season)
+  summary = read_cap_accounting_summary(season),
+  checked_at = Sys.time()
 ) {
   current <- current_cap_accounting_expenditure(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
 
@@ -801,7 +825,11 @@ evaluate_salary_cap_average_warnings <- function(
     )
   } else {
     summary_tbl <- tibble::as_tibble(summary)
-    weeks <- cap_accounting_week_numbers(summary_tbl)
+    weeks <- salary_cap_completed_weeks(
+      season = season,
+      checked_at = checked_at,
+      weeks = cap_accounting_week_numbers(summary_tbl)
+    )
 
     bind_rows(lapply(seq_len(nrow(summary_tbl)), function(i) {
       row <- summary_tbl[i, , drop = FALSE]
@@ -2433,7 +2461,12 @@ build_commissioner_alerts <- function(
         NULL
       }
       alerts$salary_cap <- if (isTRUE(use_inseason_salary_accounting)) {
-        evaluate_salary_cap_average_warnings(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
+        evaluate_salary_cap_average_warnings(
+          rosters,
+          season = season,
+          salary_cap_adjustments = salary_cap_adjustments,
+          checked_at = checked_at
+        )
       } else {
         evaluate_salary_cap_alerts(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
       }
