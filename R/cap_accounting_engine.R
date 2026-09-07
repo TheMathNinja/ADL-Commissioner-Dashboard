@@ -531,6 +531,12 @@ get_mfl_injuries <- function(current_season, snapshot_week) {
     dplyr::distinct(.data$player_id, .keep_all = TRUE)
 }
 
+cap_is_suspended_status <- function(x) {
+  status <- toupper(stringr::str_squish(dplyr::coalesce(as.character(x), "")))
+  status <- stringr::str_replace_all(status, "[()]", "")
+  status %in% c("S", "SUSP", "SUSPENDED") | stringr::str_detect(status, "SUSP")
+}
+
 get_mfl_salary_adjustments <- function(conn) {
   salary_adj_raw <- ffscrapr::mfl_getendpoint(conn, endpoint = "salaryAdjustments")
   adj_list <- salary_adj_raw$content$salaryAdjustments$salaryAdjustment
@@ -713,9 +719,9 @@ build_cap_accounting_snapshot <- function(
       salary_num = suppressWarnings(as.numeric(.data$salary)),
       is_active = .data$roster_status_calc == "ACTIVE_ROSTER",
       is_ir = .data$roster_status_calc == "INJURED_RESERVE",
-      is_suspended = .data$inj == "Suspended",
-      is_taxi_non_suspended = .data$roster_status_calc == "TAXI_SQUAD" & dplyr::coalesce(.data$inj != "Suspended", TRUE),
-      is_taxi_suspended = .data$roster_status_calc == "TAXI_SQUAD" & dplyr::coalesce(.data$inj == "Suspended", FALSE)
+      is_suspended = cap_is_suspended_status(.data$inj),
+      is_taxi_non_suspended = .data$roster_status_calc == "TAXI_SQUAD" & !.data$is_suspended,
+      is_taxi_suspended = .data$roster_status_calc == "TAXI_SQUAD" & .data$is_suspended
     )
 
   current_week_summary <- summary_base %>%
