@@ -110,7 +110,7 @@ if (identical(mode, "cutdown")) {
   quit(save = "no")
 }
 
-include_offseason <- mode %in% c("check", "offseason", "inseason")
+include_offseason <- mode %in% c("check", "offseason")
 include_inseason <- mode %in% c("check", "inseason") && !is.na(week)
 
 alerts <- build_commissioner_alerts(
@@ -126,10 +126,16 @@ if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts
   if (nrow(inactivity_alerts)) {
     inactivity_alerts <- inactivity_alerts |>
       mutate(
-        week = if ("week" %in% names(inactivity_alerts)) .data$week else (if (is.na(.env$week)) NA_integer_ else .env$week),
+        season = as.character(.data$season),
+        week = as.character(if ("week" %in% names(inactivity_alerts)) .data$week else (if (is.na(.env$week)) NA_character_ else as.character(.env$week))),
         checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
       ) |>
       select(any_of(names(alerts)), everything())
+    alerts <- alerts |>
+      mutate(
+        season = as.character(.data$season),
+        week = as.character(.data$week)
+      )
     alerts <- bind_rows(alerts, inactivity_alerts) |>
       select(any_of(names(alerts)))
     write_csv(alerts, commissioner_alert_path("alerts", season, if (is.na(week)) NULL else week), na = "")
