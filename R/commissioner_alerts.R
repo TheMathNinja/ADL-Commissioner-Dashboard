@@ -2567,8 +2567,8 @@ build_commissioner_alerts <- function(
 
   result <- bind_rows(alerts) |>
     mutate(
-      season = .env$season,
-      week = .env$week %||% NA_integer_,
+      season = as.character(.env$season),
+      week = as.character(.env$week %||% NA_character_),
       checked_at = format(as.POSIXct(.env$checked_at, tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z"),
       alert_sort_order = commissioner_alert_sort_order(.data$alert_type, .data$rule),
       .before = 1
@@ -2586,8 +2586,8 @@ build_roster_cutdown_alerts <- function(season = get_current_season(), cutdown_i
   rule <- roster_cutdown_rule(season = season, cutdown_id = cutdown_id)
   alerts <- evaluate_roster_cap_alerts(rosters, rule = rule, season = season, checked_at = commissioner_alert_cutdown_datetime(season, cutdown_id)) |>
     mutate(
-      season = .env$season,
-      week = NA_integer_,
+      season = as.character(.env$season),
+      week = NA_character_,
       checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
       alert_sort_order = commissioner_alert_sort_order(.data$alert_type, .data$rule),
       .before = 1
