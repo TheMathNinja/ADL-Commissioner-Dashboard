@@ -119,6 +119,11 @@ is_second_round_cap_penalty_contract <- function(contract_info) {
   stringr::str_detect(x, "\\b2\\.[0-9]{2}\\b")
 }
 
+is_extension_cap_penalty_contract <- function(contract_info) {
+  x <- dplyr::coalesce(contract_info, "")
+  stringr::str_detect(x, stringr::regex("EXT", ignore_case = TRUE))
+}
+
 has_plus_contract <- function(contract_info) {
   x <- dplyr::coalesce(contract_info, "")
   stringr::str_detect(x, "\\+")
@@ -366,7 +371,8 @@ build_waiver_corrections <- function(
         dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, ""),
       salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= vet_min) |
         is_fg_contract(.data$info_snap) |
-        is_second_round_cap_penalty_contract(.data$info_snap),
+        is_second_round_cap_penalty_contract(.data$info_snap) |
+        is_extension_cap_penalty_contract(.data$info_snap),
       qualifies = .data$salary_or_contract_qualifies | .data$missing_salary_snapshot
     ) %>%
     dplyr::filter(.data$qualifies, !.data$waiver_claimed) %>%
