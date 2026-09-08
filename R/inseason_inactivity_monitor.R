@@ -216,7 +216,10 @@ read_all_commissioner_alert_reports <- function(season = get_current_season()) {
   if (!length(files)) return(tibble())
 
   bind_rows(lapply(files, function(path) {
-    report <- tryCatch(read_csv(path, show_col_types = FALSE), error = function(e) tibble())
+    report <- tryCatch(
+      read_csv(path, col_types = cols(.default = col_character()), show_col_types = FALSE),
+      error = function(e) tibble()
+    )
     if (!nrow(report)) return(tibble())
     report |>
       mutate(report_file = basename(path), .before = 1)
