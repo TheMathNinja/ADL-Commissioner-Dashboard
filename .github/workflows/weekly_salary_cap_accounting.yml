@@ -15,8 +15,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: weekly-salary-cap-accounting
-  cancel-in-progress: true
+  group: commissioner-dashboard-data-writes
+  cancel-in-progress: false
 
 jobs:
   run-salary-cap-accounting:
