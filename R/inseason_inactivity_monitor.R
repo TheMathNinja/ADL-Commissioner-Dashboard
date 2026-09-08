@@ -233,6 +233,28 @@ alert_report_date <- function(report_rows) {
   checked
 }
 
+read_confirmed_inseason_inactivity <- function(season = get_current_season()) {
+  path <- Sys.getenv(
+    "ADL_CONFIRMED_INSEASON_INACTIVITY",
+    unset = file.path("data", "source", paste0("confirmed_inseason_inactivity_", season, ".csv"))
+  )
+  if (!file.exists(path)) {
+    return(tibble(
+      season = character(),
+      violation_key = character(),
+      conference = character(),
+      franchise = character(),
+      franchise_name = character(),
+      violation_category = character(),
+      rule = character(),
+      observed = character(),
+      details = character()
+    ))
+  }
+  read_csv(path, col_types = cols(.default = col_character()), show_col_types = FALSE) |>
+    filter(.data$season == as.character(.env$season))
+}
+
 evaluate_repeated_roster_violations <- function(season = get_current_season(), run_time = Sys.time()) {
   run_time <- as.POSIXct(run_time, tz = "America/New_York")
   final_cutdown_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
@@ -294,28 +316,27 @@ evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season
   final_cutdown_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
   if (run_time < final_cutdown_at) return(empty_inseason_inactivity_rows())
 
-  reports <- read_all_commissioner_alert_reports(season)
-  if (!nrow(reports)) return(empty_inseason_inactivity_rows())
-
-  deadline_date <- as.Date(lubridate::with_tz(final_cutdown_at, "America/New_York"))
-  reports |>
-    mutate(report_date = alert_report_date(dplyr::pick(dplyr::everything()))) |>
+  confirmed <- read_confirmed_inseason_inactivity(season) |>
     filter(
-      .data$report_date == deadline_date,
-      .data$alert_type == "Roster Cap Violation",
+      .data$violation_key == paste("final_roster_cutdown", .env$season, .data$franchise, sep = "|"),
       !is.na(.data$franchise),
       nzchar(.data$franchise)
-    ) |>
+    )
+
+  if (!nrow(confirmed)) return(empty_inseason_inactivity_rows())
+
+  confirmed |>
     transmute(
       alert_type = "In-Season Inactivity Violation",
       severity = "violation",
       conference,
       franchise,
       franchise_name,
-      rule = "Illegal roster at the Final Roster Cutdown Deadline",
+      violation_category = coalesce(.data$violation_category, "Illegal Roster at Cutdown"),
+      rule = coalesce(.data$rule, "Illegal roster at the Final Roster Cutdown Deadline"),
       observed = .data$observed,
       details = .data$details,
-      violation_key = paste("final_roster_cutdown", season, .data$franchise, sep = "|"),
+      violation_key = .data$violation_key,
       season_phase = "inseason"
     )
 }
