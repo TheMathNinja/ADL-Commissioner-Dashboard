@@ -359,6 +359,21 @@ write_issued_inseason_inactivity <- function(issued, season = get_current_season
   write_csv(issued, inseason_inactivity_path("issued_violations", season), na = "")
 }
 
+normalize_inseason_inactivity_bind_types <- function(x) {
+  if (is.null(x) || !nrow(x)) return(x)
+  x |>
+    mutate(
+      across(
+        any_of(c(
+          "season", "week", "checked_at", "alert_type", "severity", "conference",
+          "franchise", "franchise_name", "violation_category", "rule", "observed",
+          "details", "violation_key", "season_phase"
+        )),
+        as.character
+      )
+    )
+}
+
 build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
   run_time <- as.POSIXct(run_time, tz = "America/New_York")
   if (run_time < commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
@@ -366,16 +381,22 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
   }
 
   candidates <- bind_rows(
-    evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
-    evaluate_repeated_roster_violations(season, run_time = run_time),
-    evaluate_confirmed_illegal_lineup_inactivity(season),
-    evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
+    lapply(
+      list(
+        evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
+        evaluate_repeated_roster_violations(season, run_time = run_time),
+        evaluate_confirmed_illegal_lineup_inactivity(season),
+        evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
+      ),
+      normalize_inseason_inactivity_bind_types
+    )
   ) |>
     inseason_inactivity_category() |>
     distinct(.data$violation_key, .keep_all = TRUE) |>
-    mutate(season = .env$season, checked_at = format(run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1)
+    mutate(season = as.character(.env$season), checked_at = format(run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1)
 
-  issued <- read_issued_inseason_inactivity(season)
+  issued <- read_issued_inseason_inactivity(season) |>
+    normalize_inseason_inactivity_bind_types()
   new_alerts <- candidates |>
     anti_join(issued |> distinct(.data$violation_key), by = "violation_key") |>
     arrange(.data$conference, .data$franchise, .data$rule)
