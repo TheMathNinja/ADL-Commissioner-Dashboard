@@ -24,6 +24,7 @@ jobs:
 
     env:
       CURRENT_SEASON: "2026"
+      ADL_WEEK_ONE_START: "2026-09-10"
       SNAPSHOT_WEEK: ${{ github.event.inputs.snapshot_week }}
       RAW_CACHE_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
@@ -49,8 +50,15 @@ jobs:
 
           if { [ "$TORONTO_OFFSET" = "-0400" ] && [ "$SCHEDULE" = "30 7 * 9-12,1 2" ]; } || \
              { [ "$TORONTO_OFFSET" = "-0500" ] && [ "$SCHEDULE" = "30 8 * 9-12,1 2" ]; }; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Correct 3:30 a.m. Toronto Tuesday cron slot -> proceeding."
+            TODAY_ET=$(TZ=America/Toronto date +%F)
+            FIRST_SNAPSHOT_DATE=$(TZ=America/Toronto date -d "${ADL_WEEK_ONE_START} +5 days" +%F)
+            if [[ "$TODAY_ET" < "$FIRST_SNAPSHOT_DATE" ]]; then
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "Too early for weekly salary cap accounting. First official snapshot date is ${FIRST_SNAPSHOT_DATE}; today is ${TODAY_ET}."
+            else
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              echo "Correct 3:30 a.m. Toronto Tuesday cron slot -> proceeding."
+            fi
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
             echo "Duplicate non-3:30 a.m. Toronto Tuesday cron slot -> skipping."
