@@ -164,6 +164,7 @@ jobs:
 
       - name: Upload alert results
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: commissioner-alert-results
