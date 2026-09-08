@@ -252,6 +252,11 @@ is_second_round_cap_penalty_contract <- function(contractInfo) {
   stringr::str_detect(x, "\\b2\\.[0-9]{2}\\b")
 }
 
+is_extension_cap_penalty_contract <- function(contractInfo) {
+  x <- dplyr::coalesce(contractInfo, "")
+  stringr::str_detect(x, stringr::regex("EXT", ignore_case = TRUE))
+}
+
 has_plus <- function(contractInfo) {
   x <- dplyr::coalesce(contractInfo, "")
   stringr::str_detect(x, "\\+")
@@ -1230,7 +1235,8 @@ sd_rows <- tx_enriched %>%
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
     salary_or_contract_qualifies = (dplyr::coalesce(.data$salary_snap, -Inf) >= sd_min) |
       is_fg(.data$info_snap) |
-      is_second_round_cap_penalty_contract(.data$info_snap),
+      is_second_round_cap_penalty_contract(.data$info_snap) |
+      is_extension_cap_penalty_contract(.data$info_snap),
     qualifies = .data$salary_or_contract_qualifies |
       .data$recent_missing_snapshot_review
   ) %>%
