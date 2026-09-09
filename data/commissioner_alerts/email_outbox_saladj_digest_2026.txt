@@ -1,25 +1,27 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 12 new row(s) at 9/8/2026 9:44 a.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_08_ADLSalAdjCurator.csv
+SalAdj Curator published 14 new row(s) at 9/9/2026 9:55 a.m. EDT.
+Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_09_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 AFC
 ---
-- 9/6/2026 23:12:07 | KCC | Trey Benson | salary $1.98; 2 yr; 2024 2.06
-- 9/7/2026 00:06:33 | KCC | Tyquan Thornton | salary $2.4; 1 yr; 2026 B/R
-- 9/7/2026 00:06:33 | KCC | Kimani Vidal | salary $2.3; 1 yr; 2026 UFA
-- 9/7/2026 11:13:49 | HOU | Xavier Legette | salary $2.57; 2 yr; 2024 1.15; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
-- 9/7/2026 15:03:57 | LAC | Ifeatu Melifonwu | salary $2.06; 2 yr; 2024 oEXT; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
-- 9/8/2026 05:00:00 | LAC | Damar Hamlin | salary $3.84; 1 yr; 2024 iEXT; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
+- 9/7/2026 07:49:44 | BAL | Bobby Wagner | salary $2.1; 1 yr; 2026 UFA
+- 9/7/2026 08:32:30 | IND | Alvin Kamara | salary $2.1; 1 yr; 2026 UFA
+- 9/7/2026 11:13:49 | HOU | Xavier Legette | salary $2.57; 2 yr; 2024 1.15; notes: 2024 1.15
+- 9/7/2026 15:03:57 | LAC | Ifeatu Melifonwu | salary $2.06; 2 yr; 2024 oEXT
+- 9/8/2026 05:00:00 | LAC | Damar Hamlin | salary $3.84; 1 yr; 2024 iEXT
+- 9/9/2026 09:55:28 | BUF | Charvarius Ward | salary $2.09; 1 yr; 2025 UFA; notes: PENDING WAIVER UNTIL 09/11/2026 05:00 AM EDT
 
 NFC
 ---
-- 9/6/2026 15:28:57 | ATL | Evan Engram | salary $11.5; 1 yr; 2024 oEXT
-- 9/6/2026 15:28:57 | ATL | Anthony Richardson | salary $10.93; 1 yr; 2023 1.01; notes: 2023 1.01
-- 9/6/2026 20:44:19 | GBP | Azeez Ojulari | salary $2.42; 2 yr; 2025 oEXT
-- 9/7/2026 11:56:34 | NOS | Chris Boswell | salary $2.09; 1 yr; 2025 UFA; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
-- 9/7/2026 11:56:34 | NOS | Christian Barmore | salary $13.7; 1 yr; 2025 UFA; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
-- 9/7/2026 11:56:34 | NOS | JT Tuimoloau | salary $3.14; 3 yr; 2026 oEXT; notes: PENDING WAIVER UNTIL 09/09/2026 05:00 AM EDT
+- 9/7/2026 05:04:47 | ARI | Leo Chenal | salary $2.1; 3 yr; 2026 oEXT
+- 9/7/2026 08:09:58 | SFO | Roman Wilson | salary $1.81; 2 yr; 2024 2.09; notes: WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY PHI; RVSD?: x
+- 9/7/2026 09:14:20 | ATL | Luke McCaffrey | salary $4.09; 4 yr; 2025 iEXT
+- 9/7/2026 09:14:52 | ATL | Nnamdi Madubuike | salary $10.45; 1 yr; 2025 B/R
+- 9/7/2026 11:56:34 | NOS | Chris Boswell | salary $2.09; 1 yr; 2025 UFA
+- 9/7/2026 11:56:34 | NOS | Christian Barmore | salary $13.7; 1 yr; 2025 UFA; notes: WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY SEA; RVSD?: x
+- 9/7/2026 11:56:34 | NOS | JT Tuimoloau | salary $3.14; 3 yr; 2026 oEXT
+- 9/9/2026 05:00:00 | SEA | Brandon Dorlus | salary $2.09; 3 yr; 2026 oEXT; notes: PENDING WAIVER UNTIL 09/10/2026 05:00 AM EDT
 
