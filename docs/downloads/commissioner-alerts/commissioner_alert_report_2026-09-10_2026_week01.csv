@@ -1,6 +1,6 @@
 season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only
-2026,1,2026-09-10 17:57:34 UTC,Illegal Lineup Warning,warning,AFC,BUF,Buffalo Bills,No inactive players allowed in starting lineup,"Burrow, Joe CIN QB is inactive (O)",,
-2026,1,2026-09-10 17:57:34 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,No inactive players allowed in starting lineup,"Mayfield, Baker TBB QB is inactive (O)",,
-2026,1,2026-09-10 17:57:34 UTC,Illegal Lineup Warning,warning,NFC,NOS,New Orleans Saints,No inactive players allowed in starting lineup,"Dart, Jaxson NYG QB is inactive (O)",,
-2026,1,2026-09-10 17:57:34 UTC,Illegal Lineup Warning,warning,NFC,SFO,San Francisco 49ers,No inactive players allowed in starting lineup,"Burrow, Joe CIN QB is inactive (O)",,
-2026,1,2026-09-10 17:57:34 UTC,Roster Cap Violation,violation,NFC,LAR,Los Angeles Rams,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum,
+2026,1,2026-09-10 18:02:05 UTC,Illegal Lineup Warning,warning,AFC,BUF,Buffalo Bills,No inactive players allowed in starting lineup,"Burrow, Joe CIN QB is inactive (O)",,
+2026,1,2026-09-10 18:02:05 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,No inactive players allowed in starting lineup,"Mayfield, Baker TBB QB is inactive (O)",,
+2026,1,2026-09-10 18:02:05 UTC,Illegal Lineup Warning,warning,NFC,NOS,New Orleans Saints,No inactive players allowed in starting lineup,"Dart, Jaxson NYG QB is inactive (O)",,
+2026,1,2026-09-10 18:02:05 UTC,Illegal Lineup Warning,warning,NFC,SFO,San Francisco 49ers,No inactive players allowed in starting lineup,"Burrow, Joe CIN QB is inactive (O)",,
+2026,1,2026-09-10 18:02:05 UTC,Roster Cap Violation,violation,NFC,LAR,Los Angeles Rams,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum,
