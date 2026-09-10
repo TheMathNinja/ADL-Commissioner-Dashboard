@@ -4,3 +4,16 @@
 .Ruserdata
 *.Rproj
 cache/
+_lib/
+.gh-cache/
+.gh_tmp/
+tmp_*/
+data/tmp_live_dry_run_*/
+tmp_commissioner_alert_dryrun_*/
+job_*.log
+*_dryrun.csv
+data/SalAdjCurator_latest.*_test.csv
+poll_audit_*.csv
+poll_franchise_audit_*.csv
+pre_ufa_auction_participation*.csv
+review_*_after_poll.csv
