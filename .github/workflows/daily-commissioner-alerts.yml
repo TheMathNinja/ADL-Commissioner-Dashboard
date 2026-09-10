@@ -138,6 +138,7 @@ jobs:
           if [ "${SEND_EMAIL}" = "true" ]; then
             EMAIL_ARGS="--send-email"
           fi
+          export ADL_ALERT_SEND_EMAIL="${SEND_EMAIL}"
 
           if [ -z "${CUTDOWN_ID}" ]; then
             case "${{ github.event.schedule }}" in
