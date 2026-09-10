@@ -38,7 +38,6 @@ jobs:
       ADL_CAP_ACCOUNTING_DIR: data/cap_accounting
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_MODE: check
-      ADL_ALERT_SEND_EMAIL: true
       ADL_ALERT_FORCE_LIVE: true
       ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
