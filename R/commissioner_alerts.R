@@ -1377,7 +1377,8 @@ cache_designation_snapshot <- function(season = get_current_season(), week = NUL
 read_designation_snapshot <- function(season = get_current_season(), week = NULL) {
   path <- commissioner_alert_path("designation_snapshot", season, week)
   if (!file.exists(path)) return(NULL)
-  normalize_designation_snapshot_time(read_csv(path, show_col_types = FALSE))
+  read_csv(path, col_types = cols(.default = col_character()), show_col_types = FALSE) |>
+    normalize_designation_snapshot_time()
 }
 
 normalize_designation_snapshot_time <- function(snapshot) {
@@ -1402,7 +1403,17 @@ normalize_designation_snapshot_time <- function(snapshot) {
   }
 
   snapshot$snapshot_time <- lubridate::with_tz(parsed, "UTC")
-  snapshot
+  snapshot |>
+    mutate(
+      across(
+        any_of(c(
+          "season", "week", "conference", "franchise", "franchise_name",
+          "player_id", "player_name", "player_team", "player_pos",
+          "roster_status", "player_status", "weekly_player_status"
+        )),
+        as.character
+      )
+    )
 }
 
 read_designation_snapshot_history <- function(season = get_current_season(), week = NULL) {
@@ -1414,7 +1425,7 @@ read_designation_snapshot_history <- function(season = get_current_season(), wee
   }
 
   snapshots <- bind_rows(lapply(snapshot_files, function(path) {
-    read_csv(path, show_col_types = FALSE) |>
+    read_csv(path, col_types = cols(.default = col_character()), show_col_types = FALSE) |>
       normalize_designation_snapshot_time()
   }))
 
