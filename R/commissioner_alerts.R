@@ -528,6 +528,8 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
       active_players = sum(.data$roster_status == "Active", na.rm = TRUE),
       taxi_players = sum(.data$roster_status == "Taxi", na.rm = TRUE),
       active_plus_taxi = sum(.data$roster_status %in% c("Active", "Taxi"), na.rm = TRUE),
+      non_exempt_active_players = sum(.data$roster_status == "Active" & !.data$exempt_player, na.rm = TRUE),
+      non_exempt_taxi_players = sum(.data$roster_status == "Taxi" & !.data$exempt_player, na.rm = TRUE),
       non_exempt_active_plus_taxi = sum(.data$active_taxi_player & !.data$exempt_player, na.rm = TRUE),
       exempt_active_plus_taxi = sum(.data$exempt_player, na.rm = TRUE),
       ir_movable_active_taxi = sum(.data$ir_move_candidate, na.rm = TRUE),
@@ -559,7 +561,14 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise_name,
           rule = paste0("Maximum ", .env$max_active_taxi, " players on Active Roster + Taxi Squad"),
           observed = paste0(.data$active_plus_taxi, " active/taxi players"),
-          details = paste0(.data$active_plus_taxi - .env$max_active_taxi, " above maximum")
+          details = paste0(
+            .data$active_plus_taxi - .env$max_active_taxi,
+            " above maximum (",
+            .data$active_players,
+            " Active + ",
+            .data$taxi_players,
+            " Taxi)"
+          )
         )
     },
     if (!is.null(max_active_taxi)) {
@@ -594,7 +603,14 @@ evaluate_roster_cap_alerts <- function(rosters, min_active = NULL, max_active_ta
           franchise_name,
           rule = paste0("Maximum ", .env$max_non_exempt_active_taxi, " non-suspended/non-holdout players on Active Roster + Taxi Squad"),
           observed = paste0(.data$non_exempt_active_plus_taxi, " non-suspended/non-holdout Active + Taxi players"),
-          details = paste0(.data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi, " above maximum")
+          details = paste0(
+            .data$non_exempt_active_plus_taxi - .env$max_non_exempt_active_taxi,
+            " above maximum (",
+            .data$non_exempt_active_players,
+            " Active + ",
+            .data$non_exempt_taxi_players,
+            " Taxi)"
+          )
         )
     },
     if (!is.null(max_non_exempt_active_taxi)) {
