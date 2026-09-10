@@ -11,6 +11,14 @@ on:
         description: Optional roster cutdown benchmark to run instead of the regular daily check.
         required: false
         type: string
+      send_email:
+        description: Send alert emails during this manual run.
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 name: daily-commissioner-alerts
 
@@ -122,6 +130,15 @@ jobs:
       - name: Run commissioner alerts
         run: |
           CUTDOWN_ID="${{ github.event.inputs.cutdown_id }}"
+          SEND_EMAIL="${{ github.event.inputs.send_email }}"
+          if [ -z "${SEND_EMAIL}" ]; then
+            SEND_EMAIL="true"
+          fi
+          EMAIL_ARGS=""
+          if [ "${SEND_EMAIL}" = "true" ]; then
+            EMAIL_ARGS="--send-email"
+          fi
+
           if [ -z "${CUTDOWN_ID}" ]; then
             case "${{ github.event.schedule }}" in
               "7 16 31 8 *") CUTDOWN_ID="roster_cutdown_1" ;;
@@ -132,9 +149,9 @@ jobs:
           fi
 
           if [ -n "${CUTDOWN_ID}" ]; then
-            Rscript scripts/run_commissioner_alerts.R --mode=cutdown --cutdown="${CUTDOWN_ID}" --season=${CURRENT_SEASON} --force-live --send-email --send-empty --skip-completed-cutdown
+            Rscript scripts/run_commissioner_alerts.R --mode=cutdown --cutdown="${CUTDOWN_ID}" --season=${CURRENT_SEASON} --force-live ${EMAIL_ARGS} --send-empty --skip-completed-cutdown
           else
-            Rscript scripts/run_commissioner_alerts.R --mode=check --season=${CURRENT_SEASON} --force-live --send-email
+            Rscript scripts/run_commissioner_alerts.R --mode=check --season=${CURRENT_SEASON} --force-live ${EMAIL_ARGS}
           fi
 
       - name: Build dashboard site
