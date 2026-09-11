@@ -2235,7 +2235,8 @@ evaluate_illegal_lineup_alerts <- function(
       conference,
       player_id,
       current_roster_status = normalize_alert_status(.data$roster_status),
-      current_player_status = as.character(coalesce_col(rosters, c("player_status"), NA_character_))
+      # Lineup warnings require live current designation evidence; roster/snapshot status can be stale.
+      current_player_status = NA_character_
     )
 
   if (!is.null(current_designations)) {
@@ -2564,20 +2565,6 @@ build_commissioner_alerts <- function(
       )
     } else {
       NULL
-    }
-    if (!is.null(designation_snapshot) && nrow(designation_snapshot)) {
-      snapshot_current_designations <- designation_snapshot |>
-        transmute(
-          conference,
-          player_id,
-          player_team,
-          player_status = as.character(coalesce_col(designation_snapshot, c("player_status", "roster_status"), NA_character_))
-        ) |>
-        filter(!is.na(.data$player_status), nzchar(.data$player_status))
-
-      current_designations <- bind_rows(current_designations, snapshot_current_designations) |>
-        arrange(.data$conference, .data$player_id, desc(inactive_designation(.data$player_status))) |>
-        distinct(.data$conference, .data$player_id, .keep_all = TRUE)
     }
     alerts$illegal_lineup <- evaluate_illegal_lineup_alerts(
       lineups = lineups,
