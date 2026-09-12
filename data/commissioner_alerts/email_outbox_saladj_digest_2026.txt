@@ -1,15 +1,11 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 2 new row(s) at 9/11/2026 9:57 a.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_11_ADLSalAdjCurator.csv
+SalAdj Curator published 1 new row(s) at 9/12/2026 8:57 a.m. EDT.
+Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_12_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 AFC
 ---
-- 9/9/2026 09:55:28 | BUF | Charvarius Ward | salary $2.09; 1 yr; 2025 UFA
-
-NFC
----
-- 9/9/2026 05:00:00 | SEA | Brandon Dorlus | salary $2.09; 3 yr; 2026 oEXT; notes: WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY CAR; RVSD?: x
+- 9/11/2026 17:11:53 | DEN | Tua Tagovailoa | salary $20.49; 2 yr; 2025 B/R; notes: PENDING WAIVER UNTIL 09/13/2026 05:00 AM EDT
 
