@@ -344,6 +344,7 @@ apply_july1_eft_salaries <- function(roster, season) {
       player_pos = row$player_pos,
       tag_position = row$tag_position,
       roster_contractInfo = row$roster_contractInfo,
+      roster_years = row$roster_years,
       placeholder_neft_salary = row$roster_salary,
       july1_top_five_average = top_five_average,
       official_eft_salary = final_salary,
@@ -391,6 +392,7 @@ july1_eft_mfl_write_rows <- function(eft_audit) {
       player_pos = character(),
       tag_position = character(),
       roster_contractInfo = character(),
+      roster_years = double(),
       old_salary = double(),
       new_salary = double(),
       salary_delta = double(),
@@ -421,6 +423,7 @@ july1_eft_mfl_write_rows <- function(eft_audit) {
       player_pos,
       tag_position,
       roster_contractInfo,
+      roster_years,
       old_salary,
       new_salary,
       salary_delta,
@@ -546,18 +549,58 @@ mfl_import_cookie_headers <- function(conn) {
   list(httr::set_cookies(MFL_USER_ID = auth_cookie))
 }
 
+mfl_xml_attr <- function(value) {
+  value <- as.character(value %||% "")
+  value <- gsub("&", "&amp;", value, fixed = TRUE)
+  value <- gsub("\"", "&quot;", value, fixed = TRUE)
+  value <- gsub("<", "&lt;", value, fixed = TRUE)
+  value <- gsub(">", "&gt;", value, fixed = TRUE)
+  value
+}
+
+mfl_salary_player_xml <- function(row) {
+  attrs <- c(
+    id = mfl_xml_attr(row$player_id[[1]]),
+    salary = mfl_xml_attr(sprintf("%.2f", round_salary_millions(row$new_salary[[1]])))
+  )
+
+  contract_year <- suppressWarnings(as.numeric(row$roster_years[[1]] %||% NA_real_))
+  if (!is.na(contract_year)) {
+    attrs <- c(attrs, contractYear = mfl_xml_attr(as.character(contract_year)))
+  }
+
+  contract_info <- as.character(row$roster_contractInfo[[1]] %||% "")
+  if (nzchar(contract_info)) {
+    attrs <- c(attrs, contractInfo = mfl_xml_attr(contract_info))
+  }
+
+  paste0(
+    "<player ",
+    paste(sprintf('%s="%s"', names(attrs), attrs), collapse = " "),
+    " />"
+  )
+}
+
 write_single_mfl_salary_update <- function(conn, row, import_type) {
   if (!requireNamespace("httr", quietly = TRUE)) {
     stop("Package httr is required for MFL salary write-back.", call. = FALSE)
   }
 
+  if (!identical(import_type, "salaries")) {
+    stop("MFL salary write-back must use import TYPE=salaries.", call. = FALSE)
+  }
+
   url <- paste0("https://api.myfantasyleague.com/", row$season[[1]], "/import")
+  data <- paste0(
+    "<salaries><leagueUnit unit=\"LEAGUE\">",
+    mfl_salary_player_xml(row),
+    "</leagueUnit></salaries>"
+  )
   query <- list(
-    TYPE = import_type,
+    TYPE = "salaries",
     L = conn$league_id,
-    FRANCHISE_ID = row$franchise_id[[1]],
-    PLAYER_ID = row$player_id[[1]],
-    SALARY = sprintf("%.2f", row$new_salary[[1]])
+    DATA = data,
+    OVERLAY = "1"
   )
   response <- do.call(httr::POST, c(list(url = url, body = query, encode = "form"), mfl_import_cookie_headers(conn)))
   response_text <- httr::content(response, "text", encoding = "UTF-8")
@@ -583,7 +626,7 @@ maybe_write_july1_eft_salaries_to_mfl <- function(eft_audit, season = get_curren
 
   live_enabled <- truthy_env("ADL_ENABLE_MFL_SALARY_WRITES")
   write_window_open <- july1_mfl_salary_write_window_open(season)
-  import_type <- trimws(Sys.getenv("ADL_MFL_SALARY_WRITE_IMPORT_TYPE", unset = ""))
+  import_type <- trimws(Sys.getenv("ADL_MFL_SALARY_WRITE_IMPORT_TYPE", unset = "salaries"))
 
   if (!live_enabled || !write_window_open) {
     reason <- if (!live_enabled) {
