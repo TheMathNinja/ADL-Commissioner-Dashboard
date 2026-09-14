@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CURRENT_SEASON: "2026"
       RAW_CACHE_DIR: cache/raw_league_data
       RAW_CACHE_VERSION: v1
       R_LIBS_USER: ${{ github.workspace }}/_lib
@@ -62,7 +61,9 @@ jobs:
         run: |
           LOCAL_DATE=$(TZ=America/Toronto date +%F)
           LOCAL_MONTH_DAY=$(TZ=America/Toronto date +%m-%d)
+          CURRENT_SEASON=${LOCAL_DATE%%-*}
           echo "local_date=${LOCAL_DATE}" >> "$GITHUB_OUTPUT"
+          echo "current_season=${CURRENT_SEASON}" >> "$GITHUB_OUTPUT"
 
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -179,7 +180,7 @@ jobs:
       - name: Run SalAdjCurator script
         if: steps.localtime.outputs.should_run == 'true'
         env:
-          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          CURRENT_SEASON: ${{ steps.localtime.outputs.current_season }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
           ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
@@ -191,7 +192,7 @@ jobs:
       - name: Build official July 1 salary snapshot
         if: steps.localtime.outputs.should_run == 'true'
         env:
-          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          CURRENT_SEASON: ${{ steps.localtime.outputs.current_season }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
           ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
@@ -205,7 +206,7 @@ jobs:
       - name: Build dashboard site
         if: steps.localtime.outputs.should_run == 'true'
         env:
-          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          CURRENT_SEASON: ${{ steps.localtime.outputs.current_season }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
         run: Rscript scripts/build_dashboard.R
@@ -239,13 +240,14 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
           path: |
-            data/SalAdjCurator_${{ env.CURRENT_SEASON }}.csv
-            data/SalAdjCurator_${{ env.CURRENT_SEASON }}.rds
+            data/SalAdjCurator_${{ steps.localtime.outputs.current_season }}.csv
+            data/SalAdjCurator_${{ steps.localtime.outputs.current_season }}.rds
             data/SalAdjCurator_latest.csv
-            data/saladj_qualified_${{ env.CURRENT_SEASON }}.rds
+            data/saladj_qualified_${{ steps.localtime.outputs.current_season }}.rds
             data/run_metadata.csv
             data/saladj_email_status.csv
             data/archive/*ADLSalAdjCurator*
-            data/roster_snapshots/saladj_roster_snapshot_${{ env.CURRENT_SEASON }}*.csv
-            data/salary_snapshots/july1_*_${{ env.CURRENT_SEASON }}.csv
-            data/commissioner_alerts/email_outbox_july1_eft_mfl_salary_writes_${{ env.CURRENT_SEASON }}.txt
+            data/roster_snapshots/saladj_roster_snapshot_${{ steps.localtime.outputs.current_season }}*.csv
+            data/salary_snapshots/july1_*_${{ steps.localtime.outputs.current_season }}.csv
+            data/commissioner_alerts/email_outbox_july1_eft_mfl_salary_writes_${{ steps.localtime.outputs.current_season }}.txt
+
