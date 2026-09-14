@@ -1,1 +1,1 @@
-season,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,violation_key,season_phase
+violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
