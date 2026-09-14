@@ -341,6 +341,239 @@ evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season
     )
 }
 
+lineup_submission_report_options <- function() {
+  raw <- Sys.getenv("ADL_MFL_STARTING_LINEUPS_OPTIONS", unset = "06")
+  options <- trimws(unlist(strsplit(raw, ",", fixed = TRUE)))
+  options[nzchar(options)]
+}
+
+lineup_submission_report_url <- function(season = get_current_season(), option = "06", week = NULL) {
+  league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  if (!nzchar(league_id)) league_id <- "60206"
+  url <- paste0(
+    "https://www46.myfantasyleague.com/", season,
+    "/options?L=", league_id,
+    "&O=", option
+  )
+  if (!is.null(week) && !is.na(week)) url <- paste0(url, "&W=", as.integer(week))
+  url
+}
+
+fetch_lineup_submission_report_html <- function(season = get_current_season(), week) {
+  if (!requireNamespace("httr", quietly = TRUE)) {
+    stop("Package httr is required to fetch MFL lineup submission reports.", call. = FALSE)
+  }
+  if (!requireNamespace("xml2", quietly = TRUE) || !requireNamespace("rvest", quietly = TRUE)) {
+    stop("Packages xml2 and rvest are required to parse MFL lineup submission reports.", call. = FALSE)
+  }
+
+  conn <- connect_adl_mfl(season)
+  options <- lineup_submission_report_options()
+  last_error <- NULL
+
+  for (option in options) {
+    url <- lineup_submission_report_url(season = season, option = option, week = week)
+    response <- tryCatch(
+      httr::GET(
+        url,
+        httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+        conn$auth_cookie,
+        httr::timeout(as.numeric(get_env_or_default("ADL_MFL_LINEUP_SUBMISSION_TIMEOUT_SECONDS", "30")))
+      ),
+      error = function(e) e
+    )
+    if (inherits(response, "error")) {
+      last_error <- conditionMessage(response)
+      next
+    }
+    if (httr::http_error(response)) {
+      last_error <- paste0("HTTP ", httr::status_code(response), " for ", url)
+      next
+    }
+
+    html <- httr::content(response, "text", encoding = "UTF-8")
+    text <- tryCatch(rvest::html_text2(xml2::read_html(html)), error = function(e) "")
+    if (grepl("Starting Lineups|Lineup Submitted|lineup.*submitted|No lineup submitted", text, ignore.case = TRUE)) {
+      return(list(html = html, url = url, option = option))
+    }
+    last_error <- paste0("Option ", option, " did not look like a Starting Lineups report.")
+  }
+
+  stop("Unable to fetch a parseable MFL Starting Lineups report: ", last_error %||% "no report options configured", call. = FALSE)
+}
+
+extract_lineup_submitted_at <- function(text) {
+  text <- gsub("\\s+", " ", as.character(text %||% ""))
+  patterns <- c(
+    "(?i)(lineup submitted|submitted|last updated|updated)[: ]+([A-Z][a-z]{2,9}[.]? [0-9]{1,2},? [0-9]{4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
+    "(?i)(lineup submitted|submitted|last updated|updated)[: ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
+    "([A-Z][a-z]{2,9}[.]? [0-9]{1,2},? [0-9]{4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
+    "([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)"
+  )
+
+  for (pattern in patterns) {
+    match <- regexpr(pattern, text, perl = TRUE)
+    if (match[[1]] > 0) {
+      hit <- regmatches(text, match)[[1]]
+      stamp <- sub(pattern, "\\2", hit, perl = TRUE)
+      if (identical(stamp, hit)) stamp <- hit
+      parsed <- suppressWarnings(lubridate::mdy_hm(stamp, tz = "America/New_York", quiet = TRUE))
+      if (is.na(parsed)) parsed <- suppressWarnings(lubridate::parse_date_time(stamp, orders = c("B d Y I:M p", "b d Y I:M p", "mdY I:M p"), tz = "America/New_York", quiet = TRUE))
+      if (!is.na(parsed)) return(parsed)
+    }
+  }
+
+  as.POSIXct(NA)
+}
+
+lineup_submission_status_from_text <- function(text) {
+  text <- as.character(text %||% "")
+  lower <- tolower(text)
+  not_submitted <- grepl("no lineup submitted|lineup not submitted|has not submitted|did not submit|without lineups|previous week's lineup|previous week.?s lineup", lower)
+  commissioner_set <- grepl("commissioner.?set|commish.?set|set by commissioner|\\*[^\\n]{0,80}commissioner", lower, perl = TRUE)
+  submitted_at <- extract_lineup_submitted_at(text)
+
+  if (isTRUE(commissioner_set)) {
+    return(list(status = "commissioner_set", submitted_at = submitted_at, note = "MFL indicates this lineup was set by a commissioner."))
+  }
+  if (isTRUE(not_submitted)) {
+    return(list(status = "not_submitted", submitted_at = submitted_at, note = "MFL indicates no lineup was submitted for this week."))
+  }
+  if (!is.na(submitted_at) || grepl("lineup submitted|submitted", lower)) {
+    return(list(status = "submitted", submitted_at = submitted_at, note = "MFL shows a submitted lineup stamp."))
+  }
+  list(status = "unknown", submitted_at = as.POSIXct(NA), note = "No parseable submission stamp or no-submission marker was found.")
+}
+
+parse_lineup_submission_report_html <- function(html, franchises, season = get_current_season(), week, source_url = NA_character_) {
+  if (!requireNamespace("xml2", quietly = TRUE) || !requireNamespace("rvest", quietly = TRUE)) {
+    stop("Packages xml2 and rvest are required to parse MFL lineup submission reports.", call. = FALSE)
+  }
+
+  doc <- xml2::read_html(html)
+  lines <- unlist(strsplit(rvest::html_text2(doc), "\n", fixed = TRUE))
+  lines <- trimws(lines[nzchar(trimws(lines))])
+
+  franchise_rows <- franchises |>
+    mutate(
+      franchise = as.character(.data$franchise),
+      franchise_name = as.character(.data$franchise_name)
+    ) |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name)
+
+  bind_rows(lapply(seq_len(nrow(franchise_rows)), function(i) {
+    team <- franchise_rows[i, ]
+    name_pattern <- paste0("\\b", gsub("([\\W])", "\\\\\\1", team$franchise_name[[1]], perl = TRUE), "\\b")
+    code_pattern <- paste0("\\b", gsub("([\\W])", "\\\\\\1", team$franchise[[1]], perl = TRUE), "\\b")
+    idx <- grep(name_pattern, lines, ignore.case = TRUE, perl = TRUE)
+    if (!length(idx)) idx <- grep(code_pattern, lines, ignore.case = TRUE, perl = TRUE)
+
+    if (!length(idx)) {
+      status <- list(
+        status = "unknown",
+        submitted_at = as.POSIXct(NA),
+        note = "Franchise was not found in the MFL Starting Lineups report text."
+      )
+      excerpt <- ""
+    } else {
+      start <- idx[[1]]
+      other_team_idx <- sort(unique(unlist(lapply(seq_len(nrow(franchise_rows)), function(j) {
+        if (j == i) return(integer())
+        other_name <- paste0("\\b", gsub("([\\W])", "\\\\\\1", franchise_rows$franchise_name[[j]], perl = TRUE), "\\b")
+        grep(other_name, lines, ignore.case = TRUE, perl = TRUE)
+      }))))
+      next_team <- other_team_idx[other_team_idx > start]
+      end <- if (length(next_team)) min(next_team[[1]] - 1L, start + 80L) else min(length(lines), start + 80L)
+      excerpt <- paste(lines[start:end], collapse = "\n")
+      status <- lineup_submission_status_from_text(excerpt)
+    }
+
+    tibble(
+      season = as.character(season),
+      week = as.character(week),
+      conference = team$conference[[1]],
+      franchise = team$franchise[[1]],
+      franchise_name = team$franchise_name[[1]],
+      submission_status = status$status,
+      submitted_at = if (is.na(status$submitted_at)) NA_character_ else format(status$submitted_at, "%Y-%m-%d %H:%M:%S %Z"),
+      source_url = source_url,
+      source_note = status$note,
+      source_excerpt = substr(excerpt, 1L, 500L)
+    )
+  }))
+}
+
+lineup_submission_audit <- function(season = get_current_season(), week, force_live = TRUE) {
+  franchises <- franchise_lookup_table(season = season, force_live = force_live)
+  fetched <- fetch_lineup_submission_report_html(season = season, week = week)
+  parse_lineup_submission_report_html(
+    html = fetched$html,
+    franchises = franchises,
+    season = season,
+    week = week,
+    source_url = fetched$url
+  )
+}
+
+write_lineup_submission_audit <- function(audit, season = get_current_season()) {
+  path <- inseason_inactivity_path("lineup_submission_audit", season)
+  write_csv(audit, path, na = "")
+  path
+}
+
+evaluate_lineup_submission_inactivity <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time()) {
+  if (!isTRUE(force_live)) return(empty_inseason_inactivity_rows())
+  run_time <- as.POSIXct(run_time, tz = "America/New_York")
+  if (run_time < commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
+    return(empty_inseason_inactivity_rows())
+  }
+
+  week <- commissioner_alert_status_week(season = season, checked_at = run_time)
+  if (is.na(week)) return(empty_inseason_inactivity_rows())
+
+  kickoffs <- tryCatch(read_nfl_team_kickoffs(season = season, week = week), error = function(e) tibble())
+  first_game_at <- if (nrow(kickoffs) && "kickoff_at" %in% names(kickoffs)) {
+    kickoff_values <- as.POSIXct(kickoffs$kickoff_at, tz = "UTC")
+    kickoff_values <- kickoff_values[!is.na(kickoff_values)]
+    if (length(kickoff_values)) min(kickoff_values) else as.POSIXct(NA)
+  } else {
+    as.POSIXct(NA)
+  }
+  if (!is.na(first_game_at) && lubridate::with_tz(run_time, "UTC") < first_game_at) {
+    return(empty_inseason_inactivity_rows())
+  }
+
+  audit <- tryCatch(
+    lineup_submission_audit(season = season, week = week, force_live = force_live),
+    error = function(e) {
+      warning("Unable to audit MFL lineup submission stamps: ", conditionMessage(e), call. = FALSE)
+      tibble()
+    }
+  )
+  if (nrow(audit)) write_lineup_submission_audit(audit, season = season)
+  if (!nrow(audit)) return(empty_inseason_inactivity_rows())
+
+  audit |>
+    filter(.data$submission_status %in% c("not_submitted", "commissioner_set")) |>
+    transmute(
+      alert_type = "In-Season Inactivity Violation",
+      severity = "violation",
+      conference,
+      franchise,
+      franchise_name,
+      week = as.character(.data$week),
+      violation_category = "Illegal Lineup",
+      rule = "GM must submit a legal weekly lineup",
+      observed = case_when(
+        .data$submission_status == "commissioner_set" ~ paste0("Week ", .env$week, " lineup was set by a commissioner rather than submitted by the GM."),
+        TRUE ~ paste0("No GM-submitted lineup was recorded for Week ", .env$week, ". MFL may be using an inherited lineup.")
+      ),
+      details = "",
+      violation_key = paste("illegal_lineup", season, .data$franchise, .env$week, sep = "|"),
+      season_phase = "inseason"
+    )
+}
+
 evaluate_confirmed_illegal_lineup_inactivity <- function(season = get_current_season()) {
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports) || !"week" %in% names(reports)) return(empty_inseason_inactivity_rows())
@@ -363,8 +596,10 @@ evaluate_confirmed_illegal_lineup_inactivity <- function(season = get_current_se
       conference,
       franchise,
       franchise_name,
-      rule = "Failed to set a full weekly lineup with 21 active/starting players",
-      observed,
+      week = as.character(.env$week),
+      violation_category = "Illegal Lineup",
+      rule = "GM must submit a legal weekly lineup",
+      observed = paste0("Week ", .data$week, " lineup was submitted or played illegally: ", .data$observed),
       details,
       violation_key = paste("illegal_lineup", season, .data$franchise, .data$week, sep = "|"),
       season_phase = "inseason"
@@ -398,6 +633,42 @@ normalize_inseason_inactivity_bind_types <- function(x) {
     )
 }
 
+first_nonempty_value <- function(x) {
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+  if (length(x)) x[[1]] else NA_character_
+}
+
+collapse_inseason_inactivity_candidates <- function(candidates) {
+  if (!nrow(candidates)) return(candidates)
+  expected_cols <- c(
+    "season", "week", "checked_at", "alert_type", "severity", "conference",
+    "franchise", "franchise_name", "violation_category", "rule", "observed",
+    "details", "violation_key", "season_phase"
+  )
+  for (col in setdiff(expected_cols, names(candidates))) {
+    candidates[[col]] <- NA_character_
+  }
+  candidates |>
+    group_by(.data$violation_key) |>
+    summarize(
+      season = first_nonempty_value(.data$season),
+      week = first_nonempty_value(.data$week),
+      checked_at = first_nonempty_value(.data$checked_at),
+      alert_type = first_nonempty_value(.data$alert_type),
+      severity = first_nonempty_value(.data$severity),
+      conference = first_nonempty_value(.data$conference),
+      franchise = first_nonempty_value(.data$franchise),
+      franchise_name = first_nonempty_value(.data$franchise_name),
+      violation_category = first_nonempty_value(.data$violation_category),
+      rule = first_nonempty_value(.data$rule),
+      observed = paste(unique(as.character(.data$observed[!is.na(.data$observed) & nzchar(.data$observed)])), collapse = "; "),
+      details = paste(unique(as.character(.data$details[!is.na(.data$details) & nzchar(.data$details)])), collapse = "; "),
+      season_phase = first_nonempty_value(.data$season_phase),
+      .groups = "drop"
+    )
+}
+
 build_inseason_inactivity_alerts <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(), persist = TRUE) {
   run_time <- as.POSIXct(run_time, tz = "America/New_York")
   if (run_time < commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
@@ -410,13 +681,14 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
         evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
         evaluate_repeated_roster_violations(season, run_time = run_time),
         evaluate_confirmed_illegal_lineup_inactivity(season),
+        evaluate_lineup_submission_inactivity(season = season, force_live = force_live, run_time = run_time),
         evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
       ),
       normalize_inseason_inactivity_bind_types
     )
   ) |>
     inseason_inactivity_category() |>
-    distinct(.data$violation_key, .keep_all = TRUE) |>
+    collapse_inseason_inactivity_candidates() |>
     mutate(season = as.character(.env$season), checked_at = format(run_time, "%Y-%m-%d %H:%M:%S %Z"), .before = 1)
 
   issued <- read_issued_inseason_inactivity(season) |>

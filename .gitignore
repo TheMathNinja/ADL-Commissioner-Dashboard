@@ -7,6 +7,7 @@ cache/
 _lib/
 .gh-cache/
 .gh_tmp/
+.tmp_mfl_probe_*/
 tmp_*/
 data/tmp_live_dry_run_*/
 tmp_commissioner_alert_dryrun_*/
