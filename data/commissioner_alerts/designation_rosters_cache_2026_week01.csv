@@ -178,6 +178,7 @@ NFC,WAS,Washington Commanders,12711,"Ramsey, Jalen PIT CB","Ramsey, Jalen",PIT,C
 NFC,WAS,Washington Commanders,14957,"Robertson, Amik WAS CB","Robertson, Amik",WAS,CB,Active,,2.2,1,259.08,2026 UFA,,robertson
 NFC,WAS,Washington Commanders,12782,"Onyemata, David NYJ DT","Onyemata, David",NYJ,DT,Active,,2,1,259.08,2026 UFA,,onyemata
 NFC,WAS,Washington Commanders,17628,"Daniels, Kendal ATL LB","Daniels, Kendal",ATL,LB,Active,R,0.94,3,259.08,2026 UDFA,,daniels
+NFC,WAS,Washington Commanders,14956,"Sneed, L'Jarius KCC CB","Sneed, L'Jarius",KCC,CB,Active,,1.1,1,259.08,2026 UFA,,sneed
 NFC,WAS,Washington Commanders,17113,"Williams, Mykel SFO DE","Williams, Mykel",SFO,DE,INJURED_RESERVE,IR-PUP,1.64,3,259.08,2025 2.14,,williams
 NFC,WAS,Washington Commanders,17037,"Gabriel, Dillon CLE QB","Gabriel, Dillon",CLE,QB,INJURED_RESERVE,IR-R,1.07,3,259.08,2025 4.19,,gabriel
 NFC,WAS,Washington Commanders,15871,"Joseph, Kerby DET S","Joseph, Kerby",DET,S,INJURED_RESERVE,IR-PUP,2.1,1,259.08,2026 UFA,,joseph
@@ -507,6 +508,7 @@ NFC,NOS,New Orleans Saints,17114,"Stewart, Shemar CIN DE","Stewart, Shemar",CIN,
 NFC,NOS,New Orleans Saints,16460,"Hickman, Ronnie CLE S","Hickman, Ronnie",CLE,S,Active,,1.1,1,265.19,2025 R/F,,hickman
 NFC,NOS,New Orleans Saints,13772,"Schultz, Dalton HOU TE","Schultz, Dalton",HOU,TE,Active,,8.18,1,265.19,2024 iEXT,,schultz
 NFC,NOS,New Orleans Saints,17476,"Singleton, Nicholas TEN RB","Singleton, Nicholas",TEN,RB,Active,Out,1.46,4,265.19,2026 3.03,,singleton
+NFC,NOS,New Orleans Saints,17156,"Porter, Darien LVR CB","Porter, Darien",LVR,CB,Active,,1.1,1,265.19,2026 UFA,,porter
 NFC,NOS,New Orleans Saints,16169,"Charbonnet, Zach SEA RB","Charbonnet, Zach",SEA,RB,INJURED_RESERVE,IR-PUP,2.54,1,265.19,2023 2.01,,charbonnet
 NFC,NOS,New Orleans Saints,15872,"Bryant, Coby CHI S","Bryant, Coby",CHI,S,INJURED_RESERVE,IR,4.02,3,265.19,2026 oEXT,,bryant
 NFC,NOS,New Orleans Saints,13146,"Conner, James ARI RB","Conner, James",ARI,RB,INJURED_RESERVE,IR-R,1.1,1,265.19,2026 UFA,,conner
@@ -529,7 +531,7 @@ NFC,TBB,Tampa Bay Buccaneers,13132,"Kamara, Alvin NOS RB","Kamara, Alvin",NOS,RB
 NFC,TBB,Tampa Bay Buccaneers,15972,"Mason, Jordan MIN RB","Mason, Jordan",MIN,RB,Active,,8.36,1,252.92,2025 UFA,,mason
 NFC,TBB,Tampa Bay Buccaneers,16314,"Dennis, SirVocea TBB LB","Dennis, SirVocea",TBB,LB,Active,,4.1,5,252.92,2026 oEXT,,dennis
 NFC,TBB,Tampa Bay Buccaneers,16186,"Addison, Jordan MIN WR","Addison, Jordan",MIN,WR,Active,,4.48,1,252.92,2023 1.08,,addison
-NFC,TBB,Tampa Bay Buccaneers,16615,"Nabers, Malik NYG WR","Nabers, Malik",NYG,WR,Active,Questionable,7.02,2,252.92,2024 1.03,,nabers
+NFC,TBB,Tampa Bay Buccaneers,16615,"Nabers, Malik NYG WR","Nabers, Malik",NYG,WR,Active,,7.02,2,252.92,2024 1.03,,nabers
 NFC,TBB,Tampa Bay Buccaneers,14924,"Johnson, Jaylon CHI CB","Johnson, Jaylon",CHI,CB,Active,,1.1,1,252.92,2026 R/F,,johnson
 NFC,TBB,Tampa Bay Buccaneers,16166,"Tucker, Sean TBB RB","Tucker, Sean",TBB,RB,Active,Out,3.67,2,252.92,2026 ORFA5,,tucker
 NFC,TBB,Tampa Bay Buccaneers,16846,"Bates, Jake DET PK","Bates, Jake",DET,PK,Active,,1.1,1,252.92,2026 ERFA,,bates
@@ -736,7 +738,7 @@ NFC,SEA,Seattle Seahawks,14982,"Gilman, Alohi KCC S","Gilman, Alohi",KCC,S,Activ
 NFC,SEA,Seattle Seahawks,16145,"McMillian, Ja'Quan DEN CB","McMillian, Ja'Quan",DEN,CB,Active,,2,1,261.29,2026 UFA,,mcmillian
 NFC,SEA,Seattle Seahawks,14995,"Metellus, Josh MIN S","Metellus, Josh",MIN,S,Active,,2.1,1,261.29,2026 UFA,,metellus
 NFC,SEA,Seattle Seahawks,10700,"Cousins, Kirk LVR QB","Cousins, Kirk",LVR,QB,Active,,3.6,1,261.29,2026 UFA,,cousins
-NFC,SEA,Seattle Seahawks,15254,"Harris, Najee NYG RB","Harris, Najee",NYG,RB,Active,,1.1,1,261.29,2026 UFA,,harris
+NFC,SEA,Seattle Seahawks,15254,"Harris, Najee NYG RB","Harris, Najee",NYG,RB,Active,Out,1.1,1,261.29,2026 UFA,,harris
 NFC,SEA,Seattle Seahawks,17743,"Strand, Jack ATL QB","Strand, Jack",ATL,QB,Active,R,1.1,1,261.29,2026 UFA,,strand
 NFC,SEA,Seattle Seahawks,15795,"Kolar, Charlie LAC TE","Kolar, Charlie",LAC,TE,Active,,1.1,1,261.29,2026 R/F,,kolar
 NFC,SEA,Seattle Seahawks,17554,"Parker, T.J. BUF DE","Parker, T.J.",BUF,DE,Active,R,1.86,4,261.29,2026 2.09,,parker
@@ -748,6 +750,7 @@ NFC,SEA,Seattle Seahawks,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,
 NFC,SEA,Seattle Seahawks,14954,"Hawkins, Jaylinn BAL S","Hawkins, Jaylinn",BAL,S,Active,,3.45,2,261.29,2025 iEXT,,hawkins
 NFC,SEA,Seattle Seahawks,17657,"Green, Taylen CLE QB","Green, Taylen",CLE,QB,Active,Out,0.94,3,261.29,2026 UDFA,,green
 NFC,SEA,Seattle Seahawks,15357,"Barmore, Christian NEP DT","Barmore, Christian",NEP,DT,Active,,13.7,1,261.29,2025 UFA,,barmore
+NFC,SEA,Seattle Seahawks,17572,"Terrell, Avieon ATL CB","Terrell, Avieon",ATL,CB,Active,R,2,1,261.29,2026 UFA,,terrell
 NFC,SEA,Seattle Seahawks,15351,"Owusu-Koramoah, Jeremiah CLE LB","Owusu-Koramoah, Jeremiah",CLE,LB,INJURED_RESERVE,IR-PUP,6.55,3,261.29,2025 B/R,,owusu-koramoah
 NFC,SEA,Seattle Seahawks,17096,"Williams, Savion GBP WR","Williams, Savion",GBP,WR,INJURED_RESERVE,IR-R,1.08,3,261.29,2025 4.15,,williams
 NFC,SEA,Seattle Seahawks,17544,"Stowers, Eli PHI TE","Stowers, Eli",PHI,TE,INJURED_RESERVE,IR,2.5,4,261.29,2026 2.01,,stowers
@@ -776,7 +779,7 @@ AFC,BUF,Buffalo Bills,15779,"Doubs, Romeo NEP WR","Doubs, Romeo",NEP,WR,Active,,
 AFC,BUF,Buffalo Bills,17139,"Sanders, T.J. BUF DT","Sanders, T.J.",BUF,DT,Active,Out,1.03,3,266.62,2025 5.09,,sanders
 AFC,BUF,Buffalo Bills,14777,"Burrow, Joe CIN QB","Burrow, Joe",CIN,QB,Active,Out,27.27,3,266.62,2023 iEXT,,burrow
 AFC,BUF,Buffalo Bills,14518,"Thompson, Jalen DAL S","Thompson, Jalen",DAL,S,Active,,2.18,1,266.62,2026 oEXT,,thompson
-AFC,BUF,Buffalo Bills,16615,"Nabers, Malik NYG WR","Nabers, Malik",NYG,WR,Active,Questionable,8.15,2,266.62,2024 1.02,,nabers
+AFC,BUF,Buffalo Bills,16615,"Nabers, Malik NYG WR","Nabers, Malik",NYG,WR,Active,,8.15,2,266.62,2024 1.02,,nabers
 AFC,BUF,Buffalo Bills,17108,"Arroyo, Elijah SEA TE","Arroyo, Elijah",SEA,TE,Active,,1.35,3,266.62,2025 3.09,,arroyo
 AFC,BUF,Buffalo Bills,15806,"Thibodeaux, Kayvon NYG DE","Thibodeaux, Kayvon",NYG,DE,Active,,5.51,4,266.62,2025 iEXT,,thibodeaux
 AFC,BUF,Buffalo Bills,15831,"Chenal, Leo WAS LB","Chenal, Leo",WAS,LB,Active,,2.1,3,266.62,2026 oEXT,,chenal
@@ -1003,7 +1006,7 @@ AFC,CIN,Cincinnati Bengals,14957,"Robertson, Amik WAS CB","Robertson, Amik",WAS,
 AFC,CIN,Cincinnati Bengals,14170,"Bush, Devin CHI LB","Bush, Devin",CHI,LB,Active,,10.26,3,266.62,2026 oEXT,,bush
 AFC,CIN,Cincinnati Bengals,13748,"Jones, Justin FA DT","Jones, Justin",FA,DT,Active,,3.86,2,266.62,2025 UFA,,jones
 AFC,CIN,Cincinnati Bengals,16652,"Trice, Bralen ATL DE","Trice, Bralen",ATL,DE,Active,,1.54,2,266.62,2024 3.01,,trice
-AFC,CIN,Cincinnati Bengals,15254,"Harris, Najee NYG RB","Harris, Najee",NYG,RB,Active,,4.16,2,266.62,2025 UFA,,harris
+AFC,CIN,Cincinnati Bengals,15254,"Harris, Najee NYG RB","Harris, Najee",NYG,RB,Active,Out,4.16,2,266.62,2025 UFA,,harris
 AFC,CIN,Cincinnati Bengals,12688,"Buckner, DeForest IND DT","Buckner, DeForest",IND,DT,Active,,17.56,1,266.62,2025 UFA,,buckner
 AFC,CIN,Cincinnati Bengals,14910,"Jones, Brandon DEN S","Jones, Brandon",DEN,S,Active,,5.88,1,266.62,2025 SRFA,,jones
 AFC,CIN,Cincinnati Bengals,14871,"Parkinson, Colby LAR TE","Parkinson, Colby",LAR,TE,Active,,1.1,1,266.62,2026 R/F,,parkinson
@@ -1266,6 +1269,8 @@ AFC,JAC,Jacksonville Jaguars,14095,"Johnson, Ty BUF RB","Johnson, Ty",BUF,RB,Act
 AFC,JAC,Jacksonville Jaguars,16036,"Tonges, Jake SFO TE","Tonges, Jake",SFO,TE,Active,,1.1,1,260.59,2026 ERFA,,tonges
 AFC,JAC,Jacksonville Jaguars,15089,"Roach, Malcolm DEN DT","Roach, Malcolm",DEN,DT,Active,,1.1,1,260.59,2026 UFA,,roach
 AFC,JAC,Jacksonville Jaguars,13844,"Cooke, Logan JAC PN","Cooke, Logan",JAC,PN,Active,,1.1,1,260.59,2026 UFA,,cooke
+AFC,JAC,Jacksonville Jaguars,13888,"Gardeck, Dennis JAC DE","Gardeck, Dennis",JAC,DE,Active,,1.1,1,260.59,2026 UFA,,gardeck
+AFC,JAC,Jacksonville Jaguars,14947,"Wonnum, D.J. DET DE","Wonnum, D.J.",DET,DE,Active,,1.1,1,260.59,2026 UFA,,wonnum
 AFC,JAC,Jacksonville Jaguars,17037,"Gabriel, Dillon CLE QB","Gabriel, Dillon",CLE,QB,INJURED_RESERVE,IR-R,1.06,3,260.59,2025 4.19,,gabriel
 AFC,JAC,Jacksonville Jaguars,13146,"Conner, James ARI RB","Conner, James",ARI,RB,INJURED_RESERVE,IR-R,3.69,3,260.59,2026 B/R,,conner
 AFC,JAC,Jacksonville Jaguars,17138,"Grant, Kenneth MIA DT","Grant, Kenneth",MIA,DT,INJURED_RESERVE,IR-R,1.43,3,260.59,2025 3.05,,grant
