@@ -425,12 +425,14 @@ franchises <- readRDS(file.path("data", paste0("adl_franchises_", current_season
 dir.create("docs", recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "daily-roster-snapshots"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path("docs", "downloads", "salary-snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "snapshots"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "summaries"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "commissioner-alerts"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("docs", "downloads", "commissioner-alerts", "clean"), recursive = TRUE, showWarnings = FALSE)
 unlink(file.path("docs", "downloads", "daily-roster-snapshots", "*.csv"))
+unlink(file.path("docs", "downloads", "salary-snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "snapshots", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "summaries", "*.csv"))
 unlink(file.path("docs", "downloads", "salary-cap-accounting", "waiver-corrections", "*.csv"))
@@ -503,6 +505,21 @@ latest_snapshot_public <- if (length(snapshot_files_public) > 0) {
   snapshot_files_public[1]
 } else {
   NA_character_
+}
+
+# Publish official July 1 salary artifacts for downstream tools.
+july1_salary_files_data <- list.files(
+  path = file.path("data", "salary_snapshots"),
+  pattern = paste0("^july1_.*_", current_season, "[.]csv$"),
+  full.names = TRUE
+)
+
+if (length(july1_salary_files_data) > 0) {
+  invisible(file.copy(
+    from = july1_salary_files_data,
+    to = file.path("docs", "downloads", "salary-snapshots", basename(july1_salary_files_data)),
+    overwrite = TRUE
+  ))
 }
 
 snapshot_checks_file <- file.path(

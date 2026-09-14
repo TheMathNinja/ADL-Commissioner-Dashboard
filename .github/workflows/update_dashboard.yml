@@ -159,6 +159,18 @@ jobs:
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
         run: Rscript scripts/run_saladjcurator.R
 
+      - name: Build official July 1 salary snapshot
+        if: steps.localtime.outputs.should_run == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+          MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+          MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+          MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+        run: Rscript scripts/build_official_july1_snapshot.R
+
       - name: Build dashboard site
         if: steps.localtime.outputs.should_run == 'true'
         env:
@@ -204,4 +216,4 @@ jobs:
             data/saladj_email_status.csv
             data/archive/*ADLSalAdjCurator*
             data/roster_snapshots/saladj_roster_snapshot_${{ env.CURRENT_SEASON }}*.csv
-
+            data/salary_snapshots/july1_*_${{ env.CURRENT_SEASON }}.csv
