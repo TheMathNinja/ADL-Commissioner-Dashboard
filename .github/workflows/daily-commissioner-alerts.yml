@@ -19,6 +19,10 @@ on:
         options:
           - "true"
           - "false"
+      checked_at:
+        description: Optional America/New_York timestamp for dry-run testing, e.g. 2026-09-13 06:15:00.
+        required: false
+        type: string
 
 name: daily-commissioner-alerts
 
@@ -39,6 +43,7 @@ jobs:
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_MODE: check
       ADL_ALERT_FORCE_LIVE: true
+      ADL_ALERT_CHECKED_AT: ${{ github.event.inputs.checked_at }}
       ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}

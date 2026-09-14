@@ -598,6 +598,46 @@ evaluate_lineup_submission_inactivity <- function(season = get_current_season(),
     )
 }
 
+is_sunday_lineup_submission_warning_day <- function(run_time = Sys.time()) {
+  checked_local <- lubridate::with_tz(as.POSIXct(run_time, tz = "America/New_York"), "America/New_York")
+  as.POSIXlt(checked_local)$wday == 0L
+}
+
+evaluate_lineup_submission_warnings <- function(season = get_current_season(), week, force_live = TRUE, run_time = Sys.time()) {
+  empty <- tibble(
+    alert_type = character(), severity = character(), conference = character(),
+    franchise = character(), franchise_name = character(), rule = character(),
+    observed = character(), details = character()
+  )
+  if (!isTRUE(force_live) || is.null(week) || is.na(week)) return(empty)
+  if (!is_sunday_lineup_submission_warning_day(run_time)) return(empty)
+
+  audit <- tryCatch(
+    lineup_submission_audit(season = season, week = week, force_live = force_live),
+    error = function(e) {
+      warning("Unable to audit MFL lineup submission stamps for Sunday warning: ", conditionMessage(e), call. = FALSE)
+      tibble()
+    }
+  )
+  if (nrow(audit)) write_lineup_submission_audit(audit, season = season)
+  if (!nrow(audit)) return(empty)
+
+  audit |>
+    filter(.data$submission_status %in% c("not_submitted", "commissioner_set")) |>
+    transmute(
+      alert_type = "Illegal Lineup Warning",
+      severity = "warning",
+      conference,
+      franchise,
+      franchise_name,
+      rule = "GM must submit a legal weekly lineup",
+      observed = case_when(
+        .data$submission_status == "commissioner_set" ~ paste0("Week ", .env$week, " lineup appears to have been set by a commissioner rather than submitted by the GM."),
+        TRUE ~ paste0("No GM-submitted lineup has been recorded for Week ", .env$week, ". MFL may be using an inherited lineup.")
+      ),
+      details = ""
+    )
+}
 evaluate_confirmed_illegal_lineup_inactivity <- function(season = get_current_season()) {
   reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports) || !"week" %in% names(reports)) return(empty_inseason_inactivity_rows())

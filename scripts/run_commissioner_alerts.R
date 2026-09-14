@@ -26,6 +26,15 @@ send_email <- arg_flag("send-email") || tolower(Sys.getenv("ADL_ALERT_SEND_EMAIL
 send_empty <- arg_flag("send-empty") || tolower(Sys.getenv("ADL_ALERT_SEND_EMPTY", unset = "false")) %in% c("1", "true", "yes")
 auto_week <- !arg_flag("no-auto-week") && tolower(Sys.getenv("ADL_ALERT_AUTO_WEEK", unset = "true")) %in% c("1", "true", "yes")
 skip_completed_cutdown <- arg_flag("skip-completed-cutdown") || tolower(Sys.getenv("ADL_ALERT_SKIP_COMPLETED_CUTDOWN", unset = "false")) %in% c("1", "true", "yes")
+checked_at_raw <- arg_value("checked-at", Sys.getenv("ADL_ALERT_CHECKED_AT", unset = ""))
+checked_at <- if (nzchar(checked_at_raw)) {
+  parsed <- suppressWarnings(lubridate::ymd_hms(checked_at_raw, tz = "America/New_York", quiet = TRUE))
+  if (is.na(parsed)) parsed <- suppressWarnings(as.POSIXct(checked_at_raw, tz = "America/New_York"))
+  if (is.na(parsed)) stop("ADL_ALERT_CHECKED_AT/--checked-at could not be parsed.", call. = FALSE)
+  parsed
+} else {
+  Sys.time()
+}
 
 if (is.na(season)) stop("Provide a valid --season or CURRENT_SEASON.", call. = FALSE)
 
@@ -36,7 +45,7 @@ current_commissioner_alert_week <- function(today = Sys.Date(), season = get_cur
 }
 
 if (is.na(week) && mode %in% c("snapshot", "check", "inseason") && auto_week) {
-  week <- current_commissioner_alert_week(season = season)
+  week <- current_commissioner_alert_week(today = as.Date(lubridate::with_tz(checked_at, "America/New_York")), season = season)
   if (!is.na(week)) message("Auto-selected Week ", week, " for in-season alerts.")
 }
 
@@ -118,17 +127,39 @@ alerts <- build_commissioner_alerts(
   week = if (is.na(week)) NULL else week,
   include_offseason = include_offseason,
   include_inseason = include_inseason,
-  force_live = force_live
+  force_live = force_live,
+  checked_at = checked_at
 )
 
+if (include_inseason && exists("evaluate_lineup_submission_warnings", mode = "function")) {
+  submission_warnings <- evaluate_lineup_submission_warnings(
+    season = season,
+    week = week,
+    force_live = force_live,
+    run_time = checked_at
+  )
+  if (nrow(submission_warnings)) {
+    submission_warnings <- submission_warnings |>
+      mutate(
+        season = as.character(.env$season),
+        week = as.character(.env$week),
+        checked_at = format(as.POSIXct(.env$checked_at, tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z")
+      ) |>
+      select(any_of(names(alerts)), everything())
+    alerts <- bind_rows(alerts, submission_warnings) |>
+      select(any_of(names(alerts)))
+    write_csv(alerts, commissioner_alert_path("alerts", season, if (is.na(week)) NULL else week), na = "")
+    write_commissioner_alert_report(alerts, season = season, week = if (is.na(week)) NULL else week, checked_at = checked_at)
+  }
+}
 if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts", mode = "function")) {
-  inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live)
+  inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live, run_time = checked_at)
   if (nrow(inactivity_alerts)) {
     inactivity_alerts <- inactivity_alerts |>
       mutate(
         season = as.character(.data$season),
         week = as.character(if ("week" %in% names(inactivity_alerts)) .data$week else (if (is.na(.env$week)) NA_character_ else as.character(.env$week))),
-        checked_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+        checked_at = format(checked_at, "%Y-%m-%d %H:%M:%S %Z")
       ) |>
       select(any_of(names(alerts)), everything())
     alerts <- alerts |>
@@ -139,7 +170,7 @@ if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts
     alerts <- bind_rows(alerts, inactivity_alerts) |>
       select(any_of(names(alerts)))
     write_csv(alerts, commissioner_alert_path("alerts", season, if (is.na(week)) NULL else week), na = "")
-    write_commissioner_alert_report(alerts, season = season, week = if (is.na(week)) NULL else week, checked_at = Sys.time())
+    write_commissioner_alert_report(alerts, season = season, week = if (is.na(week)) NULL else week, checked_at = checked_at)
   }
 }
 
