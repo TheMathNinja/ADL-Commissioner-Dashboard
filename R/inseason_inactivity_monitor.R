@@ -405,6 +405,7 @@ fetch_lineup_submission_report_html <- function(season = get_current_season(), w
 extract_lineup_submitted_at <- function(text) {
   text <- gsub("\\s+", " ", as.character(text %||% ""))
   patterns <- c(
+    "((Mon|Tue|Wed|Thu|Fri|Sat|Sun) [A-Z][a-z]{2,9}[.]? [0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2} [ap][.]?m[.]? ET [0-9]{4})",
     "(?i)(lineup submitted|submitted|last updated|updated)[: ]+([A-Z][a-z]{2,9}[.]? [0-9]{1,2},? [0-9]{4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
     "(?i)(lineup submitted|submitted|last updated|updated)[: ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
     "([A-Z][a-z]{2,9}[.]? [0-9]{1,2},? [0-9]{4}[, ]+[0-9]{1,2}:[0-9]{2} ?[AP]M)",
@@ -415,10 +416,19 @@ extract_lineup_submitted_at <- function(text) {
     match <- regexpr(pattern, text, perl = TRUE)
     if (match[[1]] > 0) {
       hit <- regmatches(text, match)[[1]]
-      stamp <- sub(pattern, "\\2", hit, perl = TRUE)
-      if (identical(stamp, hit)) stamp <- hit
+      stamp <- sub("(?i)^(lineup submitted|submitted|last updated|updated)[: ]+", "", hit, perl = TRUE)
+      stamp <- gsub("a[.]m[.]", "AM", stamp, ignore.case = TRUE)
+      stamp <- gsub("p[.]m[.]", "PM", stamp, ignore.case = TRUE)
+      stamp <- gsub("\\s+ET\\s+", " ", stamp, ignore.case = TRUE)
       parsed <- suppressWarnings(lubridate::mdy_hm(stamp, tz = "America/New_York", quiet = TRUE))
-      if (is.na(parsed)) parsed <- suppressWarnings(lubridate::parse_date_time(stamp, orders = c("B d Y I:M p", "b d Y I:M p", "mdY I:M p"), tz = "America/New_York", quiet = TRUE))
+      if (is.na(parsed)) {
+        parsed <- suppressWarnings(lubridate::parse_date_time(
+          stamp,
+          orders = c("a b d HMS p Y", "a B d HMS p Y", "B d Y I:M p", "b d Y I:M p", "mdY I:M p"),
+          tz = "America/New_York",
+          quiet = TRUE
+        ))
+      }
       if (!is.na(parsed)) return(parsed)
     }
   }
@@ -453,6 +463,11 @@ parse_lineup_submission_report_html <- function(html, franchises, season = get_c
   doc <- xml2::read_html(html)
   lines <- unlist(strsplit(rvest::html_text2(doc), "\n", fixed = TRUE))
   lines <- trimws(lines[nzchar(trimws(lines))])
+  report_tables <- rvest::html_elements(doc, "table.report")
+  table_index <- tibble(
+    caption = vapply(report_tables, function(node) rvest::html_text2(rvest::html_element(node, "caption")), character(1)),
+    text = vapply(report_tables, rvest::html_text2, character(1))
+  )
 
   franchise_rows <- franchises |>
     mutate(
@@ -465,21 +480,30 @@ parse_lineup_submission_report_html <- function(html, franchises, season = get_c
     team <- franchise_rows[i, ]
     name_pattern <- paste0("\\b", gsub("([\\W])", "\\\\\\1", team$franchise_name[[1]], perl = TRUE), "\\b")
     code_pattern <- paste0("\\b", gsub("([\\W])", "\\\\\\1", team$franchise[[1]], perl = TRUE), "\\b")
-    idx <- grep(name_pattern, lines, ignore.case = TRUE, perl = TRUE)
-    if (!length(idx)) idx <- grep(code_pattern, lines, ignore.case = TRUE, perl = TRUE)
+    lineup_caption_pattern <- paste0(name_pattern, "\\s+Week\\s+", as.integer(week), "\\s+lineup")
+    table_idx <- grep(lineup_caption_pattern, table_index$caption, ignore.case = TRUE, perl = TRUE)
 
-    if (!length(idx)) {
+    if (length(table_idx)) {
+      excerpt <- table_index$text[[table_idx[[1]]]]
+      status <- lineup_submission_status_from_text(excerpt)
+    } else {
+      line_idx <- grep(lineup_caption_pattern, lines, ignore.case = TRUE, perl = TRUE)
+      if (!length(line_idx)) line_idx <- grep(name_pattern, lines, ignore.case = TRUE, perl = TRUE)
+      if (!length(line_idx)) line_idx <- grep(code_pattern, lines, ignore.case = TRUE, perl = TRUE)
+    }
+
+    if (!length(table_idx) && !length(line_idx)) {
       status <- list(
         status = "unknown",
         submitted_at = as.POSIXct(NA),
         note = "Franchise was not found in the MFL Starting Lineups report text."
       )
       excerpt <- ""
-    } else {
-      start <- idx[[1]]
+    } else if (!length(table_idx)) {
+      start <- line_idx[[1]]
       other_team_idx <- sort(unique(unlist(lapply(seq_len(nrow(franchise_rows)), function(j) {
         if (j == i) return(integer())
-        other_name <- paste0("\\b", gsub("([\\W])", "\\\\\\1", franchise_rows$franchise_name[[j]], perl = TRUE), "\\b")
+        other_name <- paste0("\\b", gsub("([\\W])", "\\\\\\1", franchise_rows$franchise_name[[j]], perl = TRUE), "\\s+Week\\s+", as.integer(week), "\\s+lineup\\b")
         grep(other_name, lines, ignore.case = TRUE, perl = TRUE)
       }))))
       next_team <- other_team_idx[other_team_idx > start]
