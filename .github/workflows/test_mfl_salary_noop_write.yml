@@ -1,0 +1,85 @@
+name: Test MFL Salary No-Op Write
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "MFL season to test. Leave blank for current year."
+        required: false
+        default: ""
+      player_id:
+        description: "Optional MFL player id to no-op write. Leave blank to choose the first salary-bearing roster row."
+        required: false
+        default: ""
+      franchise_id:
+        description: "Optional franchise id to pair with player_id."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  R_LIBS_USER: ${{ github.workspace }}/_lib
+  CURRENT_SEASON: ${{ inputs.season }}
+  ADL_MFL_NOOP_PLAYER_ID: ${{ inputs.player_id }}
+  ADL_MFL_NOOP_FRANCHISE_ID: ${{ inputs.franchise_id }}
+
+jobs:
+  noop-write:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Restore R package library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-r-lib-mfl-noop-v1-${{ hashFiles('.github/workflows/test_mfl_salary_noop_write.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-r-lib-mfl-noop-v1-
+            ${{ runner.os }}-r-lib-v2-
+
+      - name: Install Ubuntu system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install and verify R packages
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          packages <- c("curl", "dplyr", "ffscrapr", "httr", "readr", "stringr", "tibble", "lubridate")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(missing) > 0) {
+            install.packages(missing, repos = "https://cloud.r-project.org", dependencies = c("Depends", "Imports", "LinkingTo"))
+          }
+          still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(still_missing) > 0) stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+
+      - name: Run no-op salary write test
+        env:
+          ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+          MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+          MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+          MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+        run: Rscript scripts/test_mfl_salary_noop_write.R
+
+      - name: Upload no-op test audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfl-salary-noop-write-test-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: data/salary_snapshots/mfl_salary_noop_write_test_*.csv
