@@ -2,6 +2,16 @@ name: Update Dashboard
 
 on:
   workflow_dispatch:
+    inputs:
+      enable_mfl_salary_writes:
+        description: "Enable live MFL salary writes for this manual run. Use only for controlled testing."
+        required: false
+        default: false
+        type: boolean
+      mfl_salary_write_import_type:
+        description: "Optional override for the MFL import TYPE used for salary writes."
+        required: false
+        default: ""
   push:
     branches:
       - main
@@ -50,8 +60,17 @@ jobs:
         id: localtime
         shell: bash
         run: |
+          LOCAL_DATE=$(TZ=America/Toronto date +%F)
+          LOCAL_MONTH_DAY=$(TZ=America/Toronto date +%m-%d)
+          echo "local_date=${LOCAL_DATE}" >> "$GITHUB_OUTPUT"
+
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.enable_mfl_salary_writes }}" = "true" ]; then
+              echo "enable_mfl_salary_writes=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "enable_mfl_salary_writes=false" >> "$GITHUB_OUTPUT"
+            fi
             echo "Push/manual run -> proceeding."
             exit 0
           fi
@@ -67,7 +86,17 @@ jobs:
             echo "Correct 5 a.m. Toronto cron slot -> proceeding."
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "enable_mfl_salary_writes=false" >> "$GITHUB_OUTPUT"
             echo "Duplicate non-5 a.m. Toronto cron slot -> skipping."
+            exit 0
+          fi
+
+          if [ "${LOCAL_MONTH_DAY}" = "07-01" ] && [ "${CURRENT_SEASON}" -ge 2027 ]; then
+            echo "enable_mfl_salary_writes=true" >> "$GITHUB_OUTPUT"
+            echo "July 1 salary write window open for ${CURRENT_SEASON}."
+          else
+            echo "enable_mfl_salary_writes=false" >> "$GITHUB_OUTPUT"
+            echo "MFL salary writes disabled outside July 1 season 2027+ window."
           fi
 
       - name: Create cache directories
@@ -169,8 +198,8 @@ jobs:
           MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
-          ADL_ENABLE_MFL_SALARY_WRITES: ${{ secrets.ADL_ENABLE_MFL_SALARY_WRITES }}
-          ADL_MFL_SALARY_WRITE_IMPORT_TYPE: ${{ secrets.ADL_MFL_SALARY_WRITE_IMPORT_TYPE }}
+          ADL_ENABLE_MFL_SALARY_WRITES: ${{ steps.localtime.outputs.enable_mfl_salary_writes }}
+          ADL_MFL_SALARY_WRITE_IMPORT_TYPE: ${{ inputs.mfl_salary_write_import_type || secrets.ADL_MFL_SALARY_WRITE_IMPORT_TYPE }}
         run: Rscript scripts/build_official_july1_snapshot.R
 
       - name: Build dashboard site
