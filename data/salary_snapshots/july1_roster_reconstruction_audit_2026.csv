@@ -1,0 +1,4 @@
+season,deadline_et,source_side,july1_action,transaction_time_et,franchise_id,franchise_name,CONF,player_id,player_name,player_team,player_pos,roster_status,roster_salary,roster_years,roster_contractInfo
+2026,2026-07-01 00:00:00 EDT,pre_only,keep_pre_row_drop_after_deadline,2026-07-01 09:56:00 EDT,0008,Minnesota Vikings,NFC,16671,"Arnold, Terrion",FA,CB,Active,1.13,2,2024 4.10
+2026,2026-07-01 00:00:00 EDT,pre_only,keep_pre_row_no_drop_transaction_found,,0008,Minnesota Vikings,NFC,17607,"Raridon, Eli",NEP,TE,Taxi,1.03,4,2026 4.17
+2026,2026-07-01 00:00:00 EDT,post_only,exclude_post_row_no_add_transaction_found,,0008,Minnesota Vikings,NFC,17607,"Raridon, Eli",NEP,TE,Active,1.03,4,2026 4.17
