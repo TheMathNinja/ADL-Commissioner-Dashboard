@@ -99,7 +99,13 @@ find_bracketing_july1_snapshots <- function(season, snapshot_dir = file.path("da
 }
 
 normalize_official_july1_transactions <- function(tx) {
-  if (is.null(tx) || !nrow(tx)) return(tibble())
+  empty_transactions <- tibble(
+    franchise_id = character(),
+    player_id = character(),
+    event = character(),
+    transaction_time = as.POSIXct(character(), tz = "UTC")
+  )
+  if (is.null(tx) || !nrow(tx)) return(empty_transactions)
   tx <- tibble::as_tibble(tx)
 
   for (col in c("timestamp", "type", "type_desc", "franchise_id", "franchise", "player_id", "player_name", "added", "dropped", "comments")) {
@@ -149,6 +155,7 @@ normalize_official_july1_transactions <- function(tx) {
     select(-all_of("transaction_time_numeric")) |>
     filter(!is.na(.data$transaction_time), !is.na(.data$player_id), nzchar(.data$player_id))
 
+  if (!nrow(tx)) return(empty_transactions)
   tx
 }
 
@@ -168,7 +175,10 @@ fetch_official_july1_transactions <- function(season) {
   } else {
     tibble::as_tibble(as.list(raw_tx))
   }
-  normalize_official_july1_transactions(bind_rows(ffscrapr_tx, raw_tx))
+  bind_rows(
+    normalize_official_july1_transactions(ffscrapr_tx),
+    normalize_official_july1_transactions(raw_tx)
+  )
 }
 
 july1_row_key <- function(df) {
@@ -176,6 +186,14 @@ july1_row_key <- function(df) {
 }
 
 nearest_transaction <- function(transactions, franchise_id, player_id, event, deadline, after_deadline = NULL) {
+  if (
+    is.null(transactions) ||
+      !nrow(transactions) ||
+      !all(c("franchise_id", "player_id", "event", "transaction_time") %in% names(transactions))
+  ) {
+    return(as.POSIXct(NA_real_, origin = "1970-01-01", tz = "UTC"))
+  }
+
   rows <- transactions |>
     filter(
       .data$franchise_id == .env$franchise_id,
