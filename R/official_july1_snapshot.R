@@ -542,8 +542,10 @@ send_july1_eft_mfl_write_email <- function(write_rows, season = get_current_seas
 
 mfl_import_cookie_headers <- function(conn) {
   auth_cookie <- conn$auth_cookie %||% conn$cookie %||% ""
+  auth_cookie <- paste(stats::na.omit(as.character(auth_cookie)), collapse = "; ")
+  auth_cookie <- trimws(auth_cookie)
   if (!nzchar(auth_cookie)) return(list())
-  if (grepl("MFL_USER_ID=", auth_cookie, fixed = TRUE)) {
+  if (grepl("=", auth_cookie, fixed = TRUE)) {
     return(list(httr::add_headers(Cookie = auth_cookie)))
   }
   list(httr::set_cookies(MFL_USER_ID = auth_cookie))
