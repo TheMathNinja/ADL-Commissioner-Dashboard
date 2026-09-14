@@ -364,6 +364,20 @@ truthy_env <- function(name, default = "false") {
   tolower(trimws(Sys.getenv(name, unset = default))) %in% c("1", "true", "yes", "y")
 }
 
+july1_mfl_salary_write_window_open <- function(season = get_current_season(), today = NULL) {
+  if (truthy_env("ADL_FORCE_MFL_SALARY_WRITES_ANY_DATE")) return(TRUE)
+
+  if (is.null(today)) {
+    today <- as.Date(Sys.getenv("ADL_TODAY", unset = as.character(Sys.Date())))
+  } else {
+    today <- as.Date(today)
+  }
+
+  !is.na(today) &&
+    as.integer(season) >= 2027L &&
+    identical(as.character(today), paste0(as.integer(season), "-07-01"))
+}
+
 july1_eft_mfl_write_rows <- function(eft_audit) {
   if (is.null(eft_audit) || !nrow(eft_audit)) {
     return(tibble(
@@ -568,11 +582,17 @@ maybe_write_july1_eft_salaries_to_mfl <- function(eft_audit, season = get_curren
   }
 
   live_enabled <- truthy_env("ADL_ENABLE_MFL_SALARY_WRITES")
+  write_window_open <- july1_mfl_salary_write_window_open(season)
   import_type <- trimws(Sys.getenv("ADL_MFL_SALARY_WRITE_IMPORT_TYPE", unset = ""))
 
-  if (!live_enabled) {
+  if (!live_enabled || !write_window_open) {
+    reason <- if (!live_enabled) {
+      "ADL_ENABLE_MFL_SALARY_WRITES is not TRUE"
+    } else {
+      "MFL salary writes only run automatically on July 1 for season 2027+"
+    }
     write_rows <- write_rows |>
-      mutate(write_status = "not_written", write_reason = "ADL_ENABLE_MFL_SALARY_WRITES is not TRUE")
+      mutate(write_status = "not_written", write_reason = .env$reason)
     readr::write_csv(write_rows, official_july1_eft_mfl_write_audit_path(season, output_dir), na = "")
     return(write_rows)
   }
@@ -709,7 +729,8 @@ build_official_july1_salary_snapshot <- function(season = get_current_season(), 
     reconstruction_audit_rows = nrow(reconstructed$audit),
     eft_rows = nrow(eft$audit),
     mfl_salary_write_rows = nrow(mfl_write_audit),
-    mfl_salary_writes_enabled = truthy_env("ADL_ENABLE_MFL_SALARY_WRITES")
+    mfl_salary_writes_enabled = truthy_env("ADL_ENABLE_MFL_SALARY_WRITES"),
+    mfl_salary_write_window_open = july1_mfl_salary_write_window_open(season)
   )
   readr::write_csv(status, official_july1_status_path(season, output_dir), na = "")
   status
