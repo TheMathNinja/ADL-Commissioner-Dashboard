@@ -16,8 +16,8 @@ source("R/official_july1_snapshot.R")
 coalesce_roster_col <- function(df, candidates, default = NA_character_) {
   hit <- intersect(candidates, names(df))
   if (!length(hit)) return(rep(default, nrow(df)))
-  out <- df[[hit[[1]]]]
-  for (nm in hit[-1]) out <- dplyr::coalesce(out, df[[nm]])
+  out <- as.character(df[[hit[[1]]]])
+  for (nm in hit[-1]) out <- dplyr::coalesce(out, as.character(df[[nm]]))
   out
 }
 
