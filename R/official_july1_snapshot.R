@@ -7,6 +7,10 @@ library(tibble)
 source("R/config_helpers.R")
 source("R/mfl_helpers.R")
 
+`%||%` <- function(x, y) {
+  if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
+}
+
 july1_salary_snapshot_dir <- function(output_dir = "data") {
   file.path(output_dir, "salary_snapshots")
 }
@@ -28,6 +32,14 @@ official_july1_reconstruction_audit_path <- function(season, output_dir = "data"
 
 official_july1_eft_audit_path <- function(season, output_dir = "data") {
   file.path(july1_salary_snapshot_dir(output_dir), paste0("july1_eft_salary_audit_", season, ".csv"))
+}
+
+official_july1_eft_mfl_write_audit_path <- function(season, output_dir = "data") {
+  file.path(july1_salary_snapshot_dir(output_dir), paste0("july1_eft_mfl_write_audit_", season, ".csv"))
+}
+
+official_july1_eft_mfl_email_status_path <- function(season, output_dir = "data") {
+  file.path(july1_salary_snapshot_dir(output_dir), paste0("july1_eft_mfl_write_email_status_", season, ".csv"))
 }
 
 official_july1_salary_curve_path <- function(season, output_dir = "data") {
@@ -348,6 +360,264 @@ apply_july1_eft_salaries <- function(roster, season) {
   list(roster = updated, audit = audit)
 }
 
+truthy_env <- function(name, default = "false") {
+  tolower(trimws(Sys.getenv(name, unset = default))) %in% c("1", "true", "yes", "y")
+}
+
+july1_eft_mfl_write_rows <- function(eft_audit) {
+  if (is.null(eft_audit) || !nrow(eft_audit)) {
+    return(tibble(
+      season = integer(),
+      franchise_id = character(),
+      franchise_name = character(),
+      CONF = character(),
+      player_id = character(),
+      player_name = character(),
+      player_team = character(),
+      player_pos = character(),
+      tag_position = character(),
+      roster_contractInfo = character(),
+      old_salary = double(),
+      new_salary = double(),
+      salary_delta = double(),
+      rule_applied = character(),
+      rule_detail = character(),
+      top_five_players = character(),
+      write_status = character(),
+      write_reason = character(),
+      written_at = character()
+    ))
+  }
+
+  eft_audit |>
+    mutate(
+      old_salary = round_salary_millions(.data$placeholder_neft_salary),
+      new_salary = round_salary_millions(.data$official_eft_salary),
+      salary_delta = round_salary_millions(.data$new_salary - .data$old_salary)
+    ) |>
+    filter(!is.na(.data$old_salary), !is.na(.data$new_salary), abs(.data$salary_delta) >= 0.005) |>
+    transmute(
+      season,
+      franchise_id,
+      franchise_name,
+      CONF,
+      player_id,
+      player_name,
+      player_team,
+      player_pos,
+      tag_position,
+      roster_contractInfo,
+      old_salary,
+      new_salary,
+      salary_delta,
+      rule_applied = "July 1 EFT update",
+      rule_detail = paste0(
+        "Higher of existing placeholder NEFT/EFT salary ($",
+        sprintf("%.2f", .data$old_salary),
+        "m) and current top-five ",
+        .data$tag_position,
+        " salary average ($",
+        sprintf("%.2f", .data$july1_top_five_average),
+        "m)."
+      ),
+      top_five_players,
+      write_status = "planned",
+      write_reason = "pending",
+      written_at = NA_character_
+    )
+}
+
+format_july1_salary <- function(x) {
+  paste0("$", sprintf("%.2f", round_salary_millions(x)), "m")
+}
+
+render_july1_eft_mfl_write_email <- function(write_rows, season = get_current_season(), live_write = FALSE) {
+  title <- if (live_write) {
+    paste0("ADL July 1 EFT salary updates written to MFL - ", season)
+  } else {
+    paste0("ADL July 1 EFT salary updates prepared - ", season)
+  }
+
+  if (!nrow(write_rows)) {
+    return(paste(c(title, "", "No EFT salary overwrites were needed."), collapse = "\n"))
+  }
+
+  lines <- c(
+    title,
+    "",
+    if (live_write) {
+      paste0(nrow(write_rows), " MFL salary overwrite(s) were completed.")
+    } else {
+      paste0(nrow(write_rows), " MFL salary overwrite(s) were calculated, but live writes were not enabled.")
+    },
+    "",
+    "Rule applied: July 1 EFT update. The final salary is the higher of the existing placeholder NEFT/EFT salary and the current top-five positional salary average at the July 1 deadline.",
+    ""
+  )
+
+  groups <- split(write_rows, write_rows$CONF)
+  groups <- groups[order(names(groups))]
+  for (conf in names(groups)) {
+    rows <- groups[[conf]]
+    lines <- c(lines, conf, strrep("-", nchar(conf)))
+    for (i in seq_len(nrow(rows))) {
+      row <- rows[i, , drop = FALSE]
+      lines <- c(
+        lines,
+        paste0(
+          row$player_name[[1]], " ", row$player_team[[1]], " ", row$player_pos[[1]],
+          " | ", row$franchise_name[[1]], " | ",
+          format_july1_salary(row$old_salary[[1]]), " -> ", format_july1_salary(row$new_salary[[1]]),
+          " | ", row$rule_detail[[1]]
+        ),
+        paste0("Top five used: ", row$top_five_players[[1]]),
+        paste0("Write status: ", row$write_status[[1]], " - ", row$write_reason[[1]]),
+        ""
+      )
+    }
+  }
+
+  paste(lines, collapse = "\n")
+}
+
+send_july1_eft_mfl_write_email <- function(write_rows, season = get_current_season(), output_dir = "data", live_write = FALSE) {
+  if (!exists("write_commissioner_alert_outbox", mode = "function") ||
+      !exists("resolve_commissioner_alert_recipients", mode = "function") ||
+      !exists("send_alert_mail", mode = "function")) {
+    source("R/commissioner_alerts.R")
+  }
+
+  body <- render_july1_eft_mfl_write_email(write_rows, season = season, live_write = live_write)
+  outbox_path <- write_commissioner_alert_outbox(
+    body,
+    season = season,
+    name = "email_outbox_july1_eft_mfl_salary_writes"
+  )
+
+  if (!nrow(write_rows)) {
+    status <- tibble(sent = FALSE, reason = "no_salary_writes_needed", outbox_path = outbox_path, recipients = "")
+    readr::write_csv(status, official_july1_eft_mfl_email_status_path(season, output_dir), na = "")
+    return(status)
+  }
+
+  recipients <- resolve_commissioner_alert_recipients(season = season)
+  if (!nrow(recipients)) {
+    status <- tibble(sent = FALSE, reason = "no_recipients", outbox_path = outbox_path, recipients = "")
+    readr::write_csv(status, official_july1_eft_mfl_email_status_path(season, output_dir), na = "")
+    return(status)
+  }
+
+  mail_status <- send_alert_mail(
+    subject = paste0("[ADL Commissioner Alerts] July 1 EFT salary update", if (live_write) "s written to MFL" else "s prepared"),
+    body = body,
+    to = recipients$email
+  )
+
+  status <- tibble(
+    sent = isTRUE(mail_status$sent),
+    reason = mail_status$reason,
+    outbox_path = outbox_path,
+    recipients = paste(recipients$email, collapse = ", ")
+  )
+  readr::write_csv(status, official_july1_eft_mfl_email_status_path(season, output_dir), na = "")
+  status
+}
+
+mfl_import_cookie_headers <- function(conn) {
+  auth_cookie <- conn$auth_cookie %||% conn$cookie %||% ""
+  if (!nzchar(auth_cookie)) return(list())
+  if (grepl("MFL_USER_ID=", auth_cookie, fixed = TRUE)) {
+    return(list(httr::add_headers(Cookie = auth_cookie)))
+  }
+  list(httr::set_cookies(MFL_USER_ID = auth_cookie))
+}
+
+write_single_mfl_salary_update <- function(conn, row, import_type) {
+  if (!requireNamespace("httr", quietly = TRUE)) {
+    stop("Package httr is required for MFL salary write-back.", call. = FALSE)
+  }
+
+  url <- paste0("https://api.myfantasyleague.com/", row$season[[1]], "/import")
+  query <- list(
+    TYPE = import_type,
+    L = conn$league_id,
+    FRANCHISE_ID = row$franchise_id[[1]],
+    PLAYER_ID = row$player_id[[1]],
+    SALARY = sprintf("%.2f", row$new_salary[[1]])
+  )
+  response <- do.call(httr::POST, c(list(url = url, body = query, encode = "form"), mfl_import_cookie_headers(conn)))
+  response_text <- httr::content(response, "text", encoding = "UTF-8")
+
+  if (httr::http_error(response) || grepl("<error|\"error\"", response_text, ignore.case = TRUE)) {
+    stop("MFL salary write failed for ", row$player_name[[1]], ": ", response_text, call. = FALSE)
+  }
+
+  response_text
+}
+
+maybe_write_july1_eft_salaries_to_mfl <- function(eft_audit, season = get_current_season(), output_dir = "data") {
+  write_rows <- july1_eft_mfl_write_rows(eft_audit)
+  if (!nrow(write_rows)) {
+    readr::write_csv(write_rows, official_july1_eft_mfl_write_audit_path(season, output_dir), na = "")
+    readr::write_csv(
+      tibble(sent = FALSE, reason = "no_salary_writes_needed", outbox_path = "", recipients = ""),
+      official_july1_eft_mfl_email_status_path(season, output_dir),
+      na = ""
+    )
+    return(write_rows)
+  }
+
+  live_enabled <- truthy_env("ADL_ENABLE_MFL_SALARY_WRITES")
+  import_type <- trimws(Sys.getenv("ADL_MFL_SALARY_WRITE_IMPORT_TYPE", unset = ""))
+
+  if (!live_enabled) {
+    write_rows <- write_rows |>
+      mutate(write_status = "not_written", write_reason = "ADL_ENABLE_MFL_SALARY_WRITES is not TRUE")
+    readr::write_csv(write_rows, official_july1_eft_mfl_write_audit_path(season, output_dir), na = "")
+    return(write_rows)
+  }
+
+  if (!nzchar(import_type)) {
+    write_rows <- write_rows |>
+      mutate(write_status = "not_written", write_reason = "ADL_MFL_SALARY_WRITE_IMPORT_TYPE is not configured")
+    readr::write_csv(write_rows, official_july1_eft_mfl_write_audit_path(season, output_dir), na = "")
+    send_july1_eft_mfl_write_email(write_rows, season = season, output_dir = output_dir, live_write = FALSE)
+    stop("MFL salary writes were enabled, but ADL_MFL_SALARY_WRITE_IMPORT_TYPE is not configured.", call. = FALSE)
+  }
+
+  conn <- connect_adl_mfl(season)
+  results <- bind_rows(lapply(seq_len(nrow(write_rows)), function(i) {
+    row <- write_rows[i, , drop = FALSE]
+    result <- tryCatch(
+      {
+        response_text <- write_single_mfl_salary_update(conn, row, import_type = import_type)
+        tibble(row_index = i, write_status = "written", write_reason = response_text)
+      },
+      error = function(e) tibble(row_index = i, write_status = "failed", write_reason = conditionMessage(e))
+    )
+    result
+  }))
+
+  write_rows <- write_rows |>
+    mutate(row_index = row_number()) |>
+    select(-all_of(c("write_status", "write_reason"))) |>
+    left_join(results, by = "row_index") |>
+    select(-all_of("row_index")) |>
+    mutate(written_at = if_else(.data$write_status == "written", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), NA_character_))
+
+  readr::write_csv(write_rows, official_july1_eft_mfl_write_audit_path(season, output_dir), na = "")
+
+  email_status <- send_july1_eft_mfl_write_email(write_rows, season = season, output_dir = output_dir, live_write = any(write_rows$write_status == "written"))
+  if (any(write_rows$write_status != "written")) {
+    stop("One or more MFL salary writes failed. See ", official_july1_eft_mfl_write_audit_path(season, output_dir), call. = FALSE)
+  }
+  if (!isTRUE(email_status$sent[[1]])) {
+    stop("MFL salary writes completed, but commissioner email was not sent: ", email_status$reason[[1]], call. = FALSE)
+  }
+
+  write_rows
+}
+
 add_top_rank_extrapolation <- function(curve) {
   top_four <- curve |>
     filter(.data$rank %in% 1:4) |>
@@ -408,7 +678,7 @@ build_official_july1_salary_snapshot <- function(season = get_current_season(), 
   if (is.null(transactions)) {
     transactions <- tryCatch(fetch_official_july1_transactions(season), error = function(e) {
       warning("Could not fetch transactions for July 1 reconstruction: ", conditionMessage(e), call. = FALSE)
-      tibble()
+      normalize_official_july1_transactions(NULL)
     })
   } else {
     transactions <- normalize_official_july1_transactions(transactions)
@@ -416,6 +686,7 @@ build_official_july1_salary_snapshot <- function(season = get_current_season(), 
 
   reconstructed <- reconstruct_july1_midnight_roster(pre, post, transactions, season)
   eft <- apply_july1_eft_salaries(reconstructed$roster, season)
+  mfl_write_audit <- maybe_write_july1_eft_salaries_to_mfl(eft$audit, season = season, output_dir = output_dir)
   curve <- salary_curve_from_official_july1_roster(eft$roster)
 
   readr::write_csv(eft$roster, official_july1_roster_path(season, output_dir), na = "")
@@ -436,7 +707,9 @@ build_official_july1_salary_snapshot <- function(season = get_current_season(), 
     roster_rows = nrow(eft$roster),
     curve_rows = nrow(curve),
     reconstruction_audit_rows = nrow(reconstructed$audit),
-    eft_rows = nrow(eft$audit)
+    eft_rows = nrow(eft$audit),
+    mfl_salary_write_rows = nrow(mfl_write_audit),
+    mfl_salary_writes_enabled = truthy_env("ADL_ENABLE_MFL_SALARY_WRITES")
   )
   readr::write_csv(status, official_july1_status_path(season, output_dir), na = "")
   status

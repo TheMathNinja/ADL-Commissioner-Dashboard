@@ -169,6 +169,8 @@ jobs:
           MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+          ADL_ENABLE_MFL_SALARY_WRITES: ${{ secrets.ADL_ENABLE_MFL_SALARY_WRITES }}
+          ADL_MFL_SALARY_WRITE_IMPORT_TYPE: ${{ secrets.ADL_MFL_SALARY_WRITE_IMPORT_TYPE }}
         run: Rscript scripts/build_official_july1_snapshot.R
 
       - name: Build dashboard site
@@ -217,3 +219,4 @@ jobs:
             data/archive/*ADLSalAdjCurator*
             data/roster_snapshots/saladj_roster_snapshot_${{ env.CURRENT_SEASON }}*.csv
             data/salary_snapshots/july1_*_${{ env.CURRENT_SEASON }}.csv
+            data/commissioner_alerts/email_outbox_july1_eft_mfl_salary_writes_${{ env.CURRENT_SEASON }}.txt
