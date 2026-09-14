@@ -185,4 +185,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: commissioner-alert-results
-          path: data/commissioner_alerts/
+          path: |
+            data/commissioner_alerts/
+            data/inseason_inactivity/
