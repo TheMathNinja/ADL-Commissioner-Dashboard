@@ -55,17 +55,32 @@ derive_saladj_penalty_amount <- function(salary, years, is_pre_july_1, is_trade_
   years_key <- as.character(as.integer(years))
   if (abs(years - as.integer(years)) > 0.001) return(NA_real_)
 
-  base <- if (is_accelerated) {
-    0
-  } else if (is_pre_july_1 && is_fg && !is_jt) {
-    0
-  } else if (is_fg) {
-    if (!years_key %in% names(fg_rate) || is.na(plus_amount)) return(NA_real_)
-    salary * fg_rate[[years_key]] - salary + plus_amount
-  } else if (is_trade_or_ib || (is_pre_july_1 && !is_jt)) {
-    0
+  future_penalty <- function() {
+    if (is_fg) {
+      if (!years_key %in% names(fg_rate) || is.na(plus_amount)) return(NA_real_)
+      salary * fg_rate[[years_key]] - salary + plus_amount
+    } else if (is_trade_or_ib || (is_pre_july_1 && !is_jt)) {
+      0
+    } else {
+      0.3 * salary * (years - 1)
+    }
+  }
+
+  base <- if (is_pre_july_1) {
+    if (is_accelerated) {
+      0
+    } else if (is_fg && !is_jt) {
+      0
+    } else {
+      future_penalty()
+    }
   } else {
-    0.3 * salary * (years - 1)
+    current_year_penalty <- if (is_fg || is_trade_or_ib) {
+      salary
+    } else {
+      0.6 * salary
+    }
+    current_year_penalty + if (is_accelerated) future_penalty() else 0
   }
 
   round(if (is_suspended) 0.5 * base else base, 2)
