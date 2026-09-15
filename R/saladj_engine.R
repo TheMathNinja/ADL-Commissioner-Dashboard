@@ -1075,12 +1075,81 @@ current_same_conf_player <- current_roster_snapshot %>%
     current_player_abbrev = .data$current_player_abbrev
   )
 
+current_same_conf_claim_matches <- drop_events %>%
+  dplyr::left_join(historical_roster_matches, by = c("drop_row_key" = "row_key")) %>%
+  dplyr::filter(!is.na(.data$salary_snap), !is.na(.data$info_snap)) %>%
+  dplyr::left_join(
+    current_roster_snapshot %>%
+      dplyr::left_join(
+        franchises %>%
+          dplyr::transmute(
+            current_claim_franchise_id = as.character(.data$franchise_id),
+            current_claim_abbrev = .data$abbrev
+          ),
+        by = c("franchise_id" = "current_claim_franchise_id")
+      ) %>%
+      dplyr::transmute(
+        player_id = .data$player_id,
+        CONF = .data$CONF,
+        current_claim_franchise_id = .data$franchise_id,
+        current_claim_abbrev = .data$current_claim_abbrev,
+        current_claim_salary = .data$roster_salary,
+        current_claim_years = .data$roster_years,
+        current_claim_contractInfo = .data$roster_contractInfo
+      ),
+    by = c("player_id", "CONF"),
+    relationship = "many-to-many"
+  ) %>%
+  dplyr::filter(
+    !is.na(.data$current_claim_franchise_id),
+    .data$current_claim_franchise_id != .data$drop_franchise_id,
+    !is.na(.data$current_claim_salary),
+    abs(.data$current_claim_salary - .data$salary_snap) < 0.001,
+    dplyr::coalesce(.data$current_claim_contractInfo, "") == dplyr::coalesce(.data$info_snap, "")
+  ) %>%
+  dplyr::group_by(.data$drop_row_key) %>%
+  dplyr::arrange(.data$current_claim_franchise_id, .by_group = TRUE) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    row_key = .data$drop_row_key,
+    current_claim_franchise_id = .data$current_claim_franchise_id,
+    current_claim_abbrev = .data$current_claim_abbrev
+  )
+
+waiver_claim_arrivals <- drop_events %>%
+  dplyr::mutate(waiver_matures_at = waiver_maturity_time(.data$drop_time, waiver_short_window_start)) %>%
+  dplyr::left_join(
+    arrival_events,
+    by = c("player_id", "CONF"),
+    relationship = "many-to-many"
+  ) %>%
+  dplyr::filter(
+    !is.na(.data$arrival_time),
+    .data$arrival_franchise_id != .data$drop_franchise_id,
+    .data$arrival_time >= .data$drop_time,
+    .data$arrival_time <= .data$waiver_matures_at,
+    toupper(as.character(.data$arrival_type)) %in% c("WAIVER", "BBID_WAIVER") |
+      grepl("waiver", paste(.data$arrival_type, .data$arrival_type_desc), ignore.case = TRUE)
+  ) %>%
+  dplyr::group_by(.data$drop_row_key) %>%
+  dplyr::arrange(.data$arrival_time, .by_group = TRUE) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    row_key = .data$drop_row_key,
+    waiver_claimed_by_franchise_id = .data$arrival_franchise_id,
+    waiver_claimed_at = .data$arrival_time
+  )
+
 manual_drop_salary_overrides <- build_manual_drop_salary_overrides(current_season)
 
 tx_enriched <- tx_enriched %>%
   dplyr::left_join(historical_roster_matches, by = "row_key") %>%
   dplyr::left_join(contract_preserving_roster_matches, by = "row_key") %>%
   dplyr::left_join(current_same_conf_player, by = c("player_id", "CONF")) %>%
+  dplyr::left_join(current_same_conf_claim_matches, by = "row_key") %>%
+  dplyr::left_join(waiver_claim_arrivals, by = "row_key") %>%
   dplyr::left_join(
     manual_drop_salary_overrides,
     by = c("franchise_id", "player_id", "DATE_raw" = "drop_timestamp")
@@ -1093,6 +1162,7 @@ tx_enriched <- tx_enriched %>%
     salary_snapshot_match_type = dplyr::coalesce(.data$salary_snapshot_match_type, .data$fallback_salary_snapshot_match_type),
     salary_snapshot_franchise_id = dplyr::coalesce(.data$salary_snapshot_franchise_id, .data$fallback_salary_snapshot_franchise_id),
     salary_snapshot_source_abbrev = franchise_id_to_abbrev(.data$salary_snapshot_franchise_id, franchises),
+    waiver_claimed_by_abbrev = franchise_id_to_abbrev(.data$waiver_claimed_by_franchise_id, franchises),
     PLAYER = dplyr::coalesce(
       dplyr::na_if(.data$PLAYER, ""),
       dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$player_name_snap, "")), ""),
@@ -1221,15 +1291,23 @@ sd_rows <- tx_enriched %>%
     missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
     waiver_matures_at = waiver_maturity_time(.data$DATE_raw, waiver_short_window_start),
     waiver_pending = snapshot_time < .data$waiver_matures_at,
-    current_same_conf_elsewhere = !is.na(.data$current_player_franchise_id) &
+    collapsed_current_same_conf_elsewhere = !is.na(.data$current_player_franchise_id) &
       .data$current_player_franchise_id != .data$franchise_id,
+    current_same_conf_elsewhere = !is.na(.data$current_claim_franchise_id) |
+      .data$collapsed_current_same_conf_elsewhere,
     waiver_claimed = !.data$waiver_pending &
       !.data$missing_salary_snapshot &
-      .data$current_same_conf_elsewhere &
-      !is.na(.data$current_player_salary) &
-      !is.na(.data$salary_snap) &
-      abs(.data$current_player_salary - .data$salary_snap) < 0.001 &
-      dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, ""),
+      (
+        !is.na(.data$current_claim_franchise_id) |
+          (
+            .data$collapsed_current_same_conf_elsewhere &
+              !is.na(.data$current_player_salary) &
+              !is.na(.data$salary_snap) &
+              abs(.data$current_player_salary - .data$salary_snap) < 0.001 &
+              dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, "")
+          ) |
+          !is.na(.data$waiver_claimed_by_franchise_id)
+      ),
     recent_missing_snapshot_review = .data$missing_salary_snapshot &
       .data$DATE_raw >= missing_snapshot_review_start,
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
@@ -1260,7 +1338,13 @@ sd_rows <- tx_enriched %>%
       !is.na(.data$override_note) ~ .data$override_note,
       .data$waiver_claimed ~ paste0(
         "WAIVER CLAIM - REVERSE PENALTY; CLAIMED BY ",
-        dplyr::coalesce(.data$current_player_abbrev, .data$current_player_franchise_id, "AFC/NFC TEAM")
+        dplyr::coalesce(
+          .data$current_claim_abbrev,
+          .data$waiver_claimed_by_abbrev,
+          .data$current_player_abbrev,
+          .data$current_player_franchise_id,
+          "AFC/NFC TEAM"
+        )
       ),
       .data$waiver_pending & .data$salary_snapshot_match_type == "trade_source" ~ paste0(
         "PENDING WAIVER UNTIL ",
