@@ -82,21 +82,34 @@ saladj_expected_by_franchise <- function(path, season = get_current_season()) {
     stop("SalAdj Curator CSV is missing SALARY column: ", path, call. = FALSE)
   }
 
+  player_col <- if ("PLAYER" %in% names(saladj)) saladj$PLAYER else rep("", nrow(saladj))
+
   saladj |>
     mutate(
       franchise = toupper(trimws(.data$FRAN)),
+      player = as.character(.env$player_col),
       salary_amount = parse_amount(.data$SALARY),
       current_penalty_amount = if (current_pen_col %in% names(saladj)) parse_amount(.data[[current_pen_col]]) else NA_real_,
-      expected_amount = case_when(
+      is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE",
+      # Cash trades are already adjustment amounts. Dropped-contract rows are not:
+      # their cap penalty must come from the Contract Admin penalty formula/column.
+      expected_amount_known = case_when(
         !is.na(.data$current_penalty_amount) ~ .data$current_penalty_amount,
-        TRUE ~ .data$salary_amount
+        .data$is_cash_trade ~ .data$salary_amount,
+        TRUE ~ NA_real_
       )
     ) |>
-    filter(nzchar(.data$franchise), !is.na(.data$expected_amount)) |>
+    filter(nzchar(.data$franchise)) |>
     group_by(.data$franchise) |>
     summarize(
-      saladj_expected = round(sum(.data$expected_amount, na.rm = TRUE), 2),
+      saladj_expected_known = round(sum(.data$expected_amount_known, na.rm = TRUE), 2),
       saladj_row_count = n(),
+      known_penalty_rows = sum(!is.na(.data$expected_amount_known)),
+      missing_penalty_rows = sum(is.na(.data$expected_amount_known)),
+      missing_penalty_players = paste(
+        head(.data$player[is.na(.data$expected_amount_known)], 12),
+        collapse = "; "
+      ),
       .groups = "drop"
     )
 }
@@ -193,30 +206,49 @@ report <- mfl |>
   mutate(
     mfl_saladj = coalesce(.data$mfl_saladj, 0),
     adjustment_count = coalesce(.data$adjustment_count, 0L),
-    saladj_expected = coalesce(.data$saladj_expected, 0),
+    saladj_expected_known = coalesce(.data$saladj_expected_known, 0),
     saladj_row_count = coalesce(.data$saladj_row_count, 0L),
-    difference = round(.data$mfl_saladj - .data$saladj_expected, 2),
-    status = if_else(abs(.data$difference) <= .env$tolerance, "MATCH", "MISMATCH")
+    known_penalty_rows = coalesce(.data$known_penalty_rows, 0L),
+    missing_penalty_rows = coalesce(.data$missing_penalty_rows, 0L),
+    missing_penalty_players = coalesce(.data$missing_penalty_players, ""),
+    saladj_expected = if_else(.data$missing_penalty_rows > 0L, NA_real_, .data$saladj_expected_known),
+    difference = if_else(
+      .data$missing_penalty_rows > 0L,
+      NA_real_,
+      round(.data$mfl_saladj - .data$saladj_expected, 2)
+    ),
+    status = case_when(
+      .data$missing_penalty_rows > 0L ~ "INCOMPLETE_FORMULA",
+      abs(.data$difference) <= .env$tolerance ~ "MATCH",
+      TRUE ~ "MISMATCH"
+    )
   ) |>
-  arrange(.data$status != "MISMATCH", .data$franchise) |>
+  arrange(match(.data$status, c("MISMATCH", "INCOMPLETE_FORMULA", "MATCH")), .data$franchise) |>
   select(
     "franchise",
     "mfl_saladj",
     "saladj_expected",
+    "saladj_expected_known",
     "difference",
     "status",
     "adjustment_count",
-    "saladj_row_count"
+    "saladj_row_count",
+    "known_penalty_rows",
+    "missing_penalty_rows",
+    "missing_penalty_players"
   )
 
 dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
 write_csv(report, output_csv, na = "")
 
 mismatches <- report |> filter(.data$status == "MISMATCH")
+incomplete <- report |> filter(.data$status == "INCOMPLETE_FORMULA")
 message("Wrote SalAdj reconciliation report: ", output_csv)
 message(nrow(mismatches), " franchise mismatch(es).")
+message(nrow(incomplete), " franchise(s) need Contract Admin penalty formula values.")
 if (nrow(mismatches)) print(mismatches)
+if (nrow(incomplete)) print(incomplete)
 
-if (fail_on_mismatch && nrow(mismatches)) {
-  stop("MFL salary adjustments do not match SalAdj Curator expected totals.", call. = FALSE)
+if (fail_on_mismatch && (nrow(mismatches) || nrow(incomplete))) {
+  stop("MFL salary adjustments cannot be fully reconciled to SalAdj Curator expected totals.", call. = FALSE)
 }
