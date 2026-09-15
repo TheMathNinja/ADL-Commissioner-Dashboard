@@ -579,7 +579,7 @@ build_cap_accounting_html <- function(
       <section class='panel'>
         <h2>Instructions</h2>
         <p>
-        The weekly salary cap accounting workflow is scheduled to run every Tuesday at 3:30 a.m. Eastern time during September through January.
+        The weekly salary cap accounting workflow is scheduled to run every Monday at 11:15 p.m. Eastern time during September through January.
         It can also be run manually from GitHub Actions with a selected snapshot week.
         When no week is provided, the workflow infers the latest completed regular-season fantasy week, capped at Week 17.
         </p>
