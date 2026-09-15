@@ -14,6 +14,8 @@ Use this rhythm for future automation changes:
 4. Run the `ADL Automation Preflight` GitHub Action with live MFL checks enabled.
 5. Only after that succeeds, run or wait for the real daily commissioner alert / salary cap workflow.
 
-The preflight workflow is intentionally no-email. It parses all R scripts, installs the same declared R dependencies from `DESCRIPTION`, runs commissioner alerts without sending emails, runs salary cap accounting, and builds the dashboard. It is meant to fail during testing instead of during an actual league data run.
+The preflight workflow is intentionally no-email. It parses all R scripts, installs the same declared R dependencies from `DESCRIPTION`, runs commissioner alerts without sending emails, runs salary cap accounting, reconciles MFL salary adjustments against the latest SalAdj Curator ledger, and builds the dashboard. It is meant to fail during testing instead of during an actual league data run.
+
+The SalAdj reconciliation writes `data/saladj_reconciliation.csv`. A mismatch means the salary-adjustment totals visible on MFL's full-league salary adjustments page do not equal the totals implied by `data/SalAdjCurator_latest.csv`.
 
 If `.git` remains blocked, the durable fix is to repair the Windows ACL on this checkout or create a fresh clone in a Codex-owned workspace. Until then, API-based commits are safer than fighting the local index lock.
