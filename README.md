@@ -133,7 +133,7 @@ R/commissioner\_alerts.R checks roster cap, contract years, salary cap, and ille
 
 Automation maintenance:
 
-Before changing daily alerts, salary cap accounting, roster snapshots, or inactivity monitors, run `Rscript scripts/local_preflight.R`. If it reports missing packages, run `Rscript scripts/setup_local_r_lib.R` once and repeat the preflight. After pushing automation changes, run the `ADL Automation Preflight` GitHub Action with live MFL checks enabled before relying on the next scheduled league run.
+Before changing daily alerts, salary cap accounting, roster snapshots, SalAdj Curator, or inactivity monitors, run `Rscript scripts/local_preflight.R`. If it reports missing packages, run `Rscript scripts/setup_local_r_lib.R` once and repeat the preflight. After pushing automation changes, run the `ADL Automation Preflight` GitHub Action with live MFL checks enabled before relying on the next scheduled league run. That preflight also checks that MFL's visible salary-adjustment totals match the latest SalAdj Curator ledger.
 
 Salary cap alerts use the offseason/preseason Top 43 rule until the Final Roster Cutdown datetime. After Final Cutdown, daily checks read this repo's salary-cap accounting summaries and warn teams whose current live accounting salary would push their cumulative average over the franchise cap at the next weekly salary snapshot.
 
