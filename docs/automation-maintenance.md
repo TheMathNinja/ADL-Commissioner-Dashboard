@@ -18,6 +18,6 @@ The preflight workflow is intentionally no-email. It parses all R scripts, insta
 
 MFL can rate-limit repeated live scrapes. For routine edits, run the specific live check that matches the changed area. Reserve the full live preflight for larger cross-cutting changes or times when no other MFL-heavy workflow just ran.
 
-The SalAdj reconciliation writes `data/saladj_reconciliation.csv`. A mismatch means the salary-adjustment totals visible on MFL's full-league salary adjustments page do not equal the totals implied by `data/SalAdjCurator_latest.csv`.
+The SalAdj reconciliation writes `data/saladj_reconciliation.csv` and uploads it as a workflow artifact. A mismatch means the salary-adjustment totals visible on MFL's full-league salary adjustments page do not equal the totals implied by `data/SalAdjCurator_latest.csv`. By default this is reported without failing the preflight; use the `fail_on_saladj_mismatch` toggle when you want mismatches to block the run.
 
 If `.git` remains blocked, the durable fix is to repair the Windows ACL on this checkout or create a fresh clone in a Codex-owned workspace. Until then, API-based commits are safer than fighting the local index lock.
