@@ -10,10 +10,13 @@ Imports:
     curl,
     dplyr,
     ffscrapr,
+    httr,
+    jsonlite,
     lubridate,
     nflreadr,
     purrr,
     readr,
     rvest,
     stringr,
-    tibble
+    tibble,
+    xml2
