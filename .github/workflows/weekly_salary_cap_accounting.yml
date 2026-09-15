@@ -9,10 +9,13 @@ on:
         type: string
   schedule:
     - cron: "15 3 * 9-12,1 2"
+    - cron: "45 3 * 9-12,1 2"
     - cron: "15 4 * 9-12,1 2"
+    - cron: "45 4 * 9-12,1 2"
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: commissioner-dashboard-data-writes
@@ -36,6 +39,8 @@ jobs:
       - name: Decide whether scheduled run should proceed
         id: localtime
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -48,20 +53,49 @@ jobs:
           echo "Toronto UTC offset is $TORONTO_OFFSET"
           echo "Scheduled cron is $SCHEDULE"
 
-          if { [ "$TORONTO_OFFSET" = "-0400" ] && [ "$SCHEDULE" = "15 3 * 9-12,1 2" ]; } || \
-             { [ "$TORONTO_OFFSET" = "-0500" ] && [ "$SCHEDULE" = "15 4 * 9-12,1 2" ]; }; then
+          PRIMARY_CRON=""
+          BACKUP_CRON=""
+          if [ "$TORONTO_OFFSET" = "-0400" ]; then
+            PRIMARY_CRON="15 3 * 9-12,1 2"
+            BACKUP_CRON="45 3 * 9-12,1 2"
+          elif [ "$TORONTO_OFFSET" = "-0500" ]; then
+            PRIMARY_CRON="15 4 * 9-12,1 2"
+            BACKUP_CRON="45 4 * 9-12,1 2"
+          fi
+
+          if [ "$SCHEDULE" = "$PRIMARY_CRON" ] || [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
             TODAY_ET=$(TZ=America/Toronto date +%F)
             FIRST_SNAPSHOT_DATE=$(TZ=America/Toronto date -d "${ADL_WEEK_ONE_START} +4 days" +%F)
             if [[ "$TODAY_ET" < "$FIRST_SNAPSHOT_DATE" ]]; then
               echo "should_run=false" >> "$GITHUB_OUTPUT"
               echo "Too early for weekly salary cap accounting. First official snapshot date is ${FIRST_SNAPSHOT_DATE}; today is ${TODAY_ET}."
+            elif [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
+              CUTOFF_UTC=$(TZ=America/Toronto date -u -d "${TODAY_ET} 23:00" +%Y-%m-%dT%H:%M:%SZ)
+              echo "Backup cron slot -> checking for a successful primary run since ${CUTOFF_UTC}."
+              RECENT_SUCCESS_COUNT=$(gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow weekly_salary_cap_accounting.yml \
+                --branch main \
+                --event schedule \
+                --status success \
+                --limit 10 \
+                --json createdAt \
+                --jq "[.[] | select(.createdAt >= \"${CUTOFF_UTC}\")] | length")
+
+              if [ "${RECENT_SUCCESS_COUNT}" -gt 0 ]; then
+                echo "should_run=false" >> "$GITHUB_OUTPUT"
+                echo "Primary scheduled salary snapshot already succeeded tonight -> backup skipping."
+              else
+                echo "should_run=true" >> "$GITHUB_OUTPUT"
+                echo "No successful primary scheduled salary snapshot found tonight -> backup proceeding."
+              fi
             else
               echo "should_run=true" >> "$GITHUB_OUTPUT"
-              echo "Correct 11:15 p.m. Toronto Monday cron slot -> proceeding."
+              echo "Primary 11:15 p.m. Toronto Monday cron slot -> proceeding."
             fi
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Duplicate non-11:15 p.m. Toronto Monday cron slot -> skipping."
+            echo "Duplicate non-Monday-night Toronto cron slot -> skipping."
           fi
 
       - name: Create cache directories
