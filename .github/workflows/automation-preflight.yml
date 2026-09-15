@@ -124,6 +124,11 @@ jobs:
         run: |
           Rscript scripts/run_cap_accounting.R
 
+      - name: Reconcile MFL salary adjustments against SalAdj Curator
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' }}
+        run: |
+          Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} --fail-on-mismatch
+
       - name: Build dashboard smoke check
         run: |
           Rscript scripts/build_dashboard.R
