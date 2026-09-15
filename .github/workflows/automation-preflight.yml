@@ -4,7 +4,31 @@ on:
   workflow_dispatch:
     inputs:
       run_live_mfl_checks:
-        description: Run live MFL no-email commissioner alert and salary cap smoke checks.
+        description: Run all live MFL checks unless individual live-check inputs below are set.
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_commissioner_alerts:
+        description: Run the no-email commissioner alert smoke check.
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_salary_cap:
+        description: Run the salary cap accounting smoke check.
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_saladj_reconciliation:
+        description: Compare MFL visible salary adjustments against SalAdj Curator.
         required: true
         default: "true"
         type: choice
@@ -115,17 +139,17 @@ jobs:
           cat("Parsed", length(r_files), "R files.\n")
 
       - name: Run commissioner alerts no-email smoke check
-        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' }}
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_commissioner_alerts == 'true' }}
         run: |
           Rscript scripts/run_commissioner_alerts.R --mode=check --season=${CURRENT_SEASON} --force-live
 
       - name: Run salary cap accounting smoke check
-        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' }}
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_salary_cap == 'true' }}
         run: |
           Rscript scripts/run_cap_accounting.R
 
       - name: Reconcile MFL salary adjustments against SalAdj Curator
-        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' }}
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_reconciliation == 'true' }}
         run: |
           Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} --fail-on-mismatch
 
