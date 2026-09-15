@@ -59,7 +59,9 @@ franchise_from_visible_label <- function(x, franchises) {
   contains_name <- which(nzchar(franchises$label_name) & grepl(franchises$label_name, label, fixed = TRUE))
   if (length(contains_name) == 1L) return(franchises$franchise[[contains_name]])
 
-  contains_abbrev <- which(nzchar(franchises$label_abbrev) & grepl(paste0("\\b", franchises$label_abbrev, "\\b"), label))
+  contains_abbrev <- which(vapply(franchises$label_abbrev, function(abbrev) {
+    nzchar(abbrev) && grepl(paste0("\\b", abbrev, "\\b"), label)
+  }, logical(1)))
   if (length(contains_abbrev) == 1L) return(franchises$franchise[[contains_abbrev]])
 
   NA_character_
