@@ -35,6 +35,14 @@ on:
         options:
           - "true"
           - "false"
+      run_saladj_curator:
+        description: Run the no-email SalAdj Curator smoke check.
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
       fail_on_saladj_mismatch:
         description: Fail the preflight if MFL and SalAdj Curator totals do not match.
         required: true
@@ -65,6 +73,7 @@ jobs:
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_FORCE_LIVE: true
       ADL_ALERT_SEND_EMAIL: false
+      ADL_SALADJ_SEND_EMAIL: false
       ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
       MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
       MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
@@ -156,6 +165,11 @@ jobs:
         run: |
           Rscript scripts/run_cap_accounting.R
 
+      - name: Run SalAdj Curator no-email smoke check
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_curator == 'true' }}
+        run: |
+          Rscript scripts/run_saladjcurator.R
+
       - name: Reconcile MFL salary adjustments against SalAdj Curator
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_reconciliation == 'true' }}
         run: |
@@ -170,7 +184,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: saladj-reconciliation
-          path: data/saladj_reconciliation.csv
+          path: |
+            data/saladj_reconciliation.csv
+            data/SalAdjCurator_latest.csv
+            data/SalAdjCurator_2026.csv
+            data/archive/*_ADLSalAdjCurator.csv
 
       - name: Build dashboard smoke check
         run: |
