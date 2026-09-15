@@ -10,6 +10,7 @@ Imports:
     curl,
     dplyr,
     ffscrapr,
+    googlesheets4,
     httr,
     jsonlite,
     lubridate,
