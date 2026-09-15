@@ -131,6 +131,10 @@ Commissioner Alerts:
 
 R/commissioner\_alerts.R checks roster cap, contract years, salary cap, and illegal lineup rules. The daily alert workflow runs at 6:15 a.m. Eastern during daylight saving time and sends emails when alerts are found. It also runs roster cutdown reports near Noon Eastern on August 31 and September 7 with backup runs to reduce the chance of GitHub schedule drops.
 
+Automation maintenance:
+
+Before changing daily alerts, salary cap accounting, roster snapshots, or inactivity monitors, run `Rscript scripts/local_preflight.R`. If it reports missing packages, run `Rscript scripts/setup_local_r_lib.R` once and repeat the preflight. After pushing automation changes, run the `ADL Automation Preflight` GitHub Action with live MFL checks enabled before relying on the next scheduled league run.
+
 Salary cap alerts use the offseason/preseason Top 43 rule until the Final Roster Cutdown datetime. After Final Cutdown, daily checks read this repo's salary-cap accounting summaries and warn teams whose current live accounting salary would push their cumulative average over the franchise cap at the next weekly salary snapshot.
 
 Public alert summaries are written under data/commissioner\_alert\_reports/ and published to docs/commissioner-alerts.html.
