@@ -94,6 +94,35 @@ normalize_label <- function(x) {
     trimws()
 }
 
+normalize_player_token <- function(x) {
+  x |>
+    as.character() |>
+    toupper() |>
+    gsub("[^A-Z0-9]+", " ", x = _) |>
+    trimws()
+}
+
+player_last_name <- function(x) {
+  x <- as.character(x)
+  if (grepl(",", x, fixed = TRUE)) {
+    return(trimws(strsplit(x, ",", fixed = TRUE)[[1]][[1]]))
+  }
+  parts <- strsplit(trimws(x), "\\s+")[[1]]
+  if (!length(parts)) return("")
+  parts[[length(parts)]]
+}
+
+player_first_initial <- function(x) {
+  x <- trimws(as.character(x))
+  if (!nzchar(x)) return("")
+  if (grepl(",", x, fixed = TRUE)) {
+    parts <- strsplit(x, ",", fixed = TRUE)[[1]]
+    after_comma <- if (length(parts) >= 2) trimws(parts[[2]]) else ""
+    return(substr(after_comma, 1, 1))
+  }
+  substr(x, 1, 1)
+}
+
 franchise_reference <- function(conn) {
   franchise_tbl <- tibble::as_tibble(ffscrapr::ff_franchises(conn))
   franchise_tbl |>
@@ -130,7 +159,98 @@ franchise_from_visible_label <- function(x, franchises) {
   NA_character_
 }
 
-saladj_expected_by_franchise <- function(path, season = get_current_season()) {
+salary_year_pattern <- function(years, salary) {
+  if (is.na(years) || is.na(salary)) return(NA_character_)
+  salary_value <- gsub("[^0-9]+", " ", sprintf("%.2f", salary))
+  paste0("\\b", as.integer(years), "\\s*(YR|YRS|YEAR|YEARS|/|-)[A-Z ]*\\b", salary_value, "\\b")
+}
+
+acceleration_matches_player <- function(player, salary, years, body) {
+  body_norm <- normalize_player_token(body)
+  if (!nzchar(body_norm)) return(FALSE)
+
+  last <- normalize_player_token(player_last_name(player))
+  first_initial <- normalize_player_token(player_first_initial(player))
+  if (!nzchar(last) || !grepl(paste0("\\b", last, "\\b"), body_norm)) return(FALSE)
+
+  contract_pattern <- salary_year_pattern(years, salary)
+  has_contract <- !is.na(contract_pattern) &&
+    grepl(contract_pattern, body_norm, ignore.case = TRUE, perl = TRUE)
+  has_first_initial <- nzchar(first_initial) &&
+    grepl(paste0("\\b", first_initial, "[A-Z]*\\b"), body_norm, perl = TRUE)
+
+  has_contract || has_first_initial || nchar(last) >= 7
+}
+
+fetch_saladj_accelerations <- function(season = get_current_season(), franchises = NULL) {
+  if (!requireNamespace("httr", quietly = TRUE) ||
+      !requireNamespace("rvest", quietly = TRUE) ||
+      !requireNamespace("xml2", quietly = TRUE)) {
+    warning("Packages httr, rvest, and xml2 are required to fetch SalAdj acceleration declarations.", call. = FALSE)
+    return(tibble(franchise = character(), declared_at = character(), body = character()))
+  }
+
+  league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  url <- Sys.getenv("ADL_SALADJ_ACCELERATION_THREAD_URL", unset = "")
+  if (!nzchar(url) && season == 2026L) {
+    url <- "https://www46.myfantasyleague.com/2026/mb/topic_show.pl?bid=202660206&tid=6728505"
+  }
+  if (!nzchar(url)) {
+    return(tibble(franchise = character(), declared_at = character(), body = character()))
+  }
+
+  conn <- connect_adl_mfl(season)
+  if (is.null(franchises)) franchises <- franchise_reference(conn)
+
+  response <- httr::GET(
+    url,
+    httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+    conn$auth_cookie,
+    httr::timeout(as.numeric(get_env_or_default("ADL_MFL_SALADJ_ACCELERATION_TIMEOUT_SECONDS", "30")))
+  )
+  if (httr::http_error(response)) {
+    warning("MFL SalAdj acceleration thread request failed with HTTP ", httr::status_code(response), ".", call. = FALSE)
+    return(tibble(franchise = character(), declared_at = character(), body = character()))
+  }
+
+  doc <- xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8"))
+  post_nodes <- rvest::html_elements(doc, ".frm.pst")
+  if (!length(post_nodes)) {
+    return(tibble(franchise = character(), declared_at = character(), body = character()))
+  }
+
+  posts <- lapply(post_nodes, function(node) {
+    poster <- rvest::html_text2(rvest::html_element(node, ".poster a"))
+    message_cells <- rvest::html_elements(node, "td.message")
+    declared_at <- if (length(message_cells) >= 1) rvest::html_text2(message_cells[[1]]) else ""
+    body <- if (length(message_cells) >= 2) rvest::html_text2(message_cells[[length(message_cells)]]) else ""
+    tibble(
+      franchise = franchise_from_visible_label(poster, franchises),
+      declared_at = declared_at,
+      body = body
+    )
+  })
+
+  dplyr::bind_rows(posts) |>
+    filter(nzchar(.data$franchise), nzchar(trimws(.data$body))) |>
+    distinct()
+}
+
+row_has_acceleration_declaration <- function(franchise, player, salary, years, accelerations) {
+  if (is.null(accelerations) || !nrow(accelerations)) return(FALSE)
+  candidates <- accelerations |> filter(.data$franchise == .env$franchise)
+  if (!nrow(candidates)) return(FALSE)
+  any(vapply(
+    candidates$body,
+    acceleration_matches_player,
+    logical(1),
+    player = player,
+    salary = salary,
+    years = years
+  ))
+}
+
+saladj_expected_by_franchise <- function(path, season = get_current_season(), accelerations = NULL) {
   if (!file.exists(path)) {
     stop("SalAdj Curator CSV not found: ", path, call. = FALSE)
   }
@@ -159,6 +279,10 @@ saladj_expected_by_franchise <- function(path, season = get_current_season()) {
   rvsd_col <- get_col("RVSD?")
   acc_col <- get_col("ACC")
 
+  if (is.null(accelerations)) {
+    accelerations <- fetch_saladj_accelerations(season)
+  }
+
   saladj |>
     mutate(
       franchise = toupper(trimws(.data$FRAN)),
@@ -172,7 +296,16 @@ saladj_expected_by_franchise <- function(path, season = get_current_season()) {
       is_fg = is_marked(.env$fg_col),
       is_suspended = is_marked(.env$suspended_col),
       is_jt = is_marked(.env$jt_col),
-      is_accelerated = is_marked(.env$acc_col),
+      is_accelerated_csv = is_marked(.env$acc_col),
+      is_accelerated_declared = mapply(
+        row_has_acceleration_declaration,
+        franchise = .data$franchise,
+        player = .data$player,
+        salary = .data$salary_amount,
+        years = .data$years_amount,
+        MoreArgs = list(accelerations = .env$accelerations)
+      ),
+      is_accelerated = .data$is_accelerated_csv | .data$is_accelerated_declared,
       plus_raw = trimws(as.character(.env$plus_col)),
       plus_amount = case_when(
         is.na(.data$plus_raw) | !nzchar(.data$plus_raw) ~ 0,
@@ -207,6 +340,11 @@ saladj_expected_by_franchise <- function(path, season = get_current_season()) {
       missing_penalty_rows = sum(is.na(.data$expected_amount_known)),
       missing_penalty_players = paste(
         head(.data$player[is.na(.data$expected_amount_known)], 12),
+        collapse = "; "
+      ),
+      accelerated_rows = sum(.data$is_accelerated, na.rm = TRUE),
+      acceleration_declaration_players = paste(
+        head(.data$player[.data$is_accelerated_declared], 12),
         collapse = "; "
       ),
       .groups = "drop"
@@ -310,6 +448,8 @@ report <- mfl |>
     known_penalty_rows = coalesce(.data$known_penalty_rows, 0L),
     missing_penalty_rows = coalesce(.data$missing_penalty_rows, 0L),
     missing_penalty_players = coalesce(.data$missing_penalty_players, ""),
+    accelerated_rows = coalesce(.data$accelerated_rows, 0L),
+    acceleration_declaration_players = coalesce(.data$acceleration_declaration_players, ""),
     saladj_expected = if_else(.data$missing_penalty_rows > 0L, NA_real_, .data$saladj_expected_known),
     difference = if_else(
       .data$missing_penalty_rows > 0L,
@@ -334,7 +474,9 @@ report <- mfl |>
     "saladj_row_count",
     "known_penalty_rows",
     "missing_penalty_rows",
-    "missing_penalty_players"
+    "missing_penalty_players",
+    "accelerated_rows",
+    "acceleration_declaration_players"
   )
 
 dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
