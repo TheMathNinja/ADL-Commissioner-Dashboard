@@ -25,6 +25,46 @@ parse_amount <- function(x) {
   suppressWarnings(as.numeric(gsub("[$,]", "", as.character(x))))
 }
 
+normalize_label <- function(x) {
+  x |>
+    as.character() |>
+    toupper() |>
+    gsub("[^A-Z0-9]+", " ", x = _) |>
+    trimws()
+}
+
+franchise_reference <- function(conn) {
+  franchise_tbl <- tibble::as_tibble(ffscrapr::ff_franchises(conn))
+  franchise_tbl |>
+    transmute(
+      franchise = toupper(trimws(as.character(coalesce_col(franchise_tbl, c("franchise", "franchise_abbrev", "abbrev"), NA_character_)))),
+      franchise_name = as.character(coalesce_col(franchise_tbl, c("franchise_name", "name"), NA_character_)),
+      label_abbrev = normalize_label(.data$franchise),
+      label_name = normalize_label(.data$franchise_name)
+    ) |>
+    filter(nzchar(.data$franchise)) |>
+    distinct(.data$franchise, .keep_all = TRUE)
+}
+
+franchise_from_visible_label <- function(x, franchises) {
+  label <- normalize_label(x)
+  if (!nzchar(label)) return(NA_character_)
+
+  abbrev_match <- franchises$franchise[match(label, franchises$label_abbrev)]
+  if (!is.na(abbrev_match)) return(abbrev_match)
+
+  name_match <- franchises$franchise[match(label, franchises$label_name)]
+  if (!is.na(name_match)) return(name_match)
+
+  contains_name <- which(nzchar(franchises$label_name) & grepl(franchises$label_name, label, fixed = TRUE))
+  if (length(contains_name) == 1L) return(franchises$franchise[[contains_name]])
+
+  contains_abbrev <- which(nzchar(franchises$label_abbrev) & grepl(paste0("\\b", franchises$label_abbrev, "\\b"), label))
+  if (length(contains_abbrev) == 1L) return(franchises$franchise[[contains_abbrev]])
+
+  NA_character_
+}
+
 saladj_expected_by_franchise <- function(path, season = get_current_season()) {
   if (!file.exists(path)) {
     stop("SalAdj Curator CSV not found: ", path, call. = FALSE)
@@ -69,6 +109,7 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
 
   conn <- connect_adl_mfl(season)
   league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  franchises <- franchise_reference(conn)
   url <- paste0(
     "https://www46.myfantasyleague.com/", season,
     "/options?L=", league_id,
@@ -121,8 +162,7 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
       amount = parse_amount(.data[[amount_col]])
     ) |>
     mutate(
-      franchise = stringr::str_extract(.data$franchise_raw, "\\b[A-Z]{2,4}\\b"),
-      franchise = toupper(trimws(.data$franchise))
+      franchise = vapply(.data$franchise_raw, franchise_from_visible_label, character(1), franchises = franchises)
     ) |>
     filter(nzchar(.data$franchise), !is.na(.data$amount)) |>
     group_by(.data$franchise) |>
@@ -158,13 +198,13 @@ report <- mfl |>
   ) |>
   arrange(.data$status != "MISMATCH", .data$franchise) |>
   select(
-    .data$franchise,
-    .data$mfl_saladj,
-    .data$saladj_expected,
-    .data$difference,
-    .data$status,
-    .data$adjustment_count,
-    .data$saladj_row_count
+    "franchise",
+    "mfl_saladj",
+    "saladj_expected",
+    "difference",
+    "status",
+    "adjustment_count",
+    "saladj_row_count"
   )
 
 dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
