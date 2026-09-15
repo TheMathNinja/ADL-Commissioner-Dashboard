@@ -102,7 +102,9 @@ franchise_from_visible_label <- function(x, franchises) {
   name_match <- franchises$franchise[match(label, franchises$label_name)]
   if (!is.na(name_match)) return(name_match)
 
-  contains_name <- which(nzchar(franchises$label_name) & grepl(franchises$label_name, label, fixed = TRUE))
+  contains_name <- which(vapply(franchises$label_name, function(name) {
+    nzchar(name) && grepl(name, label, fixed = TRUE)
+  }, logical(1)))
   if (length(contains_name) == 1L) return(franchises$franchise[[contains_name]])
 
   contains_abbrev <- which(vapply(franchises$label_abbrev, function(abbrev) {
