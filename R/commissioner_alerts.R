@@ -752,8 +752,8 @@ salary_cap_snapshot_datetime <- function(season = get_current_season(), week) {
   if (is.na(week_one_start) || is.na(suppressWarnings(as.integer(week)))) {
     return(as.POSIXct(NA))
   }
-  snapshot_date <- week_one_start + (as.integer(week) - 1L) * 7L + 5L
-  as.POSIXct(paste0(snapshot_date, " 03:30:00"), tz = "America/New_York")
+  snapshot_date <- week_one_start + (as.integer(week) - 1L) * 7L + 4L
+  as.POSIXct(paste0(snapshot_date, " 23:15:00"), tz = "America/New_York")
 }
 
 salary_cap_completed_weeks <- function(season = get_current_season(), checked_at = Sys.time(), weeks = integer()) {
