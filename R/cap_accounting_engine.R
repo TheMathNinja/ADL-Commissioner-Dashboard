@@ -186,7 +186,7 @@ get_waiver_correction_window <- function(run_time = Sys.time()) {
 
   if (!custom_end) {
     cap_end <- as.POSIXct(
-      paste0(format(as.Date(window_start, tz = "America/Toronto") + 2L, "%Y-%m-%d"), " 03:30:00"),
+      paste0(format(as.Date(window_start, tz = "America/Toronto") + 1L, "%Y-%m-%d"), " 23:15:00"),
       tz = "America/Toronto"
     )
     if (window_end > cap_end) {
