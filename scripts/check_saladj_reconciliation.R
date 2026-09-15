@@ -25,6 +25,52 @@ parse_amount <- function(x) {
   suppressWarnings(as.numeric(gsub("[$,]", "", as.character(x))))
 }
 
+parse_saladj_date <- function(x, season) {
+  x <- as.character(x)
+  parsed <- suppressWarnings(as.POSIXct(x, format = "%m/%d/%Y %H:%M:%S", tz = "America/Toronto"))
+  missing <- is.na(parsed)
+  if (any(missing)) {
+    parsed[missing] <- suppressWarnings(as.POSIXct(x[missing], format = "%m/%d/%Y", tz = "America/Toronto"))
+  }
+  parsed
+}
+
+is_marked <- function(x) {
+  x <- toupper(trimws(as.character(x)))
+  !is.na(x) & nzchar(x) & x %in% c("X", "TRUE", "YES", "1")
+}
+
+derive_saladj_penalty_amount <- function(salary, years, is_pre_july_1, is_trade_or_ib, is_fg,
+                                         is_suspended, is_jt, is_accelerated, plus_amount) {
+  fg_rate <- c(
+    "1" = 1,
+    "2" = 2.1,
+    "3" = 3.31,
+    "4" = 4.641,
+    "5" = 6.1051,
+    "6" = 7.71561
+  )
+
+  if (is.na(salary) || is.na(years)) return(NA_real_)
+  years_key <- as.character(as.integer(years))
+  if (abs(years - as.integer(years)) > 0.001) return(NA_real_)
+
+  base <- if (is_accelerated) {
+    0
+  } else if (is_pre_july_1 && is_fg && !is_jt) {
+    0
+  } else if (is_fg) {
+    if (!years_key %in% names(fg_rate) || is.na(plus_amount)) return(NA_real_)
+    salary * fg_rate[[years_key]] - salary + plus_amount
+  } else if (is_trade_or_ib || (is_pre_july_1 && !is_jt)) {
+    0
+  } else {
+    0.3 * salary * (years - 1)
+  }
+
+  round(if (is_suspended) 0.5 * base else base, 2)
+}
+
 normalize_label <- function(x) {
   x |>
     as.character() |>
@@ -82,24 +128,60 @@ saladj_expected_by_franchise <- function(path, season = get_current_season()) {
     stop("SalAdj Curator CSV is missing SALARY column: ", path, call. = FALSE)
   }
 
-  player_col <- if ("PLAYER" %in% names(saladj)) saladj$PLAYER else rep("", nrow(saladj))
+  get_col <- function(name, default = "") {
+    if (name %in% names(saladj)) saladj[[name]] else rep(default, nrow(saladj))
+  }
+
+  player_col <- get_col("PLAYER")
+  date_col <- get_col("DATE")
+  tr_ib_col <- get_col("TR/IB")
+  fg_col <- get_col("FG")
+  suspended_col <- get_col("(S)")
+  jt_col <- get_col("JT")
+  plus_col <- get_col("1.XX+")
+  rvsd_col <- get_col("RVSD?")
+  acc_col <- get_col("ACC")
 
   saladj |>
     mutate(
       franchise = toupper(trimws(.data$FRAN)),
       player = as.character(.env$player_col),
       salary_amount = parse_amount(.data$SALARY),
+      years_amount = parse_amount(.data$YEARS),
+      row_date = parse_saladj_date(.env$date_col, .env$season),
+      is_pre_july_1 = !is.na(.data$row_date) &
+        as.Date(.data$row_date, tz = "America/Toronto") < as.Date(paste0(.env$season, "-07-01")),
+      is_trade_or_ib = is_marked(.env$tr_ib_col),
+      is_fg = is_marked(.env$fg_col),
+      is_suspended = is_marked(.env$suspended_col),
+      is_jt = is_marked(.env$jt_col),
+      is_accelerated = is_marked(.env$acc_col),
+      plus_raw = trimws(as.character(.env$plus_col)),
+      plus_amount = case_when(
+        is.na(.data$plus_raw) | !nzchar(.data$plus_raw) ~ 0,
+        TRUE ~ parse_amount(.data$plus_raw)
+      ),
+      is_reversed = is_marked(.env$rvsd_col),
       current_penalty_amount = if (current_pen_col %in% names(saladj)) parse_amount(.data[[current_pen_col]]) else NA_real_,
       is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE",
-      # Cash trades are already adjustment amounts. Dropped-contract rows are not:
-      # their cap penalty must come from the Contract Admin penalty formula/column.
       expected_amount_known = case_when(
         !is.na(.data$current_penalty_amount) ~ .data$current_penalty_amount,
         .data$is_cash_trade ~ .data$salary_amount,
-        TRUE ~ NA_real_
+        TRUE ~ mapply(
+          derive_saladj_penalty_amount,
+          salary = .data$salary_amount,
+          years = .data$years_amount,
+          is_pre_july_1 = .data$is_pre_july_1,
+          is_trade_or_ib = .data$is_trade_or_ib,
+          is_fg = .data$is_fg,
+          is_suspended = .data$is_suspended,
+          is_jt = .data$is_jt,
+          is_accelerated = .data$is_accelerated,
+          plus_amount = .data$plus_amount
+        )
       )
     ) |>
-    filter(nzchar(.data$franchise)) |>
+    filter(nzchar(.data$franchise), !.data$is_reversed) |>
     group_by(.data$franchise) |>
     summarize(
       saladj_expected_known = round(sum(.data$expected_amount_known, na.rm = TRUE), 2),
