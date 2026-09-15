@@ -65,33 +65,37 @@ jobs:
 
           if [ "$SCHEDULE" = "$PRIMARY_CRON" ] || [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
             TODAY_ET=$(TZ=America/Toronto date +%F)
+            DOW_ET=$(TZ=America/Toronto date +%u)
+            SNAPSHOT_DATE_ET="$TODAY_ET"
+            if [ "$DOW_ET" = "2" ]; then
+              SNAPSHOT_DATE_ET=$(TZ=America/Toronto date -d "yesterday" +%F)
+            fi
             FIRST_SNAPSHOT_DATE=$(TZ=America/Toronto date -d "${ADL_WEEK_ONE_START} +4 days" +%F)
             if [[ "$TODAY_ET" < "$FIRST_SNAPSHOT_DATE" ]]; then
               echo "should_run=false" >> "$GITHUB_OUTPUT"
               echo "Too early for weekly salary cap accounting. First official snapshot date is ${FIRST_SNAPSHOT_DATE}; today is ${TODAY_ET}."
-            elif [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
-              CUTOFF_UTC=$(TZ=America/Toronto date -u -d "${TODAY_ET} 23:00" +%Y-%m-%dT%H:%M:%SZ)
-              echo "Backup cron slot -> checking for a successful primary run since ${CUTOFF_UTC}."
+            else
+              CUTOFF_UTC=$(TZ=America/Toronto date -u -d "${SNAPSHOT_DATE_ET} 23:00" +%Y-%m-%dT%H:%M:%SZ)
+              echo "Snapshot date is ${SNAPSHOT_DATE_ET}; checking for a successful salary snapshot run since ${CUTOFF_UTC}."
               RECENT_SUCCESS_COUNT=$(gh run list \
                 --repo "$GITHUB_REPOSITORY" \
                 --workflow weekly_salary_cap_accounting.yml \
                 --branch main \
-                --event schedule \
                 --status success \
-                --limit 10 \
-                --json createdAt \
-                --jq "[.[] | select(.createdAt >= \"${CUTOFF_UTC}\")] | length")
+                --limit 20 \
+                --json createdAt,event,databaseId \
+                --jq "[.[] | select(.createdAt >= \"${CUTOFF_UTC}\" and (.databaseId|tostring) != \"${GITHUB_RUN_ID}\" and (.event == \"schedule\" or .event == \"workflow_dispatch\"))] | length")
 
               if [ "${RECENT_SUCCESS_COUNT}" -gt 0 ]; then
                 echo "should_run=false" >> "$GITHUB_OUTPUT"
-                echo "Primary scheduled salary snapshot already succeeded tonight -> backup skipping."
-              else
+                echo "A successful salary snapshot run already completed for this Monday-night window -> scheduled run skipping."
+              elif [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
                 echo "should_run=true" >> "$GITHUB_OUTPUT"
                 echo "No successful primary scheduled salary snapshot found tonight -> backup proceeding."
+              else
+                echo "should_run=true" >> "$GITHUB_OUTPUT"
+                echo "Primary 11:15 p.m. Toronto Monday cron slot -> proceeding."
               fi
-            else
-              echo "should_run=true" >> "$GITHUB_OUTPUT"
-              echo "Primary 11:15 p.m. Toronto Monday cron slot -> proceeding."
             fi
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
