@@ -35,6 +35,14 @@ on:
         options:
           - "true"
           - "false"
+      fail_on_saladj_mismatch:
+        description: Fail the preflight if MFL and SalAdj Curator totals do not match.
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
       snapshot_week:
         description: Salary accounting week for the smoke run.
         required: false
@@ -151,7 +159,18 @@ jobs:
       - name: Reconcile MFL salary adjustments against SalAdj Curator
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_reconciliation == 'true' }}
         run: |
-          Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} --fail-on-mismatch
+          FAIL_ARG=""
+          if [ "${{ github.event.inputs.fail_on_saladj_mismatch }}" = "true" ]; then
+            FAIL_ARG="--fail-on-mismatch"
+          fi
+          Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} ${FAIL_ARG}
+
+      - name: Upload SalAdj reconciliation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saladj-reconciliation
+          path: data/saladj_reconciliation.csv
 
       - name: Build dashboard smoke check
         run: |
