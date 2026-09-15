@@ -67,7 +67,7 @@ NFC,NYG,New York Giants,15794,"McBride, Trey ARI TE","McBride, Trey",ARI,TE,Acti
 NFC,NYG,New York Giants,15428,"Sherwood, Jamien NYJ LB","Sherwood, Jamien",NYJ,LB,Active,,5.77,1,248.62,2026 SRFA,,sherwood
 NFC,NYG,New York Giants,14136,"Samuel, Deebo SFO WR","Samuel, Deebo",SFO,WR,Active,,15.49,1,248.62,2025 ORFA2,,samuel
 NFC,NYG,New York Giants,16714,"Jones, Jarrian JAC CB","Jones, Jarrian",JAC,CB,Active,,1.1,1,248.62,2026 R/F,,jones
-NFC,NYG,New York Giants,13713,"Fitzpatrick, Minkah NYJ S","Fitzpatrick, Minkah",NYJ,S,Active,Questionable,2,1,248.62,2026 UFA,,fitzpatrick
+NFC,NYG,New York Giants,13713,"Fitzpatrick, Minkah NYJ S","Fitzpatrick, Minkah",NYJ,S,Active,Doubtful,2,1,248.62,2026 UFA,,fitzpatrick
 NFC,NYG,New York Giants,14860,"Jennings, Jauan MIN WR","Jennings, Jauan",MIN,WR,Active,,2,1,248.62,2026 UFA,,jennings
 NFC,NYG,New York Giants,13431,"Sanchez, Rigoberto IND PN","Sanchez, Rigoberto",IND,PN,Active,,1.2,1,248.62,2026 UFA,,sanchez
 NFC,NYG,New York Giants,15378,"Oweh, Odafe WAS DE","Oweh, Odafe",WAS,DE,Active,,2,1,248.62,2026 UFA,,oweh
@@ -495,7 +495,7 @@ NFC,NOS,New Orleans Saints,14877,"Young, Chase NOS DE","Young, Chase",NOS,DE,Act
 NFC,NOS,New Orleans Saints,17124,"Carter, Barrett CIN LB","Carter, Barrett",CIN,LB,Active,,0.99,2,265.19,2025 UDFA,,carter
 NFC,NOS,New Orleans Saints,15404,"Jones, Ernest SEA LB","Jones, Ernest",SEA,LB,Active,,3.75,2,265.19,2023 iEXT,,jones
 NFC,NOS,New Orleans Saints,15380,"Campbell, Tyson CLE CB","Campbell, Tyson",CLE,CB,Active,,3.4,4,265.19,2026 UFA,,campbell
-NFC,NOS,New Orleans Saints,17047,"Sampson, Dylan CLE RB","Sampson, Dylan",CLE,RB,Active,Out,1.22,3,265.19,2025 3.18,,sampson
+NFC,NOS,New Orleans Saints,17047,"Sampson, Dylan CLE RB","Sampson, Dylan",CLE,RB,Active,IR,1.22,3,265.19,2025 3.18,,sampson
 NFC,NOS,New Orleans Saints,15866,"Flott, Cordale TEN CB","Flott, Cordale",TEN,CB,Active,,1.1,1,265.19,2026 ERFA,,flott
 NFC,NOS,New Orleans Saints,17599,"Douglas, Caleb MIA WR","Douglas, Caleb",MIA,WR,Active,R,1.22,4,265.19,2026 3.15,,douglas
 NFC,NOS,New Orleans Saints,17514,"Stribling, De'Zhaun SFO WR","Stribling, De'Zhaun",SFO,WR,Active,Doubtful,2.2,4,265.19,2026 2.04,,stribling
@@ -1044,7 +1044,7 @@ AFC,CLE,Cleveland Browns,16653,"Verse, Jared CLE DE","Verse, Jared",CLE,DE,Activ
 AFC,CLE,Cleveland Browns,13590,"Mayfield, Baker TBB QB","Mayfield, Baker",TBB,QB,Active,Questionable,22.96,1,255.02,2024 iEXT,,mayfield
 AFC,CLE,Cleveland Browns,15754,"Olave, Chris NOS WR","Olave, Chris",NOS,WR,Active,,14.15,2,255.02,2025 iEXT,,olave
 AFC,CLE,Cleveland Browns,13738,"Jackson, Donte LAC CB","Jackson, Donte",LAC,CB,Active,,1.1,1,255.02,2025 R/F,,jackson
-AFC,CLE,Cleveland Browns,17047,"Sampson, Dylan CLE RB","Sampson, Dylan",CLE,RB,Active,Out,1.61,3,255.02,2025 2.15,,sampson
+AFC,CLE,Cleveland Browns,17047,"Sampson, Dylan CLE RB","Sampson, Dylan",CLE,RB,Active,IR,1.61,3,255.02,2025 2.15,,sampson
 AFC,CLE,Cleveland Browns,16610,"Wright, Jaylen MIA RB","Wright, Jaylen",MIA,RB,Active,,1.42,2,255.02,2024 3.06,,wright
 AFC,CLE,Cleveland Browns,17106,"Taylor, Mason NYJ TE","Taylor, Mason",NYJ,TE,Active,,1.91,3,255.02,2025 2.08,,taylor
 AFC,CLE,Cleveland Browns,17149,"Tuimoloau, JT IND DE","Tuimoloau, JT",IND,DE,Active,,1.21,3,255.02,2025 3.19,,tuimoloau
@@ -1115,7 +1115,7 @@ AFC,PIT,Pittsburgh Steelers,14056,"Murray, Kyler MIN QB","Murray, Kyler",MIN,QB,
 AFC,PIT,Pittsburgh Steelers,14896,"Queen, Patrick PIT LB","Queen, Patrick",PIT,LB,Active,,5.1,1,259.67,2026 UFA,,queen
 AFC,PIT,Pittsburgh Steelers,15832,"Stingley Jr., Derek HOU CB","Stingley Jr., Derek",HOU,CB,Active,,4.2,1,259.67,2026 UFA,,stingley jr.
 AFC,PIT,Pittsburgh Steelers,14085,"Pollard, Tony TEN RB","Pollard, Tony",TEN,RB,Active,,15.1,1,259.67,2026 UFA,,pollard
-AFC,PIT,Pittsburgh Steelers,13713,"Fitzpatrick, Minkah NYJ S","Fitzpatrick, Minkah",NYJ,S,Active,Questionable,4.5,1,259.67,2026 UFA,,fitzpatrick
+AFC,PIT,Pittsburgh Steelers,13713,"Fitzpatrick, Minkah NYJ S","Fitzpatrick, Minkah",NYJ,S,Active,Doubtful,4.5,1,259.67,2026 UFA,,fitzpatrick
 AFC,PIT,Pittsburgh Steelers,15331,"Freiermuth, Pat PIT TE","Freiermuth, Pat",PIT,TE,Active,,2.1,1,259.67,2026 UFA,,freiermuth
 AFC,PIT,Pittsburgh Steelers,10266,"Heyward, Cameron PIT DT","Heyward, Cameron",PIT,DT,Active,,9.1,1,259.67,2026 UFA,,heyward
 AFC,PIT,Pittsburgh Steelers,14169,"Wilson, Mack ARI LB","Wilson, Mack",ARI,LB,Active,,7,1,259.67,2026 UFA,,wilson
