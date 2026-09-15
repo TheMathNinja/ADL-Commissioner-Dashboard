@@ -31,6 +31,7 @@ jobs:
       SNAPSHOT_WEEK: ${{ github.event.inputs.snapshot_week }}
       RAW_CACHE_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
+      GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON != '' }}
 
     steps:
       - name: Check out repository
@@ -150,7 +151,7 @@ jobs:
           dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
           .libPaths(Sys.getenv("R_LIBS_USER"))
 
-          packages <- c("dplyr", "ffscrapr", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          packages <- c("dplyr", "ffscrapr", "googlesheets4", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
           missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 
           if (length(missing) > 0) {
@@ -182,6 +183,22 @@ jobs:
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
         run: Rscript scripts/run_cap_accounting.R
+
+      - name: Update Contract Admin Cap Rollover tab
+        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+          CONTRACT_ADMIN_CAP_ROLLOVER_TAB: Cap Rollover
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: Rscript scripts/push_cap_rollover_to_google_sheet.R
+
+      - name: Skip Contract Admin writeback when Google credentials are missing
+        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT != 'true'
+        run: |
+          echo "::warning::GOOGLE_SERVICE_ACCOUNT_JSON is not configured, so the Contract Admin Cap Rollover tab was not updated."
 
       - name: Build dashboard site
         if: steps.localtime.outputs.should_run == 'true'
