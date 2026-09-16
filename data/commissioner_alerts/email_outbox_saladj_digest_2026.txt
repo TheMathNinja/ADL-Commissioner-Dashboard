@@ -1,11 +1,18 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 1 new row(s) at 9/15/2026 11:25 a.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_15_ADLSalAdjCurator.csv
+SalAdj Curator published 5 new row(s) at 9/16/2026 10:17 a.m. EDT.
+Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_16_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
+AFC
+---
+- 9/11/2026 17:11:53 | DEN | Tua Tagovailoa | salary $20.49; 2 yr; 2025 B/R; notes: WAIVER STATUS UNKNOWN - CHECK MFL
+- 9/15/2026 19:28:57 | MIA | Zaire Franklin | salary $9.41; 1 yr; 2024 iEXT; notes: WAIVER STATUS UNKNOWN - CHECK MFL
+- 9/15/2026 19:29:17 | MIA | Paulson Adebo | salary $6.42; 2 yr; 2024 iEXT; notes: WAIVER STATUS UNKNOWN - CHECK MFL
+- 9/15/2026 23:04:29 | BAL | Malik Mustapha | salary $2.06; 3 yr; 2025 iEXT; notes: WAIVER STATUS UNKNOWN - CHECK MFL
+
 NFC
 ---
-- 9/15/2026 11:00:16 | NOS | Tua Tagovailoa | salary $2.2; 1 yr; 2026 B/R; notes: PENDING WAIVER UNTIL 09/17/2026 05:00 AM EDT
+- 9/15/2026 11:00:16 | NOS | Tua Tagovailoa | salary $2.2; 1 yr; 2026 B/R; notes: WAIVER STATUS UNKNOWN - CHECK MFL
 
