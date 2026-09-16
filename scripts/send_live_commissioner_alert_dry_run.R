@@ -16,10 +16,8 @@ arg_value <- function(name, default = NULL) {
 
 arg_flag <- function(name) paste0("--", name) %in% commandArgs(trailingOnly = TRUE)
 
-current_commissioner_alert_week <- function(today = Sys.Date(), season = get_current_season()) {
-  week_one_start <- as.Date(Sys.getenv("ADL_WEEK_ONE_START", unset = paste0(season, "-09-10")))
-  if (is.na(week_one_start) || today < week_one_start) return(NA_integer_)
-  max(1L, min(17L, floor(as.numeric(today - week_one_start) / 7) + 1L))
+current_commissioner_alert_week <- function(checked_at = Sys.time(), season = get_current_season()) {
+  commissioner_alert_current_week(season = season, checked_at = checked_at)
 }
 
 recipient <- arg_value("to", Sys.getenv("ADL_ALERT_TEST_TO", unset = "fili.mikey@gmail.com"))
@@ -38,7 +36,7 @@ if (!mode %in% c("check", "offseason", "inseason")) {
 if (is.na(gm_count) || gm_count < 0L) gm_count <- 2L
 
 if (is.na(week) && mode %in% c("check", "inseason") && auto_week) {
-  week <- current_commissioner_alert_week(season = season)
+  week <- current_commissioner_alert_week(checked_at = Sys.time(), season = season)
   if (is.na(week) && identical(mode, "inseason")) {
     week <- 1L
     message("Explicit in-season dry run before Week 1; using current submitted Week 1 lineups.")

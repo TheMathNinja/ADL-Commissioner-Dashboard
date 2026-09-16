@@ -766,6 +766,16 @@ salary_cap_completed_weeks <- function(season = get_current_season(), checked_at
   }, logical(1))]
 }
 
+commissioner_alert_current_week <- function(season = get_current_season(), checked_at = Sys.time()) {
+  checked_at <- as.POSIXct(checked_at, tz = "America/New_York")
+  week_one_start <- salary_cap_week_one_start(season)
+  if (is.na(week_one_start) || as.Date(checked_at, tz = "America/New_York") < week_one_start) {
+    return(NA_integer_)
+  }
+  completed <- salary_cap_completed_weeks(season = season, checked_at = checked_at, weeks = seq_len(17L))
+  max(1L, min(17L, length(completed) + 1L))
+}
+
 cap_accounting_week_expenditure <- function(row, week) {
   final <- cap_numeric(cap_col(row, paste0("W", week, "_Final")))
   if (!is.na(final)) return(final)
@@ -1210,10 +1220,9 @@ fetch_mfl_weekly_designations <- function(season = get_current_season(), week) {
 
 commissioner_alert_status_week <- function(season = get_current_season(), week = NULL, checked_at = Sys.time()) {
   if (!is.null(week) && !is.na(week)) return(as.integer(week))
-  week_one_start <- salary_cap_week_one_start(season)
-  checked_date <- as.Date(lubridate::with_tz(as.POSIXct(checked_at, tz = "UTC"), "America/New_York"))
-  if (is.na(week_one_start) || checked_date < week_one_start) return(1L)
-  max(1L, min(17L, floor(as.numeric(checked_date - week_one_start) / 7) + 1L))
+  status_week <- commissioner_alert_current_week(season = season, checked_at = checked_at)
+  if (is.na(status_week)) return(1L)
+  status_week
 }
 
 supplement_roster_player_statuses <- function(rosters, season = get_current_season(), week = NULL, checked_at = Sys.time()) {
