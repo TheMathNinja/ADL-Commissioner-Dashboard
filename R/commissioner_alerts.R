@@ -2506,7 +2506,10 @@ build_commissioner_alerts <- function(
   roster_cap_rule = NULL,
   checked_at = Sys.time()
 ) {
-  rosters <- load_current_rosters(force_live = force_live, source = if (force_live) "live" else "auto", season = season, week = week)
+  # Roster-cap, contract-year, and salary checks must use the live/current roster.
+  # A week-specific MFL roster can reflect the scoring-period view and lag same-day
+  # Active/IR moves, while lineup checks below still need the selected week.
+  rosters <- load_current_rosters(force_live = force_live, source = if (force_live) "live" else "auto", season = season, week = NULL)
   if (isTRUE(force_live)) {
     rosters <- supplement_roster_player_statuses(rosters, season = season, week = week, checked_at = checked_at)
   }

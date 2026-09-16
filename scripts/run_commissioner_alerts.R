@@ -40,8 +40,9 @@ if (is.na(season)) stop("Provide a valid --season or CURRENT_SEASON.", call. = F
 
 current_commissioner_alert_week <- function(today = Sys.Date(), season = get_current_season()) {
   week_one_start <- as.Date(Sys.getenv("ADL_WEEK_ONE_START", unset = paste0(season, "-09-10")))
-  if (is.na(week_one_start) || today < week_one_start) return(NA_integer_)
-  max(1L, min(17L, floor(as.numeric(today - week_one_start) / 7) + 1L))
+  lineup_reference_date <- as.Date(today) + 1L
+  if (is.na(week_one_start) || lineup_reference_date < week_one_start) return(NA_integer_)
+  max(1L, min(17L, floor(as.numeric(lineup_reference_date - week_one_start) / 7) + 1L))
 }
 
 if (is.na(week) && mode %in% c("snapshot", "check", "inseason") && auto_week) {
