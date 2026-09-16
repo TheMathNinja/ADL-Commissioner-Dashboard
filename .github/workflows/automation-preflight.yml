@@ -155,6 +155,9 @@ jobs:
           invisible(lapply(r_files, parse))
           cat("Parsed", length(r_files), "R files.\n")
 
+      - name: Verify SalAdj individual waiver event matching
+        run: Rscript scripts/test_saladj_waivers.R
+
       - name: Run commissioner alerts no-email smoke check
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_commissioner_alerts == 'true' }}
         run: |
@@ -189,6 +192,7 @@ jobs:
             data/SalAdjCurator_latest.csv
             data/SalAdjCurator_2026.csv
             data/archive/*_ADLSalAdjCurator.csv
+            data/waiver_snapshots/
 
       - name: Build dashboard smoke check
         run: |

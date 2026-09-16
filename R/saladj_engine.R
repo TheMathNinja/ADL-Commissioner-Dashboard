@@ -10,6 +10,7 @@ library(lubridate)
 
 source("R/config_helpers.R")
 source("R/mfl_helpers.R")
+source("R/saladj_waivers.R")
 
 build_saladj_curator <- function(current_season = get_current_season(), output_dir = "data") {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -1285,18 +1286,22 @@ if (nrow(trade_groups) > 0) {
 # 2) Salary-adjustment rows
 # ----------------------------
 
+waiver_snapshot <- saladj_collect_current_waivers(
+  adl_conn, current_season, file.path(output_dir, "waiver_snapshots")
+)
+waiver_check_time <- Sys.time()
+
 sd_rows <- tx_enriched %>%
   dplyr::filter(is_salary_adjustment_drop(.data$type, .data$type_desc)) %>%
   dplyr::mutate(
     missing_salary_snapshot = is.na(.data$salary_snap) & is.na(.data$info_snap),
     waiver_matures_at = waiver_maturity_time(.data$DATE_raw, waiver_short_window_start),
-    waiver_pending = snapshot_time < .data$waiver_matures_at,
+    waiver_pending = waiver_check_time < .data$waiver_matures_at,
     collapsed_current_same_conf_elsewhere = !is.na(.data$current_player_franchise_id) &
       .data$current_player_franchise_id != .data$franchise_id,
     current_same_conf_elsewhere = !is.na(.data$current_claim_franchise_id) |
       .data$collapsed_current_same_conf_elsewhere,
-    waiver_claimed = !.data$waiver_pending &
-      !.data$missing_salary_snapshot &
+    waiver_claim_evidence = !.data$missing_salary_snapshot &
       (
         !is.na(.data$current_claim_franchise_id) |
           (
@@ -1307,7 +1312,11 @@ sd_rows <- tx_enriched %>%
               dplyr::coalesce(.data$current_player_contractInfo, "") == dplyr::coalesce(.data$info_snap, "")
           ) |
           !is.na(.data$waiver_claimed_by_franchise_id)
-      ),
+      )
+  ) %>%
+  saladj_apply_current_waivers(waiver_snapshot, waiver_check_time, current_season) %>%
+  dplyr::mutate(
+    waiver_claimed = .data$waiver_pending %in% FALSE & .data$waiver_claim_evidence,
     recent_missing_snapshot_review = .data$missing_salary_snapshot &
       .data$DATE_raw >= missing_snapshot_review_start,
     RVSD_flag = is_xx_caret_3plus(.data$info_snap),
@@ -1380,7 +1389,8 @@ sd_rows <- tx_enriched %>%
       .data$FG == "x" ~ dplyr::coalesce(.data$info_snap, ""),
       TRUE ~ ""
     ),
-    `RVSD?` = dplyr::if_else(.data$RVSD_flag | .data$waiver_claimed, "x", "")
+    `RVSD?` = dplyr::if_else(.data$RVSD_flag | .data$waiver_claimed, "x", ""),
+    NOTES = saladj_waiver_note(.data$NOTES, .data$waiver_check_status, .data$waiver_matures_at)
   ) %>%
   dplyr::transmute(
     row_key = .data$row_key,
