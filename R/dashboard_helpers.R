@@ -160,6 +160,13 @@ dashboard_css <- function() {
         width: 100%;
       }
     }
+
+.labs-directory-link{margin-left:auto;flex:0 0 60px;width:60px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #637a94;border-radius:7px;color:#235789;background:#ffffffb3;box-shadow:0 1px 3px #152e4614;text-decoration:none}
+.labs-directory-link:hover{background:#fff;border-color:#235789}
+.labs-directory-link:focus-visible{outline:3px solid #235789;outline-offset:3px}
+.labs-directory-bars{display:block;box-sizing:border-box;width:28px;height:20px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;position:relative}
+.labs-directory-bars::after{content:'';position:absolute;left:0;right:0;top:7px;border-top:2px solid currentColor}
+header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-size:24px}}
   </style>"
 }
 
@@ -177,6 +184,7 @@ dashboard_page <- function(title, body_html) {
   <header>
     <img src='adl-shield.png' alt='ADL shield' />
     <h1>", title, "</h1>
+    ", if (identical(title, "ADL Commissioner Dashboard")) "<a class='labs-directory-link' href='https://themathninja.github.io/' aria-label='Analytics Fantasy Labs Directory' title='All dashboards and resources'><span class='labs-directory-bars' aria-hidden='true'></span></a>" else "", "
   </header>
   <main>
     ", body_html, "
