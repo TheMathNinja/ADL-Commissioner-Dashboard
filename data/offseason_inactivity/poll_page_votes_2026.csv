@@ -11,15 +11,19 @@ poll_id,poll_question,poll_closed_date,answer,votes,voter_name,voter_franchise
 995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,San Francisco 49ers,SFO
 995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Seattle Seahawks,SEA
 995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Houston Texans,HOU
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,Philadelphia Eagles,PHI
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,Chicago Bears,CHI
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,New Orleans Saints,NOS
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,Miami Dolphins,MIA
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,Denver Broncos,DEN
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,6,Kansas City Chiefs,KCC
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Philadelphia Eagles,PHI
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Chicago Bears,CHI
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,New Orleans Saints,NOS
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Miami Dolphins,MIA
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Pittsburgh Steelers,PIT
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Denver Broncos,DEN
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Kansas City Chiefs,KCC
+995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Los Angeles Chargers,LAC
 995354,Who is the ADL AFC Team to Beat?,,Buffalo Bills,1,New Orleans Saints,NOS
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,2,Washington Commanders,WAS
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,2,Arizona Cardinals,ARI
+995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Washington Commanders,WAS
+995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Arizona Cardinals,ARI
+995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Pittsburgh Steelers,PIT
+995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Los Angeles Chargers,LAC
 995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Philadelphia Eagles,PHI
 995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Miami Dolphins,MIA
 995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Tennessee Titans,TEN
