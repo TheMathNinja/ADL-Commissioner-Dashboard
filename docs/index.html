@@ -167,6 +167,13 @@
 .labs-directory-link:focus-visible{outline:3px solid #235789;outline-offset:3px}
 .labs-directory-bars{display:block;box-sizing:border-box;width:28px;height:20px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;position:relative}
 .labs-directory-bars::after{content:'';position:absolute;left:0;right:0;top:7px;border-top:2px solid currentColor}
+
+.labs-directory-menu{position:relative;margin-left:auto;flex:0 0 60px;z-index:30}
+.labs-directory-menu summary{list-style:none;cursor:pointer;margin:0}
+.labs-directory-menu summary::-webkit-details-marker{display:none}
+.labs-directory-menu nav{position:absolute;right:0;top:52px;width:280px;max-width:calc(100vw - 32px);padding:7px;background:#fff;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 8px 24px #152e4626}
+.labs-directory-menu nav a{display:block;padding:11px 12px;border-radius:5px;color:#235789;font:600 14px/1.4 system-ui,sans-serif;text-decoration:none}
+.labs-directory-menu nav a:hover,.labs-directory-menu nav a:focus-visible{background:#eef4fa}
 header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-size:24px}}
 </style>
 </head>
@@ -174,7 +181,7 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
   <header>
     <img src='adl-shield.png' alt='ADL shield' />
     <h1>ADL Commissioner Dashboard</h1>
-  <a class='labs-directory-link' href='https://themathninja.github.io/' aria-label='Analytics Fantasy Labs Directory' title='All dashboards and resources'><span class='labs-directory-bars' aria-hidden='true'></span></a></header>
+  <details class='labs-directory-menu'><summary class='labs-directory-link' aria-label='Open dashboard menu' title='Open dashboard menu'><span class='labs-directory-bars' aria-hidden='true'></span></summary><nav aria-label='Dashboard navigation'><a href='https://themathninja.github.io/'>Analytics Fantasy Labs Directory</a></nav></details></header>
   <main>
     <div class='tool-grid'><section class='tool-card'>
       <div>
