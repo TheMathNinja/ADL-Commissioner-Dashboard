@@ -77,7 +77,13 @@ new_saladj_rows <- function(new_df, old_df) {
 
   new_norm <- tibble::as_tibble(normalize_for_compare(new_df))
   old_norm <- tibble::as_tibble(normalize_for_compare(old_df))
-  common_cols <- intersect(names(new_norm), names(old_norm))
+  # A waiver-status update changes the archive, but is not a new adjustment.
+  identity_cols <- c("CONF", "DATE", "FRAN", "PLAYER", "SALARY", "YEARS", "CONTRACT")
+  common_cols <- if (all(identity_cols %in% names(new_norm)) && all(identity_cols %in% names(old_norm))) {
+    identity_cols
+  } else {
+    intersect(names(new_norm), names(old_norm))
+  }
   if (!length(common_cols)) {
     return(new_df)
   }
@@ -118,7 +124,7 @@ format_saladj_digest_row <- function(row) {
     if (nzchar(rvsd)) paste0("RVSD?: ", rvsd) else NULL
   )
 
-  paste0("- ", date, " | ", fran, " | ", player, if (length(details)) paste0(" | ", paste(details, collapse = "; ")) else "")
+  paste0("- Dropped ", date, " ET | ", fran, " | ", player, if (length(details)) paste0(" | ", paste(details, collapse = "; ")) else "")
 }
 
 saladj_public_csv_url <- function(archive_filename) {

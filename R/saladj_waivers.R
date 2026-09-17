@@ -196,14 +196,26 @@ saladj_apply_current_waivers <- function(drops, snapshot, now, season) {
   drops
 }
 
-saladj_waiver_note <- function(note, status, matures_at) {
+saladj_waiver_note <- function(note, status, matures_at, checked_at = Sys.time()) {
   note[is.na(note)] <- ""
   for (i in seq_along(note)) {
-    if (status[i] == "pending") {
-      old <- paste0("PENDING WAIVER UNTIL ", format(lubridate::with_tz(matures_at[i], "America/Toronto"), "%m/%d/%Y %I:%M %p %Z"))
-      note[i] <- gsub(old, "PENDING WAIVER - STILL LISTED BY MFL", note[i], fixed = TRUE)
+    if (is.na(status[i]) || !status[i] %in% c("pending", "unknown", "not_listed")) next
+    clear_date <- format(lubridate::with_tz(matures_at[i], "America/New_York"), "%b %d, %Y")
+    clear_date <- sub(" 0([0-9]),", " \\1,", clear_date)
+    future <- !is.na(matures_at[i]) && as.numeric(matures_at[i]) > as.numeric(checked_at)
+    message <- switch(status[i],
+      pending = if (future) paste0("ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on ", clear_date)
+        else paste0("ON WAIVERS CURRENTLY - MFL still lists player after expected 5 a.m. ET run on ", clear_date),
+      unknown = if (future) paste0("WAIVER STATUS UNVERIFIED - expected 5 a.m. ET run on ", clear_date, "; check MFL")
+        else paste0("WAIVER STATUS UNVERIFIED - expected 5 a.m. ET run was ", clear_date, "; check MFL"),
+      not_listed = "NOT LISTED ON MFL WAIVERS AT LAST CHECK"
+    )
+    old <- paste0("PENDING WAIVER UNTIL ", format(lubridate::with_tz(matures_at[i], "America/Toronto"), "%m/%d/%Y %I:%M %p %Z"))
+    if (grepl(old, note[i], fixed = TRUE)) {
+      note[i] <- gsub(old, message, note[i], fixed = TRUE)
+    } else {
+      note[i] <- paste0(message, if (nzchar(note[i])) paste0("; ", note[i]) else "")
     }
-    if (status[i] == "unknown") note[i] <- paste0("WAIVER STATUS UNKNOWN - CHECK MFL", if (nzchar(note[i])) paste0("; ", note[i]) else "")
   }
   note
 }
