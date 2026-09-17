@@ -70,7 +70,7 @@ jobs:
         if: steps.evidence.outputs.available == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev
+          sudo apt-get install -y r-base r-base-dev libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev libuv1-dev
 
       - name: Install R packages
         if: steps.evidence.outputs.available == 'true'
