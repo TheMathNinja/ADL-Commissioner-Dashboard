@@ -1,18 +1,3 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 5 new row(s) at 9/17/2026 10:22 a.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_17_ADLSalAdjCurator.csv
-
-Please enter the following new salary adjustments in the Contract Admin sheet.
-
-AFC
----
-- 9/16/2026 21:13:31 | MIA | BJ Hill | salary $3.25; 1 yr; 2025 UFA; notes: WAIVER STATUS UNKNOWN - CHECK MFL
-- 9/16/2026 21:13:31 | MIA | Grant Delpit | salary $2.2; 1 yr; 2026 UFA; notes: WAIVER STATUS UNKNOWN - CHECK MFL
-
-NFC
----
-- 9/16/2026 17:21:44 | SEA | Jowon Briggs | salary $2.09; 3 yr; 2026 oEXT; notes: WAIVER STATUS UNKNOWN - CHECK MFL
-- 9/17/2026 03:28:02 | ARI | AJ Epenesa | salary $3.77; 2 yr; 2024 ORFA4; notes: WAIVER STATUS UNKNOWN - CHECK MFL
-- 9/17/2026 03:28:02 | ARI | Ryan Flournoy | salary $2.01; 2 yr; 2026 UFA; notes: WAIVER STATUS UNKNOWN - CHECK MFL
-
+No new SalAdj rows were found.
