@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only
+2026,2,2026-09-17 15:00:11 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (43 Active + 3 Taxi),
+2026,2,2026-09-17 15:00:11 UTC,Roster Cap Violation,violation,NFC,ATL,Atlanta Falcons,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (44 Active + 2 Taxi),
+2026,2,2026-09-17 15:00:11 UTC,Roster Cap Violation,violation,NFC,CAR,Carolina Panthers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),
+2026,2,2026-09-17 15:00:11 UTC,Roster Warning,warning,NFC,GBP,Green Bay Packers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Lane, Ja'Kobi BAL WR from Active to Injured Reserve to be fully compliant.",
