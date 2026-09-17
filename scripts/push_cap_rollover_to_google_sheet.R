@@ -20,9 +20,9 @@ column_letter <- function(n) {
   paste(out, collapse = "")
 }
 
-week_target_range <- function(snapshot_week, first_week_start_col = 2L, width = 10L, start_row = 3L, n_teams = 32L) {
-  start_col <- first_week_start_col + ((snapshot_week - 1L) * width)
-  end_col <- start_col + width - 1L
+week_target_range <- function(snapshot_week, first_week_start_col = 2L, week_width = 12L, data_width = 10L, start_row = 3L, n_teams = 32L) {
+  start_col <- first_week_start_col + ((snapshot_week - 1L) * week_width)
+  end_col <- start_col + data_width - 1L
   paste0(column_letter(start_col), start_row, ":", column_letter(end_col), start_row + n_teams - 1L)
 }
 

@@ -1173,6 +1173,23 @@ tx_enriched <- tx_enriched %>%
     )
   )
 
+claim_events <- tx_enriched %>%
+  dplyr::filter(!is.na(.data$waiver_claimed_at), !is.na(.data$DATE_raw)) %>%
+  dplyr::transmute(
+    drop_row_key = .data$row_key,
+    player_id = as.character(.data$player_id),
+    player = .data$PLAYER,
+    conference = .data$CONF,
+    drop_franchise_id = as.character(.data$franchise_id),
+    dropped_at_utc = format(.data$DATE_raw, "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    claimed_at_utc = format(.data$waiver_claimed_at, "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    claiming_franchise_id = as.character(.data$waiver_claimed_by_franchise_id),
+    salary = .data$salary_snap,
+    contract = .data$info_snap
+  ) %>%
+  dplyr::distinct(.data$drop_row_key, .keep_all = TRUE)
+readr::write_csv(claim_events, file.path(output_dir, paste0("saladj_waiver_claims_", current_season, ".csv")), na = "")
+
 # ----------------------------
 # Output columns for penalties
 # ----------------------------

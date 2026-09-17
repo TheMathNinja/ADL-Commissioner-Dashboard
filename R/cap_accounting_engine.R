@@ -548,13 +548,17 @@ get_mfl_salary_adjustments <- function(conn) {
   adj_list <- salary_adj_raw$content$salaryAdjustments$salaryAdjustment
 
   if (is.null(adj_list) || length(adj_list) == 0) {
-    return(tibble::tibble(franchise_id = character(), amount = numeric()))
+    return(tibble::tibble(franchise_id = character(), amount = numeric(),
+                          adjustment_id = character(), description = character(), timestamp = character()))
   }
 
   purrr::map_dfr(adj_list, function(x) {
     tibble::tibble(
       franchise_id = dplyr::coalesce(as.character(x$franchise_id), NA_character_),
-      amount = suppressWarnings(as.numeric(dplyr::coalesce(as.character(x$amount), NA_character_)))
+      amount = suppressWarnings(as.numeric(dplyr::coalesce(as.character(x$amount), NA_character_))),
+      adjustment_id = as.character(x$id),
+      description = as.character(x$description),
+      timestamp = as.character(x$timestamp)
     )
   }) %>%
     dplyr::mutate(franchise_id = stringr::str_pad(.data$franchise_id, width = 4, side = "left", pad = "0"))
@@ -627,8 +631,14 @@ build_cap_accounting_snapshot <- function(
 
   franchise_lookup <- get_franchise_lookup(conn)
   injuries_df <- get_mfl_injuries(current_season, snapshot_week)
-  sal_adj_summary <- get_mfl_salary_adjustments(conn) %>%
-    summarise_salary_adjustments()
+  sal_adj_entries <- get_mfl_salary_adjustments(conn)
+  sal_adj_summary <- summarise_salary_adjustments(sal_adj_entries)
+  adjustment_dir <- file.path(base_dir, "adjustment_snapshots")
+  dir.create(adjustment_dir, recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(
+    sal_adj_entries %>% dplyr::mutate(season = current_season, week = snapshot_week, captured_at_utc = format(Sys.time(), "%Y-%m-%d %H:%M:%S", tz = "UTC")),
+    file.path(adjustment_dir, paste0(current_season, "w", snapshot_week, "_ADLsalaryadjustments.csv")), na = ""
+  )
   waiver_corrections <- build_waiver_corrections(
     conn = conn,
     current_season = current_season,

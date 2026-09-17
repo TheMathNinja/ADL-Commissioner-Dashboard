@@ -1,0 +1,109 @@
+name: Waiver Claim Cap Corrections
+
+on:
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: Send correction email to commissioners
+        type: boolean
+        default: false
+      write_sheet:
+        description: Enter verified corrections in Contract Admin
+        type: boolean
+        default: false
+  schedule:
+    - cron: "45 12 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: commissioner-dashboard-data-writes
+  cancel-in-progress: false
+
+jobs:
+  corrections:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: "2026"
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
+      ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_ALERT_EMAIL_TO: ${{ secrets.ADL_ALERT_EMAIL_TO }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+      ADL_WAIVER_CORRECTION_SEND_EMAIL: ${{ github.event_name == 'schedule' || inputs.send_email == true }}
+      ADL_WAIVER_CORRECTION_WRITE_SHEET: ${{ github.event_name == 'schedule' || inputs.write_sheet == true }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check for claim evidence
+        id: evidence
+        run: |
+          if [ -f "data/saladj_waiver_claims_${CURRENT_SEASON}.csv" ] &&
+             find "data/cap_accounting/${CURRENT_SEASON}/adjustment_snapshots" -maxdepth 1 -name "${CURRENT_SEASON}w*_ADLsalaryadjustments.csv" -print -quit | grep -q .; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore R package library
+        if: steps.evidence.outputs.available == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-waiver-cap-r-v1-${{ hashFiles('.github/workflows/waiver-cap-corrections.yml', 'DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-waiver-cap-r-v1-
+
+      - name: Install R and system libraries
+        if: steps.evidence.outputs.available == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y r-base r-base-dev libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev
+
+      - name: Install R packages
+        if: steps.evidence.outputs.available == 'true'
+        shell: Rscript {0}
+        run: |
+          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          options(repos = c(ffverse = "https://ffverse.r-universe.dev", CRAN = "https://cloud.r-project.org"))
+          packages <- c("curl", "dplyr", "ffscrapr", "googlesheets4", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
+          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(missing)) install.packages(missing, dependencies = c("Depends", "Imports", "LinkingTo"))
+          if (any(!vapply(packages, requireNamespace, logical(1), quietly = TRUE))) stop("Required R packages unavailable")
+
+      - name: Test waiver correction matching
+        if: steps.evidence.outputs.available == 'true'
+        run: Rscript scripts/test_waiver_cap_corrections.R
+
+      - name: Check claims and apply corrections
+        if: steps.evidence.outputs.available == 'true'
+        run: Rscript scripts/run_waiver_cap_corrections.R
+
+      - name: Commit correction audit
+        if: steps.evidence.outputs.available == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "data/cap_accounting/${CURRENT_SEASON}"
+          git diff --cached --quiet && exit 0
+          git commit -m "Record waiver claim cap corrections"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 10
+          done
+          exit 1
