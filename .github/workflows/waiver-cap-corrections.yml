@@ -11,6 +11,10 @@ on:
         description: Enter verified corrections in Contract Admin
         type: boolean
         default: false
+      verify_sheet_only:
+        description: Check Google Sheets access without making changes
+        type: boolean
+        default: false
   schedule:
     - cron: "45 12 * * *"
 
@@ -84,16 +88,33 @@ jobs:
           if (length(missing)) install.packages(missing, dependencies = c("Depends", "Imports", "LinkingTo"))
           if (any(!vapply(packages, requireNamespace, logical(1), quietly = TRUE))) stop("Required R packages unavailable")
 
+      - name: Verify Contract Admin sheet access
+        if: steps.evidence.outputs.available == 'true' && (inputs.verify_sheet_only == true || env.ADL_WAIVER_CORRECTION_WRITE_SHEET == 'true')
+        shell: Rscript {0}
+        run: |
+          .libPaths(Sys.getenv("R_LIBS_USER"))
+          key <- Sys.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", unset = "")
+          if (!nzchar(key)) stop("GOOGLE_SERVICE_ACCOUNT_JSON is not configured")
+          path <- tempfile(fileext = ".json")
+          writeLines(key, path, useBytes = TRUE)
+          googlesheets4::gs4_auth(path = path)
+          value <- googlesheets4::read_sheet(
+            Sys.getenv("CONTRACT_ADMIN_SHEET_ID"), sheet = "Cap Rollover",
+            range = "A1", col_names = FALSE, col_types = "c")
+          if (!nrow(value)) stop("Cap Rollover A1 was not readable")
+          unlink(path)
+          message("Contract Admin Cap Rollover tab is readable")
+
       - name: Test waiver correction matching
-        if: steps.evidence.outputs.available == 'true'
+        if: steps.evidence.outputs.available == 'true' && inputs.verify_sheet_only != true
         run: Rscript scripts/test_waiver_cap_corrections.R
 
       - name: Check claims and apply corrections
-        if: steps.evidence.outputs.available == 'true'
+        if: steps.evidence.outputs.available == 'true' && inputs.verify_sheet_only != true
         run: Rscript scripts/run_waiver_cap_corrections.R
 
       - name: Commit correction audit
-        if: steps.evidence.outputs.available == 'true'
+        if: steps.evidence.outputs.available == 'true' && inputs.verify_sheet_only != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
