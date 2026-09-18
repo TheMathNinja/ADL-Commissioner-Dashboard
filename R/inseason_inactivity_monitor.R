@@ -295,6 +295,7 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
         .groups = "drop"
       ) |>
       filter(.data$days == 2L, .data$last_date == .env$today) |>
+      mutate(source_alert_type = .data$alert_type, source_rule = .data$rule) |>
       transmute(
         alert_type = "In-Season Inactivity Violation",
         severity = "violation",
@@ -303,8 +304,8 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
         franchise_name,
         rule = "Repeated illegal roster violation for two consecutive days at the early morning snapshot",
         observed = paste0("Roster violations appeared from ", .data$first_date, " through ", .data$last_date, "."),
-        details = paste0("Violation type: ", .data$alert_type, "; rule: ", .data$rule),
-        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$alert_type, .data$rule, .data$first_date, sep = "|"),
+        details = paste0("Violation type: ", .data$source_alert_type, "; rule: ", .data$source_rule),
+        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$source_alert_type, .data$source_rule, .data$first_date, sep = "|"),
         season_phase = "inseason"
       )
   }))
