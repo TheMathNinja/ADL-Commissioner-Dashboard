@@ -2494,8 +2494,53 @@ commissioner_alert_count_label <- function(n, noun = "alert") {
   paste0(n, " ", noun, if_else(as.integer(n) == 1L, "", "s"), " found.")
 }
 
+commissioner_alert_ordinal <- function(n) {
+  n <- as.integer(n)
+  suffix <- if (n %% 100L %in% 11:13) "th" else switch(as.character(n %% 10L), `1` = "st", `2` = "nd", `3` = "rd", "th")
+  paste0(n, suffix)
+}
+
+roster_cap_consecutive_days <- function(alerts, season, checked_at, report_dir = commissioner_alert_report_dir()) {
+  counts <- rep(NA_integer_, nrow(alerts))
+  roster_rows <- which(alerts$alert_type == "Roster Cap Violation")
+  if (!length(roster_rows)) return(counts)
+  checked_date <- as.Date(lubridate::with_tz(as.POSIXct(checked_at), "America/New_York"))
+  final_cutdown_date <- as.Date(lubridate::with_tz(commissioner_alert_cutdown_datetime(season, "final_roster_cutdown"), "America/New_York"))
+  history <- list()
+  for (i in roster_rows) {
+    counts[[i]] <- 1L
+    day <- checked_date - 1L
+    repeat {
+      if (checked_date >= final_cutdown_date && day <= final_cutdown_date) break
+      date_key <- as.character(day)
+      if (is.null(history[[date_key]])) {
+        files <- list.files(report_dir, pattern = paste0("^commissioner_alert_report_", date_key, "_", season, "(_week[0-9]+)?[.]csv$"), full.names = TRUE)
+        history[[date_key]] <- if (length(files)) dplyr::bind_rows(lapply(files, function(path) {
+          tryCatch(readr::read_csv(path, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE), error = function(e) tibble::tibble())
+        })) else tibble::tibble()
+      }
+      previous <- history[[date_key]]
+      if (!all(c("alert_type", "franchise", "rule") %in% names(previous)) ||
+          !any(previous$alert_type == "Roster Cap Violation" & previous$franchise == alerts$franchise[[i]] & previous$rule == alerts$rule[[i]], na.rm = TRUE)) break
+      counts[[i]] <- counts[[i]] + 1L
+      day <- day - 1L
+    }
+  }
+  counts
+}
+
+roster_cap_email_type <- function(alert_type, consecutive_days, season, checked_date) {
+  final_cutdown_date <- as.Date(lubridate::with_tz(commissioner_alert_cutdown_datetime(season, "final_roster_cutdown"), "America/New_York"))
+  if (as.Date(checked_date) < final_cutdown_date) return(alert_type)
+  ifelse(alert_type == "Roster Cap Violation",
+    ifelse(!is.na(consecutive_days) & consecutive_days >= 2L,
+      "Roster Cap Violation (Inactivity Violation)",
+      "Roster Cap Violation (1st Consecutive)"), alert_type)
+}
+
 pluralize_alert_type <- function(alert_type, n) {
   if (as.integer(n) == 1L) return(alert_type)
+  if (startsWith(alert_type, "Roster Cap Violation (")) return(alert_type)
   case_when(
     alert_type == "Illegal Lineup Warning" ~ "Illegal Lineup Warnings",
     alert_type == "Illegal Lineup" ~ "Illegal Lineups",
@@ -2602,6 +2647,8 @@ build_commissioner_alerts <- function(
     arrange(.data$alert_type, .data$conference, .data$franchise, .data$alert_sort_order, .data$rule) |>
     select(-alert_sort_order)
 
+  result$consecutive_days <- roster_cap_consecutive_days(result, season, checked_at)
+
   write_csv(result, commissioner_alert_path("alerts", season, week), na = "")
   write_commissioner_alert_report(result, season = season, week = week, checked_at = checked_at)
   result
@@ -2677,6 +2724,8 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
   }
 
   franchise_label <- row$franchise_name[[1]] %||% paste(row$conference[[1]], row$franchise[[1]])
+  streak <- if ("consecutive_days" %in% names(row)) suppressWarnings(as.integer(row$consecutive_days[[1]])) else NA_integer_
+  roster_suffix <- if (identical(row$alert_type[[1]], "Roster Cap Violation") && !is.na(streak) && streak >= 2L) paste0(" (", commissioner_alert_ordinal(streak), " Consecutive)") else ""
   violation_category <- row$violation_category[[1]] %||% row$rule[[1]]
   header <- if (is.null(prefix)) {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
@@ -2685,13 +2734,13 @@ render_alert_detail_lines <- function(row, prefix = NULL) {
     if (row$alert_type[[1]] %in% c("Illegal Lineup", "Illegal Lineup Warning")) {
       paste0(franchise_label, " Rule Violation: ", row$rule)
     } else {
-      paste0(franchise_label, ": ", row$rule)
+      paste0(franchise_label, ": ", row$rule, roster_suffix)
     }
   } else {
     if (identical(row$alert_type[[1]], "In-Season Inactivity Violation")) {
       paste0(prefix, ": ", violation_category)
     } else {
-      paste0(prefix, ": ", row$rule)
+      paste0(prefix, ": ", row$rule, roster_suffix)
     }
   }
 
@@ -2738,7 +2787,9 @@ render_gm_alert_rule_lines <- function(row) {
   }
 
   details <- row$details[[1]] %||% ""
-  lines <- c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed))
+  streak <- if ("consecutive_days" %in% names(row)) suppressWarnings(as.integer(row$consecutive_days[[1]])) else NA_integer_
+  roster_suffix <- if (identical(row$alert_type[[1]], "Roster Cap Violation") && !is.na(streak) && streak >= 2L) paste0(" (", commissioner_alert_ordinal(streak), " Consecutive)") else ""
+  lines <- c(paste0("Rule: ", row$rule, roster_suffix), paste0("Observed: ", row$observed))
   if (nzchar(trimws(details))) {
     lines <- c(lines, paste0("Details: ", details))
   }
@@ -2772,10 +2823,11 @@ render_commissioner_alert_email <- function(
   alerts <- alerts |>
     mutate(
       alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule)),
-      franchise_sort_order = commissioner_alert_franchise_order(.data$franchise)
+      franchise_sort_order = commissioner_alert_franchise_order(.data$franchise),
+      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), season, checked_date)
     )
 
-  groups <- split(alerts, alerts$alert_type)
+  groups <- split(alerts, alerts$email_type)
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 
@@ -2813,11 +2865,12 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
 
   alerts <- alerts |>
     mutate(
-      alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule))
+      alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule)),
+      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), season, checked_date)
     ) |>
     arrange(.data$alert_sort_order, .data$rule)
 
-  groups <- split(alerts, alerts$alert_type)
+  groups <- split(alerts, alerts$email_type)
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 

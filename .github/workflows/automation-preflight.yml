@@ -158,6 +158,9 @@ jobs:
       - name: Verify SalAdj individual waiver event matching
         run: Rscript scripts/test_saladj_waivers.R
 
+      - name: Verify roster-cap streak and inactivity labels
+        run: Rscript scripts/test_roster_cap_streaks.R
+
       - name: Run commissioner alerts no-email smoke check
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_commissioner_alerts == 'true' }}
         run: |

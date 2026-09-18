@@ -152,6 +152,7 @@ if (include_inseason && exists("evaluate_lineup_submission_warnings", mode = "fu
 }
 if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts", mode = "function")) {
   inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live, run_time = checked_at)
+  inactivity_alerts <- omit_inactivity_rows_covered_by_roster_cap(inactivity_alerts, alerts)
   if (nrow(inactivity_alerts)) {
     inactivity_alerts <- inactivity_alerts |>
       mutate(

@@ -210,7 +210,7 @@ evaluate_illegal_waiver_claims <- function(season = get_current_season(), force_
 read_all_commissioner_alert_reports <- function(season = get_current_season()) {
   files <- list.files(
     commissioner_alert_report_dir(),
-    pattern = paste0("^commissioner_alert_report_.*_", season, "[.]csv$"),
+    pattern = paste0("^commissioner_alert_report_[0-9]{4}-[0-9]{2}-[0-9]{2}_", season, "(_week[0-9]+)?[.]csv$"),
     full.names = TRUE
   )
   if (!length(files)) return(tibble())
@@ -273,26 +273,25 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
       !is.na(.data$franchise),
       nzchar(.data$franchise),
       !is.na(.data$report_date),
-      .data$report_date >= .env$final_cutdown_date
+      .data$report_date > .env$final_cutdown_date,
+      .data$report_date <= .env$today
     ) |>
-    group_by(.data$conference, .data$franchise, .data$franchise_name, .data$report_date) |>
-    summarize(types = paste(sort(unique(.data$alert_type)), collapse = ", "), .groups = "drop") |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name, .data$alert_type, .data$rule, .data$report_date) |>
     arrange(.data$franchise, .data$report_date)
 
   if (!nrow(daily)) return(empty_inseason_inactivity_rows())
 
-  bind_rows(lapply(split(daily, daily$franchise), function(rows) {
+  bind_rows(lapply(split(daily, interaction(daily$franchise, daily$alert_type, daily$rule, drop = TRUE)), function(rows) {
     rows <- rows |> arrange(.data$report_date)
     if (nrow(rows) < 2L) return(empty_inseason_inactivity_rows())
     breaks <- c(TRUE, diff(as.integer(rows$report_date)) != 1L)
     rows$streak_id <- cumsum(breaks)
     rows |>
-      group_by(.data$conference, .data$franchise, .data$franchise_name, .data$streak_id) |>
+      group_by(.data$conference, .data$franchise, .data$franchise_name, .data$alert_type, .data$rule, .data$streak_id) |>
       summarize(
         first_date = min(.data$report_date),
         last_date = max(.data$report_date),
         days = n_distinct(.data$report_date),
-        types = paste(sort(unique(unlist(strsplit(.data$types, ", ", fixed = TRUE)))), collapse = ", "),
         .groups = "drop"
       ) |>
       filter(.data$days == 2L, .data$last_date == .env$today) |>
@@ -304,8 +303,8 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
         franchise_name,
         rule = "Repeated illegal roster violation for two consecutive days at the early morning snapshot",
         observed = paste0("Roster violations appeared from ", .data$first_date, " through ", .data$last_date, "."),
-        details = paste0("Violation types: ", .data$types),
-        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$first_date, sep = "|"),
+        details = paste0("Violation type: ", .data$alert_type, "; rule: ", .data$rule),
+        violation_key = paste("repeated_roster_violation", season, .data$franchise, .data$alert_type, .data$rule, .data$first_date, sep = "|"),
         season_phase = "inseason"
       )
   }))
@@ -339,6 +338,22 @@ evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season
       violation_key = .data$violation_key,
       season_phase = "inseason"
     )
+}
+
+omit_inactivity_rows_covered_by_roster_cap <- function(inactivity_alerts, roster_alerts) {
+  if (!nrow(inactivity_alerts) || !nrow(roster_alerts)) return(inactivity_alerts)
+  covered <- vapply(seq_len(nrow(inactivity_alerts)), function(i) {
+    row <- inactivity_alerts[i, ]
+    startsWith(row$violation_key[[1]], "repeated_roster_violation|") &&
+      any(
+        roster_alerts$alert_type == "Roster Cap Violation" &
+          roster_alerts$franchise == row$franchise[[1]] &
+          !is.na(roster_alerts$consecutive_days) & roster_alerts$consecutive_days >= 2L &
+          row$details[[1]] == paste0("Violation type: Roster Cap Violation; rule: ", roster_alerts$rule),
+        na.rm = TRUE
+      )
+  }, logical(1))
+  inactivity_alerts[!covered, ]
 }
 
 lineup_submission_report_options <- function() {
