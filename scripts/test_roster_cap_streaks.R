@@ -47,6 +47,8 @@ first <- row
 first$consecutive_days <- 1L
 second <- row
 second$consecutive_days <- 2L
+first$season <- second$season <- "2026"
+first$checked_date <- second$checked_date <- as.character(as.Date(day2))
 digest <- render_commissioner_alert_email(dplyr::bind_rows(first, second), checked_date = as.Date(day2))
 stopifnot(grepl("Roster Cap Violation (1st Consecutive)", digest, fixed = TRUE))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", digest, fixed = TRUE))

@@ -2809,6 +2809,8 @@ render_commissioner_alert_email <- function(
   title = NULL,
   compliant_teams = NULL
 ) {
+  render_season <- as.integer(season[[1]])
+  render_checked_date <- as.Date(checked_date[[1]])
   title <- title %||% paste0("ADL Commissioner Alerts - ", commissioner_alert_date_label(checked_date), if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else "")
   compliance_line <- if (!is.null(compliant_teams) && !is.na(compliant_teams)) {
     paste0(compliant_teams, " teams roster compliant.")
@@ -2824,7 +2826,7 @@ render_commissioner_alert_email <- function(
     mutate(
       alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule)),
       franchise_sort_order = commissioner_alert_franchise_order(.data$franchise),
-      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), season, checked_date)
+      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), .env$render_season, .env$render_checked_date)
     )
 
   groups <- split(alerts, alerts$email_type)
@@ -2850,6 +2852,8 @@ render_commissioner_alert_email <- function(
 
 render_commissioner_gm_alert_email <- function(alerts, season = get_current_season(), week = NULL, checked_date = Sys.Date(), title_prefix = "ADL Roster Violation") {
   if (!nrow(alerts)) return("")
+  render_season <- as.integer(season[[1]])
+  render_checked_date <- as.Date(checked_date[[1]])
 
   franchise_label <- paste(unique(alerts$franchise_name), collapse = ", ")
   title <- paste0(title_prefix, " - ", franchise_label, " - ", commissioner_alert_date_label(checked_date), if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else "")
@@ -2866,7 +2870,7 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
   alerts <- alerts |>
     mutate(
       alert_sort_order = coalesce(suppressWarnings(as.integer(coalesce_col(alerts, c("alert_sort_order"), NA_integer_))), commissioner_alert_sort_order(.data$alert_type, .data$rule)),
-      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), season, checked_date)
+      email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), .env$render_season, .env$render_checked_date)
     ) |>
     arrange(.data$alert_sort_order, .data$rule)
 
