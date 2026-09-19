@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Fantasy Football: Analytics Dynasty League Locked Players</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"  />
+<meta name="keywords" content="Locked Players, fantasy football, keeper fantasy football league, dynasty fantasy football league, salary cap fantasy football league, IDP fantasy football league, MyFantasyLeague, MFL, ffl, league management"  />
+<meta name="description" content="The most customizable way to run your fantasy football league on the web today, MyFantasyLeague.com was voted 'Best Fantasy Commissioner Product' by the Fantasy Sports Trade Association, and has won several additional significant industry awards.  Our 32 years of experience means we do fantasy football right.  If you're ready to move beyond basic league settings, and onto fantasy football how the hard-core players play it, try MyFantasyLeague.com: Beyond League Management"  />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"  />
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZDGQ9CBF2"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-WZDGQ9CBF2');
+</script>
+<meta name="viewport" content="initial-scale=1.0, width=device-width" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700|Roboto+Condensed:400,700|Roboto:400,400i,700" rel="stylesheet">
+<link rel="stylesheet" id="default" href="https://www46.myfantasyleague.com/skins17/MFLBaseCSS.css" type="text/css"  />
+<link rel="stylesheet" id="skin" href="https://www46.myfantasyleague.com/skins17/AquaGreen/AquaGreen.css" type="text/css"  />
+<link rel="stylesheet" id="responsive" href="https://www46.myfantasyleague.com/skins17/AquaGreen/responsive.css" type="text/css"  />
+<link rel="apple-touch-icon" href="https://www46.myfantasyleague.com/apple-touch-icon.png" />
+<link rel="shortcut icon" href="https://www46.myfantasyleague.com/favicon.ico" />
+<script type="text/javascript" src="https://www46.myfantasyleague.com/mfl_common.js"></script>
+<script type="text/javascript">
+<!--
+var league_id = '60206';
+var year = 2026;
+var xmlBaseURL = 'https://www46.myfantasyleague.com/fflnetdynamic2026/';
+var baseURLStatic = 'https://www46.myfantasyleague.com';
+var baseURLDynamic = 'https://www46.myfantasyleague.com';
+var currentServerTime = 1789854027;
+var completedWeek = 1;
+var liveScoringWeek = 2;
+var startWeek = 1;
+var endWeek = 17;
+var standingsEndWeek = "17";
+var h2h_setting = "YES";  
+var precision = 1;
+var thisProgram = "locked_players";
+
+function Franchise (id, name, division, icon, logo, abbrev) {
+   this.id = id;
+   this.name = name;
+   this.division = division;
+   this.icon = icon;
+   this.logo = logo;
+   this.abbrev = abbrev;
+}
+var leagueAttributes = new Object();
+
+var franchiseDatabase = new Array();
+franchiseDatabase['fid_0000'] = new Franchise('0000', 'Commissioner', undefined, '', '');
+franchiseDatabase['fid_0001'] = new Franchise('0001', 'Dallas Cowboys', '00' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0001.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0001.png' ,'DAL');
+franchiseDatabase['fid_0002'] = new Franchise('0002', 'New York Giants', '00' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0002.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0002.png' ,'NYG');
+franchiseDatabase['fid_0003'] = new Franchise('0003', 'Philadelphia Eagles', '00' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0003.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0003.png' ,'PHI');
+franchiseDatabase['fid_0004'] = new Franchise('0004', 'Washington Commanders', '00' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0004.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0004.png' ,'WAS');
+franchiseDatabase['fid_0005'] = new Franchise('0005', 'Chicago Bears', '01' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0005.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0005.png' ,'CHI');
+franchiseDatabase['fid_0006'] = new Franchise('0006', 'Detroit Lions', '01' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0006.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0006.png' ,'DET');
+franchiseDatabase['fid_0007'] = new Franchise('0007', 'Green Bay Packers', '01' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0007.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0007.png' ,'GBP');
+franchiseDatabase['fid_0008'] = new Franchise('0008', 'Minnesota Vikings', '01' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0008.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0008.png' ,'MIN');
+franchiseDatabase['fid_0009'] = new Franchise('0009', 'Atlanta Falcons', '02' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0009.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0009.png' ,'ATL');
+franchiseDatabase['fid_0010'] = new Franchise('0010', 'Carolina Panthers', '02' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0010.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0010.png' ,'CAR');
+franchiseDatabase['fid_0011'] = new Franchise('0011', 'New Orleans Saints', '02' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0011.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0011.png' ,'NOS');
+franchiseDatabase['fid_0012'] = new Franchise('0012', 'Tampa Bay Buccaneers', '02' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0012.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0012.png' ,'TBB');
+franchiseDatabase['fid_0013'] = new Franchise('0013', 'Arizona Cardinals', '03' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0013.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0013.png' ,'ARI');
+franchiseDatabase['fid_0014'] = new Franchise('0014', 'Los Angeles Rams', '03' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0014.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0016.png' ,'LAR');
+franchiseDatabase['fid_0015'] = new Franchise('0015', 'San Francisco 49ers', '03' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0015.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0014.png' ,'SFO');
+franchiseDatabase['fid_0016'] = new Franchise('0016', 'Seattle Seahawks', '03' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0016.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0015.png' ,'SEA');
+franchiseDatabase['fid_0017'] = new Franchise('0017', 'Buffalo Bills', '04' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0017.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0017.png' ,'BUF');
+franchiseDatabase['fid_0018'] = new Franchise('0018', 'Miami Dolphins', '04' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0018.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0018.png' ,'MIA');
+franchiseDatabase['fid_0019'] = new Franchise('0019', 'New England Patriots', '04' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0019.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0019.png' ,'NEP');
+franchiseDatabase['fid_0020'] = new Franchise('0020', 'New York Jets', '04' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0020.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0020.png' ,'NYJ');
+franchiseDatabase['fid_0021'] = new Franchise('0021', 'Baltimore Ravens', '05' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0021.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0021.png' ,'BAL');
+franchiseDatabase['fid_0022'] = new Franchise('0022', 'Cincinnati Bengals', '05' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0022.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0022.png' ,'CIN');
+franchiseDatabase['fid_0023'] = new Franchise('0023', 'Cleveland Browns', '05' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0023.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0023.png' ,'CLE');
+franchiseDatabase['fid_0024'] = new Franchise('0024', 'Pittsburgh Steelers', '05' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0024.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0024.png' ,'PIT');
+franchiseDatabase['fid_0025'] = new Franchise('0025', 'Houston Texans', '06' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0025.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0025.png' ,'HOU');
+franchiseDatabase['fid_0026'] = new Franchise('0026', 'Indianapolis Colts', '06' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0026.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0026.png' ,'IND');
+franchiseDatabase['fid_0027'] = new Franchise('0027', 'Jacksonville Jaguars', '06' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0027.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0027.png' ,'JAC');
+franchiseDatabase['fid_0028'] = new Franchise('0028', 'Tennessee Titans', '06' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0028.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0028.png' ,'TEN');
+franchiseDatabase['fid_0029'] = new Franchise('0029', 'Denver Broncos', '07' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0029.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0029.png' ,'DEN');
+franchiseDatabase['fid_0030'] = new Franchise('0030', 'Kansas City Chiefs', '07' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0030.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0030.png' ,'KCC');
+franchiseDatabase['fid_0031'] = new Franchise('0031', 'Las Vegas Raiders', '07' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0031.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0031.png' ,'LVR');
+franchiseDatabase['fid_0032'] = new Franchise('0032', 'Los Angeles Chargers', '07' ,'https://www46.myfantasyleague.com/fflnetdynamic2026/60206_franchise_icon0032.png' ,'https://www43.myfantasyleague.com/fflnetdynamic2022/22686_franchise_logo0032.png' ,'LAC');
+leagueAttributes['Draft'] = true;
+leagueAttributes['Auction'] = true;
+leagueAttributes['IR'] = true;
+leagueAttributes['TS'] = true;
+leagueAttributes['Trade'] = true;
+leagueAttributes['MinStarters'] = 21;
+leagueAttributes['MaxStarters'] = 21;
+leagueAttributes['Franchises'] = 32;
+leagueAttributes['Conferences'] = new Array('NFC', 'AFC'); // This will be deprecated soon, use leagueConferences instead
+leagueAttributes['Divisions'] = new Array('East', 'North', 'South', 'West', 'East', 'North', 'South', 'West'); // This will be deprecated soon, use leagueDivisions instead
+leagueConferences = new Object();
+leagueConferences['00'] = { 'id' : '00', 'name' : 'NFC' }
+leagueConferences['01'] = { 'id' : '01', 'name' : 'AFC' }
+leagueDivisions = new Object();
+leagueDivisions['00'] = { 'id' : '00', 'conf_id' : '00', 'name' : 'East' };
+leagueDivisions['01'] = { 'id' : '01', 'conf_id' : '00', 'name' : 'North' };
+leagueDivisions['02'] = { 'id' : '02', 'conf_id' : '00', 'name' : 'South' };
+leagueDivisions['03'] = { 'id' : '03', 'conf_id' : '00', 'name' : 'West' };
+leagueDivisions['04'] = { 'id' : '04', 'conf_id' : '01', 'name' : 'East' };
+leagueDivisions['05'] = { 'id' : '05', 'conf_id' : '01', 'name' : 'North' };
+leagueDivisions['06'] = { 'id' : '06', 'conf_id' : '01', 'name' : 'South' };
+leagueDivisions['07'] = { 'id' : '07', 'conf_id' : '01', 'name' : 'West' };
+
+function chat_window (url) {
+    var chatWindow = window.open(url,"chat_window","height=600,width=450,scrollbars=yes,toolbar=no,status=no,resizable=yes,menubar=no");
+    chatWindow.focus();
+}
+
+function live_draft_window (url) {
+    var liveDraftWindow = window.open(url,"live_draft_window","height=800,width=1060,scrollbars=yes,toolbar=no,status=no,resizable=yes,menubar=no");
+    liveDraftWindow.focus();
+}
+
+function live_auction_window (url) {
+    var liveAuctionWindow = window.open(url,"live_auction_window","height=700,width=1060,scrollbars=yes,toolbar=no,status=no,resizable=yes,menubar=no");
+    liveAuctionWindow.focus();
+}
+
+
+//-->
+</script>
+<link rev="MADE" href="mailto:support@myfantasyleague.com"  />
+</head>
+<body id="body_locked_players"><noscript>
+  <img src="http://b.scorecardresearch.com/b?c1=2&amp;c2=6035210&amp;c3=&amp;c4=www.myfantasyleague.com&amp;c5=&amp;c6=&amp;c15=&amp;cv=1.3&amp;cj=1" style="display:none" width="0" height="0" alt="" />
+</noscript>
+<div class="myfantasyleague_menu" onclick=""><span>LEAGUE MENU</span><input id="sub0" type="checkbox"><label for="sub0"><span></span></label><ul>
+<li class="mfl-icon"><a class="no-sub" href="http://home.myfantasyleague.com"><img src="/images/mfl-logo-2017.png" alt="MyFantasyLeague.com"><span>MyFantasyLeague.com</span></a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/home/60206">Home</a></li>
+<li class="has-sub sub-default mm-myacct"><a>My Account</a><b aria-haspopup="true" aria-controls="p1"></b><input id="sub1" type="checkbox"><label for="sub1"><span></span></label>
+<ul id="p1">
+<li><a class="no-sub" href="https://www42.myfantasyleague.com/2026/dash" target="">MFL&nbsp;Dashboard</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/login?L=60206" target="">Login</a></li>
+<li><a class="no-sub" href="https://www42.myfantasyleague.com/2026/index" target="">Find&nbsp;A&nbsp;League</a></li>
+<li><a class="no-sub" href="http://php01.myfantasyleague.com/mockdrafts/public.php" target="">Join&nbsp;a&nbsp;Mock&nbsp;Draft</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-scores"><a>Scores</a><b aria-haspopup="true" aria-controls="p2"></b><input id="sub2" type="checkbox"><label for="sub2"><span></span></label>
+<ul id="p2">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/ajax_ls?L=60206" target="">Live&nbsp;Scoring</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/standings?L=60206" target="">Standings</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=22" target="">Weekly&nbsp;Results</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=31" target="">Weekly&nbsp;Summary</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=101" target="">Power&nbsp;Rank</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=06" target="">Starting&nbsp;Lineups</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=15" target="">Fantasy&nbsp;Schedule</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=79" target="">Playoff&nbsp;Brackets</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/pro_schedule?L=60206" target="">NFL&nbsp;Schedule</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=207" target="">Fantasy&nbsp;Previews</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=177" target="">Fantasy&nbsp;Recaps</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-trans"><a>Transactions</a><b aria-haspopup="true" aria-controls="p3"></b><input id="sub3" type="checkbox"><label for="sub3"><span></span></label>
+<ul id="p3">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=07" target="">Rosters</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=03" target="">Transactions</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=76" target="">Processed&nbsp;Waivers</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/locked_players?L=60206" target="">Locked&nbsp;Players</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-player"><a>Player Research</a><b aria-haspopup="true" aria-controls="p4"></b><input id="sub4" type="checkbox"><label for="sub4"><span></span></label>
+<ul id="p4">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=08" target="">Top&nbsp;Performers/Player&nbsp;Stats</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=236" target="">Projected&nbsp;Stats</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/reports?L=60206&R=RANKS" target="">Player&nbsp;Ranks</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/depth_chart?L=60206" target="">Fantasy&nbsp;Depth&nbsp;Charts</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=117" target="">Top&nbsp;Adds/Drops/Starters</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=81" target="">Points&nbsp;Allowed&nbsp;-&nbsp;By&nbsp;Position</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/reports?L=60206&R=FULLFA" target="">Complete&nbsp;Free&nbsp;Agent&nbsp;Listing</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/injury?L=60206" target="">NFL&nbsp;Injury&nbsp;Report</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/news_articles?L=60206&P=*" target="">Player&nbsp;News</a></li>
+<li><a class="no-sub" href="http://subscribe.myfantasyleague.com/" target="">Get&nbsp;Projection&nbsp;Sources</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/player_search?L=60206" target="">Player&nbsp;Search</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-draft"><a>Draft/Auction</a><b aria-haspopup="true" aria-controls="p5"></b><input id="sub5" type="checkbox"><label for="sub5"><span></span></label>
+<ul id="p5">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=17" target="">Draft&nbsp;Results</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/reports?L=60206&R=ADP" target="">ADP&nbsp;Report</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=100" target="">Future&nbsp;Draft&nbsp;Picks</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=44" target="">Auction&nbsp;Results</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/reports?L=60206&R=AAV" target="">AAV&nbsp;Report</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-league"><a>League</a><b aria-haspopup="true" aria-controls="p6"></b><input id="sub6" type="checkbox"><label for="sub6"><span></span></label>
+<ul id="p6">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/all_reports?L=60206" target="">All&nbsp;Reports</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=123" target="">League&nbsp;Calendar</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=09" target="">League&nbsp;Rules</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/accounting_report?L=60206" target="">Accounting</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=01" target="">Franchise&nbsp;Information</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/reports?L=60206&R=FSUMMARY" target="">Franchise&nbsp;Summary</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=180" target="">Fantasy&nbsp;Pool&nbsp;Results</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=120" target="">Survivor&nbsp;Pool</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=194" target="">League&nbsp;Champions</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-social"><a>Social</a><b aria-haspopup="true" aria-controls="p7"></b><input id="sub7" type="checkbox"><label for="sub7"><span></span></label>
+<ul id="p7">
+<li><a class="no-sub" href="https://www.fantasysharks.com/forum/viewforum.php?f=501" target="">MFL&nbsp;Community&nbsp;Forums</a></li>
+<li><a class="no-sub" href="https://twitter.com/MyFantasyLeague" target="">Follow&nbsp;Us&nbsp;On&nbsp;Twitter</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/options?L=60206&O=167" target="">Refer&nbsp;A&nbsp;Friend&nbsp;And&nbsp;Save!</a></li>
+</ul>
+</li>
+<li class="has-sub sub-default mm-help"><a>Help</a><b aria-haspopup="true" aria-controls="p8"></b><input id="sub8" type="checkbox"><label for="sub8"><span></span></label>
+<ul id="p8">
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/support?L=60206" target="">Help&nbsp;Center</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/support?PROGRAM=locked_players&L=60206" target="_blank">Help&nbsp;on&nbsp;this&nbsp;Page</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/site_news?L=60206" target="">What's&nbsp;New?</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/locked_players?L=60206&PRINTER=1" target="">Printer&nbsp;Friendly&nbsp;Page</a></li>
+<li><a class="no-sub" href="https://www46.myfantasyleague.com/2026/api_info?L=60206" target="">Developer's&nbsp;API</a></li>
+</ul>
+</li>
+</ul></div>
+<table cellspacing="0" class="pageheader">
+<tr>
+<td rowspan="3" class="brandlogo">
+<a href="http://www.myfantasyleague.com/"><img src="https://www46.myfantasyleague.com/images/new_mfl_logo.png" alt="http://www.myfantasyleague.com/" width="80" height="80" border="0"  /></a></td><td align="center" class="bannerimage">
+<br  /> <br  /> <img src="https://www46.myfantasyleague.com/fflnetdynamic2024/60206_league_logo.png" alt="Please Visit Our Sponsor"  /></td>
+<td rowspan="3" class="welcome"><b>Guest</b> (<a href="https://www46.myfantasyleague.com/2026/login?L=60206">Login</a>)</td>
+</tr>
+<tr>
+<td class="pagetitle">
+<h1>
+ <span>Locked Players</span></h1></td></tr></table><div class="pagebody" id="locked_players">
+<div id="contentframe">
+<div id="hsubmenu"><ul id="hsubmenuitems"><li><a href="/2026/home/60206">Home</a></li><li><a href="/2026/options?L=60206&O=07">Rosters</a></li><li><a href="/2026/options?L=60206&O=17">Draft</a></li><li><a href="/2026/lineup?L=60206">Submit Lineup</a></li><li><a href="/2026/add_drop?L=60206">Add/Drops</a></li><li><a href="/2026/options?L=60206&O=05">Trades</a></li><li><a href="/2026/options?L=60206&O=08">Player Stats</a></li><li><a href="/2026/standings?L=60206">Standings</a></li><li><a href="/2026/options?L=60206&O=03">Transactions</a></li><li><a href="https://www46.myfantasyleague.com/2026/ajax_ls?L=60206">Live Scoring</a></li><li><a href="/2026/options?L=60206&O=15">Schedule</a></li></ul></div>
+<div id="withmenus"><span class="reportnavigation"><span class="reportnavigationheader">Hint:</span> League Rules State That A Dropped Player Is 
+Locked Until The First Waivers Process After 1 Days Before He May Be Picked Up Again</span>
+<table align="center" cellspacing="1" class="report nocaption"><tbody><tr><th colspan="5"><h4>Players With Individual Locks</h4></th></tr><tr><th>Player</th><th>Date Locked</th><th>Locked Until</th><th>Dropped By</th></tr>
+<tr><th colspan="5">Locked players in NFC</th></tr><tr class="oddtablerow"><td><a href="javascript:launch_player_modal('60206','17036');" title="Salary: $1.06, Years: 3, Contract: 2025 5.04, Week 2: at Patriots Sun 1:00 p.m. ET" class="position_qb">Howard, Will PIT QB</a></td><td>Fri Sep 18 7:52:56 p.m. ET 2026</td><td>Waivers After Sat Sep 19 7:52:56 p.m. ET 2026</td><td><a title="Franchise home page, Record: 1-0-0, PF: 187.0"  class="franchise_0006 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0006&amp;O=01">Detroit Lions</a></td></td></tr>
+<tr class="eventablerow newposition "><td><a href="javascript:launch_player_modal('60206','16843');" title="Salary: $1.10, Years: 1, Contract: 2026 UFA, Week 2: vs Giants Mon 8:15 p.m. ET" class="position_pk">Mevis, Harrison LAR PK</a></td><td>Sat Sep 19 12:20:02 p.m. ET 2026</td><td>Waivers After Sun Sep 20 12:20:02 p.m. ET 2026</td><td><a title="Franchise home page, Record: 0-1-0, PF: 177.5"  class="franchise_0011 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0011&amp;O=01">New Orleans Saints</a></td></td></tr>
+<tr class="oddtablerow newposition "><td><a href="javascript:launch_player_modal('60206','15394');" title="Salary: $2.00, Years: 1, Contract: 2026 UFA, Week 2: at Rams Mon 8:15 p.m. ET" class="position_cb">Adebo, Paulson NYG CB</a></td><td>Sat Sep 19 4:33:57 p.m. ET 2026</td><td>Waivers After Sun Sep 20 4:33:57 p.m. ET 2026</td><td><a title="Franchise home page, Record: 1-0-0, PF: 226.9"  class="franchise_0005 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0005&amp;O=01">Chicago Bears</a></td></td></tr>
+<tr class="eventablerow"><td><a href="javascript:launch_player_modal('60206','14918');" title="Salary: $2.00, Years: 1, Contract: 2026 UFA, Week 2: vs Panthers Sun 1:00 p.m. ET" class="position_cb">Terrell, A.J. ATL CB</a></td><td>Fri Sep 18 5:00:00 a.m. ET 2026</td><td>Waivers After Sat Sep 19 5:00:00 a.m. ET 2026</td><td><a title="Franchise home page, Record: 0-1-0, PF: 212.7"  class="franchise_0003 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0003&amp;O=01">Philadelphia Eagles</a></td></td></tr>
+<tr><th colspan="5">Locked players in AFC</th></tr><tr class="oddtablerow"><td><a href="javascript:launch_player_modal('60206','12764');" title="Salary: $2.00, Years: 1, Contract: 2026 UFA, Week 2: at Jets Sun 1:00 p.m. ET" class="position_dt">Hargrave, Javon GBP DT</a></td><td>Fri Sep 18 8:37:20 p.m. ET 2026</td><td>Waivers After Sat Sep 19 8:37:20 p.m. ET 2026</td><td><a title="Franchise home page, Record: 1-0-0, PF: 222.2"  class="franchise_0025 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0025&amp;O=01">Houston Texans</a></td></td></tr>
+<tr class="eventablerow"><td><a href="javascript:launch_player_modal('60206','16227');" title="Salary: $1.10, Years: 1, Contract: 2025 R/F, Week 2: vs Panthers Sun 1:00 p.m. ET" class="position_dt">Harrison, Zach ATL DT</a></td><td>Fri Sep 18 7:10:20 p.m. ET 2026</td><td>Waivers After Sat Sep 19 7:10:20 p.m. ET 2026</td><td><a title="Franchise home page, Record: 0-1-0, PF: 126.4"  class="franchise_0032 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0032&amp;O=01">Los Angeles Chargers</a></td></td></tr>
+<tr class="oddtablerow newposition "><td><a href="javascript:launch_player_modal('60206','16350');" title="Salary: $4.08, Years: 1, Contract: 2024 iEXT, Week 2: Bye" class="position_cb">Jones, Jaylon FA CB</a></td><td>Fri Sep 18 7:10:20 p.m. ET 2026</td><td>Waivers After Sat Sep 19 7:10:20 p.m. ET 2026</td><td><a title="Franchise home page, Record: 0-1-0, PF: 126.4"  class="franchise_0032 " href="https://www46.myfantasyleague.com/2026/options?L=60206&amp;F=0032&amp;O=01">Los Angeles Chargers</a></td></td></tr>
+</tbody></table></div></div></div><div class="pagefooter"><table border="0" cellpadding="1" cellspacing="1" align="center">
+<tr><td colspan="2" align="center"><a href="#body_locked_players">Back To Top Of Page</a></td></tr>
+<tr><td colspan="2" align="center">Page Generated Sat Sep 19 5:40:27 p.m. ET 2026</td></tr>
+<tr><td colspan="2" align="center">Copyright &copy; 1995-2026 <a href="http://home.myfantasyleague.com/">First Pick Labs, Inc.</a> All Rights Reserved. <a href="http://home.myfantasyleague.com/privacy.html">Privacy Policy</a> - <a href="http://home.myfantasyleague.com/terms.html">Terms Of Service</a> 
+ - <a href="http://home.myfantasyleague.com/use.html">Acceptable Use Policy</a> - Powered by: <a href="https://www.geniussports.com/">Genius Sports</a>.
+- <button id="pmLink">Privacy Manager</button>
+</td></tr>
+<tr><td colspan="2" align="center"><b>Disclaimer:</b>  This site is not
+in any way affiliated with, endorsed or licensed by the
+National Football League, any NFL team or NFLPA member.
+</td></tr></table></div>
+<div id="player" class="mflModal" style="display:none"><div class="mflModal-content">
+<table class="report" align="center" cellspacing="1" style="margin-bottom:0px;">
+<caption><span id="modal_title_player"></span><button style="float:right; margin-top:5px; margin-right:5px;" onclick="hide_modal_player();">&#x2716;</button><button style="float:right; margin-top:5px; margin-right:5px;" onclick="window.location.assign(player_page_url);">&#x21F1;</button></caption>
+<tbody><tr class="oddtablerow"><td class="mflModal-body"><div id="modal_body_player" align="left"></div></td></tr>
+<tr class="oddtablerow"><td class="mflModal-body"><div align="center">&nbsp; <button onclick="hide_modal_player();">Close</button></div></td></tr>
+<tr class="oddtablerow"><td class="mflModal-body">&nbsp;</td></tr></tbody></table></div></div>
+<script type="text/javascript">
+var mfl_modal_player = document.getElementById("player");
+var player_page_url = "";
+
+function show_modal_player () {
+    mfl_modal_player.style.display = "block";
+}
+function hide_modal_player () {
+    mfl_modal_player.style.display = "none";
+}
+function ack_modal_player () {
+
+}
+</script>
+</body></html>
