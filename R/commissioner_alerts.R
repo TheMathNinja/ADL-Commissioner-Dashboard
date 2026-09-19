@@ -3165,6 +3165,22 @@ send_commissioner_alert_email <- function(
   offender_recipient_path <- commissioner_alert_path("email_recipients_offenders", season, week)
   write_csv(offender_recipients, offender_recipient_path, na = "")
 
+  # Render every message before opening SMTP so a template error cannot produce
+  # a partially delivered batch.
+  invisible(lapply(offender_franchises, function(franchise) {
+    franchise_alerts <- offender_alerts |> filter(.data$franchise == .env$franchise)
+    franchise_title_prefix <- gm_title_prefix %||% if (all(franchise_alerts$severity == "warning", na.rm = TRUE)) {
+      "ADL Roster Warning"
+    } else {
+      "ADL Roster Violation"
+    }
+    render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = franchise_title_prefix)
+  }))
+  render_commissioner_alert_email(
+    alerts, season = season, week = week, checked_date = checked_date,
+    gm_emails_sent = TRUE, title = digest_title, compliant_teams = compliant_teams
+  )
+
   gm_status <- bind_rows(lapply(offender_franchises, function(franchise) {
     franchise_alerts <- offender_alerts |> filter(.data$franchise == .env$franchise)
     franchise_recipients <- offender_recipients |> filter(toupper(.data$franchise) == toupper(.env$franchise))
