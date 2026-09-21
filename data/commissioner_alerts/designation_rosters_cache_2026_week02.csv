@@ -229,6 +229,7 @@ NFC,CHI,Chicago Bears,13744,"Shepherd, Nathan NOS DT","Shepherd, Nathan",NOS,DT,
 NFC,CHI,Chicago Bears,17086,"Royals, Jalen KCC WR","Royals, Jalen",KCC,WR,Active,,1.24,3,265.05,2025 3.16,,royals
 NFC,CHI,Chicago Bears,17153,"Mukuba, Andrew PHI S","Mukuba, Andrew",PHI,S,Active,,1.11,3,265.05,2025 4.09,,mukuba
 NFC,CHI,Chicago Bears,16171,"Miller, Kendre NOS RB","Miller, Kendre",NOS,RB,Active,Out,1.1,1,265.05,2026 UFA,,miller
+NFC,CHI,Chicago Bears,15405,"Stephens, Brandon NYJ CB","Stephens, Brandon",NYJ,CB,Active,,1.1,1,265.05,2026 UFA,,stephens
 NFC,DET,Detroit Lions,14783,"Hurts, Jalen PHI QB","Hurts, Jalen",PHI,QB,Active,,25.87,4,266.44,2024 iEXT,,hurts
 NFC,DET,Detroit Lions,15282,"Smith, DeVonta PHI WR","Smith, DeVonta",PHI,WR,Active,,20.53,3,266.44,2024 iEXT,,smith
 NFC,DET,Detroit Lions,15715,"Cook, James BUF RB","Cook, James",BUF,RB,Active,,13.73,1,266.44,2025 iEXT,,cook
@@ -287,7 +288,7 @@ NFC,GBP,Green Bay Packers,17137,"Harmon, Derrick PIT DT","Harmon, Derrick",PIT,D
 NFC,GBP,Green Bay Packers,17135,"Ezeiruaku, Donovan DAL DE","Ezeiruaku, Donovan",DAL,DE,Active,,1.39,3,266.62,2025 3.07,,ezeiruaku
 NFC,GBP,Green Bay Packers,17099,"Gadsden, Oronde LAC TE","Gadsden, Oronde",LAC,TE,Active,,1.04,3,266.62,2025 5.10,,gadsden
 NFC,GBP,Green Bay Packers,13635,"Moore, D.J. BUF WR","Moore, D.J.",BUF,WR,Active,,22.26,1,266.62,2025 UFA,,moore
-NFC,GBP,Green Bay Packers,12741,"Jones, Chris KCC DT","Jones, Chris",KCC,DT,Active,Questionable,5.64,1,266.62,2025 UFA,,jones
+NFC,GBP,Green Bay Packers,12741,"Jones, Chris KCC DT","Jones, Chris",KCC,DT,Active,,5.64,1,266.62,2025 UFA,,jones
 NFC,GBP,Green Bay Packers,15355,"Bolton, Nick KCC LB","Bolton, Nick",KCC,LB,Active,,7.43,1,266.62,2025 UFA,,bolton
 NFC,GBP,Green Bay Packers,16729,"Still, Tarheeb LAC CB","Still, Tarheeb",LAC,CB,Active,,3.34,1,266.62,2025 UFA,,still
 NFC,GBP,Green Bay Packers,15349,"Phillips, Jaelan CAR DE","Phillips, Jaelan",CAR,DE,Active,,9.41,1,266.62,2025 UFA,,phillips
@@ -634,7 +635,7 @@ NFC,LAR,Los Angeles Rams,16633,"Whittington, Jordan LAR WR","Whittington, Jordan
 NFC,LAR,Los Angeles Rams,15510,"Washington, Ar'Darius NYG S","Washington, Ar'Darius",NYG,S,Active,,1.1,1,254.03,2026 R/F,,washington
 NFC,LAR,Los Angeles Rams,14127,"Meyers, Jakobi JAC WR","Meyers, Jakobi",JAC,WR,Active,,8.12,2,254.03,2026 oEXT,,meyers
 NFC,LAR,Los Angeles Rams,17557,"Styles, Sonny WAS LB","Styles, Sonny",WAS,LB,Active,R,3.28,4,254.03,2026 1.12,,styles
-NFC,LAR,Los Angeles Rams,17562,"Delane, Mansoor KCC CB","Delane, Mansoor",KCC,CB,Active,Questionable,1.19,4,254.03,2026 3.17,,delane
+NFC,LAR,Los Angeles Rams,17562,"Delane, Mansoor KCC CB","Delane, Mansoor",KCC,CB,Active,R,1.19,4,254.03,2026 3.17,,delane
 NFC,LAR,Los Angeles Rams,14933,"Blackmon, Julian NOS S","Blackmon, Julian",NOS,S,Active,,1.1,1,254.03,2026 UFA,,blackmon
 NFC,LAR,Los Angeles Rams,15712,"Allgeier, Tyler ARI RB","Allgeier, Tyler",ARI,RB,Active,,2,1,254.03,2026 UFA,,allgeier
 NFC,LAR,Los Angeles Rams,13208,"Allen, Jonathan CIN DT","Allen, Jonathan",CIN,DT,Active,,5.7,2,254.03,2026 UFA,,allen
@@ -1261,7 +1262,7 @@ AFC,JAC,Jacksonville Jaguars,16679,"Nubin, Tyler NYG S","Nubin, Tyler",NYG,S,Act
 AFC,JAC,Jacksonville Jaguars,13589,"Allen, Josh BUF QB","Allen, Josh",BUF,QB,Active,,41.7,1,260.59,2026 EFT,,allen
 AFC,JAC,Jacksonville Jaguars,17551,"Bailey, David NYJ DE","Bailey, David",NYJ,DE,Active,R,3.52,4,260.59,2026 1.11,,bailey
 AFC,JAC,Jacksonville Jaguars,17477,"Coleman, Jonah DEN RB","Coleman, Jonah",DEN,RB,Active,R,1.76,4,260.59,2026 2.11,,coleman
-AFC,JAC,Jacksonville Jaguars,17562,"Delane, Mansoor KCC CB","Delane, Mansoor",KCC,CB,Active,Questionable,1.28,4,260.59,2026 3.11,,delane
+AFC,JAC,Jacksonville Jaguars,17562,"Delane, Mansoor KCC CB","Delane, Mansoor",KCC,CB,Active,R,1.28,4,260.59,2026 3.11,,delane
 AFC,JAC,Jacksonville Jaguars,17521,"Thomas, Zavion CHI WR","Thomas, Zavion",CHI,WR,Active,R,1.06,4,260.59,2026 4.11,,thomas
 AFC,JAC,Jacksonville Jaguars,13163,"Godwin, Chris TBB WR","Godwin, Chris",TBB,WR,Active,,9.1,1,260.59,2026 UFA,,godwin
 AFC,JAC,Jacksonville Jaguars,13604,"Barkley, Saquon PHI RB","Barkley, Saquon",PHI,RB,Active,,33.1,1,260.59,2026 UFA,,barkley
@@ -1298,7 +1299,7 @@ AFC,TEN,Tennessee Titans,15390,"McNeill, Alim DET DT","McNeill, Alim",DET,DT,Act
 AFC,TEN,Tennessee Titans,16228,"Smith, Nolan PHI DE","Smith, Nolan",PHI,DE,Active,,1.32,1,260.48,2023 3.19,,smith
 AFC,TEN,Tennessee Titans,16597,"Brooks, Jonathon CAR RB","Brooks, Jonathon",CAR,RB,Active,,2.86,2,260.48,2024 1.13,,brooks
 AFC,TEN,Tennessee Titans,16583,"Penix Jr., Michael ATL QB","Penix Jr., Michael",ATL,QB,Active,Out,1.62,2,260.48,2024 2.14,,penix jr.
-AFC,TEN,Tennessee Titans,12741,"Jones, Chris KCC DT","Jones, Chris",KCC,DT,Active,Questionable,3.53,1,260.48,2025 iEXT,,jones
+AFC,TEN,Tennessee Titans,12741,"Jones, Chris KCC DT","Jones, Chris",KCC,DT,Active,,3.53,1,260.48,2025 iEXT,,jones
 AFC,TEN,Tennessee Titans,15894,"Woolen, Tariq PHI CB","Woolen, Tariq",PHI,CB,Active,,1.1,1,260.48,2026 R/F,,woolen
 AFC,TEN,Tennessee Titans,16193,"Boutte, Kayshon HOU WR","Boutte, Kayshon",HOU,WR,Active,,5.77,2,260.48,2026 SRFA,,boutte
 AFC,TEN,Tennessee Titans,16246,"Johnson, Antonio JAC S","Johnson, Antonio",JAC,S,Active,,3.52,2,260.48,2026 RRFA,,johnson
