@@ -1,1 +1,2 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
+illegal_waiver_claim|2026|TEN|17254|2026-09-22,2026,,2026-09-22 10:54:52 EDT,In-Season Inactivity Violation,violation,AFC,TEN,Tennessee Titans,Illegal Waiver Claim,Illegal waiver claim,"Mumpfield, Konata was added without a matching legal waiver window in the prior 24-hour scan.",No prior drop was found for this player in league transaction history.,inseason
