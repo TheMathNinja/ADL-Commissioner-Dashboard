@@ -1,43 +1,44 @@
 poll_id,poll_question,poll_closed_date,answer,votes,voter_name,voter_franchise
-995355,Who is the ADL NFC Team to Beat?,,New York Giants,4,New York Giants,NYG
-995355,Who is the ADL NFC Team to Beat?,,New York Giants,4,Minnesota Vikings,MIN
-995355,Who is the ADL NFC Team to Beat?,,New York Giants,4,Baltimore Ravens,BAL
-995355,Who is the ADL NFC Team to Beat?,,New York Giants,4,Tennessee Titans,TEN
-995355,Who is the ADL NFC Team to Beat?,,Philadelphia Eagles,1,Atlanta Falcons,ATL
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Dallas Cowboys,DAL
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Washington Commanders,WAS
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Detroit Lions,DET
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Arizona Cardinals,ARI
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,San Francisco 49ers,SFO
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Seattle Seahawks,SEA
-995355,Who is the ADL NFC Team to Beat?,,Washington Commanders,7,Houston Texans,HOU
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Philadelphia Eagles,PHI
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Chicago Bears,CHI
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,New Orleans Saints,NOS
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Miami Dolphins,MIA
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Pittsburgh Steelers,PIT
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Denver Broncos,DEN
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Kansas City Chiefs,KCC
-995355,Who is the ADL NFC Team to Beat?,,Chicago Bears,8,Los Angeles Chargers,LAC
-995354,Who is the ADL AFC Team to Beat?,,Buffalo Bills,1,New Orleans Saints,NOS
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Washington Commanders,WAS
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Arizona Cardinals,ARI
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Pittsburgh Steelers,PIT
-995354,Who is the ADL AFC Team to Beat?,,Baltimore Ravens,4,Los Angeles Chargers,LAC
-995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Philadelphia Eagles,PHI
-995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Miami Dolphins,MIA
-995354,Who is the ADL AFC Team to Beat?,,Houston Texans,3,Tennessee Titans,TEN
-995354,Who is the ADL AFC Team to Beat?,,Indianapolis Colts,1,Baltimore Ravens,BAL
-995354,Who is the ADL AFC Team to Beat?,,Tennessee Titans,1,New York Giants,NYG
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Dallas Cowboys,DAL
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Chicago Bears,CHI
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Minnesota Vikings,MIN
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Atlanta Falcons,ATL
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,San Francisco 49ers,SFO
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Seattle Seahawks,SEA
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Houston Texans,HOU
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Denver Broncos,DEN
-995354,Who is the ADL AFC Team to Beat?,,Las Vegas Raiders,9,Kansas City Chiefs,KCC
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,New York Giants,4,New York Giants,NYG
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,New York Giants,4,Minnesota Vikings,MIN
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,New York Giants,4,Baltimore Ravens,BAL
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,New York Giants,4,Tennessee Titans,TEN
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Philadelphia Eagles,1,Atlanta Falcons,ATL
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Dallas Cowboys,DAL
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Washington Commanders,WAS
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Detroit Lions,DET
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Arizona Cardinals,ARI
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,San Francisco 49ers,SFO
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Seattle Seahawks,SEA
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Washington Commanders,7,Houston Texans,HOU
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Philadelphia Eagles,PHI
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Chicago Bears,CHI
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,New Orleans Saints,NOS
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Miami Dolphins,MIA
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Pittsburgh Steelers,PIT
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Denver Broncos,DEN
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Kansas City Chiefs,KCC
+995355,Who is the ADL NFC Team to Beat?,2026-09-20,Chicago Bears,8,Los Angeles Chargers,LAC
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Buffalo Bills,2,Detroit Lions,DET
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Buffalo Bills,2,New Orleans Saints,NOS
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Baltimore Ravens,4,Washington Commanders,WAS
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Baltimore Ravens,4,Arizona Cardinals,ARI
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Baltimore Ravens,4,Pittsburgh Steelers,PIT
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Baltimore Ravens,4,Los Angeles Chargers,LAC
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Houston Texans,3,Philadelphia Eagles,PHI
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Houston Texans,3,Miami Dolphins,MIA
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Houston Texans,3,Tennessee Titans,TEN
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Indianapolis Colts,1,Baltimore Ravens,BAL
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Tennessee Titans,1,New York Giants,NYG
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Dallas Cowboys,DAL
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Chicago Bears,CHI
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Minnesota Vikings,MIN
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Atlanta Falcons,ATL
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,San Francisco 49ers,SFO
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Seattle Seahawks,SEA
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Houston Texans,HOU
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Denver Broncos,DEN
+995354,Who is the ADL AFC Team to Beat?,2026-09-20,Las Vegas Raiders,9,Kansas City Chiefs,KCC
 994975,Who is the ADL NFC East Team to Beat?,2026-09-13,Dallas Cowboys,1,Washington Commanders,WAS
 994975,Who is the ADL NFC East Team to Beat?,2026-09-13,New York Giants,6,New York Giants,NYG
 994975,Who is the ADL NFC East Team to Beat?,2026-09-13,New York Giants,6,Minnesota Vikings,MIN
