@@ -1,11 +1,3 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 1 new row(s) at 9/22/2026 10:07 a.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_22_ADLSalAdjCurator.csv
-
-Please enter the following new salary adjustments in the Contract Admin sheet.
-
-AFC
----
-- Dropped 9/21/2026 20:12:05 ET | TEN | Kamren Curl | salary $2.85; 2 yr; 2026 UFA; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Sep 23, 2026
-
+No new SalAdj rows were found.
