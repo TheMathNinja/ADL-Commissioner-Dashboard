@@ -158,7 +158,7 @@ if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts
       mutate(
         season = as.character(.data$season),
         week = as.character(if ("week" %in% names(inactivity_alerts)) .data$week else (if (is.na(.env$week)) NA_character_ else as.character(.env$week))),
-        checked_at = format(checked_at, "%Y-%m-%d %H:%M:%S %Z")
+        checked_at = format(as.POSIXct(.env$checked_at, tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z")
       ) |>
       select(any_of(names(alerts)), everything())
     alerts <- alerts |>

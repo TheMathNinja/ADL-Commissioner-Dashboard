@@ -57,3 +57,10 @@ gm <- render_commissioner_gm_alert_email(second, checked_date = as.Date(day2))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", gm, fixed = TRUE))
 stopifnot(grepl(paste0(rule, " (2nd Consecutive)"), gm, fixed = TRUE))
 cat("Roster-cap streak and email checks passed.\n")
+
+# A pre-existing checked_at column must not mask the scalar run timestamp when
+# inactivity rows are normalized for the daily alert report.
+run_checked_at <- as.POSIXct("2026-09-22 06:15:00", tz = "America/New_York")
+masked <- tibble::tibble(checked_at = c("old-1", "old-2"), season = c("2026", "2026")) |>
+  dplyr::mutate(checked_at = format(as.POSIXct(.env$run_checked_at, tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z"))
+stopifnot(length(unique(masked$checked_at)) == 1L, grepl("2026-09-22", masked$checked_at[[1]], fixed = TRUE))
