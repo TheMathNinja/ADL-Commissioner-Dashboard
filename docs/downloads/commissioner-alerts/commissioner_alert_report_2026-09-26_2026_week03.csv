@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,3,2026-09-26 14:30:07 UTC,Roster Cap Violation,violation,AFC,HOU,Houston Texans,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (44 Active + 2 Taxi),,1
