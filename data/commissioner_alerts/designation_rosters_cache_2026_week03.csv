@@ -175,7 +175,6 @@ NFC,WAS,Washington Commanders,14957,"Robertson, Amik WAS CB","Robertson, Amik",W
 NFC,WAS,Washington Commanders,17628,"Daniels, Kendal ATL LB","Daniels, Kendal",ATL,LB,Active,R,0.94,3,259.08,2026 UDFA,,daniels
 NFC,WAS,Washington Commanders,14956,"Sneed, L'Jarius KCC CB","Sneed, L'Jarius",KCC,CB,Active,,1.1,1,259.08,2026 UFA,,sneed
 NFC,WAS,Washington Commanders,13189,"Engram, Evan DEN TE","Engram, Evan",DEN,TE,Active,,2,1,259.08,2026 UFA,,engram
-NFC,WAS,Washington Commanders,14057,"Lock, Drew SEA QB","Lock, Drew",SEA,QB,Active,,1.1,1,259.08,2026 UFA,,lock
 NFC,WAS,Washington Commanders,16702,"Green, Renardo SFO CB","Green, Renardo",SFO,CB,Active,,1.1,1,259.08,2026 UFA,,green
 NFC,WAS,Washington Commanders,17190,"Hemingway, Tonka LVR DT","Hemingway, Tonka",LVR,DT,Active,,1.1,1,259.08,2026 UFA,,hemingway
 NFC,WAS,Washington Commanders,17158,"Broughton, Vernon NOS DT","Broughton, Vernon",NOS,DT,Active,,2.1,1,259.08,2026 UFA,,broughton
@@ -985,7 +984,6 @@ AFC,BAL,Baltimore Ravens,15368,"McPherson, Evan CIN PK","McPherson, Evan",CIN,PK
 AFC,BAL,Baltimore Ravens,16716,"Wilson, Payton PIT LB","Wilson, Payton",PIT,LB,Active,,1.29,2,262.58,2024 3.14,,wilson
 AFC,BAL,Baltimore Ravens,17476,"Singleton, Nicholas TEN RB","Singleton, Nicholas",TEN,RB,Active,R,1.14,4,262.58,2026 4.01,,singleton
 AFC,BAL,Baltimore Ravens,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,Active,,1.09,3,262.58,2025 4.12,,bryant
-AFC,BAL,Baltimore Ravens,15051,"Townsend, Tommy TEN PN","Townsend, Tommy",TEN,PN,Active,,1.1,1,262.58,2026 UFA,,townsend
 AFC,BAL,Baltimore Ravens,11757,"Donald, Aaron LAR DT","Donald, Aaron",LAR,DT,Active,,5.5,1,262.58,2026 UFA,,donald
 AFC,BAL,Baltimore Ravens,17031,"Sanders, Shedeur CLE QB","Sanders, Shedeur",CLE,QB,Active,,1.24,3,262.58,2025 3.16,,sanders
 AFC,BAL,Baltimore Ravens,16267,"Stevenson, Tyrique CHI CB","Stevenson, Tyrique",CHI,CB,Active,Questionable,2,1,262.58,2026 UFA,,stevenson
@@ -1189,6 +1187,7 @@ AFC,HOU,Houston Texans,16009,"Gibbens, Jack ARI LB","Gibbens, Jack",ARI,LB,Activ
 AFC,HOU,Houston Texans,15001,"Curl, Kamren LAR S","Curl, Kamren",LAR,S,Active,,2.85,2,257.89,2026 UFA,,curl
 AFC,HOU,Houston Texans,12645,"Treadwell, Laquon IND WR","Treadwell, Laquon",IND,WR,Active,,1.1,1,257.89,2026 UFA,,treadwell
 AFC,HOU,Houston Texans,15814,"Thomas, Cameron ATL DE","Thomas, Cameron",ATL,DE,Active,,1.1,1,257.89,2026 UFA,,thomas
+AFC,HOU,Houston Texans,10292,"Jordan, Cameron NOS DE","Jordan, Cameron",NOS,DE,Active,,1.1,1,257.89,2025 R/F,,jordan
 AFC,HOU,Houston Texans,15749,"Pacheco, Isiah DET RB","Pacheco, Isiah",DET,RB,INJURED_RESERVE,,5.3,1,257.89,2026 UFA,,pacheco
 AFC,HOU,Houston Texans,16688,"Guerendo, Isaac SFO RB","Guerendo, Isaac",SFO,RB,INJURED_RESERVE,,1.13,2,257.89,2024 4.12,,guerendo
 AFC,HOU,Houston Texans,16215,"Musgrave, Luke GBP TE","Musgrave, Luke",GBP,TE,INJURED_RESERVE,IR-PUP,1.1,1,257.89,2026 UFA,,musgrave
