@@ -248,7 +248,7 @@ NFC,DET,Detroit Lions,16193,"Boutte, Kayshon HOU WR","Boutte, Kayshon",HOU,WR,Ac
 NFC,DET,Detroit Lions,16282,"Turner, Kobie LAR DT","Turner, Kobie",LAR,DT,Active,,11,3,266.44,2026 SRFA,,turner
 NFC,DET,Detroit Lions,17157,"TeSlaa, Isaac DET WR","TeSlaa, Isaac",DET,WR,Active,,1.33,3,266.44,2025 3.10,,teslaa
 NFC,DET,Detroit Lions,17550,"Bain Jr., Rueben TBB DE","Bain Jr., Rueben",TBB,DE,Active,Out,3.8,4,266.44,2026 1.10,,bain jr.
-NFC,DET,Detroit Lions,17463,"Simpson, Ty LAR QB","Simpson, Ty",LAR,QB,Active,R,2.91,4,266.44,2026 1.14,,simpson
+NFC,DET,Detroit Lions,17463,"Simpson, Ty LAR QB","Simpson, Ty",LAR,QB,Active,Out,2.91,4,266.44,2026 1.14,,simpson
 NFC,DET,Detroit Lions,17477,"Coleman, Jonah DEN RB","Coleman, Jonah",DEN,RB,Active,IR,1.81,4,266.44,2026 2.10,,coleman
 NFC,DET,Detroit Lions,17555,"Woods, Peter KCC DT","Woods, Peter",KCC,DT,Active,R,1.3,4,266.44,2026 3.10,,woods
 NFC,DET,Detroit Lions,17529,"Thompson, Brenen LAC WR","Thompson, Brenen",LAC,WR,Active,Out,1.07,4,266.44,2026 4.10,,thompson
@@ -527,8 +527,8 @@ NFC,TBB,Tampa Bay Buccaneers,16653,"Verse, Jared CLE DE","Verse, Jared",CLE,DE,A
 NFC,TBB,Tampa Bay Buccaneers,16700,"Bishop, Cole BUF S","Bishop, Cole",BUF,S,Active,,1.32,2,252.92,2024 3.12,,bishop
 NFC,TBB,Tampa Bay Buccaneers,15863,"Jones, Travis BAL DT","Jones, Travis",BAL,DT,Active,,3.71,4,252.92,2026 oEXT,,jones
 NFC,TBB,Tampa Bay Buccaneers,16708,"Smith, Tykee TBB S","Smith, Tykee",TBB,S,Active,,1.12,2,252.92,2024 4.14,,smith
-NFC,TBB,Tampa Bay Buccaneers,16676,"Kinchens, Kamren LAR S","Kinchens, Kamren",LAR,S,Active,Doubtful,1.11,2,252.92,2024 4.17,,kinchens
-NFC,TBB,Tampa Bay Buccaneers,16211,"Nacua, Puka LAR WR","Nacua, Puka",LAR,WR,Active,Doubtful,5.81,1,252.92,2023 3.10^,,nacua
+NFC,TBB,Tampa Bay Buccaneers,16676,"Kinchens, Kamren LAR S","Kinchens, Kamren",LAR,S,Active,Out,1.11,2,252.92,2024 4.17,,kinchens
+NFC,TBB,Tampa Bay Buccaneers,16211,"Nacua, Puka LAR WR","Nacua, Puka",LAR,WR,Active,Out,5.81,1,252.92,2023 3.10^,,nacua
 NFC,TBB,Tampa Bay Buccaneers,16667,"Gray, Cedric TEN LB","Gray, Cedric",TEN,LB,Active,,1.19,1,252.92,2024 4.03,,gray
 NFC,TBB,Tampa Bay Buccaneers,13704,"Nwosu, Uchenna SEA DE","Nwosu, Uchenna",SEA,DE,Active,,4.14,1,252.92,2024 UFA,,nwosu
 NFC,TBB,Tampa Bay Buccaneers,17068,"Harvey, RJ DEN RB","Harvey, RJ",DEN,RB,Active,,2.7,3,252.92,2025 1.15,,harvey
@@ -562,7 +562,7 @@ NFC,TBB,Tampa Bay Buccaneers,16296,"Miller, Ventrell JAC LB","Miller, Ventrell",
 NFC,TBB,Tampa Bay Buccaneers,13066,"Raymond, Kalif CHI WR","Raymond, Kalif",CHI,WR,Active,,2,1,252.92,2026 UFA,,raymond
 NFC,TBB,Tampa Bay Buccaneers,13289,"Hollins, Mack NEP WR","Hollins, Mack",NEP,WR,Active,,2,1,252.92,2026 UFA,,hollins
 NFC,TBB,Tampa Bay Buccaneers,14983,"Bass, Tyler BUF PK","Bass, Tyler",BUF,PK,Active,,1.1,1,252.92,2026 UFA,,bass
-NFC,TBB,Tampa Bay Buccaneers,15301,"Atwell, Tutu LAR WR","Atwell, Tutu",LAR,WR,Active,,1.1,1,252.92,2026 UFA,,atwell
+NFC,TBB,Tampa Bay Buccaneers,15301,"Atwell, Tutu LAR WR","Atwell, Tutu",LAR,WR,Active,Out,1.1,1,252.92,2026 UFA,,atwell
 NFC,TBB,Tampa Bay Buccaneers,17647,"Law, Kendrick DET WR","Law, Kendrick",DET,WR,INJURED_RESERVE,IR,0.94,3,252.92,2026 UDFA,,law
 NFC,TBB,Tampa Bay Buccaneers,15972,"Mason, Jordan MIN RB","Mason, Jordan",MIN,RB,INJURED_RESERVE,IR,8.36,1,252.92,2025 UFA,,mason
 NFC,TBB,Tampa Bay Buccaneers,17578,"Louis, Kyle MIA LB","Louis, Kyle",MIA,LB,INJURED_RESERVE,IR,1.04,4,252.92,2026 4.16,,louis
@@ -1135,7 +1135,7 @@ AFC,PIT,Pittsburgh Steelers,15418,"Bynum, Camryn IND S","Bynum, Camryn",IND,S,Ac
 AFC,PIT,Pittsburgh Steelers,15378,"Oweh, Odafe WAS DE","Oweh, Odafe",WAS,DE,Active,,3.6,2,259.67,2024 iEXT,,oweh
 AFC,PIT,Pittsburgh Steelers,11706,"Clowney, Jadeveon HOU DE","Clowney, Jadeveon",HOU,DE,Active,,1.1,1,259.67,2026 UFA,,clowney
 AFC,PIT,Pittsburgh Steelers,17468,"Allar, Drew PIT QB","Allar, Drew",PIT,QB,Active,Out,1.18,4,259.67,2026 3.18,,allar
-AFC,PIT,Pittsburgh Steelers,17463,"Simpson, Ty LAR QB","Simpson, Ty",LAR,QB,Active,R,2.39,4,259.67,2026 2.02,,simpson
+AFC,PIT,Pittsburgh Steelers,17463,"Simpson, Ty LAR QB","Simpson, Ty",LAR,QB,Active,Out,2.39,4,259.67,2026 2.02,,simpson
 AFC,PIT,Pittsburgh Steelers,17548,"Joly, Justin MIA TE","Joly, Justin",MIA,TE,Active,R,0.98,4,259.67,2026 5.19,,joly
 AFC,PIT,Pittsburgh Steelers,17546,"Trigg, Michael DAL TE","Trigg, Michael",DAL,TE,Active,R,0.99,4,259.67,2026 5.12,,trigg
 AFC,PIT,Pittsburgh Steelers,13303,"Elliott, Jake PHI PK","Elliott, Jake",PHI,PK,Active,,1.1,1,259.67,2026 UFA,,elliott
@@ -1151,7 +1151,7 @@ AFC,HOU,Houston Texans,15698,"Purdy, Brock SFO QB","Purdy, Brock",SFO,QB,Active,
 AFC,HOU,Houston Texans,16213,"Kincaid, Dalton BUF TE","Kincaid, Dalton",BUF,TE,Active,,4.1,1,257.89,2023 1.09,,kincaid
 AFC,HOU,Houston Texans,16241,"Witherspoon, Devon SEA CB","Witherspoon, Devon",SEA,CB,Active,,3.7,1,257.89,2023 3.09^,,witherspoon
 AFC,HOU,Houston Texans,16694,"Fiske, Braden LAR DT","Fiske, Braden",LAR,DT,Active,,1.58,2,257.89,2024 2.15,,fiske
-AFC,HOU,Houston Texans,16676,"Kinchens, Kamren LAR S","Kinchens, Kamren",LAR,S,Active,Doubtful,1.09,2,257.89,2024 5.09,,kinchens
+AFC,HOU,Houston Texans,16676,"Kinchens, Kamren LAR S","Kinchens, Kamren",LAR,S,Active,Out,1.09,2,257.89,2024 5.09,,kinchens
 AFC,HOU,Houston Texans,13251,"Baker, Budda ARI S","Baker, Budda",ARI,S,Active,,7.37,1,257.89,2025 oEXT,,baker
 AFC,HOU,Houston Texans,15805,"Hutchinson, Aidan DET DE","Hutchinson, Aidan",DET,DE,Active,,10.26,5,257.89,2025 iEXT,,hutchinson
 AFC,HOU,Houston Texans,15809,"Johnson, Jermaine TEN DE","Johnson, Jermaine",TEN,DE,Active,,7.46,4,257.89,2025 iEXT,,johnson
@@ -1301,7 +1301,7 @@ AFC,TEN,Tennessee Titans,16150,"Stroud, C.J. HOU QB","Stroud, C.J.",HOU,QB,Activ
 AFC,TEN,Tennessee Titans,16303,"Herbig, Nick PIT DE","Herbig, Nick",PIT,DE,Active,,1.23,1,260.48,2023 4.10,,herbig
 AFC,TEN,Tennessee Titans,14153,"Allen, Zach DEN DT","Allen, Zach",DEN,DT,Active,,13.94,1,260.48,2024 UFA,,allen
 AFC,TEN,Tennessee Titans,12221,"Hunter, Danielle HOU DE","Hunter, Danielle",HOU,DE,Active,,18.69,1,260.48,2026 oEXT,,hunter
-AFC,TEN,Tennessee Titans,16211,"Nacua, Puka LAR WR","Nacua, Puka",LAR,WR,Active,Doubtful,5.81,1,260.48,2023 5.03^,,nacua
+AFC,TEN,Tennessee Titans,16211,"Nacua, Puka LAR WR","Nacua, Puka",LAR,WR,Active,Out,5.81,1,260.48,2023 5.03^,,nacua
 AFC,TEN,Tennessee Titans,16584,"McCarthy, J.J. MIN QB","McCarthy, J.J.",MIN,QB,Active,Out,4.42,2,260.48,2024 1.07,,mccarthy
 AFC,TEN,Tennessee Titans,15290,"Collins, Nico HOU WR","Collins, Nico",HOU,WR,Active,Out,27.78,3,260.48,2025 B/R,,collins
 AFC,TEN,Tennessee Titans,17147,"Schwesinger, Carson CLE LB","Schwesinger, Carson",CLE,LB,Active,,1.8,3,260.48,2025 2.10,,schwesinger
