@@ -155,6 +155,9 @@ jobs:
           invisible(lapply(r_files, parse))
           cat("Parsed", length(r_files), "R files.\n")
 
+      - name: Verify cap workflow transaction safety
+        run: python3 scripts/check_cap_workflow_safety.py
+
       - name: Verify SalAdj individual waiver event matching
         run: Rscript scripts/test_saladj_waivers.R
 

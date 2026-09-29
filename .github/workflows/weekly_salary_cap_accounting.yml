@@ -24,6 +24,7 @@ concurrency:
 jobs:
   run-salary-cap-accounting:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
       CURRENT_SEASON: "2026"
@@ -37,6 +38,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Verify cap workflow transaction safety
+        run: python3 scripts/check_cap_workflow_safety.py
+
       - name: Verify snapshot request
         id: localtime
         shell: bash
@@ -44,13 +48,21 @@ jobs:
           test -n "$SNAPSHOT_WEEK" || { echo "snapshot_week is required"; exit 1; }
           [[ "$SNAPSHOT_WEEK" =~ ^[0-9]+$ ]] || { echo "snapshot_week must be numeric"; exit 1; }
           metadata_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapmetadata.csv"
-          if [ -f "$metadata_path" ]; then
+          completion_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapcomplete.csv"
+          if [ -f "$completion_path" ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "The official Week ${SNAPSHOT_WEEK} cap snapshot already exists; preserving it."
+            echo "capture_needed=false" >> "$GITHUB_OUTPUT"
+            echo "The official Week ${SNAPSHOT_WEEK} cap package is already complete; preserving it."
             exit 0
           fi
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-          echo "Weekly package requested the official Week ${SNAPSHOT_WEEK} cap snapshot."
+          if [ -f "$metadata_path" ]; then
+            echo "capture_needed=false" >> "$GITHUB_OUTPUT"
+            echo "Week ${SNAPSHOT_WEEK} snapshot is already committed; resuming its unfinished Cap Rollover writeback."
+          else
+            echo "capture_needed=true" >> "$GITHUB_OUTPUT"
+            echo "Weekly package requested the official Week ${SNAPSHOT_WEEK} cap snapshot."
+          fi
 
       - name: Create cache directories
         if: steps.localtime.outputs.should_run == 'true'
@@ -121,7 +133,7 @@ jobs:
           sessionInfo()
 
       - name: Run salary cap accounting
-        if: steps.localtime.outputs.should_run == 'true'
+        if: steps.localtime.outputs.capture_needed == 'true'
         env:
           CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
@@ -131,39 +143,29 @@ jobs:
           MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
-        run: Rscript scripts/run_cap_accounting.R
-
-      - name: Update Contract Admin Cap Rollover tab
-        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT == 'true'
-        env:
-          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
-          SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
-          R_LIBS_USER: ${{ env.R_LIBS_USER }}
-          CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
-          CONTRACT_ADMIN_CAP_ROLLOVER_TAB: Cap Rollover
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: Rscript scripts/push_cap_rollover_to_google_sheet.R
-
-      - name: Skip Contract Admin writeback when Google credentials are missing
-        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT != 'true'
         run: |
-          echo "::warning::GOOGLE_SERVICE_ACCOUNT_JSON is not configured, so the Contract Admin Cap Rollover tab was not updated."
+          for attempt in 1 2 3; do
+            Rscript scripts/run_cap_accounting.R && exit 0
+            echo "Salary cap accounting attempt ${attempt} failed."
+            sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Build dashboard site
-        if: steps.localtime.outputs.should_run == 'true'
+        if: steps.localtime.outputs.capture_needed == 'true'
         env:
           CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
         run: Rscript scripts/build_dashboard.R
 
-      - name: Commit generated files
-        if: steps.localtime.outputs.should_run == 'true'
+      - name: Commit immutable snapshot files
+        if: steps.localtime.outputs.capture_needed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data docs
-          git diff --cached --quiet && exit 0
+          git diff --cached --quiet && { echo "No snapshot files were generated."; exit 1; }
           git commit -m "Update weekly salary cap accounting"
 
           for attempt in 1 2 3; do
@@ -178,18 +180,75 @@ jobs:
           echo "Failed to push weekly salary cap accounting after 3 attempts."
           exit 1
 
+      - name: Update Contract Admin Cap Rollover tab
+        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+          CONTRACT_ADMIN_CAP_ROLLOVER_TAB: Cap Rollover
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          for attempt in 1 2 3; do
+            Rscript scripts/push_cap_rollover_to_google_sheet.R && exit 0
+            echo "Cap Rollover writeback attempt ${attempt} failed."
+            sleep $((attempt * 15))
+          done
+          exit 1
+
+      - name: Skip Contract Admin writeback when Google credentials are missing
+        if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT != 'true'
+        run: |
+          echo "::error::GOOGLE_SERVICE_ACCOUNT_JSON is not configured, so Cap Rollover cannot be certified complete."
+          exit 1
+
+      - name: Record completed cap package
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          completion_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapcomplete.csv"
+          mkdir -p "$(dirname "$completion_path")"
+          printf 'season,week,completed_at_utc,orchestrator_run_id,workflow_run_url\n%s,%s,%s,%s,%s\n' \
+            "$CURRENT_SEASON" "$SNAPSHOT_WEEK" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            "${{ inputs.orchestrator_run_id }}" "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            > "$completion_path"
+          git add "$completion_path"
+          git commit -m "Confirm Week ${SNAPSHOT_WEEK} cap package completion"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase --autostash -X theirs origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Failed to record completed cap package after 3 attempts."
+          exit 1
+
       - name: Email official snapshot confirmation
         if: steps.localtime.outputs.should_run == 'true'
+        continue-on-error: true
         env:
           CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
           SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
           ADL_CAP_SNAPSHOT_SEND_EMAIL: "true"
           ADL_CAP_SNAPSHOT_EMAIL_TO: fili.mikey@gmail.com,wittecarson@gmail.com
-          ADL_CAP_SNAPSHOT_SHEET_STATUS: ${{ env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT == 'true' && 'updated successfully' || 'not updated because Google credentials were unavailable' }}
+          ADL_CAP_SNAPSHOT_SHEET_STATUS: updated successfully
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
           ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
           ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
           ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
-        run: Rscript scripts/send_cap_snapshot_confirmation.R
+        run: |
+          for attempt in 1 2 3; do
+            Rscript scripts/send_cap_snapshot_confirmation.R && exit 0
+            echo "Snapshot confirmation email attempt ${attempt} failed."
+            sleep $((attempt * 15))
+          done
+          echo "::warning::The cap package completed, but its confirmation email could not be sent."
+          exit 1
