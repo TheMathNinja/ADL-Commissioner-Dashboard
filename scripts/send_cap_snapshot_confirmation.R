@@ -42,7 +42,17 @@ send_snapshot_mail <- function(subject, body, recipients) {
 }
 
 season <- get_current_season()
-week <- get_snapshot_week(season)
+week <- suppressWarnings(as.integer(Sys.getenv("SNAPSHOT_WEEK", unset = NA_character_)))
+if (is.na(week)) {
+  metadata_files <- list.files(
+    file.path("data", "cap_accounting", season),
+    pattern = paste0("^", season, "w[0-9]+_ADLsalarycapmetadata[.]csv$"),
+    full.names = TRUE
+  )
+  if (!length(metadata_files)) stop("No official cap snapshot metadata files were found.")
+  weeks <- suppressWarnings(as.integer(sub(paste0("^", season, "w([0-9]+)_.*$"), "\\1", basename(metadata_files))))
+  week <- max(weeks, na.rm = TRUE)
+}
 metadata_path <- Sys.getenv(
   "ADL_CAP_SNAPSHOT_METADATA_PATH",
   unset = file.path("data", "cap_accounting", season, paste0(season, "w", week, "_ADLsalarycapmetadata.csv"))
