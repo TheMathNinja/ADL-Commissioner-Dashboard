@@ -2800,6 +2800,15 @@ commissioner_alert_date_label <- function(checked_date = Sys.Date()) {
   format(as.Date(checked_date), "%Y-%m-%d")
 }
 
+commissioner_digest_date_label <- function(checked_date = Sys.Date(), week = NULL) {
+  checked_date <- as.Date(checked_date)
+  if (is.null(week) || is.na(week)) return(commissioner_alert_date_label(checked_date))
+  paste0(
+    format(checked_date, "%b "), as.integer(format(checked_date, "%d")),
+    " (Week ", as.integer(week), " ", format(checked_date, "%A"), ")"
+  )
+}
+
 render_commissioner_alert_email <- function(
   alerts,
   season = get_current_season(),
@@ -2811,7 +2820,7 @@ render_commissioner_alert_email <- function(
 ) {
   render_season <- as.integer(season[[1]])
   render_checked_date <- as.Date(checked_date[[1]])
-  title <- title %||% paste0("ADL Commissioner Alerts - ", commissioner_alert_date_label(checked_date), if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else "")
+  title <- title %||% paste0("ADL Commissioner Alerts - ", commissioner_digest_date_label(checked_date, week))
   compliance_line <- if (!is.null(compliant_teams) && !is.na(compliant_teams)) {
     paste0(compliant_teams, " teams roster compliant.")
   } else {
@@ -3116,7 +3125,7 @@ send_commissioner_alert_email <- function(
 
   recipients <- resolve_commissioner_alert_recipients(season = season)
   recipients_path <- write_commissioner_alert_recipients(recipients, season = season, week = week)
-  subject <- digest_subject %||% paste0("ADL Commissioner Alerts - ", date_label, if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else "")
+  subject <- digest_subject %||% paste0("ADL Commissioner Alerts - ", commissioner_digest_date_label(checked_date, week))
 
   if (!nrow(alerts)) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)

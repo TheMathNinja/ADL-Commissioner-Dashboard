@@ -53,6 +53,8 @@ digest <- render_commissioner_alert_email(dplyr::bind_rows(first, second), check
 stopifnot(grepl("Roster Cap Violation (1st Consecutive)", digest, fixed = TRUE))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", digest, fixed = TRUE))
 stopifnot(grepl(paste0(rule, " (2nd Consecutive)"), digest, fixed = TRUE))
+friday_digest <- render_commissioner_alert_email(first, week = 3L, checked_date = as.Date("2026-09-25"))
+stopifnot(startsWith(friday_digest, "ADL Commissioner Alerts - Sep 25 (Week 3 Friday)"))
 gm <- render_commissioner_gm_alert_email(second, checked_date = as.Date(day2))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", gm, fixed = TRUE))
 stopifnot(grepl(paste0(rule, " (2nd Consecutive)"), gm, fixed = TRUE))
