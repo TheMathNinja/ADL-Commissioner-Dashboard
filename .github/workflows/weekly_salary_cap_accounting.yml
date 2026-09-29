@@ -1,17 +1,17 @@
 name: Weekly Salary Cap Accounting
+run-name: ${{ inputs.orchestrator_run_id != '' && format('Official Week {0} cap snapshot (weekly package {1})', inputs.snapshot_week, inputs.orchestrator_run_id) || format('Official Week {0} cap snapshot', inputs.snapshot_week) }}
 
 on:
   workflow_dispatch:
     inputs:
       snapshot_week:
-        description: "Fantasy week to snapshot. Leave blank to infer from the NFL schedule."
+        description: "Fantasy week to snapshot."
+        required: true
+        type: string
+      orchestrator_run_id:
+        description: "GM Dashboard weekly-package run that requested this snapshot."
         required: false
         type: string
-  schedule:
-    - cron: "15 3 * 9-12,1 2"
-    - cron: "45 3 * 9-12,1 2"
-    - cron: "15 4 * 9-12,1 2"
-    - cron: "45 4 * 9-12,1 2"
 
 permissions:
   contents: write
@@ -37,71 +37,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Decide whether scheduled run should proceed
+      - name: Verify snapshot request
         id: localtime
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Manual run -> proceeding."
+          test -n "$SNAPSHOT_WEEK" || { echo "snapshot_week is required"; exit 1; }
+          [[ "$SNAPSHOT_WEEK" =~ ^[0-9]+$ ]] || { echo "snapshot_week must be numeric"; exit 1; }
+          metadata_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapmetadata.csv"
+          if [ -f "$metadata_path" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "The official Week ${SNAPSHOT_WEEK} cap snapshot already exists; preserving it."
             exit 0
           fi
-
-          TORONTO_OFFSET=$(TZ=America/Toronto date +%z)
-          SCHEDULE="${{ github.event.schedule }}"
-          echo "Toronto UTC offset is $TORONTO_OFFSET"
-          echo "Scheduled cron is $SCHEDULE"
-
-          PRIMARY_CRON=""
-          BACKUP_CRON=""
-          if [ "$TORONTO_OFFSET" = "-0400" ]; then
-            PRIMARY_CRON="15 3 * 9-12,1 2"
-            BACKUP_CRON="45 3 * 9-12,1 2"
-          elif [ "$TORONTO_OFFSET" = "-0500" ]; then
-            PRIMARY_CRON="15 4 * 9-12,1 2"
-            BACKUP_CRON="45 4 * 9-12,1 2"
-          fi
-
-          if [ "$SCHEDULE" = "$PRIMARY_CRON" ] || [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
-            TODAY_ET=$(TZ=America/Toronto date +%F)
-            DOW_ET=$(TZ=America/Toronto date +%u)
-            SNAPSHOT_DATE_ET="$TODAY_ET"
-            if [ "$DOW_ET" = "2" ]; then
-              SNAPSHOT_DATE_ET=$(TZ=America/Toronto date -d "yesterday" +%F)
-            fi
-            FIRST_SNAPSHOT_DATE=$(TZ=America/Toronto date -d "${ADL_WEEK_ONE_START} +4 days" +%F)
-            if [[ "$TODAY_ET" < "$FIRST_SNAPSHOT_DATE" ]]; then
-              echo "should_run=false" >> "$GITHUB_OUTPUT"
-              echo "Too early for weekly salary cap accounting. First official snapshot date is ${FIRST_SNAPSHOT_DATE}; today is ${TODAY_ET}."
-            else
-              CUTOFF_UTC=$(TZ=America/Toronto date -u -d "${SNAPSHOT_DATE_ET} 23:00" +%Y-%m-%dT%H:%M:%SZ)
-              echo "Snapshot date is ${SNAPSHOT_DATE_ET}; checking for a successful salary snapshot run since ${CUTOFF_UTC}."
-              RECENT_SUCCESS_COUNT=$(gh run list \
-                --repo "$GITHUB_REPOSITORY" \
-                --workflow weekly_salary_cap_accounting.yml \
-                --branch main \
-                --status success \
-                --limit 20 \
-                --json createdAt,event,databaseId \
-                --jq "[.[] | select(.createdAt >= \"${CUTOFF_UTC}\" and (.databaseId|tostring) != \"${GITHUB_RUN_ID}\" and (.event == \"schedule\" or .event == \"workflow_dispatch\"))] | length")
-
-              if [ "${RECENT_SUCCESS_COUNT}" -gt 0 ]; then
-                echo "should_run=false" >> "$GITHUB_OUTPUT"
-                echo "A successful salary snapshot run already completed for this Monday-night window -> scheduled run skipping."
-              elif [ "$SCHEDULE" = "$BACKUP_CRON" ]; then
-                echo "should_run=true" >> "$GITHUB_OUTPUT"
-                echo "No successful primary scheduled salary snapshot found tonight -> backup proceeding."
-              else
-                echo "should_run=true" >> "$GITHUB_OUTPUT"
-                echo "Primary 11:15 p.m. Toronto Monday cron slot -> proceeding."
-              fi
-            fi
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Duplicate non-Monday-night Toronto cron slot -> skipping."
-          fi
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "Weekly package requested the official Week ${SNAPSHOT_WEEK} cap snapshot."
 
       - name: Create cache directories
         if: steps.localtime.outputs.should_run == 'true'
