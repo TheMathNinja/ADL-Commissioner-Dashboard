@@ -228,3 +228,19 @@ jobs:
 
           echo "Failed to push weekly salary cap accounting after 3 attempts."
           exit 1
+
+      - name: Email official snapshot confirmation
+        if: steps.localtime.outputs.should_run == 'true'
+        env:
+          CURRENT_SEASON: ${{ env.CURRENT_SEASON }}
+          SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+          ADL_CAP_SNAPSHOT_SEND_EMAIL: "true"
+          ADL_CAP_SNAPSHOT_EMAIL_TO: fili.mikey@gmail.com,wittecarson@gmail.com
+          ADL_CAP_SNAPSHOT_SHEET_STATUS: ${{ env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT == 'true' && 'updated successfully' || 'not updated because Google credentials were unavailable' }}
+          ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+          ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+          ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+          ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+          ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+        run: Rscript scripts/send_cap_snapshot_confirmation.R

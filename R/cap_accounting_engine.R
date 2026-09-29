@@ -648,6 +648,7 @@ build_cap_accounting_snapshot <- function(
     output_dir = output_dir
   )
 
+  snapshot_taken_at <- Sys.time()
   snapshot_raw <- ffscrapr::ff_rosters(conn, week = snapshot_week) %>%
     dplyr::mutate(
       franchise_id = as.character(.data$franchise_id),
@@ -820,6 +821,20 @@ build_cap_accounting_snapshot <- function(
     unlink(output_waiver_corrections_csv)
   }
 
+  output_metadata_csv <- file.path(base_dir, paste0(current_season, "w", snapshot_week, "_ADLsalarycapmetadata.csv"))
+  readr::write_csv(
+    tibble::tibble(
+      season = current_season,
+      week = snapshot_week,
+      snapshot_taken_at_utc = format(snapshot_taken_at, "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+      snapshot_taken_at_et = format(snapshot_taken_at, "%Y-%m-%d %H:%M:%S %Z", tz = "America/New_York"),
+      completed_at_utc = format(Sys.time(), "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+      workflow_run_url = Sys.getenv("GITHUB_SERVER_URL", unset = "") |> paste0("/", Sys.getenv("GITHUB_REPOSITORY", unset = ""), "/actions/runs/", Sys.getenv("GITHUB_RUN_ID", unset = ""))
+    ),
+    output_metadata_csv,
+    na = ""
+  )
+
   tibble::tibble(
     current_season = current_season,
     snapshot_week = snapshot_week,
@@ -828,6 +843,7 @@ build_cap_accounting_snapshot <- function(
     summary_csv = output_summary_csv,
     summary_rds = output_summary_rds,
     waiver_corrections_csv = if (nrow(waiver_corrections) > 0) output_waiver_corrections_csv else NA_character_,
-    warnings_csv = output_warnings_csv
+    warnings_csv = output_warnings_csv,
+    metadata_csv = output_metadata_csv
   )
 }
