@@ -2809,6 +2809,96 @@ commissioner_digest_date_label <- function(checked_date = Sys.Date(), week = NUL
   )
 }
 
+commissioner_alert_short_date <- function(date) {
+  date <- as.Date(date)
+  paste0(format(date, "%b "), as.integer(format(date, "%d")))
+}
+
+commissioner_clean_run_history <- function(
+  season = get_current_season(),
+  checked_date = Sys.Date(),
+  report_dir = commissioner_alert_report_dir(),
+  max_days = 366L
+) {
+  checked_date <- as.Date(checked_date)
+  clean_dates <- as.Date(character())
+  stop_date <- checked_date - 1L
+  stop_reason <- "missing"
+
+  for (offset in seq_len(as.integer(max_days))) {
+    report_date <- checked_date - offset
+    if (as.integer(format(report_date, "%Y")) < as.integer(season)) break
+    files <- list.files(
+      report_dir,
+      pattern = paste0(
+        "^commissioner_alert_report_", report_date, "_", season,
+        "(_week[0-9]+)?[.]csv$"
+      ),
+      full.names = TRUE
+    )
+    if (!length(files)) {
+      stop_date <- report_date
+      stop_reason <- "missing"
+      break
+    }
+
+    newest <- files[[which.max(file.info(files)$mtime)]]
+    report <- tryCatch(
+      readr::read_csv(newest, show_col_types = FALSE),
+      error = function(e) NULL
+    )
+    if (is.null(report)) {
+      stop_date <- report_date
+      stop_reason <- "unreadable"
+      break
+    }
+    if (nrow(report) > 0L) {
+      stop_date <- report_date
+      stop_reason <- "alerts"
+      break
+    }
+    clean_dates <- c(clean_dates, report_date)
+    stop_date <- report_date - 1L
+    stop_reason <- "limit"
+  }
+
+  list(
+    clean_dates = rev(clean_dates),
+    stop_date = as.Date(stop_date),
+    stop_reason = stop_reason
+  )
+}
+
+render_commissioner_clean_run_lines <- function(
+  season = get_current_season(),
+  checked_date = Sys.Date(),
+  report_dir = commissioner_alert_report_dir()
+) {
+  history <- commissioner_clean_run_history(
+    season = season,
+    checked_date = checked_date,
+    report_dir = report_dir
+  )
+  dates <- history$clean_dates
+  count <- length(dates)
+  summary <- if (count) {
+    paste0(
+      paste(vapply(dates, commissioner_alert_short_date, character(1)), collapse = ", "),
+      " (", count, " consecutive clean day", if (count == 1L) "" else "s", ")"
+    )
+  } else {
+    "No consecutive clean days immediately before today."
+  }
+  boundary <- switch(
+    history$stop_reason,
+    alerts = paste0("The preceding report on ", commissioner_alert_short_date(history$stop_date), " contained alerts."),
+    unreadable = paste0("The report for ", commissioner_alert_short_date(history$stop_date), " could not be read; continuity before that date is unverified."),
+    limit = paste0("All available prior reports in the ", season, " season are included above."),
+    paste0("No report was found for ", commissioner_alert_short_date(history$stop_date), "; continuity before that date is unverified.")
+  )
+  c("Recent Clean Daily Runs", strrep("-", 23L), summary, boundary)
+}
+
 render_commissioner_alert_email <- function(
   alerts,
   season = get_current_season(),
@@ -2821,6 +2911,10 @@ render_commissioner_alert_email <- function(
   render_season <- as.integer(season[[1]])
   render_checked_date <- as.Date(checked_date[[1]])
   title <- title %||% paste0("ADL Commissioner Alerts - ", commissioner_digest_date_label(checked_date, week))
+  clean_run_lines <- render_commissioner_clean_run_lines(
+    season = render_season,
+    checked_date = render_checked_date
+  )
   compliance_line <- if (!is.null(compliant_teams) && !is.na(compliant_teams)) {
     paste0(compliant_teams, " teams roster compliant.")
   } else {
@@ -2828,7 +2922,7 @@ render_commissioner_alert_email <- function(
   }
 
   if (!nrow(alerts)) {
-    return(paste(c(title, "", compliance_line, "No ADL roster violations were found."), collapse = "\n"))
+    return(paste(c(title, "", clean_run_lines, "", compliance_line, "No ADL roster violations were found."), collapse = "\n"))
   }
 
   alerts <- alerts |>
@@ -2842,7 +2936,7 @@ render_commissioner_alert_email <- function(
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 
-  lines <- c(title, "", compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
+  lines <- c(title, "", clean_run_lines, "", compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
   if (isTRUE(gm_emails_sent)) {
     lines <- c(lines, "Individual emails have been sent to all franchises in violation.", "")
   }

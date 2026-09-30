@@ -58,6 +58,29 @@ stopifnot(startsWith(friday_digest, "ADL Commissioner Alerts - Sep 25 (Week 3 Fr
 gm <- render_commissioner_gm_alert_email(second, checked_date = as.Date(day2))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", gm, fixed = TRUE))
 stopifnot(grepl(paste0(rule, " (2nd Consecutive)"), gm, fixed = TRUE))
+
+clean_report <- tibble::tibble(
+  alert_type = character(), severity = character(), conference = character(),
+  franchise = character(), franchise_name = character(), rule = character(),
+  observed = character(), details = character()
+)
+report("2026-09-26", "03", row)
+for (date in c("2026-09-27", "2026-09-28", "2026-09-29")) {
+  readr::write_csv(
+    clean_report,
+    file.path(report_dir, paste0("commissioner_alert_report_", date, "_2026_week03.csv"))
+  )
+}
+clean_lines <- render_commissioner_clean_run_lines(2026, as.Date("2026-09-30"), report_dir)
+stopifnot(grepl("Sep 27, Sep 28, Sep 29 (3 consecutive clean days)", paste(clean_lines, collapse = "\n"), fixed = TRUE))
+stopifnot(grepl("preceding report on Sep 26 contained alerts", paste(clean_lines, collapse = "\n"), fixed = TRUE))
+clean_digest <- render_commissioner_alert_email(clean_report, season = 2026, checked_date = as.Date("2026-09-30"))
+stopifnot(grepl("Recent Clean Daily Runs", clean_digest, fixed = TRUE))
+stopifnot(grepl("Sep 27, Sep 28, Sep 29", clean_digest, fixed = TRUE))
+unlink(file.path(report_dir, "commissioner_alert_report_2026-09-28_2026_week03.csv"))
+gap_lines <- paste(render_commissioner_clean_run_lines(2026, as.Date("2026-09-30"), report_dir), collapse = "\n")
+stopifnot(grepl("Sep 29 (1 consecutive clean day)", gap_lines, fixed = TRUE))
+stopifnot(grepl("No report was found for Sep 28", gap_lines, fixed = TRUE))
 cat("Roster-cap streak and email checks passed.\n")
 
 # A pre-existing checked_at column must not mask the scalar run timestamp when
