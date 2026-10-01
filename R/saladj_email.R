@@ -41,8 +41,16 @@ format_saladj_digest_row <- function(row) {
   paste0(
     "- Dropped ", date, " ET by ", fran, " | ", player_display,
     if (length(contract_details)) paste0(": ", paste(contract_details, collapse = " / ")) else "",
-    if (length(trailing_details)) paste0(" | ", paste(trailing_details, collapse = "; ")) else ""
+    if (length(trailing_details)) paste0("\n  ", paste(trailing_details, collapse = "\n  ")) else ""
   )
+}
+
+parse_saladj_workflow_time <- function(value, tz = "UTC") {
+  if (!nzchar(value)) return(as.POSIXct(NA, tz = tz))
+  if (grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", value)) {
+    return(suppressWarnings(as.POSIXct(value, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")))
+  }
+  suppressWarnings(as.POSIXct(value, tz = tz))
 }
 
 saladj_public_csv_url <- function(archive_filename) {
