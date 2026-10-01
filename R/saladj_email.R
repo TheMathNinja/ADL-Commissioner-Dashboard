@@ -72,20 +72,23 @@ render_saladj_run_audit <- function(run_audit = list()) {
   if (!nzchar(scheduled) && !nzchar(started) && !nzchar(duration)) return(character())
 
   c(
-    "Run audit",
-    "---------",
-    if (nzchar(scheduled)) paste0("Scheduled: ", scheduled) else paste0("Trigger: ", trigger, " (no scheduled time)"),
-    if (nzchar(started)) paste0("Workflow started: ", started) else NULL,
-    if (nzchar(completed)) paste0("Email prepared: ", completed) else NULL,
-    if (nzchar(duration)) paste0("Runtime to email: ", duration) else NULL,
+    if (nzchar(scheduled)) paste0("SalAdj scraper scheduled: ", scheduled) else "SalAdj scraper scheduled: Not available",
+    if (nzchar(started)) {
+      paste0("Run started/triggered: ", started, if (nzchar(trigger)) paste0(" (", trigger, ")") else "")
+    } else {
+      paste0("Run started/triggered: ", trigger)
+    },
+    if (nzchar(completed)) paste0(
+      "Run completed / email prepared: ", completed,
+      if (nzchar(duration)) paste0(" (runtime: ", duration, ")") else ""
+    ) else NULL,
     ""
   )
 }
 
 render_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list()) {
-  title <- "There are new salary adjustments to enter"
   if (!nrow(new_rows)) {
-    return(paste(c(title, "", "No new SalAdj rows were found."), collapse = "\n"))
+    return("No new SalAdj rows were found.")
   }
 
   groups <- split(new_rows, new_rows$CONF)
@@ -93,11 +96,9 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display, ru
   groups <- groups[c(intersect(conference_order, names(groups)), setdiff(names(groups), conference_order))]
 
   lines <- c(
-    title,
-    "",
     render_saladj_run_audit(run_audit),
     paste0("SalAdj Curator published ", nrow(new_rows), " new row(s) at ", run_time_display, "."),
-    paste0("Dashboard CSV: ", saladj_public_csv_url(archive_filename)),
+    paste0("Dashboard CSV here: ", saladj_public_csv_url(archive_filename)),
     "",
     "Please enter the following new salary adjustments in the Contract Admin sheet.",
     ""
@@ -113,4 +114,24 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display, ru
   }
 
   paste(lines, collapse = "\n")
+}
+
+saladj_html_escape <- function(x) {
+  x <- gsub("&", "&amp;", x, fixed = TRUE)
+  x <- gsub("<", "&lt;", x, fixed = TRUE)
+  x <- gsub(">", "&gt;", x, fixed = TRUE)
+  gsub('"', "&quot;", x, fixed = TRUE)
+}
+
+render_saladj_email_html <- function(body, archive_filename) {
+  url <- saladj_public_csv_url(archive_filename)
+  escaped <- saladj_html_escape(body)
+  csv_line <- saladj_html_escape(paste0("Dashboard CSV here: ", url))
+  csv_link <- paste0('<a href="', saladj_html_escape(url), '">Dashboard CSV here</a>')
+  escaped <- sub(csv_line, csv_link, escaped, fixed = TRUE)
+  paste0(
+    '<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px;line-height:1.45">',
+    escaped,
+    "</div>"
+  )
 }
