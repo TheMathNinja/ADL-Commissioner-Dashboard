@@ -12,6 +12,16 @@ source("R/config_helpers.R")
 source("R/mfl_helpers.R")
 source("R/saladj_waivers.R")
 
+is_salary_adjustment_drop <- function(type, type_desc) {
+  tolower(trimws(as.character(type_desc))) == "dropped" &
+    toupper(trimws(as.character(type))) %in% c(
+      "FREE_AGENT",
+      "WAIVER",
+      "BBID_WAIVER",
+      "ROSTER"
+    )
+}
+
 build_saladj_curator <- function(current_season = get_current_season(), output_dir = "data") {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 # ----------------------------
@@ -219,16 +229,6 @@ fetch_raw_mfl_transactions <- function(conn) {
     error = function(e) NULL
   )
   normalize_raw_mfl_transactions(raw)
-}
-
-is_salary_adjustment_drop <- function(type, type_desc) {
-  tolower(trimws(as.character(type_desc))) == "dropped" &
-    toupper(trimws(as.character(type))) %in% c(
-      "FREE_AGENT",
-      "WAIVER",
-      "BBID_WAIVER",
-      "ROSTER"
-    )
 }
 
 normalize_transaction_bind_types <- function(tx) {
