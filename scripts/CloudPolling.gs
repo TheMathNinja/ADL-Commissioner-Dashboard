@@ -94,6 +94,20 @@ function localJobMatchesDate_(job, date) {
     Number(Utilities.formatDate(date, job.timezone, 'm')) === job.minute;
 }
 
+function cloudLocalInputsParts_(job, year, month, day) {
+  if (job.workflow === 'update_dashboard.yml' && year >= 2027 && month === 7 && day === 1) {
+    return {enable_mfl_salary_writes: 'true'};
+  }
+  return job.inputs || {};
+}
+
+function cloudLocalInputs_(job, date) {
+  return cloudLocalInputsParts_(job,
+    Number(Utilities.formatDate(date, job.timezone, 'yyyy')),
+    Number(Utilities.formatDate(date, job.timezone, 'M')),
+    Number(Utilities.formatDate(date, job.timezone, 'd')));
+}
+
 function latestDueMinute_(job, now, lastRun, matcher) {
   const end = Math.floor(now.getTime() / 60000) * 60000;
   const fallbackStart = end - CLOUD_SCHEDULER.maxCatchUpMinutes * 60000;
@@ -149,13 +163,13 @@ function cloudJobKey_(job) {
   return job.repo + '/' + job.workflow + '/' + (job.cron || (job.hour + ':' + job.minute) || 'interval');
 }
 
-function dispatchOnce_(job, token, slot, props) {
+function dispatchOnce_(job, token, slot, props, overrideInputs) {
   const key = cloudJobKey_(job);
   const receipt = 'CLOUD_SCHEDULER_SENT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
   const slotText = String(slot.getTime());
   if (props.getProperty(receipt) === slotText) return false;
   try {
-    cloudDispatch_(job, token);
+    cloudDispatch_(job, token, overrideInputs);
     props.setProperty(receipt, slotText);
     props.deleteProperty('CLOUD_SCHEDULER_ALERT_' + key.replace(/[^A-Za-z0-9_]/g, '_'));
     return true;
@@ -179,8 +193,8 @@ function runCloudLeagueScheduler() {
     const previous = props.getProperty('CLOUD_SCHEDULER_LAST_RUN');
     const lastRun = previous ? new Date(Number(previous)) : null;
     const failures = [];
-    const attempt = function(job, slot) {
-      try { dispatchOnce_(job, token, slot, props); }
+    const attempt = function(job, slot, overrideInputs) {
+      try { dispatchOnce_(job, token, slot, props, overrideInputs); }
       catch (error) { failures.push(cloudJobKey_(job) + ': ' + error.message); }
     };
     const intervalSlot = new Date(Math.floor(now.getTime() / (15 * 60000)) * 15 * 60000);
@@ -195,7 +209,7 @@ function runCloudLeagueScheduler() {
     });
     CLOUD_SCHEDULER.localJobs.forEach(function(job) {
       const due = latestDueMinute_(job, now, lastRun, localJobMatchesDate_);
-      if (due) attempt(job, due);
+      if (due) attempt(job, due, cloudLocalInputs_(job, due));
     });
     props.setProperty('CLOUD_SCHEDULER_LAST_RUN', String(now.getTime()));
     if (failures.length) throw new Error(failures.join('\n'));

@@ -20,6 +20,10 @@ assert(!cron('5 */6 * 9-12,1 *',5,1,1,10,4));
 assert(!cron('5 */6 * 9-12,1 *',5,18,1,8,4));
 assert(cron('7 16 31 8 *',7,16,31,8,1));
 assert(!cron('7 16 31 8 *',7,16,30,8,1));
+const localInputs=(year,month,day)=>vm.runInContext(`JSON.stringify(cloudLocalInputsParts_({workflow:'update_dashboard.yml',inputs:{enable_mfl_salary_writes:'false'}},${year},${month},${day}))`,context);
+assert.equal(localInputs(2026,7,1),'{"enable_mfl_salary_writes":"false"}');
+assert.equal(localInputs(2027,6,30),'{"enable_mfl_salary_writes":"false"}');
+assert.equal(localInputs(2027,7,1),'{"enable_mfl_salary_writes":"true"}');
 const jobs=vm.runInContext('allCloudJobs_().map(j=>j.repo+"/"+j.workflow)',context);
 assert.equal(jobs.length,13);
 ['ADL-GM-Dashboard/poll_preliminary_scores.yml','FAFL-GM-Dashboard/poll_score_corrections.yml',
