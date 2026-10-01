@@ -15,6 +15,10 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:36905429033:1": {
       "sent_at": "2026-10-01T18:20:29.027471+00:00",
       "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 Update Dashboard"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:36906779810:1": {
+      "sent_at": "2026-10-01T18:26:30.407594+00:00",
+      "subject": "[League automation CANCELLED] FAFL-GM-Dashboard \u2014 Poll Thursday score corrections"
     }
   },
   "checked": {
@@ -40,6 +44,8 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:36899757065:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:36902425327:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:36903602342:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:36904517003:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:36904517003:1": "success",
+    "TheMathNinja/ADL-GM-Dashboard:36906769465:1": "success",
+    "TheMathNinja/ADL-GM-Dashboard:36906776904:1": "success"
   }
 }
