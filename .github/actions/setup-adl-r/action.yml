@@ -1,0 +1,51 @@
+name: Set up ADL R runtime
+description: Install a pinned R runtime and restore the shared ADL package library.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: "4.5.1"
+        use-public-rspm: true
+
+    - name: Restore shared R package library
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.R_LIBS_USER }}
+        key: ${{ runner.os }}-r-4.5.1-adl-lib-v1-${{ hashFiles('DESCRIPTION') }}
+        restore-keys: |
+          ${{ runner.os }}-r-4.5.1-adl-lib-v1-
+
+    - name: Install and verify R packages
+      shell: Rscript {0}
+      run: |
+        dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+        .libPaths(Sys.getenv("R_LIBS_USER"))
+        options(repos = c(
+          ffverse = "https://ffverse.r-universe.dev",
+          CRAN = "https://packagemanager.posit.co/cran/__linux__/noble/latest"
+        ))
+
+        desc <- read.dcf("DESCRIPTION")
+        packages <- trimws(gsub(
+          "\\s*\\([^)]*\\)",
+          "",
+          unlist(strsplit(desc[1, "Imports"], ",", fixed = TRUE), use.names = FALSE)
+        ))
+        packages <- packages[nzchar(packages)]
+        missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+
+        if (length(missing) > 0) {
+          install.packages(
+            missing,
+            dependencies = c("Depends", "Imports", "LinkingTo"),
+            Ncpus = max(1, parallel::detectCores() - 1)
+          )
+        }
+
+        still_missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+        if (length(still_missing) > 0) {
+          stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
+        }
