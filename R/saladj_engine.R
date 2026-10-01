@@ -18,7 +18,8 @@ is_salary_adjustment_drop <- function(type, type_desc) {
       "FREE_AGENT",
       "WAIVER",
       "BBID_WAIVER",
-      "ROSTER"
+      "ROSTER",
+      "LOAD_ROSTERS"
     )
 }
 
@@ -218,7 +219,21 @@ normalize_raw_mfl_transactions <- function(raw_transactions) {
   if (!"trade_partner" %in% names(raw_tbl)) raw_tbl$trade_partner <- NA_character_
   if (!"added" %in% names(raw_tbl)) raw_tbl$added <- NA_character_
   if (!"dropped" %in% names(raw_tbl)) raw_tbl$dropped <- NA_character_
+  if (!"transaction" %in% names(raw_tbl)) raw_tbl$transaction <- NA_character_
   if (!"type_desc" %in% names(raw_tbl)) raw_tbl$type_desc <- NA_character_
+
+  load_roster <- toupper(trimws(as.character(raw_tbl$type))) == "LOAD_ROSTERS"
+  load_parts <- strsplit(as.character(raw_tbl$transaction), "|", fixed = TRUE)
+  loaded_players <- vapply(load_parts, function(parts) {
+    if (length(parts) >= 1L) trimws(parts[[1]]) else ""
+  }, character(1))
+  unloaded_players <- vapply(load_parts, function(parts) {
+    if (length(parts) >= 2L) trimws(parts[[2]]) else ""
+  }, character(1))
+  added_empty <- is.na(raw_tbl$added) | !nzchar(trimws(as.character(raw_tbl$added)))
+  dropped_empty <- is.na(raw_tbl$dropped) | !nzchar(trimws(as.character(raw_tbl$dropped)))
+  raw_tbl$added[load_roster & added_empty] <- loaded_players[load_roster & added_empty]
+  raw_tbl$dropped[load_roster & dropped_empty] <- unloaded_players[load_roster & dropped_empty]
 
   raw_tbl
 }
@@ -241,7 +256,7 @@ normalize_transaction_bind_types <- function(tx) {
     c(
       "timestamp", "type", "type_desc", "franchise_id", "franchise",
       "player_id", "player_name", "comments", "trade_partner", "added", "dropped",
-      "transaction_id", "trans_id", "id", "transactionId"
+      "transaction", "transaction_id", "trans_id", "id", "transactionId"
     )
   )
   tx %>%
