@@ -186,6 +186,7 @@ jobs:
       - name: Run SalAdj Curator no-email smoke check
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_curator == 'true' }}
         run: |
+          Rscript scripts/audit_recent_mfl_transactions.R
           Rscript scripts/run_saladjcurator.R
 
       - name: Reconcile MFL salary adjustments against SalAdj Curator
@@ -206,6 +207,7 @@ jobs:
             data/saladj_reconciliation.csv
             data/SalAdjCurator_latest.csv
             data/SalAdjCurator_2026.csv
+            data/saladj_transaction_audit.csv
             data/archive/*_ADLSalAdjCurator.csv
             data/waiver_snapshots/
 
