@@ -7,6 +7,10 @@
     "TheMathNinja/FAFL-GM-Dashboard:36875455099:1": {
       "sent_at": "2026-10-01T17:51:52.157744+00:00",
       "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Corrections 22686 2026 week 3"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:36896436537:1": {
+      "sent_at": "2026-10-01T17:51:57.417754+00:00",
+      "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 offseason-inactivity-monitor"
     }
   },
   "checked": {
@@ -14,6 +18,15 @@
     "TheMathNinja/ADL-GM-Dashboard:36894899847:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:36899547961:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:36899575174:1": "success",
-    "TheMathNinja/FAFL-GM-Dashboard:36875423300:1": "success"
+    "TheMathNinja/FAFL-GM-Dashboard:36875423300:1": "success",
+    "TheMathNinja/FAFL-GM-Dashboard:36899552092:1": "success",
+    "TheMathNinja/FAFL-GM-Dashboard:36899574354:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36800874317:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36821057087:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36830332333:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36865951771:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36878148458:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36892207903:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36896361222:1": "success"
   }
 }
