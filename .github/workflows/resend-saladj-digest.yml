@@ -1,0 +1,41 @@
+name: Resend SalAdj Digest
+
+on:
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: SalAdj archive date in YYYY-MM-DD format.
+        required: true
+        type: string
+      recipient:
+        description: Single recipient for this resend.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resend:
+    runs-on: ubuntu-latest
+    env:
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up cached ADL R runtime
+        uses: ./.github/actions/setup-adl-r
+
+      - name: Render and resend archived digest
+        shell: bash
+        run: >-
+          Rscript scripts/resend_saladj_digest.R
+          --date="${{ inputs.report_date }}"
+          --to="${{ inputs.recipient }}"
