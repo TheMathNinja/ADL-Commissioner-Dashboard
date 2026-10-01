@@ -1,4 +1,5 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0003|pl=16660|ts=2026-09-29 11:37:08|ty=FREE_AGENT|td=dropped|cm=NA,16660,Darius Robinson,NFC,0003,2026-09-29 11:37:08,2026-10-01 09:00:00,0009,1.33,2024 3.11
 txn=|fr=0004|pl=14057|ts=2026-09-26 04:54:52|ty=FREE_AGENT|td=dropped|cm=NA,14057,Drew Lock,NFC,0004,2026-09-26 04:54:52,2026-09-27 09:00:00,0009,1.1,2026 UFA
 txn=|fr=0027|pl=10292|ts=2026-09-24 23:07:01|ty=FREE_AGENT|td=dropped|cm=NA,10292,Cameron Jordan,AFC,0027,2026-09-24 23:07:01,2026-09-26 09:00:00,0025,1.1,2025 R/F
 txn=|fr=0021|pl=16731|ts=2026-09-23 21:35:18|ty=FREE_AGENT|td=dropped|cm=NA,16731,Cam Hart,AFC,0021,2026-09-23 21:35:18,2026-09-25 09:00:00,0029,1.1,2026 UFA

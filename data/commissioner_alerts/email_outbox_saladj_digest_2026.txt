@@ -1,11 +1,18 @@
 There are new salary adjustments to enter
 
-SalAdj Curator published 1 new row(s) at 9/30/2026 1:37 p.m. EDT.
-Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_09_30_ADLSalAdjCurator.csv
+SalAdj Curator published 5 new row(s) at 10/1/2026 12:34 p.m. EDT.
+Dashboard CSV: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_01_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
+AFC
+---
+- Dropped 9/30/2026 19:48:53 ET | JAC | Jerry Jeudy | salary $5; 1 yr; 2026 UFA; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
+- Dropped 9/30/2026 21:24:06 ET | CLE | Kenneth Gainwell | salary $9.6; 1 yr; 2026 UFA; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
+
 NFC
 ---
-- Dropped 9/30/2026 13:12:54 ET | SEA | Jaylinn Hawkins | salary $3.45; 2 yr; 2025 iEXT; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
+- Dropped 9/30/2026 14:03:42 ET | ATL | Dre Greenlaw | salary $6.06; 1 yr; 2025 UFA; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
+- Dropped 9/30/2026 14:03:42 ET | ATL | Joey Porter | salary $2.01; 1 yr; 2026 oEXT; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
+- Dropped 9/30/2026 16:10:08 ET | MIN | Michael Jackson | salary $5.1; 1 yr; 2026 UFA; notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 2, 2026
 
