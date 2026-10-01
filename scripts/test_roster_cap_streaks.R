@@ -73,14 +73,17 @@ for (date in c("2026-09-27", "2026-09-28", "2026-09-29")) {
 }
 clean_lines <- render_commissioner_clean_run_lines(2026, as.Date("2026-09-30"), report_dir)
 stopifnot(grepl("Sep 27, Sep 28, Sep 29 (3 consecutive clean days)", paste(clean_lines, collapse = "\n"), fixed = TRUE))
-stopifnot(grepl("preceding report on Sep 26 contained alerts", paste(clean_lines, collapse = "\n"), fixed = TRUE))
 clean_digest <- render_commissioner_alert_email(clean_report, season = 2026, checked_date = as.Date("2026-09-30"))
-stopifnot(grepl("Recent Clean Daily Runs", clean_digest, fixed = TRUE))
+stopifnot(grepl("Verified Clean Daily Runs", clean_digest, fixed = TRUE))
 stopifnot(grepl("Sep 27, Sep 28, Sep 29", clean_digest, fixed = TRUE))
 unlink(file.path(report_dir, "commissioner_alert_report_2026-09-28_2026_week03.csv"))
 gap_lines <- paste(render_commissioner_clean_run_lines(2026, as.Date("2026-09-30"), report_dir), collapse = "\n")
 stopifnot(grepl("Sep 29 (1 consecutive clean day)", gap_lines, fixed = TRUE))
-stopifnot(grepl("No report was found for Sep 28", gap_lines, fixed = TRUE))
+
+no_clean_lines <- render_commissioner_clean_run_lines(2026, as.Date("2026-09-27"), report_dir)
+stopifnot(length(no_clean_lines) == 0L)
+dirty_digest <- render_commissioner_alert_email(row, season = 2026, checked_date = as.Date("2026-09-27"))
+stopifnot(!grepl("Clean Daily Runs", dirty_digest, fixed = TRUE))
 cat("Roster-cap streak and email checks passed.\n")
 
 # A pre-existing checked_at column must not mask the scalar run timestamp when

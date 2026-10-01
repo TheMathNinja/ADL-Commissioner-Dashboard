@@ -2881,22 +2881,13 @@ render_commissioner_clean_run_lines <- function(
   )
   dates <- history$clean_dates
   count <- length(dates)
-  summary <- if (count) {
-    paste0(
-      paste(vapply(dates, commissioner_alert_short_date, character(1)), collapse = ", "),
-      " (", count, " consecutive clean day", if (count == 1L) "" else "s", ")"
-    )
-  } else {
-    "No consecutive clean days immediately before today."
-  }
-  boundary <- switch(
-    history$stop_reason,
-    alerts = paste0("The preceding report on ", commissioner_alert_short_date(history$stop_date), " contained alerts."),
-    unreadable = paste0("The report for ", commissioner_alert_short_date(history$stop_date), " could not be read; continuity before that date is unverified."),
-    limit = paste0("All available prior reports in the ", season, " season are included above."),
-    paste0("No report was found for ", commissioner_alert_short_date(history$stop_date), "; continuity before that date is unverified.")
+  if (!count) return(character())
+
+  summary <- paste0(
+    paste(vapply(dates, commissioner_alert_short_date, character(1)), collapse = ", "),
+    " (", count, " consecutive clean day", if (count == 1L) "" else "s", ")"
   )
-  c("Recent Clean Daily Runs", strrep("-", 23L), summary, boundary)
+  c("Verified Clean Daily Runs", strrep("-", 25L), summary)
 }
 
 render_commissioner_alert_email <- function(
@@ -2915,6 +2906,7 @@ render_commissioner_alert_email <- function(
     season = render_season,
     checked_date = render_checked_date
   )
+  clean_run_block <- if (length(clean_run_lines)) c(clean_run_lines, "") else character()
   compliance_line <- if (!is.null(compliant_teams) && !is.na(compliant_teams)) {
     paste0(compliant_teams, " teams roster compliant.")
   } else {
@@ -2922,7 +2914,7 @@ render_commissioner_alert_email <- function(
   }
 
   if (!nrow(alerts)) {
-    return(paste(c(title, "", clean_run_lines, "", compliance_line, "No ADL roster violations were found."), collapse = "\n"))
+    return(paste(c(title, "", clean_run_block, compliance_line, "No ADL roster violations were found."), collapse = "\n"))
   }
 
   alerts <- alerts |>
@@ -2936,7 +2928,7 @@ render_commissioner_alert_email <- function(
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 
-  lines <- c(title, "", clean_run_lines, "", compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
+  lines <- c(title, "", clean_run_block, compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
   if (isTRUE(gm_emails_sent)) {
     lines <- c(lines, "Individual emails have been sent to all franchises in violation.", "")
   }
