@@ -86,7 +86,8 @@ body <- render_saladj_email(
 status <- send_alert_mail(
   subject = "[ADL Commissioner Alerts] New salary adjustments to enter",
   body = body,
-  to = recipient
+  to = recipient,
+  html_body = render_saladj_email_html(body, basename(archive_path))
 )
 if (!isTRUE(status$sent)) stop("Email was not sent: ", status$reason, call. = FALSE)
 
