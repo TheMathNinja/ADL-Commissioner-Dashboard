@@ -3154,7 +3154,7 @@ conference_cc_email <- function(conference) {
   ""
 }
 
-send_alert_mail <- function(subject, body, to, cc = character()) {
+send_alert_mail <- function(subject, body, to, cc = character(), html_body = NULL) {
   to <- unique(trimws(to[nzchar(trimws(to))]))
   cc <- unique(trimws(cc[nzchar(trimws(cc))]))
   from <- Sys.getenv("ADL_ALERT_EMAIL_FROM", unset = "")
@@ -3167,13 +3167,29 @@ send_alert_mail <- function(subject, body, to, cc = character()) {
     return(list(sent = FALSE, reason = "curl_package_not_installed"))
   }
 
+  content <- if (!is.null(html_body) && nzchar(html_body)) {
+    boundary <- paste0("adl-boundary-", as.integer(Sys.time()))
+    paste0(
+      "Content-Type: multipart/alternative; boundary=\"", boundary, "\"\r\n\r\n",
+      "--", boundary, "\r\n",
+      "Content-Type: text/plain; charset=UTF-8\r\n\r\n",
+      body, "\r\n\r\n",
+      "--", boundary, "\r\n",
+      "Content-Type: text/html; charset=UTF-8\r\n\r\n",
+      html_body, "\r\n\r\n",
+      "--", boundary, "--"
+    )
+  } else {
+    paste0("Content-Type: text/plain; charset=UTF-8\r\n\r\n", body)
+  }
+
   message <- paste0(
     "From: ", from, "\r\n",
     "To: ", paste(to, collapse = ", "), "\r\n",
     if (length(cc)) paste0("Cc: ", paste(cc, collapse = ", "), "\r\n") else "",
     "Subject: ", subject, "\r\n",
-    "Content-Type: text/plain; charset=UTF-8\r\n\r\n",
-    body
+    "MIME-Version: 1.0\r\n",
+    content
   )
 
   curl::send_mail(
