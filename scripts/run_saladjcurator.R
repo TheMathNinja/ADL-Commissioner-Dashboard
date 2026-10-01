@@ -153,8 +153,7 @@ run_time_toronto <- as.POSIXct(
 run_date_file <- format(run_time_toronto, "%Y_%m_%d")
 run_time_display <- format_run_time(run_time_toronto)
 parse_optional_time <- function(value, tz) {
-  if (!nzchar(value)) return(as.POSIXct(NA, tz = tz))
-  suppressWarnings(as.POSIXct(value, tz = tz))
+  parse_saladj_workflow_time(value, tz)
 }
 workflow_started_at <- parse_optional_time(Sys.getenv("ADL_WORKFLOW_STARTED_AT", unset = ""), "UTC")
 workflow_scheduled_at <- parse_optional_time(Sys.getenv("ADL_WORKFLOW_SCHEDULED_AT", unset = ""), "America/Toronto")
