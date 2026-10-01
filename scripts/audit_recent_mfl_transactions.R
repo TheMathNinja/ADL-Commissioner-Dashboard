@@ -26,7 +26,7 @@ if (!nrow(raw)) {
   quit(save = "no", status = 0)
 }
 
-for (name in c("timestamp", "type", "franchise", "franchise_id", "player_id", "player_name", "added", "dropped", "comments")) {
+for (name in c("timestamp", "type", "franchise", "franchise_id", "player_id", "player_name", "added", "dropped", "transaction", "comments")) {
   if (!name %in% names(raw)) raw[[name]] <- NA_character_
   raw[[name]] <- as.character(raw[[name]])
 }
@@ -51,14 +51,14 @@ audit <- raw |>
   mutate(
     franchise_id = coalesce(na_if(.data$franchise_id, ""), .data$franchise),
     timestamp_numeric = suppressWarnings(as.numeric(.data$timestamp)),
-    raw_text = paste(.data$type, .data$comments, .data$player_name, .data$added, .data$dropped)
+    raw_text = paste(.data$type, .data$comments, .data$player_name, .data$added, .data$dropped, .data$transaction)
   ) |>
   filter(
     .data$timestamp_numeric >= .env$recent_cutoff |
-      grepl("roster|load|unload|marquise|brown", .data$raw_text, ignore.case = TRUE)
+    grepl("roster|load|unload|marquise|brown", .data$raw_text, ignore.case = TRUE)
   ) |>
   arrange(desc(.data$timestamp_numeric)) |>
-  select(any_of(c("timestamp", "type", "franchise_id", "player_id", "player_name", "added", "dropped", "comments")))
+  select(any_of(c("timestamp", "type", "franchise_id", "player_id", "player_name", "added", "dropped", "transaction", "comments")))
 
 write_csv(audit, "data/saladj_transaction_audit.csv", na = "")
 print(audit, n = Inf, width = Inf)
