@@ -61,32 +61,9 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Restore R package library
+      - name: Set up cached ADL R runtime
         if: steps.evidence.outputs.available == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-waiver-cap-r-v1-${{ hashFiles('.github/workflows/waiver-cap-corrections.yml', 'DESCRIPTION') }}
-          restore-keys: |
-            ${{ runner.os }}-waiver-cap-r-v1-
-
-      - name: Install R and system libraries
-        if: steps.evidence.outputs.available == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev libuv1-dev
-
-      - name: Install R packages
-        if: steps.evidence.outputs.available == 'true'
-        shell: Rscript {0}
-        run: |
-          dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
-          .libPaths(Sys.getenv("R_LIBS_USER"))
-          options(repos = c(ffverse = "https://ffverse.r-universe.dev", CRAN = "https://cloud.r-project.org"))
-          packages <- c("curl", "dplyr", "ffscrapr", "googlesheets4", "httr", "jsonlite", "lubridate", "nflreadr", "purrr", "readr", "stringr", "tibble")
-          missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
-          if (length(missing)) install.packages(missing, dependencies = c("Depends", "Imports", "LinkingTo"))
-          if (any(!vapply(packages, requireNamespace, logical(1), quietly = TRUE))) stop("Required R packages unavailable")
+        uses: ./.github/actions/setup-adl-r
 
       - name: Verify Contract Admin sheet access
         if: steps.evidence.outputs.available == 'true' && (inputs.verify_sheet_only == true || env.ADL_WAIVER_CORRECTION_WRITE_SHEET == 'true')
