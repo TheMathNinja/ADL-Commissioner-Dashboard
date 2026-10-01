@@ -35,6 +35,10 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:36908592105:1": {
       "sent_at": "2026-10-01T18:40:59.235264+00:00",
       "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 Update Dashboard"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:36909099176:1": {
+      "sent_at": "2026-10-01T18:44:57.089871+00:00",
+      "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 Email league workflow failures"
     }
   },
   "checked": {
@@ -68,6 +72,10 @@
     "TheMathNinja/FAFL-GM-Dashboard:36906774003:1": "success",
     "TheMathNinja/FAFL-GM-Dashboard:36906827844:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:36906836055:1": "cancelled; replaced by successful run",
-    "TheMathNinja/ADL-Commissioner-Dashboard:36907559179:1": "success"
+    "TheMathNinja/ADL-Commissioner-Dashboard:36907559179:1": "success",
+    "TheMathNinja/ADL-GM-Dashboard:36909059516:1": "success",
+    "TheMathNinja/FAFL-GM-Dashboard:36909062435:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36908594083:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:36909052566:1": "success"
   }
 }
