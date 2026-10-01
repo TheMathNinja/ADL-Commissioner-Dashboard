@@ -1,0 +1,44 @@
+name: Email league workflow failures
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview failure reports without sending
+        type: boolean
+        default: true
+  workflow_run:
+    workflows: [daily-commissioner-alerts, Dashboard Watchdog, lineup-designation-snapshots, offseason-inactivity-monitor, Update Dashboard, Waiver Claim Cap Corrections, Weekly Salary Cap Accounting, Email weekly refresh completion]
+    types: [completed]
+  schedule:
+    # Catch failures in both GM repositories and delayed/missed event dispatches.
+    - cron: '8,23,38,53 * * * *'
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: league-failure-emails
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/ADL-GM-Dashboard
+          ref: main
+      - name: Test failure gating and owner-only delivery
+        run: python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
+      - name: Report failed league dependencies independently of publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
+          ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+          ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+          ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+          ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
+          python3 scripts/email_workflow_failures.py "${args[@]}"
