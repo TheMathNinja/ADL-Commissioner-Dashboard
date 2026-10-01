@@ -1,3 +1,7 @@
+if (!exists("%||%", mode = "function")) {
+  `%||%` <- function(x, y) if (is.null(x) || !length(x) || all(is.na(x))) y else x
+}
+
 format_saladj_digest_amount <- function(x) {
   x_chr <- trimws(as.character(x %||% ""))
   if (!nzchar(x_chr)) return("")
