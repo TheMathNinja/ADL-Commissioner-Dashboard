@@ -59,6 +59,8 @@ jobs:
         id: localtime
         shell: bash
         run: |
+          echo "ADL_WORKFLOW_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "ADL_WORKFLOW_TRIGGER=${{ github.event_name }}" >> "$GITHUB_ENV"
           LOCAL_DATE=$(TZ=America/Toronto date +%F)
           LOCAL_MONTH_DAY=$(TZ=America/Toronto date +%m-%d)
           CURRENT_SEASON=${LOCAL_DATE%%-*}
@@ -78,6 +80,7 @@ jobs:
 
           TORONTO_OFFSET=$(TZ=America/Toronto date +%z)
           SCHEDULE="${{ github.event.schedule }}"
+          echo "ADL_WORKFLOW_SCHEDULED_AT=${LOCAL_DATE} 05:17:00" >> "$GITHUB_ENV"
           echo "Toronto UTC offset is $TORONTO_OFFSET"
           echo "Scheduled cron is $SCHEDULE"
 

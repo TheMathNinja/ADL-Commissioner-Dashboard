@@ -164,6 +164,9 @@ jobs:
       - name: Verify SalAdj drop transaction types
         run: Rscript scripts/test_saladj_transaction_types.R
 
+      - name: Verify SalAdj email template
+        run: Rscript scripts/test_saladj_email.R
+
       - name: Verify roster-cap streak and inactivity labels
         run: Rscript scripts/test_roster_cap_streaks.R
 

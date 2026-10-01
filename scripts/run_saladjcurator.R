@@ -9,6 +9,7 @@ library(tibble)
 source("R/config_helpers.R")
 source("R/saladj_engine.R")
 source("R/commissioner_alerts.R")
+source("R/saladj_email.R")
 
 current_season <- get_current_season()
 
@@ -98,81 +99,12 @@ new_saladj_rows <- function(new_df, old_df) {
     {\(idx) new_df[idx, , drop = FALSE]}()
 }
 
-format_saladj_digest_amount <- function(x) {
-  x_chr <- trimws(as.character(x %||% ""))
-  if (!nzchar(x_chr)) return("")
-  x_num <- suppressWarnings(as.numeric(gsub("[$,]", "", x_chr)))
-  if (is.na(x_num)) return(x_chr)
-  paste0("$", format(x_num, trim = TRUE, scientific = FALSE))
-}
-
-format_saladj_digest_row <- function(row) {
-  player <- as.character(row$PLAYER[[1]] %||% "")
-  fran <- as.character(row$FRAN[[1]] %||% "")
-  date <- as.character(row$DATE[[1]] %||% "")
-  salary <- format_saladj_digest_amount(row$SALARY[[1]] %||% "")
-  years <- as.character(row$YEARS[[1]] %||% "")
-  contract <- as.character(row$CONTRACT[[1]] %||% "")
-  notes <- as.character(row$NOTES[[1]] %||% "")
-  rvsd <- as.character(row$`RVSD?`[[1]] %||% "")
-
-  details <- c(
-    if (nzchar(salary)) paste0("salary ", salary) else NULL,
-    if (nzchar(years)) paste0(years, " yr") else NULL,
-    if (nzchar(contract)) contract else NULL,
-    if (nzchar(notes)) paste0("notes: ", notes) else NULL,
-    if (nzchar(rvsd)) paste0("RVSD?: ", rvsd) else NULL
-  )
-
-  paste0("- Dropped ", date, " ET | ", fran, " | ", player, if (length(details)) paste0(" | ", paste(details, collapse = "; ")) else "")
-}
-
-saladj_public_csv_url <- function(archive_filename) {
-  filename <- basename(as.character(archive_filename %||% ""))
-  if (!nzchar(filename)) return("")
-  paste0(
-    "https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/",
-    utils::URLencode(filename, reserved = TRUE)
-  )
-}
-
-render_saladj_email <- function(new_rows, archive_filename, run_time_display) {
-  title <- "There are new salary adjustments to enter"
-  if (!nrow(new_rows)) {
-    return(paste(c(title, "", "No new SalAdj rows were found."), collapse = "\n"))
-  }
-
-  groups <- split(new_rows, new_rows$CONF)
-  groups <- groups[order(names(groups))]
-
-  lines <- c(
-    title,
-    "",
-    paste0("SalAdj Curator published ", nrow(new_rows), " new row(s) at ", run_time_display, "."),
-    paste0("Dashboard CSV: ", saladj_public_csv_url(archive_filename)),
-    "",
-    "Please enter the following new salary adjustments in the Contract Admin sheet.",
-    ""
-  )
-
-  for (conf in names(groups)) {
-    rows <- groups[[conf]]
-    lines <- c(lines, conf, strrep("-", nchar(conf)))
-    for (i in seq_len(nrow(rows))) {
-      lines <- c(lines, format_saladj_digest_row(rows[i, , drop = FALSE]))
-    }
-    lines <- c(lines, "")
-  }
-
-  paste(lines, collapse = "\n")
-}
-
 saladj_email_subject <- function() {
   "[ADL Commissioner Alerts] New salary adjustments to enter"
 }
 
-send_saladj_email <- function(new_rows, archive_filename, run_time_display, season = get_current_season()) {
-  body <- render_saladj_email(new_rows, archive_filename, run_time_display)
+send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list(), season = get_current_season()) {
+  body <- render_saladj_email(new_rows, archive_filename, run_time_display, run_audit)
   outbox_path <- write_commissioner_alert_outbox(body, season = season, name = "email_outbox_saladj_digest")
 
   if (!nrow(new_rows)) {
@@ -220,6 +152,27 @@ run_time_toronto <- as.POSIXct(
 
 run_date_file <- format(run_time_toronto, "%Y_%m_%d")
 run_time_display <- format_run_time(run_time_toronto)
+parse_optional_time <- function(value, tz) {
+  if (!nzchar(value)) return(as.POSIXct(NA, tz = tz))
+  suppressWarnings(as.POSIXct(value, tz = tz))
+}
+workflow_started_at <- parse_optional_time(Sys.getenv("ADL_WORKFLOW_STARTED_AT", unset = ""), "UTC")
+workflow_scheduled_at <- parse_optional_time(Sys.getenv("ADL_WORKFLOW_SCHEDULED_AT", unset = ""), "America/Toronto")
+workflow_trigger <- Sys.getenv("ADL_WORKFLOW_TRIGGER", unset = "unknown")
+run_duration_seconds <- if (!is.na(workflow_started_at)) {
+  max(0, as.numeric(difftime(Sys.time(), workflow_started_at, units = "secs")))
+} else {
+  NA_real_
+}
+run_audit <- list(
+  scheduled_display = if (!is.na(workflow_scheduled_at)) format_run_time(workflow_scheduled_at) else "",
+  started_display = if (!is.na(workflow_started_at)) format_run_time(workflow_started_at) else "",
+  completed_display = run_time_display,
+  duration_display = if (!is.na(run_duration_seconds)) {
+    paste0(floor(run_duration_seconds / 60), "m ", round(run_duration_seconds %% 60), "s")
+  } else "",
+  trigger = workflow_trigger
+)
 archive_filename <- paste0(run_date_file, "_ADLSalAdjCurator.csv")
 
 dir.create("data", recursive = TRUE, showWarnings = FALSE)
@@ -305,10 +258,17 @@ readr::write_csv(run_meta, metadata_file)
 
 send_email <- tolower(Sys.getenv("ADL_SALADJ_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")
 if (send_email && should_publish_archive) {
+  email_prepared_at <- Sys.time()
+  run_audit$completed_display <- format_run_time(email_prepared_at)
+  if (!is.na(workflow_started_at)) {
+    elapsed <- max(0, as.numeric(difftime(email_prepared_at, workflow_started_at, units = "secs")))
+    run_audit$duration_display <- paste0(floor(elapsed / 60), "m ", round(elapsed %% 60), "s")
+  }
   email_status <- send_saladj_email(
     email_rows,
     archive_filename = latest_archive_filename,
     run_time_display = run_time_display,
+    run_audit = run_audit,
     season = current_season
   )
   readr::write_csv(email_status, file.path("data", "saladj_email_status.csv"), na = "")

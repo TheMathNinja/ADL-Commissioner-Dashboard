@@ -537,7 +537,7 @@ normalize_and_dedupe_cache <- function(df) {
 
 load_prescrape_seed_rows <- function(seed_path, current_season, pen_col_1, pen_col_2) {
   base_cols <- c(
-    "CONF", "DATE", "FRAN", "PLAYER", "SALARY", "YEARS", "CONTRACT", pen_col_1, pen_col_2,
+    "CONF", "DATE", "FRAN", "PLAYER", "PLAYER_TEAM", "PLAYER_POS", "SALARY", "YEARS", "CONTRACT", pen_col_1, pen_col_2,
     "B/R", "TR/IB", "FG", "(S)", "JT", "1.XX+", "NOTES", "ENTD?", "RVSD?"
   )
   
@@ -954,6 +954,8 @@ historical_roster_matches <- tx_enriched %>%
   dplyr::transmute(
     row_key = .data$row_key,
     player_name_snap = .data$player_name,
+    player_team_snap = .data$player_team,
+    player_pos_snap = .data$player_pos,
     salary_snap = .data$roster_salary,
     years_snap = .data$roster_years,
     info_snap = .data$roster_contractInfo,
@@ -1045,6 +1047,8 @@ contract_preserving_roster_matches <- latest_arrival_before_drop %>%
   dplyr::transmute(
     row_key = .data$drop_row_key,
     fallback_player_name_snap = .data$player_name,
+    fallback_player_team_snap = .data$player_team,
+    fallback_player_pos_snap = .data$player_pos,
     fallback_salary_snap = .data$roster_salary,
     fallback_years_snap = .data$roster_years,
     fallback_info_snap = .data$roster_contractInfo,
@@ -1074,6 +1078,8 @@ current_same_conf_player <- current_roster_snapshot %>%
     player_id = .data$player_id,
     CONF = .data$CONF,
     current_player_name = .data$player_name,
+    current_player_team = .data$player_team,
+    current_player_pos = .data$player_pos,
     current_player_salary = .data$roster_salary,
     current_player_years = .data$roster_years,
     current_player_contractInfo = .data$roster_contractInfo,
@@ -1175,6 +1181,18 @@ tx_enriched <- tx_enriched %>%
       dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$fallback_player_name_snap, "")), ""),
       dplyr::na_if(nflreadr::clean_player_names(dplyr::coalesce(.data$current_player_name, "")), ""),
       .data$player_id
+    ),
+    PLAYER_TEAM = dplyr::coalesce(
+      dplyr::na_if(.data$player_team_snap, ""),
+      dplyr::na_if(.data$fallback_player_team_snap, ""),
+      dplyr::na_if(.data$current_player_team, ""),
+      ""
+    ),
+    PLAYER_POS = dplyr::coalesce(
+      dplyr::na_if(.data$player_pos_snap, ""),
+      dplyr::na_if(.data$fallback_player_pos_snap, ""),
+      dplyr::na_if(.data$current_player_pos, ""),
+      ""
     )
   )
 
@@ -1422,6 +1440,8 @@ sd_rows <- tx_enriched %>%
     DATE_sort = .data$DATE_raw,
     FRAN = .data$abbrev,
     PLAYER = .data$PLAYER,
+    PLAYER_TEAM = .data$PLAYER_TEAM,
+    PLAYER_POS = .data$PLAYER_POS,
     SALARY = .data$SALARY,
     YEARS = .data$YEARS,
     CONTRACT = .data$CONTRACT,
@@ -1479,6 +1499,8 @@ final_out_csv <- qualified_all %>%
       "DATE",
       "FRAN",
       "PLAYER",
+      "PLAYER_TEAM",
+      "PLAYER_POS",
       "SALARY",
       "YEARS",
       "CONTRACT",
