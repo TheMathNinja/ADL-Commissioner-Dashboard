@@ -119,7 +119,8 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_
   status <- send_alert_mail(
     subject = saladj_email_subject(),
     body = body,
-    to = recipients$email
+    to = recipients$email,
+    html_body = render_saladj_email_html(body, archive_filename)
   )
 
   tibble::tibble(
@@ -164,7 +165,11 @@ run_duration_seconds <- if (!is.na(workflow_started_at)) {
   NA_real_
 }
 run_audit <- list(
-  scheduled_display = if (!is.na(workflow_scheduled_at)) format_run_time(workflow_scheduled_at) else "",
+  scheduled_display = if (!is.na(workflow_scheduled_at)) {
+    format_run_time(workflow_scheduled_at)
+  } else {
+    format_run_time(as.POSIXct(paste(format(run_time_toronto, "%Y-%m-%d"), "05:17:00"), tz = "America/Toronto"))
+  },
   started_display = if (!is.na(workflow_started_at)) format_run_time(workflow_started_at) else "",
   completed_display = run_time_display,
   duration_display = if (!is.na(run_duration_seconds)) {
