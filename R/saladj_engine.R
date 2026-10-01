@@ -23,6 +23,14 @@ is_salary_adjustment_drop <- function(type, type_desc) {
     )
 }
 
+parse_load_roster_transaction_fields <- function(transaction) {
+  parts <- strsplit(as.character(transaction), "|", fixed = TRUE)
+  tibble::tibble(
+    added = vapply(parts, function(x) if (length(x) >= 1L) trimws(x[[1]]) else "", character(1)),
+    dropped = vapply(parts, function(x) if (length(x) >= 2L) trimws(x[[2]]) else "", character(1))
+  )
+}
+
 build_saladj_curator <- function(current_season = get_current_season(), output_dir = "data") {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 # ----------------------------
@@ -223,13 +231,9 @@ normalize_raw_mfl_transactions <- function(raw_transactions) {
   if (!"type_desc" %in% names(raw_tbl)) raw_tbl$type_desc <- NA_character_
 
   load_roster <- toupper(trimws(as.character(raw_tbl$type))) == "LOAD_ROSTERS"
-  load_parts <- strsplit(as.character(raw_tbl$transaction), "|", fixed = TRUE)
-  loaded_players <- vapply(load_parts, function(parts) {
-    if (length(parts) >= 1L) trimws(parts[[1]]) else ""
-  }, character(1))
-  unloaded_players <- vapply(load_parts, function(parts) {
-    if (length(parts) >= 2L) trimws(parts[[2]]) else ""
-  }, character(1))
+  load_fields <- parse_load_roster_transaction_fields(raw_tbl$transaction)
+  loaded_players <- load_fields$added
+  unloaded_players <- load_fields$dropped
   added_empty <- is.na(raw_tbl$added) | !nzchar(trimws(as.character(raw_tbl$added)))
   dropped_empty <- is.na(raw_tbl$dropped) | !nzchar(trimws(as.character(raw_tbl$dropped)))
   raw_tbl$added[load_roster & added_empty] <- loaded_players[load_roster & added_empty]
