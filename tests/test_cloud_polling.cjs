@@ -24,8 +24,23 @@ const localInputs=(year,month,day)=>vm.runInContext(`JSON.stringify(cloudLocalIn
 assert.equal(localInputs(2026,7,1),'{"enable_mfl_salary_writes":"false"}');
 assert.equal(localInputs(2027,6,30),'{"enable_mfl_salary_writes":"false"}');
 assert.equal(localInputs(2027,7,1),'{"enable_mfl_salary_writes":"true"}');
+const targetWeek=(year,month,day)=>vm.runInContext(`cloudTargetWeekParts_(2026,${year},${month},${day})`,context);
+assert.equal(targetWeek(2026,9,13),0);
+assert.equal(targetWeek(2026,9,14),1);
+assert.equal(targetWeek(2026,10,1),3);
+assert.equal(targetWeek(2027,1,4),17);
+assert.equal(targetWeek(2027,1,11),0);
+const localMatch=(job,year,month,day,hour,minute)=>vm.runInContext(`localJobMatchesParts_(${JSON.stringify(job)},${year},${month},${day},${hour},${minute})`,context);
+assert(localMatch({hour:6,minute:15,months:[2,3,4,5,6,7,8]},2026,6,1,6,15));
+assert(!localMatch({hour:6,minute:15,months:[2,3,4,5,6,7,8]},2026,10,1,6,15));
+assert(localMatch({hour:12,minute:7,month:8,day:31},2026,8,31,12,7));
+assert(!localMatch({hour:12,minute:7,month:8,day:31},2026,8,30,12,7));
+const receipt=(value,job,process,week)=>vm.runInContext(`cloudRefreshReceiptMatches_(${JSON.stringify(value)},${JSON.stringify(job)},'${process}',${week})`,context);
+assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'preliminary'},{leagueId:'60206'},'preliminary',3));
+assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));
+assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:true},{leagueId:'60206'},'corrections',3));
 const jobs=vm.runInContext('allCloudJobs_().map(j=>j.repo+"/"+j.workflow)',context);
-assert.equal(jobs.length,13);
+assert.equal(jobs.length,12);
 ['ADL-GM-Dashboard/poll_preliminary_scores.yml','FAFL-GM-Dashboard/poll_score_corrections.yml',
  'ADL-GM-Dashboard/refresh_rosters.yml','ADL-Commissioner-Dashboard/daily-commissioner-alerts.yml',
  'ADL-Commissioner-Dashboard/offseason-inactivity-monitor.yml','ADL-Commissioner-Dashboard/lineup-designation-snapshots.yml',

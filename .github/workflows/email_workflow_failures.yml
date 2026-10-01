@@ -10,8 +10,8 @@ on:
     workflows: [daily-commissioner-alerts, Dashboard Watchdog, lineup-designation-snapshots, offseason-inactivity-monitor, Update Dashboard, Waiver Claim Cap Corrections, Weekly Salary Cap Accounting, Email weekly refresh completion]
     types: [completed]
   schedule:
-    # Catch failures in both GM repositories and delayed/missed event dispatches.
-    - cron: '8,23,38,53 * * * *'
+    # One daily GitHub fallback; Apps Script checks hourly and events report immediately.
+    - cron: '43 10 * * *'
 permissions:
   contents: write
   actions: read

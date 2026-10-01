@@ -6,9 +6,6 @@ on:
         description: Verify completion and preview without emailing
         type: boolean
         default: true
-  schedule:
-    # Catch FAFL finishing later, delayed deployments, and retryable email failures.
-    - cron: '*/15 * * * *'
 permissions:
   contents: write
   actions: read

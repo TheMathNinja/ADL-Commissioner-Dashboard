@@ -15,9 +15,6 @@ on:
         description: Check Google Sheets access without making changes
         type: boolean
         default: false
-  schedule:
-    - cron: "45 12 * * *"
-
 permissions:
   contents: write
 
@@ -45,8 +42,8 @@ jobs:
       MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
-      ADL_WAIVER_CORRECTION_SEND_EMAIL: ${{ github.event_name == 'schedule' || inputs.send_email == true }}
-      ADL_WAIVER_CORRECTION_WRITE_SHEET: ${{ github.event_name == 'schedule' || inputs.write_sheet == true }}
+      ADL_WAIVER_CORRECTION_SEND_EMAIL: ${{ inputs.send_email == true }}
+      ADL_WAIVER_CORRECTION_WRITE_SHEET: ${{ inputs.write_sheet == true }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

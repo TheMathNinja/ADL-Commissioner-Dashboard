@@ -1,6 +1,4 @@
 on:
-  schedule:
-    - cron: 15 10 * * *
   workflow_dispatch:
     inputs:
       send_email:
@@ -44,8 +42,8 @@ jobs:
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
-      ADL_INACTIVITY_SEND_EMAIL: ${{ github.event_name == 'schedule' && 'true' || inputs.send_email }}
-      ADL_INACTIVITY_SEND_EMPTY: ${{ github.event_name == 'schedule' && 'false' || inputs.send_empty }}
+      ADL_INACTIVITY_SEND_EMAIL: ${{ inputs.send_email }}
+      ADL_INACTIVITY_SEND_EMPTY: ${{ inputs.send_empty }}
       ADL_INACTIVITY_MARK_ISSUED: ${{ inputs.mark_issued }}
       ADL_INACTIVITY_FORCE_LIVE: true
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA

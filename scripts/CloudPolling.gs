@@ -9,34 +9,35 @@ const CLOUD_SCHEDULER = {
   maxCatchUpMinutes: 26 * 60,
   polling: {
     preliminary: [
-      {repo: 'ADL-GM-Dashboard', workflow: 'poll_preliminary_scores.yml', inputs: {dry_run: 'false'}},
-      {repo: 'FAFL-GM-Dashboard', workflow: 'poll_preliminary_scores.yml', inputs: {dry_run: 'false'}}
+      {repo: 'ADL-GM-Dashboard', leagueId: '60206', workflow: 'poll_preliminary_scores.yml', inputs: {dry_run: 'false'}},
+      {repo: 'FAFL-GM-Dashboard', leagueId: '22686', workflow: 'poll_preliminary_scores.yml', inputs: {dry_run: 'false'}}
     ],
     corrections: [
-      {repo: 'ADL-GM-Dashboard', workflow: 'poll_score_corrections.yml', inputs: {dry_run: 'false'}},
-      {repo: 'FAFL-GM-Dashboard', workflow: 'poll_score_corrections.yml', inputs: {dry_run: 'false'}}
+      {repo: 'ADL-GM-Dashboard', leagueId: '60206', workflow: 'poll_score_corrections.yml', inputs: {dry_run: 'false'}},
+      {repo: 'FAFL-GM-Dashboard', leagueId: '22686', workflow: 'poll_score_corrections.yml', inputs: {dry_run: 'false'}}
     ]
   },
-  intervalJobs: [
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'email_weekly_completion.yml', inputs: {dry_run: 'false'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'email_workflow_failures.yml', inputs: {dry_run: 'false'}}
-  ],
-  // GitHub cron expressions are UTC. Inputs reproduce each workflow's scheduled behavior.
+  intervalJobs: [],
+  // One hourly safety pass supplements immediate event-driven failure reports.
   cronJobs: [
-    {repo: 'ADL-GM-Dashboard', workflow: 'refresh_rosters.yml', cron: '0 10 * * *', inputs: {reason: 'cloud-schedule'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', cron: '15 10 * * *', inputs: {send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', cron: '7 16 31 8 *', inputs: {cutdown_id: 'roster_cutdown_1', send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', cron: '22 16 31 8 *', inputs: {cutdown_id: 'roster_cutdown_1', send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', cron: '7 16 7 9 *', inputs: {cutdown_id: 'final_roster_cutdown', send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', cron: '22 16 7 9 *', inputs: {cutdown_id: 'final_roster_cutdown', send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'dashboard_watchdog.yml', cron: '30 15 * * *', inputs: {}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', cron: '5 */6 * 9-12,1 *', inputs: {}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'offseason-inactivity-monitor.yml', cron: '15 10 * * *', inputs: {send_email: 'true', mark_issued: 'false', send_empty: 'false'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'waiver-cap-corrections.yml', cron: '45 12 * * *', inputs: {send_email: 'true', write_sheet: 'true', verify_sheet_only: 'false'}}
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'email_workflow_failures.yml', cron: '7 * * * *', inputs: {dry_run: 'false'}}
   ],
-  // The workflow's two GitHub cron entries only compensate for daylight saving time.
+  // Fixed local times stay stable across daylight-saving changes.
   localJobs: [
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'update_dashboard.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {enable_mfl_salary_writes: 'false'}}
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'update_dashboard.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {enable_mfl_salary_writes: 'false'}},
+    {repo: 'ADL-GM-Dashboard', workflow: 'refresh_rosters.yml', timezone: 'America/New_York', hour: 6, minute: 0, inputs: {reason: 'cloud-schedule'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 6, minute: 15, inputs: {send_email: 'true'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'waiver-cap-corrections.yml', timezone: 'America/New_York', hour: 8, minute: 45, inputs: {send_email: 'true', write_sheet: 'true', verify_sheet_only: 'false'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'dashboard_watchdog.yml', timezone: 'America/New_York', hour: 11, minute: 30, inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 2, minute: 5, months: [1,9,10,11,12], inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 8, minute: 5, months: [1,9,10,11,12], inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 14, minute: 5, months: [1,9,10,11,12], inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 20, minute: 5, months: [1,9,10,11,12], inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'offseason-inactivity-monitor.yml', timezone: 'America/New_York', hour: 6, minute: 15, months: [2,3,4,5,6,7,8], inputs: {send_email: 'true', mark_issued: 'false', send_empty: 'false'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 12, minute: 7, month: 8, day: 31, inputs: {cutdown_id: 'roster_cutdown_1', send_email: 'true'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 12, minute: 22, month: 8, day: 31, inputs: {cutdown_id: 'roster_cutdown_1', send_email: 'true'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 12, minute: 7, month: 9, day: 7, inputs: {cutdown_id: 'final_roster_cutdown', send_email: 'true'}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 12, minute: 22, month: 9, day: 7, inputs: {cutdown_id: 'final_roster_cutdown', send_email: 'true'}}
   ]
 };
 
@@ -89,9 +90,36 @@ function cronMatchesDate_(cron, date) {
     date.getUTCDate(), date.getUTCMonth() + 1, date.getUTCDay());
 }
 
+function localJobMatchesParts_(job, year, month, day, hour, minute) {
+  return hour === job.hour && minute === job.minute &&
+    (!job.months || job.months.indexOf(month) >= 0) &&
+    (!job.month || job.month === month) && (!job.day || job.day === day);
+}
+
 function localJobMatchesDate_(job, date) {
-  return Number(Utilities.formatDate(date, job.timezone, 'H')) === job.hour &&
-    Number(Utilities.formatDate(date, job.timezone, 'm')) === job.minute;
+  return localJobMatchesParts_(job,
+    Number(Utilities.formatDate(date, job.timezone, 'yyyy')),
+    Number(Utilities.formatDate(date, job.timezone, 'M')),
+    Number(Utilities.formatDate(date, job.timezone, 'd')),
+    Number(Utilities.formatDate(date, job.timezone, 'H')),
+    Number(Utilities.formatDate(date, job.timezone, 'm')));
+}
+
+function cloudTargetWeekParts_(season, year, month, day) {
+  if (year !== season && !(year === season + 1 && month === 1)) return 0;
+  const septFirst = Date.UTC(season, 8, 1);
+  const firstMonday = septFirst + (((8 - new Date(septFirst).getUTCDay()) % 7) + 7) * 86400000;
+  const current = Date.UTC(year, month - 1, day);
+  const week = Math.floor((current - firstMonday) / (7 * 86400000)) + 1;
+  return week >= 1 && week <= 17 ? week : 0;
+}
+
+function cloudTargetWeek_(now) {
+  const tz = CLOUD_SCHEDULER.easternTimezone;
+  return cloudTargetWeekParts_(CLOUD_SCHEDULER.season,
+    Number(Utilities.formatDate(now, tz, 'yyyy')),
+    Number(Utilities.formatDate(now, tz, 'M')),
+    Number(Utilities.formatDate(now, tz, 'd')));
 }
 
 function cloudLocalInputsParts_(job, year, month, day) {
@@ -150,6 +178,36 @@ function cloudVerifyWorkflow_(job, token) {
   }
 }
 
+function cloudRepoJson_(repo, path, token) {
+  const response = UrlFetchApp.fetch(
+    'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + repo + '/contents/' + path + '?ref=main',
+    {method: 'get', headers: cloudHeaders_(token), muteHttpExceptions: true}
+  );
+  if (response.getResponseCode() === 404) return null;
+  if (response.getResponseCode() !== 200) {
+    throw new Error(repo + '/' + path + ' returned HTTP ' + response.getResponseCode());
+  }
+  const item = JSON.parse(response.getContentText());
+  return JSON.parse(Utilities.newBlob(Utilities.base64Decode(String(item.content).replace(/\s/g, ''))).getDataAsString());
+}
+
+function cloudRefreshReceiptMatches_(receipt, job, process, week) {
+  return !!receipt && receipt.season === CLOUD_SCHEDULER.season &&
+    String(receipt.league_id) === job.leagueId && receipt.week === week &&
+    receipt.status === 'success' && receipt.process === process &&
+    (process !== 'corrections' || receipt.bonus_mfl_verified === true);
+}
+
+function cloudRefreshComplete_(job, process, week, token, props) {
+  if (!week) return false;
+  const key = 'CLOUD_REFRESH_COMPLETE_' + process + '_' + job.repo.replace(/[^A-Za-z0-9_]/g, '_') + '_' + week;
+  if (props.getProperty(key) === 'true') return true;
+  const receipt = cloudRepoJson_(job.repo, 'data/refresh_receipts/' + process + '.json', token);
+  const complete = cloudRefreshReceiptMatches_(receipt, job, process, week);
+  if (complete) props.setProperty(key, 'true');
+  return complete;
+}
+
 function cloudAlert_(key, message) {
   const props = PropertiesService.getScriptProperties();
   const property = 'CLOUD_SCHEDULER_ALERT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
@@ -200,7 +258,14 @@ function runCloudLeagueScheduler() {
     const intervalSlot = new Date(Math.floor(now.getTime() / (15 * 60000)) * 15 * 60000);
     CLOUD_SCHEDULER.intervalJobs.forEach(function(job) { attempt(job, intervalSlot); });
     const pollingWindow = cloudPollWindow_(now);
-    if (pollingWindow) CLOUD_SCHEDULER.polling[pollingWindow].forEach(function(job) { attempt(job, intervalSlot); });
+    const targetWeek = cloudTargetWeek_(now);
+    if (pollingWindow) CLOUD_SCHEDULER.polling[pollingWindow].forEach(function(job) {
+      try {
+        if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props)) attempt(job, intervalSlot);
+      } catch (error) {
+        failures.push(cloudJobKey_(job) + ' receipt check: ' + error.message);
+      }
+    });
     CLOUD_SCHEDULER.cronJobs.forEach(function(job) {
       const due = latestDueMinute_(job, now, lastRun, function(candidateJob, date) {
         return cronMatchesDate_(candidateJob.cron, date);
