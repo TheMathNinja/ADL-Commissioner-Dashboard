@@ -43,9 +43,8 @@ NFC,DAL,Dallas Cowboys,17652,"Randall, Adam BAL RB","Randall, Adam",BAL,RB,Activ
 NFC,DAL,Dallas Cowboys,17148,"Collins, Alfred SFO DT","Collins, Alfred",SFO,DT,Active,IR,1.14,3,256.73,2025 4.04,,collins
 NFC,DAL,Dallas Cowboys,16226,"Wilson, Tyree NOS DE","Wilson, Tyree",NOS,DE,Active,,2.1,1,256.73,2023 2.06,,wilson
 NFC,DAL,Dallas Cowboys,16610,"Wright, Jaylen MIA RB","Wright, Jaylen",MIA,RB,Active,Questionable,2.1,1,256.73,2026 UFA,,wright
+NFC,DAL,Dallas Cowboys,13731,"Hughes, Mike ATL CB","Hughes, Mike",ATL,CB,Active,,1.1,1,256.73,2026 R/F,,hughes
 NFC,DAL,Dallas Cowboys,17115,"Pearce, James ATL DE","Pearce, James",ATL,DE,Taxi,Suspended,1.43,3,256.73,2025 3.05,,pearce
-NFC,DAL,Dallas Cowboys,13731,"Hughes, Mike ATL CB","Hughes, Mike",ATL,CB,Taxi,,1.1,1,256.73,2026 R/F,,hughes
-NFC,DAL,Dallas Cowboys,16728,"Pritchett, Nehemiah SEA CB","Pritchett, Nehemiah",SEA,CB,Taxi,,2,1,256.73,2026 UFA,,pritchett
 NFC,NYG,New York Giants,14153,"Allen, Zach DEN DT","Allen, Zach",DEN,DT,Active,,16.16,1,248.62,2025 oEXT,,allen
 NFC,NYG,New York Giants,14802,"Taylor, Jonathan IND RB","Taylor, Jonathan",IND,RB,Active,,19.36,1,248.62,2024 iEXT,,taylor
 NFC,NYG,New York Giants,14779,"Herbert, Justin LAC QB","Herbert, Justin",LAC,QB,Active,,16.65,3,248.62,2023 iEXT,,herbert
@@ -404,7 +403,6 @@ NFC,ATL,Atlanta Falcons,17059,"Gordon, Ollie MIA RB","Gordon, Ollie",MIA,RB,Acti
 NFC,ATL,Atlanta Falcons,17162,"Walley, Justin IND CB","Walley, Justin",IND,CB,Active,,1.1,1,264.87,2026 UFA,,walley
 NFC,ATL,Atlanta Falcons,14328,"Wingard, Andrew ARI S","Wingard, Andrew",ARI,S,Active,,1.1,1,264.87,2026 UFA,,wingard
 NFC,ATL,Atlanta Falcons,17202,"Trader, Dante MIA S","Trader, Dante",MIA,S,Active,,1.1,1,264.87,2026 UFA,,trader
-NFC,ATL,Atlanta Falcons,13682,"Key, Arden IND DE","Key, Arden",IND,DE,Active,,2,1,264.87,2026 UFA,,key
 NFC,ATL,Atlanta Falcons,12735,"Rankins, Sheldon HOU DT","Rankins, Sheldon",HOU,DT,Active,,1.1,1,264.87,2026 UFA,,rankins
 NFC,ATL,Atlanta Falcons,16344,"Stills, Dante ARI DT","Stills, Dante",ARI,DT,Active,,1.1,1,264.87,2026 UFA,,stills
 NFC,ATL,Atlanta Falcons,15364,"Cisco, Andre NYJ S","Cisco, Andre",NYJ,S,Active,,1.2,1,264.87,2026 UFA,,cisco
@@ -414,6 +412,7 @@ NFC,ATL,Atlanta Falcons,14905,"Henderson, CJ ATL CB","Henderson, CJ",ATL,CB,Acti
 NFC,ATL,Atlanta Falcons,17189,"Robinson, Quandarrius DEN DE","Robinson, Quandarrius",DEN,DE,Active,,1.1,1,264.87,2026 UFA,,robinson
 NFC,ATL,Atlanta Falcons,16799,"Bethune, Tatum SFO LB","Bethune, Tatum",SFO,LB,Active,,1.1,1,264.87,2026 UFA,,bethune
 NFC,ATL,Atlanta Falcons,16384,"Bagent, Tyson CHI QB","Bagent, Tyson",CHI,QB,Active,Questionable,1.1,1,264.87,2026 R/F,,bagent
+NFC,ATL,Atlanta Falcons,16660,"Robinson, Darius ARI DT","Robinson, Darius",ARI,DT,Active,,1.33,2,264.87,2024 3.11,,robinson
 NFC,ATL,Atlanta Falcons,17122,"Walker, Jalon ATL DE","Walker, Jalon",ATL,DE,INJURED_RESERVE,IR,1.72,3,264.87,2025 2.12,,walker
 NFC,ATL,Atlanta Falcons,14104,"Brown, A.J. NEP WR","Brown, A.J.",NEP,WR,INJURED_RESERVE,IR,36.61,1,264.87,2024 oEXT,,brown
 NFC,CAR,Carolina Panthers,13589,"Allen, Josh BUF QB","Allen, Josh",BUF,QB,Active,,27.24,1,262.99,2021 EXT,,allen
@@ -989,7 +988,6 @@ AFC,BAL,Baltimore Ravens,17107,"Ferguson, Terrance LAR TE","Ferguson, Terrance",
 AFC,BAL,Baltimore Ravens,15368,"McPherson, Evan CIN PK","McPherson, Evan",CIN,PK,Active,,1.1,1,262.58,2026 R/F,,mcpherson
 AFC,BAL,Baltimore Ravens,16716,"Wilson, Payton PIT LB","Wilson, Payton",PIT,LB,Active,,1.29,2,262.58,2024 3.14,,wilson
 AFC,BAL,Baltimore Ravens,17476,"Singleton, Nicholas TEN RB","Singleton, Nicholas",TEN,RB,Active,R,1.14,4,262.58,2026 4.01,,singleton
-AFC,BAL,Baltimore Ravens,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,Active,,1.09,3,262.58,2025 4.12,,bryant
 AFC,BAL,Baltimore Ravens,11757,"Donald, Aaron LAR DT","Donald, Aaron",LAR,DT,Active,Questionable,5.5,1,262.58,2026 UFA,,donald
 AFC,BAL,Baltimore Ravens,17031,"Sanders, Shedeur CLE QB","Sanders, Shedeur",CLE,QB,Active,,1.24,3,262.58,2025 3.16,,sanders
 AFC,BAL,Baltimore Ravens,16267,"Stevenson, Tyrique CHI CB","Stevenson, Tyrique",CHI,CB,Active,,2,1,262.58,2026 UFA,,stevenson
@@ -1392,7 +1390,7 @@ AFC,DEN,Denver Broncos,17200,"Marshall, Jason MIA CB","Marshall, Jason",MIA,CB,A
 AFC,DEN,Denver Broncos,17574,"Hood, Colton NYG CB","Hood, Colton",NYG,CB,Active,R,1.1,1,261.42,2026 UFA,,hood
 AFC,DEN,Denver Broncos,16731,"Hart, Cam LAC CB","Hart, Cam",LAC,CB,Active,,1.1,1,261.42,2026 UFA,,hart
 AFC,DEN,Denver Broncos,16262,"White, Keion SFO DE","White, Keion",SFO,DE,Active,Questionable,1.1,1,261.42,2026 UFA,,white
-AFC,DEN,Denver Broncos,17187,"Riley, Quincy NOS CB","Riley, Quincy",NOS,CB,Active,,1.1,1,261.42,2026 UFA,,riley
+AFC,DEN,Denver Broncos,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,Active,,1.09,3,261.42,2025 4.12,,bryant
 AFC,DEN,Denver Broncos,17612,"Proctor, Kaleb ARI DT","Proctor, Kaleb",ARI,DT,INJURED_RESERVE,IR,0.94,3,261.42,2026 UDFA,,proctor
 AFC,DEN,Denver Broncos,17096,"Williams, Savion GBP WR","Williams, Savion",GBP,WR,INJURED_RESERVE,IR-R,1.03,3,261.42,2025 5.12,,williams
 AFC,DEN,Denver Broncos,17596,"Crawford, Keyron LVR DE","Crawford, Keyron",LVR,DE,INJURED_RESERVE,IR,0.94,3,261.42,2026 UDFA,,crawford
