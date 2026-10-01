@@ -32,9 +32,13 @@ body <- render_saladj_email(
 
 stopifnot(regexpr("NFC\\n---", body)[1] < regexpr("AFC\\n---", body)[1])
 stopifnot(grepl("Dropped 9/30/2026 19:48:53 ET by JAC", body, fixed = TRUE))
-stopifnot(grepl("Jerry Jeudy CLE WR: $5.00 / 1 yr / 2026 UFA | Notes: ON WAIVERS CURRENTLY", body, fixed = TRUE))
+stopifnot(grepl("Jerry Jeudy CLE WR: $5.00 / 1 yr / 2026 UFA\n  Notes: ON WAIVERS CURRENTLY", body, fixed = TRUE))
 stopifnot(grepl("Joey Porter PIT CB: $2.01 / 1 yr / 2026 oEXT", body, fixed = TRUE))
 stopifnot(grepl("Scheduled: 10/1/2026 5:17 a.m. EDT", body, fixed = TRUE))
 stopifnot(grepl("Runtime to email: 5m 12s", body, fixed = TRUE))
+
+parsed_start <- parse_saladj_workflow_time("2026-10-01T19:03:00Z")
+stopifnot(format(parsed_start, "%Y-%m-%d %H:%M:%S", tz = "UTC") == "2026-10-01 19:03:00")
+stopifnot(format(parsed_start, "%Y-%m-%d %H:%M:%S", tz = "America/New_York") == "2026-10-01 15:03:00")
 
 cat("SalAdj email template checks passed.\n")
