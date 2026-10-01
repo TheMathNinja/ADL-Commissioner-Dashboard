@@ -222,8 +222,13 @@ fetch_raw_mfl_transactions <- function(conn) {
 }
 
 is_salary_adjustment_drop <- function(type, type_desc) {
-  tolower(as.character(type_desc)) == "dropped" &
-    toupper(as.character(type)) %in% c("FREE_AGENT", "WAIVER", "BBID_WAIVER")
+  tolower(trimws(as.character(type_desc))) == "dropped" &
+    toupper(trimws(as.character(type))) %in% c(
+      "FREE_AGENT",
+      "WAIVER",
+      "BBID_WAIVER",
+      "ROSTER"
+    )
 }
 
 normalize_transaction_bind_types <- function(tx) {

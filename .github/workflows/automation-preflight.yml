@@ -161,6 +161,9 @@ jobs:
       - name: Verify SalAdj individual waiver event matching
         run: Rscript scripts/test_saladj_waivers.R
 
+      - name: Verify SalAdj drop transaction types
+        run: Rscript scripts/test_saladj_transaction_types.R
+
       - name: Verify roster-cap streak and inactivity labels
         run: Rscript scripts/test_roster_cap_streaks.R
 
