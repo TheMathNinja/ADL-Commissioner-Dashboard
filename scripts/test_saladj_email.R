@@ -40,6 +40,12 @@ stopifnot(grepl("SalAdj scraper scheduled: 10/1/2026 5:17 a.m. EDT", body, fixed
 stopifnot(grepl("Run started/triggered: 10/1/2026 12:29 p.m. EDT (schedule)", body, fixed = TRUE))
 stopifnot(grepl("Run completed / email prepared: 10/1/2026 12:34 p.m. EDT (runtime: 5m 12s)", body, fixed = TRUE))
 stopifnot(grepl("Dashboard CSV here: https://", body, fixed = TRUE))
+stopifnot(grepl(
+  "SalAdj Curator published 2 new row(s) at 10/1/2026 12:34 p.m. EDT.\nDashboard CSV here:",
+  body,
+  fixed = TRUE
+))
+stopifnot(!grepl("EDT.\n\nDashboard CSV here:", body, fixed = TRUE))
 
 html_body <- render_saladj_email_html(body, "2026_10_01_ADLSalAdjCurator.csv")
 stopifnot(grepl('<a href="https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_01_ADLSalAdjCurator.csv">Dashboard CSV here</a>', html_body, fixed = TRUE))
