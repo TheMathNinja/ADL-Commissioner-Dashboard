@@ -113,7 +113,13 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display, ru
     lines <- c(lines, "")
   }
 
-  paste(lines, collapse = "\n")
+  body <- paste(lines, collapse = "\n")
+  gsub(
+    "(SalAdj Curator published[^\n]*\\.)\n+Dashboard CSV here:",
+    "\\1\nDashboard CSV here:",
+    body,
+    perl = TRUE
+  )
 }
 
 saladj_html_escape <- function(x) {
