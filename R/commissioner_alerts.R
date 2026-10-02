@@ -3314,7 +3314,12 @@ send_commissioner_alert_email <- function(
       return(tibble(franchise = franchise, sent = FALSE, reason = "offender_email_not_found", outbox_path = gm_outbox, recipients = "", cc = gm_cc))
     }
 
-    gm_subject_line <- gm_subject %||% paste0(franchise_title_prefix, " ", date_label, if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else "")
+    franchise_label <- as.character(franchise_alerts$franchise_name[[1]] %||% "")
+    if (is.na(franchise_label) || !nzchar(trimws(franchise_label))) franchise_label <- franchise
+    gm_subject_line <- gm_subject %||% paste0(
+      franchise_title_prefix, " - ", franchise_label, " - ", date_label,
+      if (!is.null(week) && !is.na(week)) paste0(" Week ", week) else ""
+    )
     status <- send_alert_mail(subject = gm_subject_line, body = gm_body, to = gm_to, cc = gm_cc)
 
     tibble(
