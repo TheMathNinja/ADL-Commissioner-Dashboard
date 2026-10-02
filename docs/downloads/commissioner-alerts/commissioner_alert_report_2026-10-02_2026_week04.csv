@@ -1,2 +1,4 @@
 season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
-2026,4,2026-10-02 09:38:53 UTC,Roster Cap Violation,violation,NFC,CAR,Carolina Panthers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,4,2026-10-02 16:43:47 UTC,Illegal Lineup Warning,warning,NFC,CHI,Chicago Bears,"Starting lineups require 12 defensive starters, including minimum 2 S",11 defensive starters (1 S),Must start 1 additional S,,
+2026,4,2026-10-02 16:43:47 UTC,Roster Cap Violation,violation,NFC,CAR,Carolina Panthers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,4,2026-10-02 16:43:47 UTC,Roster Cap Violation,violation,NFC,LAR,Los Angeles Rams,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,47 non-suspended/non-holdout Active + Taxi players,2 above maximum (45 Active + 2 Taxi),,1
