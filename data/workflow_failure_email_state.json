@@ -83,6 +83,10 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:36915090843:1": {
       "sent_at": "2026-10-01T19:33:24.174893+00:00",
       "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 Email league workflow failures"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:36990229603:1": {
+      "sent_at": "2026-10-02T09:40:45.753724+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Daily ADL League Maintenance"
     }
   },
   "checked": {
