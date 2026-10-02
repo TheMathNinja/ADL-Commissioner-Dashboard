@@ -1,4 +1,5 @@
 name: Update Dashboard
+run-name: ${{ inputs.orchestrator_run_id != '' && format('Daily maintenance {0} - Commissioner data', inputs.orchestrator_run_id) || 'Update Dashboard' }}
 
 on:
   workflow_call:
@@ -11,6 +12,10 @@ on:
         required: false
         default: ""
         type: string
+      orchestrator_run_id:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       enable_mfl_salary_writes:
@@ -20,6 +25,10 @@ on:
         type: boolean
       mfl_salary_write_import_type:
         description: "Optional override for the MFL import TYPE used for salary writes."
+        required: false
+        default: ""
+      orchestrator_run_id:
+        description: "Calling maintenance run ID used to correlate this run."
         required: false
         default: ""
   push:

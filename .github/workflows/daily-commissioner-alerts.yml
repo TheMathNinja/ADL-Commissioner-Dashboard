@@ -13,6 +13,10 @@ on:
         required: false
         default: ""
         type: string
+      orchestrator_run_id:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       cutdown_id:
@@ -31,8 +35,14 @@ on:
         description: Optional America/New_York timestamp for dry-run testing, e.g. 2026-09-13 06:15:00.
         required: false
         type: string
+      orchestrator_run_id:
+        description: Calling maintenance run ID used to correlate this run.
+        required: false
+        default: ""
+        type: string
 
 name: daily-commissioner-alerts
+run-name: ${{ inputs.orchestrator_run_id != '' && format('Daily maintenance {0} - Commissioner alerts', inputs.orchestrator_run_id) || 'daily-commissioner-alerts' }}
 
 permissions:
   contents: write

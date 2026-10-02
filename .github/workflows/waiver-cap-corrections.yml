@@ -1,4 +1,5 @@
 name: Waiver Claim Cap Corrections
+run-name: ${{ inputs.orchestrator_run_id != '' && format('Daily maintenance {0} - Waiver corrections', inputs.orchestrator_run_id) || 'Waiver Claim Cap Corrections' }}
 
 on:
   workflow_call:
@@ -15,6 +16,10 @@ on:
         required: false
         default: false
         type: boolean
+      orchestrator_run_id:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       send_email:
@@ -29,6 +34,10 @@ on:
         description: Check Google Sheets access without making changes
         type: boolean
         default: false
+      orchestrator_run_id:
+        description: Calling maintenance run ID used to correlate this run
+        required: false
+        default: ""
 permissions:
   contents: write
 
