@@ -1,6 +1,20 @@
 name: Waiver Claim Cap Corrections
 
 on:
+  workflow_call:
+    inputs:
+      send_email:
+        required: false
+        default: false
+        type: boolean
+      write_sheet:
+        required: false
+        default: false
+        type: boolean
+      verify_sheet_only:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       send_email:
@@ -47,6 +61,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/ADL-Commissioner-Dashboard
+          token: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN || github.token }}
 
       - name: Check for claim evidence
         id: evidence

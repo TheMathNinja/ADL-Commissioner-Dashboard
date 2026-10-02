@@ -20,10 +20,10 @@ assert(!cron('5 */6 * 9-12,1 *',5,1,1,10,4));
 assert(!cron('5 */6 * 9-12,1 *',5,18,1,8,4));
 assert(cron('7 16 31 8 *',7,16,31,8,1));
 assert(!cron('7 16 31 8 *',7,16,30,8,1));
-const localInputs=(year,month,day)=>vm.runInContext(`JSON.stringify(cloudLocalInputsParts_({workflow:'update_dashboard.yml',inputs:{enable_mfl_salary_writes:'false'}},${year},${month},${day}))`,context);
-assert.equal(localInputs(2026,7,1),'{"enable_mfl_salary_writes":"false"}');
-assert.equal(localInputs(2027,6,30),'{"enable_mfl_salary_writes":"false"}');
-assert.equal(localInputs(2027,7,1),'{"enable_mfl_salary_writes":"true"}');
+const localInputs=(year,month,day)=>vm.runInContext(`JSON.stringify(cloudLocalInputsParts_({workflow:'daily_adl_league_maintenance.yml',inputs:{send_email:'true',enable_mfl_salary_writes:'false'}},${year},${month},${day}))`,context);
+assert.equal(localInputs(2026,7,1),'{"send_email":"true","enable_mfl_salary_writes":"false"}');
+assert.equal(localInputs(2027,6,30),'{"send_email":"true","enable_mfl_salary_writes":"false"}');
+assert.equal(localInputs(2027,7,1),'{"send_email":"true","enable_mfl_salary_writes":"true"}');
 const targetWeek=(year,month,day)=>vm.runInContext(`cloudTargetWeekParts_(2026,${year},${month},${day})`,context);
 assert.equal(targetWeek(2026,9,13),0);
 assert.equal(targetWeek(2026,9,14),1);
@@ -40,9 +40,9 @@ assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'p
 assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));
 assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:true},{leagueId:'60206'},'corrections',3));
 const jobs=vm.runInContext('allCloudJobs_().map(j=>j.repo+"/"+j.workflow)',context);
-assert.equal(jobs.length,12);
+assert.equal(jobs.length,10);
 ['ADL-GM-Dashboard/poll_preliminary_scores.yml','FAFL-GM-Dashboard/poll_score_corrections.yml',
- 'ADL-GM-Dashboard/refresh_rosters.yml','ADL-Commissioner-Dashboard/daily-commissioner-alerts.yml',
+ 'ADL-GM-Dashboard/daily_adl_league_maintenance.yml',
  'ADL-Commissioner-Dashboard/offseason-inactivity-monitor.yml','ADL-Commissioner-Dashboard/lineup-designation-snapshots.yml',
- 'ADL-Commissioner-Dashboard/waiver-cap-corrections.yml'].forEach(job=>assert(jobs.includes(job),job));
+ 'ADL-Commissioner-Dashboard/dashboard_watchdog.yml'].forEach(job=>assert(jobs.includes(job),job));
 console.log('Cloud league scheduler tests passed.');

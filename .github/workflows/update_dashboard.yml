@@ -1,6 +1,16 @@
 name: Update Dashboard
 
 on:
+  workflow_call:
+    inputs:
+      enable_mfl_salary_writes:
+        required: false
+        default: false
+        type: boolean
+      mfl_salary_write_import_type:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       enable_mfl_salary_writes:
@@ -50,6 +60,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/ADL-Commissioner-Dashboard
+          token: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN || github.token }}
 
       - name: Decide whether scheduled run should proceed
         id: localtime
@@ -65,7 +78,7 @@ jobs:
 
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.enable_mfl_salary_writes }}" = "true" ]; then
+            if [ "${{ inputs.enable_mfl_salary_writes }}" = "true" ]; then
               echo "enable_mfl_salary_writes=true" >> "$GITHUB_OUTPUT"
             else
               echo "enable_mfl_salary_writes=false" >> "$GITHUB_OUTPUT"

@@ -24,10 +24,7 @@ const CLOUD_SCHEDULER = {
   ],
   // Fixed local times stay stable across daylight-saving changes.
   localJobs: [
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'update_dashboard.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {enable_mfl_salary_writes: 'false'}},
-    {repo: 'ADL-GM-Dashboard', workflow: 'refresh_rosters.yml', timezone: 'America/New_York', hour: 6, minute: 0, inputs: {reason: 'cloud-schedule'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'daily-commissioner-alerts.yml', timezone: 'America/New_York', hour: 6, minute: 15, inputs: {send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'waiver-cap-corrections.yml', timezone: 'America/New_York', hour: 8, minute: 45, inputs: {send_email: 'true', write_sheet: 'true', verify_sheet_only: 'false'}},
+    {repo: 'ADL-GM-Dashboard', workflow: 'daily_adl_league_maintenance.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {send_email: 'true'}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'dashboard_watchdog.yml', timezone: 'America/New_York', hour: 11, minute: 30, inputs: {}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 2, minute: 5, months: [1,9,10,11,12], inputs: {}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 8, minute: 5, months: [1,9,10,11,12], inputs: {}},
@@ -123,8 +120,8 @@ function cloudTargetWeek_(now) {
 }
 
 function cloudLocalInputsParts_(job, year, month, day) {
-  if (job.workflow === 'update_dashboard.yml' && year >= 2027 && month === 7 && day === 1) {
-    return {enable_mfl_salary_writes: 'true'};
+  if (job.workflow === 'daily_adl_league_maintenance.yml' && year >= 2027 && month === 7 && day === 1) {
+    return {send_email: 'true', enable_mfl_salary_writes: 'true'};
   }
   return job.inputs || {};
 }

@@ -1,4 +1,18 @@
 on:
+  workflow_call:
+    inputs:
+      cutdown_id:
+        required: false
+        default: ""
+        type: string
+      send_email:
+        required: false
+        default: "true"
+        type: string
+      checked_at:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       cutdown_id:
@@ -37,7 +51,7 @@ jobs:
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_MODE: check
       ADL_ALERT_FORCE_LIVE: true
-      ADL_ALERT_CHECKED_AT: ${{ github.event.inputs.checked_at }}
+      ADL_ALERT_CHECKED_AT: ${{ inputs.checked_at }}
       ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
@@ -57,6 +71,9 @@ jobs:
     steps:
       - name: Checkout dashboard repo
         uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/ADL-Commissioner-Dashboard
+          token: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN || github.token }}
 
       - name: Create cache directories
         run: |
@@ -77,8 +94,8 @@ jobs:
 
       - name: Run commissioner alerts
         run: |
-          CUTDOWN_ID="${{ github.event.inputs.cutdown_id }}"
-          SEND_EMAIL="${{ github.event.inputs.send_email }}"
+          CUTDOWN_ID="${{ inputs.cutdown_id }}"
+          SEND_EMAIL="${{ inputs.send_email }}"
           if [ -z "${SEND_EMAIL}" ]; then
             SEND_EMAIL="true"
           fi
