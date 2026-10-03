@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: false
+      authorize_official_snapshot:
+        description: "Authorize creation of a new immutable weekly snapshot."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -63,6 +68,14 @@ jobs:
             echo "record_needed=false" >> "$GITHUB_OUTPUT"
             echo "notify_needed=false" >> "$GITHUB_OUTPUT"
             echo "Repair mode: preserving the stored Week ${SNAPSHOT_WEEK} snapshot and rewriting Contract Admin only."
+            exit 0
+          fi
+          if [ "${{ inputs.authorize_official_snapshot }}" != "true" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "capture_needed=false" >> "$GITHUB_OUTPUT"
+            echo "record_needed=false" >> "$GITHUB_OUTPUT"
+            echo "notify_needed=false" >> "$GITHUB_OUTPUT"
+            echo "No official snapshot authorization was supplied; exiting without changes."
             exit 0
           fi
           if [ -f "$completion_path" ] || [ -f "$metadata_path" ] || [ -f "$snapshot_path" ]; then

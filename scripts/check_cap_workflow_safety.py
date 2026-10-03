@@ -8,6 +8,8 @@ required = {
     "completion receipt": "_ADLsalarycapcomplete.csv",
     "immutable snapshot guard": "[ -f \"$completion_path\" ] || [ -f \"$metadata_path\" ] || [ -f \"$snapshot_path\" ]",
     "explicit repair mode": "Repair mode: preserving the stored Week ${SNAPSHOT_WEEK} snapshot and rewriting Contract Admin only.",
+    "direct dispatch requires authorization": "No official snapshot authorization was supplied; exiting without changes.",
+    "authorization defaults off": "authorize_official_snapshot:\n        description: \"Authorize creation of a new immutable weekly snapshot.\"\n        required: false\n        type: boolean\n        default: false",
     "repair suppresses email": "if: steps.localtime.outputs.notify_needed == 'true'",
     "snapshot retries": "Salary cap accounting attempt ${attempt} failed.",
     "sheet retries": "Cap Rollover writeback attempt ${attempt} failed.",
