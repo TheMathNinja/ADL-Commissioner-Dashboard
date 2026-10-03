@@ -6,7 +6,9 @@ workflow = Path(".github/workflows/weekly_salary_cap_accounting.yml").read_text(
 required = {
     "bounded job": "timeout-minutes: 30",
     "completion receipt": "_ADLsalarycapcomplete.csv",
-    "resumable capture": "capture_needed=false",
+    "immutable snapshot guard": "[ -f \"$completion_path\" ] || [ -f \"$metadata_path\" ] || [ -f \"$snapshot_path\" ]",
+    "explicit repair mode": "Repair mode: preserving the stored Week ${SNAPSHOT_WEEK} snapshot and rewriting Contract Admin only.",
+    "repair suppresses email": "if: steps.localtime.outputs.notify_needed == 'true'",
     "snapshot retries": "Salary cap accounting attempt ${attempt} failed.",
     "sheet retries": "Cap Rollover writeback attempt ${attempt} failed.",
     "missing credentials are fatal": "Cap Rollover cannot be certified complete.",

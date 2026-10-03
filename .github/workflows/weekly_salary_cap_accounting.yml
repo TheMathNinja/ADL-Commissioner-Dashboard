@@ -12,6 +12,11 @@ on:
         description: "GM Dashboard weekly-package run that requested this snapshot."
         required: false
         type: string
+      repair_existing_week:
+        description: "Rewrite Contract Admin from an existing immutable snapshot without recapturing or emailing."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,20 +54,30 @@ jobs:
           [[ "$SNAPSHOT_WEEK" =~ ^[0-9]+$ ]] || { echo "snapshot_week must be numeric"; exit 1; }
           metadata_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapmetadata.csv"
           completion_path="data/cap_accounting/${CURRENT_SEASON}/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapcomplete.csv"
-          if [ -f "$completion_path" ]; then
+          snapshot_path="data/cap_accounting/${CURRENT_SEASON}/snapshots/${CURRENT_SEASON}w${SNAPSHOT_WEEK}_ADLsalarycapsnapshot.csv"
+          repair="${{ inputs.repair_existing_week }}"
+          if [ "$repair" = "true" ]; then
+            test -f "$snapshot_path" || { echo "Repair requested, but no stored Week ${SNAPSHOT_WEEK} snapshot exists."; exit 1; }
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "capture_needed=false" >> "$GITHUB_OUTPUT"
+            echo "record_needed=false" >> "$GITHUB_OUTPUT"
+            echo "notify_needed=false" >> "$GITHUB_OUTPUT"
+            echo "Repair mode: preserving the stored Week ${SNAPSHOT_WEEK} snapshot and rewriting Contract Admin only."
+            exit 0
+          fi
+          if [ -f "$completion_path" ] || [ -f "$metadata_path" ] || [ -f "$snapshot_path" ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
             echo "capture_needed=false" >> "$GITHUB_OUTPUT"
-            echo "The official Week ${SNAPSHOT_WEEK} cap package is already complete; preserving it."
+            echo "record_needed=false" >> "$GITHUB_OUTPUT"
+            echo "notify_needed=false" >> "$GITHUB_OUTPUT"
+            echo "The official Week ${SNAPSHOT_WEEK} snapshot already exists; preserving it without writeback or email."
             exit 0
           fi
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-          if [ -f "$metadata_path" ]; then
-            echo "capture_needed=false" >> "$GITHUB_OUTPUT"
-            echo "Week ${SNAPSHOT_WEEK} snapshot is already committed; resuming its unfinished Cap Rollover writeback."
-          else
-            echo "capture_needed=true" >> "$GITHUB_OUTPUT"
-            echo "Weekly package requested the official Week ${SNAPSHOT_WEEK} cap snapshot."
-          fi
+          echo "capture_needed=true" >> "$GITHUB_OUTPUT"
+          echo "record_needed=true" >> "$GITHUB_OUTPUT"
+          echo "notify_needed=true" >> "$GITHUB_OUTPUT"
+          echo "Weekly package requested the official Week ${SNAPSHOT_WEEK} cap snapshot."
 
       - name: Create cache directories
         if: steps.localtime.outputs.should_run == 'true'
@@ -148,7 +163,7 @@ jobs:
           exit 1
 
       - name: Record completed cap package
-        if: steps.localtime.outputs.should_run == 'true'
+        if: steps.localtime.outputs.record_needed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -174,7 +189,7 @@ jobs:
           exit 1
 
       - name: Email official snapshot confirmation
-        if: steps.localtime.outputs.should_run == 'true'
+        if: steps.localtime.outputs.notify_needed == 'true'
         continue-on-error: true
         env:
           CURRENT_SEASON: ${{ env.CURRENT_SEASON }}

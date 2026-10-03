@@ -39,7 +39,7 @@ Dallas Cowboys,"Dean, Jamel PIT CB",,$2.25,2,2026 oEXT,ACTIVE_ROSTER
 Dallas Cowboys,"Durant, Decobie DAL CB",Out,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Dallas Cowboys,"Hughes, Mike ATL CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Dallas Cowboys,"McCollum, Zyon TBB CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Dallas Cowboys,"Pritchett, Nehemiah SEA CB",,,1,2026 UFA,ACTIVE_ROSTER
+Dallas Cowboys,"Pritchett, Nehemiah SEA CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Dallas Cowboys,"Stevenson, Tyrique CHI CB",,$4.20,1,2026 UFA,ACTIVE_ROSTER
 Dallas Cowboys,"Holland, Jevon NYG S",,$7.30,2,2024 B/R,ACTIVE_ROSTER
 Dallas Cowboys,"Moehrig, Trevon CAR S",,$7.18,3,2026 oEXT,ACTIVE_ROSTER
@@ -84,7 +84,7 @@ New York Giants,"Gonzalez, Christian NEP CB",,$2.02,3,2026 iEXT,ACTIVE_ROSTER
 New York Giants,"Lee, Will CAR CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 New York Giants,"McKinstry, Kool-Aid NOS CB",,$1.08,2,2024 5.13,ACTIVE_ROSTER
 New York Giants,"Nixon, Keisean GBP CB",,$3.26,1,2026 oEXT,ACTIVE_ROSTER
-New York Giants,"Anderson, Zayne MIA S",,,1,2026 UFA,ACTIVE_ROSTER
+New York Giants,"Anderson, Zayne MIA S",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 New York Giants,"Belton, Dane NYJ S",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 New York Giants,"Downs, Caleb DAL S",,$2.62,4,2026 1.16,ACTIVE_ROSTER
 New York Giants,"Fitzpatrick, Minkah NYJ S",Out,$2.00,1,2026 UFA,ACTIVE_ROSTER
@@ -127,7 +127,7 @@ Philadelphia Eagles,"Singleton, Alex DEN LB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Philadelphia Eagles,"Hood, Colton NYG CB",,$0.98,4,2026 5.14,ACTIVE_ROSTER
 Philadelphia Eagles,"Lenoir, Deommodore SFO CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Philadelphia Eagles,"Masses, Hezekiah LVR CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
-Philadelphia Eagles,"McCoy, Jermod LVR CB",,,1,2026 UFA,ACTIVE_ROSTER
+Philadelphia Eagles,"McCoy, Jermod LVR CB",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 Philadelphia Eagles,"Pierre, James MIN CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Philadelphia Eagles,"Rodgers, Isaiah MIN CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Philadelphia Eagles,"Scott, Keionte TBB CB",,$0.99,4,2026 5.10,ACTIVE_ROSTER
@@ -186,7 +186,7 @@ Washington Commanders,"Pitre, Jalen HOU S",,$2.70,3,2026 UFA,ACTIVE_ROSTER
 Washington Commanders,"Sanker, Jonas NOS S",,$0.99,2,2025 UDFA,ACTIVE_ROSTER
 Chicago Bears,"Mahomes, Patrick KCC QB",,$41.48,3,2023 oEXT,ACTIVE_ROSTER
 Chicago Bears,"Shough, Tyler NOS QB",,$1.35,3,2025 3.09,ACTIVE_ROSTER
-Chicago Bears,"Demercado, Emari DAL RB",Out,,1,2026 UFA,ACTIVE_ROSTER
+Chicago Bears,"Demercado, Emari DAL RB",Out,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Chicago Bears,"Dowdle, Rico PIT RB",Out,$4.70,1,2026 UFA,ACTIVE_ROSTER
 Chicago Bears,"Henry, Derrick BAL RB",,$22.80,2,2026 UFA,ACTIVE_ROSTER
 Chicago Bears,"Lloyd, MarShawn GBP RB",,$1.42,2,2024 3.06,ACTIVE_ROSTER
@@ -268,7 +268,7 @@ Detroit Lions,"Edwards, T.J. CHI LB",,$2.70,1,2026 UFA,ACTIVE_ROSTER
 Detroit Lions,"Overshown, DeMarvion DAL LB",Out,$5.17,1,2024 iEXT,ACTIVE_ROSTER
 Detroit Lions,"Walker, Quay LVR LB",,$5.70,2,2025 iEXT,ACTIVE_ROSTER
 Detroit Lions,"Werner, Pete NOS LB",,$2.30,1,2026 UFA,ACTIVE_ROSTER
-Detroit Lions,"Horn, Jaycee CAR CB",,,1,2026 UFA,ACTIVE_ROSTER
+Detroit Lions,"Horn, Jaycee CAR CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Detroit Lions,"Stokes, Eric LVR CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Detroit Lions,"Surtain II, Patrick DEN CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Detroit Lions,"Ward, Denzel CLE CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
@@ -364,7 +364,7 @@ Minnesota Vikings,"Wilson, Eric MIN LB",,$5.77,1,2026 SRFA,ACTIVE_ROSTER
 Minnesota Vikings,"DeJean, Cooper PHI CB",,$1.24,2,2024 3.17,ACTIVE_ROSTER
 Minnesota Vikings,"Demmings, Charles MIN CB",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 Minnesota Vikings,"Hill, Daxton CIN CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Minnesota Vikings,"Jackson, Michael CAR CB",,,1,2026 UFA,ACTIVE_ROSTER
+Minnesota Vikings,"Jackson, Michael CAR CB",,$5.10,1,2026 UFA,ACTIVE_ROSTER
 Minnesota Vikings,"Stingley Jr., Derek HOU CB",,$2.25,3,2026 UFA,ACTIVE_ROSTER
 Minnesota Vikings,"Clark, Chuck DET S",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Minnesota Vikings,"Hooker, Amani TEN S",,$2.00,1,2026 UFA,ACTIVE_ROSTER
@@ -375,8 +375,8 @@ Atlanta Falcons,"Brown, A.J. NEP WR",IR,$36.61,1,2024 oEXT,INJURED_RESERVE
 Atlanta Falcons,"Walker, Jalon ATL DE",IR,$1.72,3,2025 2.12,INJURED_RESERVE
 Atlanta Falcons,"Bagent, Tyson CHI QB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Atlanta Falcons,"Fields, Justin KCC QB",,$10.71,4,2024 iEXT,ACTIVE_ROSTER
-Atlanta Falcons,"Lock, Drew SEA QB",,,1,2026 UFA,ACTIVE_ROSTER
-Atlanta Falcons,"McCarthy, J.J. NYG QB",Out,$4.87,2,2024 1.06,ACTIVE_ROSTER
+Atlanta Falcons,"Lock, Drew SEA QB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
+Atlanta Falcons,"McCarthy, J.J. MIN QB",Out,$4.87,2,2024 1.06,ACTIVE_ROSTER
 Atlanta Falcons,"Nix, Bo DEN QB",,$1.69,2,2024 2.12,ACTIVE_ROSTER
 Atlanta Falcons,"Smith, Geno NYJ QB",,$8.36,1,2025 B/R,ACTIVE_ROSTER
 Atlanta Falcons,"Allen, Braelon NYJ RB",,$1.25,2,2024 3.16,ACTIVE_ROSTER
@@ -404,12 +404,12 @@ Atlanta Falcons,"Dennis-Sutton, Dani GBP DE",,$1.07,4,2026 4.11,ACTIVE_ROSTER
 Atlanta Falcons,"Gillotte, Ashton KCC DE",,$1.03,3,2025 5.21,ACTIVE_ROSTER
 Atlanta Falcons,"Green, Mike BAL DE",,$1.57,3,2025 2.16,ACTIVE_ROSTER
 Atlanta Falcons,"Key, Arden IND DE",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Atlanta Falcons,"Smith, Za'Darius ATL DE",,,1,2026 UFA,ACTIVE_ROSTER
+Atlanta Falcons,"Smith, Za'Darius ATL DE",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Atlanta Falcons,"Deablo, Divine ATL LB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Atlanta Falcons,"Greenlaw, Dre SFO LB",,,1,2026 UFA,ACTIVE_ROSTER
+Atlanta Falcons,"Greenlaw, Dre SFO LB",,$6.06,1,2025 UFA,ACTIVE_ROSTER
 Atlanta Falcons,"Okereke, Bobby CAR LB",,$6.48,1,2025 UFA,ACTIVE_ROSTER
 Atlanta Falcons,"Moss, Riley DEN CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Atlanta Falcons,"Porter Jr., Joey PIT CB",Out,,1,2026 UFA,ACTIVE_ROSTER
+Atlanta Falcons,"Porter Jr., Joey PIT CB",Out,$2.01,1,2026 oEXT,ACTIVE_ROSTER
 Atlanta Falcons,"Walley, Justin IND CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Atlanta Falcons,"Williams, Nohl KCC CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Atlanta Falcons,"Witherspoon, Devon SEA CB",,$3.70,1,2023 4.08^,ACTIVE_ROSTER
@@ -456,7 +456,7 @@ Carolina Panthers,"Speights, Omar LAR LB",,$2.06,2,2025 oEXT,ACTIVE_ROSTER
 Carolina Panthers,"Williams, Quincy CLE LB",,$5.75,1,2025 UFA,ACTIVE_ROSTER
 Carolina Panthers,"Burke, Denzel ARI CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Carolina Panthers,"Davis, Carlton NEP CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Carolina Panthers,"Davis, Jalen CIN CB",,,1,2026 UFA,ACTIVE_ROSTER
+Carolina Panthers,"Davis, Jalen CIN CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Carolina Panthers,"Jobe, Josh SEA CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Carolina Panthers,"Johnson, Taron LVR CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Carolina Panthers,"Murphy, Byron MIN CB",,$3.10,1,2026 UFA,ACTIVE_ROSTER
@@ -532,7 +532,7 @@ Tampa Bay Buccaneers,"Montgomery, David HOU RB",,$17.10,2,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Smith, Brashard KCC RB",,$1.03,3,2025 5.15,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Tucker, Sean TBB RB",,$3.67,2,2026 ORFA5,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Addison, Jordan MIN WR",,$4.48,1,2023 1.08,ACTIVE_ROSTER
-Tampa Bay Buccaneers,"Atwell, Tutu LAR WR",Out,,1,2026 UFA,ACTIVE_ROSTER
+Tampa Bay Buccaneers,"Atwell, Tutu LAR WR",Out,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Benson, Malik LVR WR",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Coleman, Kevin MIA WR",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Dotson, Jahan ATL WR",,$1.10,1,2026 R/F,ACTIVE_ROSTER
@@ -544,8 +544,8 @@ Tampa Bay Buccaneers,"Thornton, Tyquan KCC WR",,$2.10,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Andrews, Mark BAL TE",,$3.04,2,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Helm, Gunnar TEN TE",,$0.99,2,2025 UDFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Sadiq, Kenyon NYJ TE",,$4.13,4,2026 1.09,ACTIVE_ROSTER
-Tampa Bay Buccaneers,"Bass, Tyler BUF PK",,,1,2026 UFA,ACTIVE_ROSTER
-Tampa Bay Buccaneers,"Rehkow, Ryan CIN PN",,,1,2026 UFA,ACTIVE_ROSTER
+Tampa Bay Buccaneers,"Bass, Tyler BUF PK",,$1.10,1,2026 UFA,ACTIVE_ROSTER
+Tampa Bay Buccaneers,"Rehkow, Ryan CIN PN",,$1.10,1,2026 ERFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Jones, Travis BAL DT",,$3.71,4,2026 oEXT,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Phillips, Harrison NYJ DT",,$1.20,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Hines-Allen, Josh JAC DE",,$16.45,1,2022 iEXT,ACTIVE_ROSTER
@@ -558,7 +558,7 @@ Tampa Bay Buccaneers,"Miller, Ventrell JAC LB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Rodriguez, Jacob MIA LB",,$2.05,4,2026 2.06,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Thomas, Drake SEA LB",,$2.10,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Warner, Fred SFO LB",,$10.20,4,2026 mEXT,ACTIVE_ROSTER
-Tampa Bay Buccaneers,"Douglas, Rasul WAS CB",,,1,2026 UFA,ACTIVE_ROSTER
+Tampa Bay Buccaneers,"Douglas, Rasul WAS CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Johnson, Jaylon CHI CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Watson, Jaylen LAR CB",,$2.50,1,2026 UFA,ACTIVE_ROSTER
 Tampa Bay Buccaneers,"Battle, Jordan CIN S",,$5.81,1,2023 3.14^,ACTIVE_ROSTER
@@ -634,7 +634,7 @@ Los Angeles Rams,"Evans, Mike SFO WR",,$37.24,3,2025 iEXT,ACTIVE_ROSTER
 Los Angeles Rams,"Meyers, Jakobi JAC WR",,$8.12,2,2026 oEXT,ACTIVE_ROSTER
 Los Angeles Rams,"Mumpfield, Konata LAR WR",,$0.99,2,2025 UDFA,ACTIVE_ROSTER
 Los Angeles Rams,"Palmer, Joshua BUF WR",,$2.10,1,2026 UFA,ACTIVE_ROSTER
-Los Angeles Rams,"Whittington, Jordan LAR WR",,,1,2026 UFA,ACTIVE_ROSTER
+Los Angeles Rams,"Whittington, Jordan LAR WR",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Los Angeles Rams,"Boerkircher, Nate JAC TE",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 Los Angeles Rams,"Goedert, Dallas PHI TE",Out,$2.95,2,2026 UFA,ACTIVE_ROSTER
 Los Angeles Rams,"Taylor, Mason NYJ TE",Out,$1.67,3,2025 2.13,ACTIVE_ROSTER
@@ -758,7 +758,7 @@ Seattle Seahawks,"Terrell, Avieon ATL CB",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Seattle Seahawks,"Williams, Garrett ARI CB",,$1.10,1,2025 R/F,ACTIVE_ROSTER
 Seattle Seahawks,"Cross, Nick WAS S",Out,$7.80,3,2026 ORFA5,ACTIVE_ROSTER
 Seattle Seahawks,"Gilman, Alohi KCC S",,$2.00,1,2026 UFA,ACTIVE_ROSTER
-Seattle Seahawks,"Hawkins, Jaylinn BAL S",,,1,2026 UFA,ACTIVE_ROSTER
+Seattle Seahawks,"Hawkins, Jaylinn BAL S",,$3.45,2,2025 iEXT,ACTIVE_ROSTER
 Seattle Seahawks,"Metellus, Josh MIN S",,$2.10,1,2026 UFA,ACTIVE_ROSTER
 Seattle Seahawks,"Cooper, Jonathon DEN DE",Suspended,$6.94,3,2025 iEXT,TAXI_SQUAD
 Buffalo Bills,"Bresee, Bryan NOS DT",IR,$3.70,1,2023 2.04^,INJURED_RESERVE
@@ -869,7 +869,7 @@ New England Patriots,"Benson, Malik LVR WR",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 New England Patriots,"Boston, Denzel CLE WR",,$3.08,4,2026 1.13,ACTIVE_ROSTER
 New England Patriots,"Branch, Zachariah ATL WR",,$1.26,4,2026 3.12,ACTIVE_ROSTER
 New England Patriots,"Dike, Chimere TEN WR",,$1.06,3,2025 5.03,ACTIVE_ROSTER
-New England Patriots,"Nailor, Jalen LVR WR",,,1,2026 UFA,ACTIVE_ROSTER
+New England Patriots,"Nailor, Jalen LVR WR",,$1.10,1,2026 ERFA,ACTIVE_ROSTER
 New England Patriots,"Noel, Jaylin HOU WR",,$1.38,3,2025 3.08,ACTIVE_ROSTER
 New England Patriots,"Shaheed, Rashid SEA WR",,$7.28,4,2025 iEXT,ACTIVE_ROSTER
 New England Patriots,"Williams, Kyle NEP WR",,$1.49,3,2025 3.03,ACTIVE_ROSTER
@@ -879,8 +879,8 @@ New England Patriots,"Wilson, Roman PIT WR",,$1.93,2,2024 2.07,ACTIVE_ROSTER
 New England Patriots,"Young, Colbie CIN WR",,$0.94,3,2026 UDFA,ACTIVE_ROSTER
 New England Patriots,"Likely, Isaiah NYG TE",,$4.26,4,2024 iEXT,ACTIVE_ROSTER
 New England Patriots,"Sadiq, Kenyon NYJ TE",,$3.80,4,2026 1.10,ACTIVE_ROSTER
-New England Patriots,"Folk, Nick ATL PK",,,1,2026 UFA,ACTIVE_ROSTER
-New England Patriots,"Bailey, Jake ATL PN",,,1,2026 UFA,ACTIVE_ROSTER
+New England Patriots,"Folk, Nick ATL PK",,$1.10,1,2026 UFA,ACTIVE_ROSTER
+New England Patriots,"Bailey, Jake ATL PN",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 New England Patriots,"Banks, Caleb MIN DT",,$1.36,4,2026 3.07,ACTIVE_ROSTER
 New England Patriots,"Madubuike, Nnamdi BAL DT",,$7.39,3,2025 B/R,ACTIVE_ROSTER
 New England Patriots,"McDonald, Kayden HOU DT",IR,$1.59,4,2026 2.15,ACTIVE_ROSTER
@@ -978,10 +978,10 @@ Baltimore Ravens,"McPherson, Evan CIN PK",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Baltimore Ravens,"Stout, Jordan NYG PN",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Baltimore Ravens,"Barmore, Christian NEP DT",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Baltimore Ravens,"Donald, Aaron LAR DT",,$5.50,1,2026 UFA,ACTIVE_ROSTER
-Baltimore Ravens,"Hall, Aaron CAR DT",,,1,2026 UFA,ACTIVE_ROSTER
+Baltimore Ravens,"Hall, Aaron CAR DT",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Baltimore Ravens,"Oliver, Ed BUF DT",,$7.60,1,2023 iEXT,ACTIVE_ROSTER
 Baltimore Ravens,"Redmond, Jalen MIN DT",,$11.34,3,2026 UFA,ACTIVE_ROSTER
-Baltimore Ravens,"Stills, Dante ARI DT",,,1,2026 UFA,ACTIVE_ROSTER
+Baltimore Ravens,"Stills, Dante ARI DT",,$2.00,1,2026 UFA,ACTIVE_ROSTER
 Baltimore Ravens,"Woods, Peter KCC DT",,$1.49,4,2026 3.02,ACTIVE_ROSTER
 Baltimore Ravens,"Moore, Derrick DET DE",,$1.41,4,2026 3.05,ACTIVE_ROSTER
 Baltimore Ravens,"Murphy, Myles CIN DE",,$3.30,2,2026 oEXT,ACTIVE_ROSTER
@@ -1055,7 +1055,7 @@ Cleveland Browns,"Lock, Drew SEA QB",,$2.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Mayfield, Baker TBB QB",,$22.96,1,2024 iEXT,ACTIVE_ROSTER
 Cleveland Browns,"Rodgers, Aaron PIT QB",,$2.20,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Allgeier, Tyler ARI RB",,$4.37,2,2026 UFA,ACTIVE_ROSTER
-Cleveland Browns,"Gainwell, Kenneth TBB RB",,,1,2026 UFA,ACTIVE_ROSTER
+Cleveland Browns,"Gainwell, Kenneth TBB RB",,$9.60,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"McGowan, Seth IND RB",,$2.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Tucker, Sean TBB RB",,$3.52,1,2026 RRFA,ACTIVE_ROSTER
 Cleveland Browns,"Williams, Kyren LAR RB",,$30.20,1,2026 UFA,ACTIVE_ROSTER
@@ -1086,10 +1086,10 @@ Cleveland Browns,"Verse, Jared CLE DE",,$2.46,2,2024 1.16,ACTIVE_ROSTER
 Cleveland Browns,"Carter, Barrett CIN LB",,$1.03,3,2025 5.18,ACTIVE_ROSTER
 Cleveland Browns,"Greenlaw, Dre SFO LB",,$5.47,2,2025 oEXT,ACTIVE_ROSTER
 Cleveland Browns,"Lloyd, Devin CAR LB",Out,$8.20,1,2026 UFA,ACTIVE_ROSTER
-Cleveland Browns,"White, Devin DET LB",Out,,1,2026 UFA,ACTIVE_ROSTER
+Cleveland Browns,"White, Devin DET LB",Out,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Campbell, Tyson CLE CB",Out,$5.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Jackson, Donte LAC CB",,$1.10,1,2025 R/F,ACTIVE_ROSTER
-Cleveland Browns,"Jones, Jack SFO CB",,,1,2026 UFA,ACTIVE_ROSTER
+Cleveland Browns,"Jones, Jack SFO CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Taylor, Alontae TEN CB",,$6.01,1,2025 oEXT,ACTIVE_ROSTER
 Cleveland Browns,"Belton, Dane NYJ S",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Cleveland Browns,"Blackmon, Julian NOS S",,$1.10,1,2026 R/F,ACTIVE_ROSTER
@@ -1262,7 +1262,7 @@ Jacksonville Jaguars,"Coleman, Keon BUF WR",,$3.03,2,2024 1.12,ACTIVE_ROSTER
 Jacksonville Jaguars,"Diggs, Stefon WAS WR",,$6.08,3,2025 B/R,ACTIVE_ROSTER
 Jacksonville Jaguars,"Godwin, Chris TBB WR",,$9.10,1,2026 UFA,ACTIVE_ROSTER
 Jacksonville Jaguars,"Golden, Matthew GBP WR",,$3.66,3,2025 1.10,ACTIVE_ROSTER
-Jacksonville Jaguars,"Jeudy, Jerry CLE WR",,,1,2026 UFA,ACTIVE_ROSTER
+Jacksonville Jaguars,"Jeudy, Jerry CLE WR",,$5.00,1,2026 UFA,ACTIVE_ROSTER
 Jacksonville Jaguars,"Royals, Jalen KCC WR",,$1.20,3,2025 3.20,ACTIVE_ROSTER
 Jacksonville Jaguars,"Smith, DeVonta PHI WR",,$34.00,1,2026 UFA,ACTIVE_ROSTER
 Jacksonville Jaguars,"Thomas, Zavion CHI WR",,$1.06,4,2026 4.11,ACTIVE_ROSTER
@@ -1299,7 +1299,7 @@ Tennessee Titans,"Brooks, Jonathon CAR RB",IR,$2.86,2,2024 1.13,INJURED_RESERVE
 Tennessee Titans,"Mason, Jordan MIN RB",IR,$3.52,1,2026 RRFA,INJURED_RESERVE
 Tennessee Titans,"Stowers, Eli PHI TE",IR,$2.20,4,2026 2.04,INJURED_RESERVE
 Tennessee Titans,"Darnold, Sam SEA QB",,$13.95,3,2026 mEXT,ACTIVE_ROSTER
-Tennessee Titans,"McCarthy, J.J. NYG QB",Out,$4.42,2,2024 1.07,ACTIVE_ROSTER
+Tennessee Titans,"McCarthy, J.J. MIN QB",Out,$4.42,2,2024 1.07,ACTIVE_ROSTER
 Tennessee Titans,"Penix Jr., Michael ATL QB",,$1.62,2,2024 2.14,ACTIVE_ROSTER
 Tennessee Titans,"Stroud, C.J. HOU QB",,$3.30,1,2023 1.12,ACTIVE_ROSTER
 Tennessee Titans,"Brown, Chase CIN RB",,$9.71,2,2025 iEXT,ACTIVE_ROSTER
@@ -1385,7 +1385,7 @@ Denver Broncos,"Hart, Cam LAC CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Denver Broncos,"Hood, Colton NYG CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Denver Broncos,"Marshall, Jason MIA CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Denver Broncos,"Parrish, Jacob TBB CB",,$1.10,1,2026 ERFA,ACTIVE_ROSTER
-Denver Broncos,"Riley, Quincy NOS CB",,,1,2026 UFA,ACTIVE_ROSTER
+Denver Broncos,"Riley, Quincy NOS CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Denver Broncos,"Scott, Keionte TBB CB",,$0.98,4,2026 5.14,ACTIVE_ROSTER
 Denver Broncos,"Battle, Jordan CIN S",,$6.50,1,2026 ORFA3,ACTIVE_ROSTER
 Denver Broncos,"Cook, Bryan CIN S",,$1.10,1,2026 R/F,ACTIVE_ROSTER
@@ -1409,7 +1409,7 @@ Kansas City Chiefs,"Dotson, Jahan ATL WR",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Kansas City Chiefs,"Jefferson, Justin MIN WR",,$43.12,3,2024 iEXT,ACTIVE_ROSTER
 Kansas City Chiefs,"Odunze, Rome CHI WR",,$5.43,2,2024 1.05,ACTIVE_ROSTER
 Kansas City Chiefs,"Sarratt, Elijah BAL WR",Out,$1.03,4,2026 4.17,ACTIVE_ROSTER
-Kansas City Chiefs,"Dulcich, Greg MIA TE",,,1,2026 UFA,ACTIVE_ROSTER
+Kansas City Chiefs,"Dulcich, Greg MIA TE",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Kansas City Chiefs,"Fannin, Harold CLE TE",,$1.33,3,2025 3.10,ACTIVE_ROSTER
 Kansas City Chiefs,"Gadsden, Oronde LAC TE",,$0.99,2,2025 UDFA,ACTIVE_ROSTER
 Kansas City Chiefs,"Shrader, Spencer IND PK",,$1.10,1,2026 UFA,ACTIVE_ROSTER
@@ -1530,7 +1530,7 @@ Los Angeles Chargers,"Johnson, Chris MIA CB",,$1.10,4,2026 4.06,ACTIVE_ROSTER
 Los Angeles Chargers,"Lee, Will CAR CB",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Los Angeles Chargers,"Still, Tarheeb LAC CB",,$1.10,1,2026 R/F,ACTIVE_ROSTER
 Los Angeles Chargers,"Stout, Upton SFO CB",,$1.10,1,2026 ERFA,ACTIVE_ROSTER
-Los Angeles Chargers,"Anderson, Zayne MIA S",,,1,2026 UFA,ACTIVE_ROSTER
+Los Angeles Chargers,"Anderson, Zayne MIA S",,$1.10,1,2026 UFA,ACTIVE_ROSTER
 Los Angeles Chargers,"Kilgore, Jalon BUF S",Out,$0.98,4,2026 5.21,ACTIVE_ROSTER
 Los Angeles Chargers,"Pitre, Jalen HOU S",,$5.89,2,2026 UFA,ACTIVE_ROSTER
 Los Angeles Chargers,"Watts, Xavier ATL S",,$1.26,3,2025 3.14,ACTIVE_ROSTER
