@@ -45,4 +45,7 @@ assert.equal(jobs.length,10);
  'ADL-GM-Dashboard/daily_adl_league_maintenance.yml',
  'ADL-Commissioner-Dashboard/offseason-inactivity-monitor.yml','ADL-Commissioner-Dashboard/lineup-designation-snapshots.yml',
  'ADL-Commissioner-Dashboard/dashboard_watchdog.yml'].forEach(job=>assert(jobs.includes(job),job));
+const watchdog=vm.runInContext('CLOUD_SCHEDULER.localJobs.find(j=>j.workflow==="dashboard_watchdog.yml")',context);
+assert.equal(watchdog.hour,6);
+assert.equal(watchdog.minute,57);
 console.log('Cloud league scheduler tests passed.');

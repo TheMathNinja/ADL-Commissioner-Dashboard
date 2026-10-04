@@ -25,7 +25,7 @@ const CLOUD_SCHEDULER = {
   // Fixed local times stay stable across daylight-saving changes.
   localJobs: [
     {repo: 'ADL-GM-Dashboard', workflow: 'daily_adl_league_maintenance.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {send_email: 'true'}},
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'dashboard_watchdog.yml', timezone: 'America/New_York', hour: 11, minute: 30, inputs: {}},
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'dashboard_watchdog.yml', timezone: 'America/New_York', hour: 6, minute: 57, inputs: {}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 2, minute: 5, months: [1,9,10,11,12], inputs: {}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 8, minute: 5, months: [1,9,10,11,12], inputs: {}},
     {repo: 'ADL-Commissioner-Dashboard', workflow: 'lineup-designation-snapshots.yml', timezone: 'America/New_York', hour: 14, minute: 5, months: [1,9,10,11,12], inputs: {}},
