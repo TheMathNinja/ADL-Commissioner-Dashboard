@@ -35,6 +35,8 @@ assert(localMatch({hour:6,minute:15,months:[2,3,4,5,6,7,8]},2026,6,1,6,15));
 assert(!localMatch({hour:6,minute:15,months:[2,3,4,5,6,7,8]},2026,10,1,6,15));
 assert(localMatch({hour:12,minute:7,month:8,day:31},2026,8,31,12,7));
 assert(!localMatch({hour:12,minute:7,month:8,day:31},2026,8,30,12,7));
+const dueWithAdvancedCursor=vm.runInContext(`latestDueMinute_({hour:5,minute:17},new Date('2026-10-04T09:30:58Z'),new Date('2026-10-04T09:29:58Z'),function(job,date){return date.getUTCHours()===9&&date.getUTCMinutes()===17;}).toISOString()`,context);
+assert.equal(dueWithAdvancedCursor,'2026-10-04T09:17:00.000Z');
 const receipt=(value,job,process,week)=>vm.runInContext(`cloudRefreshReceiptMatches_(${JSON.stringify(value)},${JSON.stringify(job)},'${process}',${week})`,context);
 assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'preliminary'},{leagueId:'60206'},'preliminary',3));
 assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));
