@@ -136,12 +136,9 @@ function cloudLocalInputs_(job, date) {
 function latestDueMinute_(job, now, lastRun, matcher) {
   const end = Math.floor(now.getTime() / 60000) * 60000;
   const fallbackStart = end - CLOUD_SCHEDULER.maxCatchUpMinutes * 60000;
-  const cursorStart = lastRun ? lastRun.getTime() + 60000 : end - 20 * 60000;
-  // Re-scan at least 35 minutes on every pass. Per-job receipts prevent duplicates,
-  // while this guard keeps one advanced/corrupt shared cursor from skipping a fixed slot.
-  const safetyStart = end - 35 * 60000;
-  const start = Math.max(fallbackStart, Math.min(cursorStart, safetyStart));
-  for (let stamp = end; stamp >= start; stamp -= 60000) {
+  // Always search the complete recovery window. Per-job receipts make this
+  // idempotent, while a shared cursor can no longer hide a missed fixed slot.
+  for (let stamp = end; stamp >= fallbackStart; stamp -= 60000) {
     const candidate = new Date(stamp);
     if (matcher(job, candidate)) return candidate;
   }
