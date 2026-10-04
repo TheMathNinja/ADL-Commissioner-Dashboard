@@ -95,6 +95,10 @@
     "TheMathNinja/ADL-GM-Dashboard:37100875369:1": {
       "sent_at": "2026-10-03T05:56:33.853300+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL weekly update \u00b7 Week 3"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:37213297464:1": {
+      "sent_at": "2026-10-04T15:55:05.105169+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Dashboard Watchdog"
     }
   },
   "checked": {
@@ -180,6 +184,8 @@
     "TheMathNinja/FAFL-GM-Dashboard:37100875766:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:37100952426:1": "success",
     "TheMathNinja/FAFL-GM-Dashboard:37102002463:1": "success",
-    "TheMathNinja/FAFL-GM-Dashboard:37102842197:1": "success"
+    "TheMathNinja/FAFL-GM-Dashboard:37102842197:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:37027522737:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:37133519027:1": "success"
   }
 }
