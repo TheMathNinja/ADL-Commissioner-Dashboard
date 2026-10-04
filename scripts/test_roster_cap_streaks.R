@@ -2,7 +2,10 @@ source("R/inseason_inactivity_monitor.R")
 
 report_dir <- tempfile("roster-cap-streak-")
 dir.create(report_dir)
+snapshot_dir <- tempfile("roster-cap-snapshots-")
+dir.create(snapshot_dir)
 Sys.setenv(ADL_ALERT_REPORT_DIR = report_dir)
+Sys.setenv(ADL_ROSTER_SNAPSHOT_DIR = snapshot_dir)
 
 rule <- "Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad"
 row <- tibble::tibble(
@@ -34,8 +37,6 @@ stopifnot(identical(roster_cap_consecutive_days(row, 2026, day3 + 2 * 86400), 1L
 
 # A missing alert report must not erase a real streak when the saved roster
 # snapshot for that date proves the same violation.
-snapshot_dir <- tempfile("roster-cap-snapshots-")
-dir.create(snapshot_dir)
 snapshot_rows <- tibble::tibble(
   season = 2026,
   snapshot_time = "2026-09-14T09:17:00Z",
