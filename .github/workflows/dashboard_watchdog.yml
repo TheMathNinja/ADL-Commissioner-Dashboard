@@ -2,6 +2,11 @@ name: Dashboard Watchdog
 
 on:
   workflow_dispatch:
+  schedule:
+    # Independent 6:57 a.m. ET fallback. Apps Script remains the primary
+    # dispatcher; these two UTC candidates cover daylight-saving changes.
+    - cron: '57 10 * * *'
+    - cron: '57 11 * * *'
 
 permissions:
   contents: read
@@ -11,10 +16,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Select 6:57 a.m. Eastern fallback slot
+        id: timing
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != schedule ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          OFFSET=$(TZ=America/New_York date +%z)
+          SLOT="${{ github.event.schedule }}"
+          if { [ "$OFFSET" = "-0400" ] && [ "$SLOT" = "57 10 * * *" ]; } || \
+             { [ "$OFFSET" = "-0500" ] && [ "$SLOT" = "57 11 * * *" ]; }; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check out repository
+        if: steps.timing.outputs.should_run == 'true'
         uses: actions/checkout@v4
 
       - name: Verify today's daily maintenance package completed
+        if: steps.timing.outputs.should_run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: python
@@ -70,6 +94,7 @@ jobs:
           print(run["html_url"])
 
       - name: Verify SalAdjCurator checked in recently
+        if: steps.timing.outputs.should_run == 'true'
         shell: python
         run: |
           import csv
