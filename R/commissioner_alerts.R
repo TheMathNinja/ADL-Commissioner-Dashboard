@@ -2500,7 +2500,77 @@ commissioner_alert_ordinal <- function(n) {
   paste0(n, suffix)
 }
 
-roster_cap_consecutive_days <- function(alerts, season, checked_at, report_dir = commissioner_alert_report_dir()) {
+commissioner_roster_snapshot_dir <- function() {
+  Sys.getenv(
+    "ADL_ROSTER_SNAPSHOT_DIR",
+    unset = file.path("data", "roster_snapshots")
+  )
+}
+
+roster_cap_snapshot_evidence <- function(alert, day, season, snapshot_dir = commissioner_roster_snapshot_dir()) {
+  files <- list.files(snapshot_dir, pattern = "[.]csv$", full.names = TRUE)
+  if (!length(files)) return(FALSE)
+
+  raw_pattern <- paste0("^saladj_roster_snapshot_", season, "_([0-9]{8}_[0-9]{6})[.]csv$")
+  public_pattern <- "^([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{6})_ADLDailyRosterSnapshot[.]csv$"
+  snapshot_times <- lapply(basename(files), function(filename) {
+    if (grepl(raw_pattern, filename)) {
+      stamp <- sub(raw_pattern, "\\1", filename)
+      return(lubridate::with_tz(as.POSIXct(stamp, format = "%Y%m%d_%H%M%S", tz = "UTC"), "America/New_York"))
+    }
+    if (grepl(public_pattern, filename)) {
+      stamp <- sub(public_pattern, "\\1", filename)
+      return(as.POSIXct(stamp, format = "%Y_%m_%d_%H%M%S", tz = "America/New_York"))
+    }
+    as.POSIXct(NA, tz = "America/New_York")
+  })
+  snapshot_times <- as.POSIXct(unlist(snapshot_times), origin = "1970-01-01", tz = "America/New_York")
+  target_day <- as.Date(day)
+  eligible <- !is.na(snapshot_times) & as.Date(snapshot_times, tz = "America/New_York") == target_day
+  if (!any(eligible)) return(FALSE)
+  files <- files[eligible]
+  snapshot_times <- snapshot_times[eligible]
+  scheduled_time <- as.POSIXct(paste(target_day, "05:17:00"), tz = "America/New_York")
+  files <- files[order(abs(as.numeric(difftime(snapshot_times, scheduled_time, units = "secs"))), basename(files))]
+
+  snapshot <- tryCatch(
+    readr::read_csv(files[[1]], col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE),
+    error = function(e) tibble::tibble()
+  )
+  names(snapshot) <- toupper(names(snapshot))
+  franchise_col <- if ("FRANCHISE_NAME" %in% names(snapshot)) "FRANCHISE_NAME" else "FRANCHISE"
+  required <- c(franchise_col, "ROSTER_STATUS")
+  if (!all(required %in% names(snapshot))) return(FALSE)
+
+  franchise_name <- as.character(alert$franchise_name[[1]] %||% "")
+  team <- snapshot[toupper(trimws(snapshot[[franchise_col]])) == toupper(trimws(franchise_name)), , drop = FALSE]
+  if (!nrow(team)) return(FALSE)
+
+  roster <- tibble::tibble(
+    conference = as.character(alert$conference[[1]] %||% ""),
+    franchise = as.character(alert$franchise[[1]] %||% ""),
+    franchise_name = franchise_name,
+    roster_status = as.character(team$ROSTER_STATUS),
+    player_status = if ("PLAYER_STATUS" %in% names(team)) as.character(team$PLAYER_STATUS) else if ("INJURY" %in% names(team)) as.character(team$INJURY) else NA_character_,
+    player = if ("PLAYER_NAME" %in% names(team)) as.character(team$PLAYER_NAME) else if ("PLAYER" %in% names(team)) as.character(team$PLAYER) else as.character(seq_len(nrow(team)))
+  )
+  snapshot_time <- as.POSIXct(paste(as.Date(day), "05:17:00"), tz = "America/New_York")
+  reconstructed <- evaluate_roster_cap_alerts(roster, season = season, checked_at = snapshot_time)
+  any(
+    reconstructed$alert_type == "Roster Cap Violation" &
+      reconstructed$franchise == as.character(alert$franchise[[1]]) &
+      reconstructed$rule == as.character(alert$rule[[1]]),
+    na.rm = TRUE
+  )
+}
+
+roster_cap_consecutive_days <- function(
+  alerts,
+  season,
+  checked_at,
+  report_dir = commissioner_alert_report_dir(),
+  snapshot_dir = commissioner_roster_snapshot_dir()
+) {
   counts <- rep(NA_integer_, nrow(alerts))
   roster_rows <- which(alerts$alert_type == "Roster Cap Violation")
   if (!length(roster_rows)) return(counts)
@@ -2520,8 +2590,20 @@ roster_cap_consecutive_days <- function(alerts, season, checked_at, report_dir =
         })) else tibble::tibble()
       }
       previous <- history[[date_key]]
-      if (!all(c("alert_type", "franchise", "rule") %in% names(previous)) ||
-          !any(previous$alert_type == "Roster Cap Violation" & previous$franchise == alerts$franchise[[i]] & previous$rule == alerts$rule[[i]], na.rm = TRUE)) break
+      report_is_readable <- all(c("alert_type", "franchise", "rule") %in% names(previous))
+      report_has_violation <- report_is_readable && any(
+        previous$alert_type == "Roster Cap Violation" &
+          previous$franchise == alerts$franchise[[i]] &
+          previous$rule == alerts$rule[[i]],
+        na.rm = TRUE
+      )
+      snapshot_has_violation <- FALSE
+      if (!report_is_readable) {
+        snapshot_has_violation <- roster_cap_snapshot_evidence(
+          alerts[i, , drop = FALSE], day, season, snapshot_dir = snapshot_dir
+        )
+      }
+      if (!report_has_violation && !snapshot_has_violation) break
       counts[[i]] <- counts[[i]] + 1L
       day <- day - 1L
     }
