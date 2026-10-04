@@ -1,0 +1,6 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,4,2026-10-04 16:25:01 UTC,Illegal Lineup Warning,warning,AFC,CIN,Cincinnati Bengals,No inactive players allowed in starting lineup,"Enagbare, Kingsley NYJ DE is inactive (O)",,,
+2026,4,2026-10-04 16:25:01 UTC,Illegal Lineup Warning,warning,NFC,CHI,Chicago Bears,No inactive players allowed in starting lineup,"McLaurin, Terry WAS WR is inactive (O)",,,
+2026,4,2026-10-04 16:25:01 UTC,Illegal Lineup Warning,warning,NFC,DAL,Dallas Cowboys,No inactive players allowed in starting lineup,"Benford, Christian BUF CB is inactive (O)",,,
+2026,4,2026-10-04 16:25:01 UTC,Illegal Lineup Warning,warning,NFC,NOS,New Orleans Saints,No inactive players allowed in starting lineup,"Cook, Bryan CIN S is inactive (O)",,,
+2026,4,2026-10-04 16:25:01 UTC,Roster Cap Violation,violation,NFC,LAR,Los Angeles Rams,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,47 non-suspended/non-holdout Active + Taxi players,2 above maximum (45 Active + 2 Taxi),,1
