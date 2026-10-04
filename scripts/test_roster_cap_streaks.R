@@ -32,6 +32,44 @@ different_rule$rule <- "At least 40 players on Active Roster"
 stopifnot(identical(roster_cap_consecutive_days(different_rule, 2026, day3), 1L))
 stopifnot(identical(roster_cap_consecutive_days(row, 2026, day3 + 2 * 86400), 1L))
 
+# A missing alert report must not erase a real streak when the saved roster
+# snapshot for that date proves the same violation.
+snapshot_dir <- tempfile("roster-cap-snapshots-")
+dir.create(snapshot_dir)
+snapshot_rows <- tibble::tibble(
+  season = 2026,
+  snapshot_time = "2026-09-14T09:17:00Z",
+  franchise_id = "0006",
+  franchise_name = "Detroit Lions",
+  CONF = "NFC",
+  player_id = as.character(seq_len(46L)),
+  player_name = paste("Player", seq_len(46L)),
+  player_team = "DET",
+  player_pos = "LB",
+  player_status = "",
+  roster_status = c(rep("Active", 45L), "Taxi"),
+  roster_salary = 1,
+  roster_years = 1,
+  roster_contractInfo = "2026 UFA"
+)
+readr::write_csv(
+  snapshot_rows,
+  file.path(snapshot_dir, "saladj_roster_snapshot_2026_20260914_091700.csv")
+)
+report("2026-09-13", "01", row)
+day_after_outage <- as.POSIXct("2026-09-15 06:15:00", tz = "America/New_York")
+stopifnot(identical(
+  roster_cap_consecutive_days(row, 2026, day_after_outage, snapshot_dir = snapshot_dir),
+  5L
+))
+
+# A genuinely missing day with neither a report nor a snapshot still breaks
+# the streak rather than inventing evidence.
+stopifnot(identical(
+  roster_cap_consecutive_days(row, 2026, day_after_outage + 86400, snapshot_dir = snapshot_dir),
+  1L
+))
+
 confirmed <- evaluate_repeated_roster_violations(2026, run_time = day2)
 stopifnot(nrow(confirmed) == 1L, confirmed$franchise[[1]] == "DET")
 stopifnot(grepl("Roster Cap Violation", confirmed$details[[1]], fixed = TRUE))
