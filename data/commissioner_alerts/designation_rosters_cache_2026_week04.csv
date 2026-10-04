@@ -275,6 +275,7 @@ NFC,DET,Detroit Lions,15387,"Werner, Pete NOS LB","Werner, Pete",NOS,LB,Active,Q
 NFC,DET,Detroit Lions,15377,"Stokes, Eric LVR CB","Stokes, Eric",LVR,CB,Active,,1.1,1,266.44,2026 UFA,,stokes
 NFC,DET,Detroit Lions,11674,"Cooks, Brandin SFO WR","Cooks, Brandin",SFO,WR,Active,,1.1,1,266.44,2026 UFA,,cooks
 NFC,DET,Detroit Lions,14137,"Fant, Noah NOS TE","Fant, Noah",NOS,TE,Active,Questionable,1.1,1,266.44,2026 UFA,,fant
+NFC,DET,Detroit Lions,16701,"Rakestraw, Ennis DET CB","Rakestraw, Ennis",DET,CB,Active,,1.1,1,266.44,2026 UFA,,rakestraw
 NFC,DET,Detroit Lions,14840,"Aiyuk, Brandon SFO WR","Aiyuk, Brandon",SFO,WR,INJURED_RESERVE,Holdout,7.2,3,266.44,2026 B/R,,aiyuk
 NFC,DET,Detroit Lions,16594,"Benson, Trey ARI RB","Benson, Trey",ARI,RB,INJURED_RESERVE,IR,2.46,2,266.44,2024 1.16,,benson
 NFC,DET,Detroit Lions,17672,"Gill-Howard, Skyler DET DT","Gill-Howard, Skyler",DET,DT,Taxi,R,1.1,1,266.44,2026 UFA,,gill-howard
@@ -399,14 +400,11 @@ NFC,ATL,Atlanta Falcons,17666,"van den Berg, Jordan CHI DT","van den Berg, Jorda
 NFC,ATL,Atlanta Falcons,17518,"Allen, Cyrus KCC WR","Allen, Cyrus",KCC,WR,Active,R,1,4,264.87,2026 5.01,,allen
 NFC,ATL,Atlanta Falcons,17619,"Dennis-Sutton, Dani GBP DE","Dennis-Sutton, Dani",GBP,DE,Active,R,1.07,4,264.87,2026 4.11,,dennis-sutton
 NFC,ATL,Atlanta Falcons,17155,"Gillotte, Ashton KCC DE","Gillotte, Ashton",KCC,DE,Active,,1.03,3,264.87,2025 5.21,,gillotte
-NFC,ATL,Atlanta Falcons,13782,"Dickson, Michael SEA PN","Dickson, Michael",SEA,PN,Active,,1.1,1,264.87,2026 R/F,,dickson
 NFC,ATL,Atlanta Falcons,16216,"Washington, Darnell PIT TE","Washington, Darnell",PIT,TE,Active,,1.1,1,264.87,2026 R/F,,washington
 NFC,ATL,Atlanta Falcons,17059,"Gordon II, Ollie MIA RB","Gordon II, Ollie",MIA,RB,Active,,1.04,3,264.87,2025 5.09,,gordon ii
 NFC,ATL,Atlanta Falcons,17162,"Walley, Justin IND CB","Walley, Justin",IND,CB,Active,,1.1,1,264.87,2026 UFA,,walley
 NFC,ATL,Atlanta Falcons,17202,"Trader, Dante MIA S","Trader, Dante",MIA,S,Active,,1.1,1,264.87,2026 UFA,,trader
 NFC,ATL,Atlanta Falcons,12735,"Rankins, Sheldon HOU DT","Rankins, Sheldon",HOU,DT,Active,,1.1,1,264.87,2026 UFA,,rankins
-NFC,ATL,Atlanta Falcons,16344,"Stills, Dante ARI DT","Stills, Dante",ARI,DT,Active,,1.1,1,264.87,2026 UFA,,stills
-NFC,ATL,Atlanta Falcons,15364,"Cisco, Andre NYJ S","Cisco, Andre",NYJ,S,Active,,1.2,1,264.87,2026 UFA,,cisco
 NFC,ATL,Atlanta Falcons,15911,"Araiza, Matt KCC PN","Araiza, Matt",KCC,PN,Active,,1.1,1,264.87,2026 UFA,,araiza
 NFC,ATL,Atlanta Falcons,14244,"Gay, Matt LVR PK","Gay, Matt",LVR,PK,Active,,1.1,1,264.87,2026 UFA,,gay
 NFC,ATL,Atlanta Falcons,14905,"Henderson, CJ ATL CB","Henderson, CJ",ATL,CB,Active,,2.1,1,264.87,2026 UFA,,henderson
@@ -1395,7 +1393,6 @@ AFC,DEN,Denver Broncos,17256,"Croskey-Merritt, Jacory WAS RB","Croskey-Merritt, 
 AFC,DEN,Denver Broncos,17668,"Smack, Trey GBP PK","Smack, Trey",GBP,PK,Active,R,0.98,4,261.42,2026 5.15,,smack
 AFC,DEN,Denver Broncos,17616,"Scott, Keionte TBB CB","Scott, Keionte",TBB,CB,Active,R,0.98,4,261.42,2026 5.14,,scott
 AFC,DEN,Denver Broncos,17467,"Klubnik, Cade NYJ QB","Klubnik, Cade",NYJ,QB,Active,R,0.98,4,261.42,2026 5.13,,klubnik
-AFC,DEN,Denver Broncos,16639,"Legette, Xavier CAR WR","Legette, Xavier",CAR,WR,Active,IR,1.1,1,261.42,2026 UFA,,legette
 AFC,DEN,Denver Broncos,17636,"Dugger, Jaden SFO LB","Dugger, Jaden",SFO,LB,Active,R,1.1,1,261.42,2026 UFA,,dugger
 AFC,DEN,Denver Broncos,17627,"Hibner, Matthew BAL TE","Hibner, Matthew",BAL,TE,Active,R,1.1,1,261.42,2026 UFA,,hibner
 AFC,DEN,Denver Broncos,17200,"Marshall, Jason MIA CB","Marshall, Jason",MIA,CB,Active,,1.1,1,261.42,2026 UFA,,marshall
@@ -1411,6 +1408,7 @@ AFC,DEN,Denver Broncos,17596,"Crawford, Keyron LVR DE","Crawford, Keyron",LVR,DE
 AFC,DEN,Denver Broncos,17130,"Amos, Trey WAS CB","Amos, Trey",WAS,CB,INJURED_RESERVE,IR-R,1.1,1,261.42,2026 R/F,,amos
 AFC,DEN,Denver Broncos,16628,"McMillan, Jalen TBB WR","McMillan, Jalen",TBB,WR,INJURED_RESERVE,IR,1.19,2,261.42,2024 4.05,,mcmillan
 AFC,DEN,Denver Broncos,15253,"Etienne, Travis NOS RB","Etienne, Travis",NOS,RB,INJURED_RESERVE,IR,14.48,2,261.42,2026 oEXT,,etienne
+AFC,DEN,Denver Broncos,16639,"Legette, Xavier CAR WR","Legette, Xavier",CAR,WR,INJURED_RESERVE,IR,1.1,1,261.42,2026 UFA,,legette
 AFC,KCC,Kansas City Chiefs,14836,"Jefferson, Justin MIN WR","Jefferson, Justin",MIN,WR,Active,Out,43.12,3,254.86,2024 iEXT,,jefferson
 AFC,KCC,Kansas City Chiefs,16616,"Odunze, Rome CHI WR","Odunze, Rome",CHI,WR,Active,,5.43,2,254.86,2024 1.05,,odunze
 AFC,KCC,Kansas City Chiefs,15835,"Brisker, Jaquan PIT S","Brisker, Jaquan",PIT,S,Active,,4.47,2,254.86,2025 iEXT,,brisker
