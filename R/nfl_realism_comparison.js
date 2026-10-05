@@ -27,7 +27,7 @@
     $('metrics').innerHTML = [['NFL ACT + INA',t.observed_roster,'Observed roster'],['Offensive line',t.ol,'OL · excluded'],['Long snappers',t.ls,'LS · excluded'],['NFL non-OL/LS',t.observed_non_ol_ls,'ACT + INA − OL − LS']].map((r,i) => `<div class="realism-metric ${i===3?'primary':''}">${r[0]}<strong>${fmt(r[1])}</strong><span>${r[2]}</span></div>`).join('');
     $('context').textContent = `${season === 'ALL' ? '2022–2025' : season} · weeks 1–17 · NFL: ${team==='NFL'?'average team':team} · ADL: average franchise. NFL includes OL/LS below; ADL shows zero for these non-ADL positions.`;
     let totals = [0,0,0,0,0,0];
-    $('positions').innerHTML = positions.map(position => {
+    $('positions').innerHTML = positions.filter(position => position !== 'UNMAPPED' || ['ACT','INA'].some(status => nflCount(season,team,status,position) !== 0 || adlCount(season,status,position) !== 0)).map(position => {
       const nonADL = ['OL','LS'].includes(position);
       const aa = nonADL ? 0 : adlCount(season,'ACT',position), ai = nonADL ? 0 : adlCount(season,'INA',position);
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
