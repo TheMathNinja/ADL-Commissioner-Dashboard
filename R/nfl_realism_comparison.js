@@ -4,6 +4,7 @@
   const $ = id => document.getElementById('realism-' + id);
   const fmt = n => Number(n).toFixed(2);
   const pct = (adl,nfl) => { if (!(nfl > 0)) return '—'; const rounded = Number(((adl/nfl-1)*100).toFixed(0)); return (rounded >= 0 ? '+' : '') + rounded + '%'; };
+  const comparisonColor = (adl,nfl) => { if (!(nfl > 0)) return 'rgb(102,112,133)'; const difference=adl/nfl-1, weight=Math.min(Math.abs(difference)/0.5,1), neutral=[102,112,133], end=difference>=0?[2,122,72]:[180,35,24]; return 'rgb('+neutral.map((v,i)=>Math.round(v+(end[i]-v)*weight)).join(',')+')'; };
   const positions = ['QB','RB','WR','TE','PK','PN','DT','DE','LB','CB','S','OL','LS','UNMAPPED'];
   const teams = [...new Set(data.totals.map(r => r.team))].filter(t => t !== 'NFL').sort();
   for (const team of teams) {
@@ -35,10 +36,10 @@
       const values = [na,ni,na+ni,aa,ai,aa+ai];
       allTotals = allTotals.map((v,i) => v+values[i]);
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td>${fmt(v)}${i===5 ? ` (${pct(aa+ai,na+ni)})` : ''}</td>`).join('')}</tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(aa+ai,na+ni)}"` : ''}>${fmt(v)}</td>`).join('')}<td style="color:${comparisonColor(aa+ai,na+ni)}">(${pct(aa+ai,na+ni)})</td></tr>`;
     }).join('');
-    $('positions').innerHTML += `<tr class="realism-total realism-all-total"><th scope="row">All Positions Total</th>${allTotals.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td><strong>${fmt(v)}${i===5 ? ` (${pct(totals[5],totals[2])})` : ''}</strong></td>`).join('')}</tr>`;
+    $('positions').innerHTML += `<tr class="realism-total realism-all-total"><th scope="row">All Positions Total</th>${allTotals.map(v => `<td>${fmt(v)}</td>`).join('')}<td></td></tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(totals[5],totals[2])}"` : ''}><strong>${fmt(v)}</strong></td>`).join('')}<td style="color:${comparisonColor(totals[5],totals[2])}"><strong>(${pct(totals[5],totals[2])})</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {

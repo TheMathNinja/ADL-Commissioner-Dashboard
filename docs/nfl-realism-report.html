@@ -401,7 +401,7 @@ NFL INA = Gameday Inactive player (on Active roster, i.e. not Reserve or Practic
 ADL ACT = ADL Active Roster players suiting up on gameday<br>
 ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
 
-<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="3">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="4">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col" aria-label="ADL percentage difference from NFL"></th></tr></thead><tbody id="realism-positions"></tbody></table></div>
 
 <p class="realism-caption">ADL positions come from that season’s ADL/MFL database when an ID match exists. NFL OL/LS are shown with zero ADL counts and excluded only from the non-OL/LS benchmark; estimated classifications are summarized in the public position-method coverage and fallback-schema downloads.</p></section>
 
@@ -447,6 +447,7 @@ ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
   const $ = id => document.getElementById('realism-' + id);
   const fmt = n => Number(n).toFixed(2);
   const pct = (adl,nfl) => { if (!(nfl > 0)) return '—'; const rounded = Number(((adl/nfl-1)*100).toFixed(0)); return (rounded >= 0 ? '+' : '') + rounded + '%'; };
+  const comparisonColor = (adl,nfl) => { if (!(nfl > 0)) return 'rgb(102,112,133)'; const difference=adl/nfl-1, weight=Math.min(Math.abs(difference)/0.5,1), neutral=[102,112,133], end=difference>=0?[2,122,72]:[180,35,24]; return 'rgb('+neutral.map((v,i)=>Math.round(v+(end[i]-v)*weight)).join(',')+')'; };
   const positions = ['QB','RB','WR','TE','PK','PN','DT','DE','LB','CB','S','OL','LS','UNMAPPED'];
   const teams = [...new Set(data.totals.map(r => r.team))].filter(t => t !== 'NFL').sort();
   for (const team of teams) {
@@ -478,10 +479,10 @@ ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
       const values = [na,ni,na+ni,aa,ai,aa+ai];
       allTotals = allTotals.map((v,i) => v+values[i]);
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td>${fmt(v)}${i===5 ? ` (${pct(aa+ai,na+ni)})` : ''}</td>`).join('')}</tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(aa+ai,na+ni)}"` : ''}>${fmt(v)}</td>`).join('')}<td style="color:${comparisonColor(aa+ai,na+ni)}">(${pct(aa+ai,na+ni)})</td></tr>`;
     }).join('');
-    $('positions').innerHTML += `<tr class="realism-total realism-all-total"><th scope="row">All Positions Total</th>${allTotals.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td><strong>${fmt(v)}${i===5 ? ` (${pct(totals[5],totals[2])})` : ''}</strong></td>`).join('')}</tr>`;
+    $('positions').innerHTML += `<tr class="realism-total realism-all-total"><th scope="row">All Positions Total</th>${allTotals.map(v => `<td>${fmt(v)}</td>`).join('')}<td></td></tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(totals[5],totals[2])}"` : ''}><strong>${fmt(v)}</strong></td>`).join('')}<td style="color:${comparisonColor(totals[5],totals[2])}"><strong>(${pct(totals[5],totals[2])})</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
