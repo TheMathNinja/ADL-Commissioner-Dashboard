@@ -37,6 +37,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'data/**'
+      - '.github/**'
+      - 'tests/**'
 permissions:
   contents: write
 
