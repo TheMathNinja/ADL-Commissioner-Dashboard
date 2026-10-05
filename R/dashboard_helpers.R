@@ -336,16 +336,26 @@ dashboard_css <- function() {
 .labs-directory-menu nav a{display:block;padding:11px 12px;border-radius:5px;color:#235789;font:600 14px/1.4 system-ui,sans-serif;text-decoration:none}
 .labs-directory-menu nav a:hover,.labs-directory-menu nav a:focus-visible{background:#eef4fa}
 header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-size:24px}}
-  .labs-directory-menu nav .gm-overview-link{display:flex;align-items:center;gap:11px}.gm-overview-icon{font-size:23px;line-height:1}.gm-overview-copy{display:flex;flex-direction:column;gap:2px}.gm-overview-copy strong{font-size:13px;font-weight:650}.gm-overview-copy small{font-size:11px;color:#657386}</style>"
+  .labs-directory-menu nav .gm-overview-link{display:flex;align-items:center;gap:11px}.gm-overview-icon{font-size:23px;line-height:1}.gm-overview-copy{display:flex;flex-direction:column;gap:2px}.gm-overview-copy strong{font-size:13px;font-weight:650}.gm-overview-copy small{font-size:11px;color:#657386}.commissioner-menu{position:relative;margin-left:auto;z-index:10}
+.commissioner-menu summary{list-style:none;display:grid;place-items:center;min-width:60px;min-height:44px;font-size:25px;line-height:1;border:1px solid #637a94;border-radius:7px;color:#235789;background:#ffffffb3}
+.commissioner-menu summary::-webkit-details-marker{display:none}
+.commissioner-menu nav{position:absolute;right:0;top:52px;width:260px;padding:7px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px #152e4626}
+.commissioner-menu a{display:block;padding:11px;text-decoration:none;border-radius:5px}
+.commissioner-menu a:hover{background:#eef4fa}
+.commissioner-menu summary{min-width:46px}
+.commissioner-menu nav{max-width:calc(100vw - 32px);max-height:calc(100vh - 130px);overflow:auto}.commissioner-menu a{color:#235789;font:600 14px/1.4 system-ui,sans-serif}.commissioner-menu summary{cursor:pointer}
+</style>"
 
 }
 
 
 
 dashboard_menu <- function(title) {
-  paste0("<details class='labs-directory-menu'><summary class='labs-directory-link' aria-label='Open dashboard menu' title='Open dashboard menu'><span class='labs-directory-bars' aria-hidden='true'></span></summary><nav aria-label='Dashboard navigation'>",
-    if (identical(title, "ADL Commissioner Dashboard")) "" else "<a class='gm-overview-link' href='index.html'><span class='gm-overview-icon' aria-hidden='true'>&#8962;</span><span class='gm-overview-copy'><strong>Commissioner Dashboard</strong><small>Commissioner tools &amp; reports</small></span></a>",
-    "<a class='gm-overview-link' href='https://themathninja.github.io/'><span class='gm-overview-icon' aria-hidden='true'>&#8610;</span><span class='gm-overview-copy'><strong>Dashboard overview</strong><small>GM &amp; Commissioner dashboards</small></span></a></nav></details>")
+  paste0("<details class='commissioner-menu'><summary aria-label='Open dashboard menu' title='Open dashboard menu'><span aria-hidden='true'>&#9776;</span></summary><nav aria-label='Commissioner dashboard tools'>",
+    if (identical(title, "ADL Commissioner Dashboard")) "<a href='https://themathninja.github.io/'>&#8624; Dashboard overview</a>" else "<a href='index.html'>&#8624; Commissioner Dashboard</a>",
+    "<a href='saladjcurator.html'>SalAdj Curator</a><a href='daily-roster-snapshots.html'>Daily Roster Snapshots</a><a href='salary-cap-accounting.html'>Salary Cap Accounting &amp; Rollover</a><a href='commissioner-alerts.html'>Commissioner Alerts</a><a href='nfl-realism-report.html'>NFL Realism Report</a>",
+    if (identical(title, "ADL Commissioner Dashboard")) "" else "<a href='https://themathninja.github.io/'>&#8624; Dashboard overview</a>",
+    "</nav></details>")
 }
 
 dashboard_page <- function(title, body_html) {
