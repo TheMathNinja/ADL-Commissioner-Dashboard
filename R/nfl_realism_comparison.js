@@ -32,7 +32,7 @@
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
       const values = [aa,ai,aa+ai,na,ni,na+ni];
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
     }).join('');
     $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}</tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
