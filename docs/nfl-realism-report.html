@@ -338,7 +338,15 @@
 .labs-directory-menu nav a{display:block;padding:11px 12px;border-radius:5px;color:#235789;font:600 14px/1.4 system-ui,sans-serif;text-decoration:none}
 .labs-directory-menu nav a:hover,.labs-directory-menu nav a:focus-visible{background:#eef4fa}
 header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-size:24px}}
-  .labs-directory-menu nav .gm-overview-link{display:flex;align-items:center;gap:11px}.gm-overview-icon{font-size:23px;line-height:1}.gm-overview-copy{display:flex;flex-direction:column;gap:2px}.gm-overview-copy strong{font-size:13px;font-weight:650}.gm-overview-copy small{font-size:11px;color:#657386}</style>
+  .labs-directory-menu nav .gm-overview-link{display:flex;align-items:center;gap:11px}.gm-overview-icon{font-size:23px;line-height:1}.gm-overview-copy{display:flex;flex-direction:column;gap:2px}.gm-overview-copy strong{font-size:13px;font-weight:650}.gm-overview-copy small{font-size:11px;color:#657386}
+/* Identical NFL and ADL count-column widths and centered headings/values. */
+.realism-composition{table-layout:fixed;min-width:760px}
+.realism-composition col.realism-position-col{width:16%}
+.realism-composition col.realism-count-col,.realism-composition col.realism-percent-col{width:12%}
+.realism-composition tbody tr>:nth-child(n+2):nth-child(-n+7),
+.realism-composition thead tr:nth-child(2)>:nth-child(-n+6){width:auto;text-align:center;padding-left:11px;padding-right:11px}
+.realism-composition tbody tr>:nth-child(8){width:auto;text-align:left;padding-left:3px;transform:translateX(-25%)}
+</style>
 
 </head>
 
@@ -407,7 +415,7 @@ NFL INA = Gameday Inactive player (on Active roster, i.e. not Reserve or Practic
 ADL ACT = ADL Active Roster players suiting up on gameday<br>
 ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
 
-<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="4">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col" aria-label="ADL percentage difference from NFL"></th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+<div class="realism-scroll"><table class="realism-table realism-composition"><colgroup><col class="realism-position-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-percent-col"></colgroup><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="4">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col" aria-label="ADL percentage difference from NFL"></th></tr></thead><tbody id="realism-positions"></tbody></table></div>
 
 </section>
 
