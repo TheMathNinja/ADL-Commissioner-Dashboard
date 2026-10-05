@@ -5,33 +5,17 @@
 .realism-total{background:#edf2f8;border-top:2px solid var(--blue)}
 
 
-/* Separate ADL from NFL and emphasize position totals in the top table. */
-.realism-composition tbody tr>:nth-child(5),
-.realism-composition thead tr:first-child>:nth-child(3),
-.realism-composition thead tr:nth-child(2)>:nth-child(4){border-left:3px solid var(--blue)}
-.realism-composition tbody tr>:nth-child(4),
-.realism-composition tbody tr>:nth-child(7){font-weight:700}
-
-/* Center group headings, status headings and their numeric columns. */
-.realism-composition thead tr:first-child th:not(:first-child),
-.realism-composition thead tr:nth-child(2) th,
-.realism-composition tbody tr>:not(:first-child){text-align:center}
-.realism-main-heading{font-size:clamp(2rem,4vw,3rem);line-height:1.15;font-weight:800;margin:8px 0 24px}
-.realism-composition .realism-all-total>*{font-weight:400}
-.realism-composition .realism-all-total+.realism-total{border-top:0}
-
-.realism-composition tbody tr>:nth-child(7){text-align:center;padding-left:3px;padding-right:3px;width:1%}
-.realism-composition tbody tr>:nth-child(8){text-align:left;padding-left:3px;width:1%;white-space:nowrap}
-.realism-composition thead tr:nth-child(2)>:nth-child(6){text-align:center;padding-left:3px;padding-right:3px;width:1%}
-.realism-composition thead tr:nth-child(2)>:nth-child(7){padding-left:3px;width:1%}
-.realism-composition tbody tr>:nth-child(7){text-align:center;padding-left:3px;padding-right:3px;width:1%} .realism-composition thead tr:nth-child(2)>:nth-child(6){text-align:center;padding-left:3px;padding-right:3px;width:1%}.realism-composition tbody tr.realism-all-total>th,.realism-composition tbody tr.realism-all-total>td,.realism-composition tbody tr.realism-all-total strong{font-weight:400}.realism-composition tbody tr>:nth-child(6),.realism-composition thead tr:nth-child(2)>:nth-child(5){width:1%}
-/* Identical NFL and ADL count-column widths and centered headings/values. */
-.realism-composition{table-layout:fixed;min-width:760px}
+/* Equal count-column spacing on both sides; percentage stays beside ADL Total. */
+.realism-composition{table-layout:fixed;min-width:860px}
 .realism-composition col.realism-position-col{width:16%}
-.realism-composition col.realism-count-col,.realism-composition col.realism-percent-col{width:12%}
-.realism-composition tbody tr>:nth-child(n+2):nth-child(-n+7),
-.realism-composition thead tr:nth-child(2)>:nth-child(-n+6){width:auto;text-align:center;padding-left:11px;padding-right:11px}
-.realism-composition tbody tr>:nth-child(8){width:auto;text-align:left;padding-left:3px;transform:translateX(-25%)}
+.realism-composition col.realism-count-col{width:10.5%}
+.realism-composition col.realism-percent-col{width:10.5%}
+.realism-composition thead th:not(:first-child),.realism-composition thead tr:nth-child(2) th,.realism-composition tbody tr>:not(:first-child){text-align:center}
+.realism-composition tbody tr>:nth-child(5),.realism-composition thead tr:first-child>:nth-child(3),.realism-composition thead tr:nth-child(2)>:nth-child(4){border-left:3px solid var(--blue)}
+.realism-composition tbody tr>:nth-child(4),.realism-composition tbody tr>:nth-child(8){font-weight:700}
+.realism-composition tbody tr>:nth-child(9){text-align:left;padding-left:3px;transform:translateX(-25%)}
+.realism-composition tbody tr.realism-all-total>th,.realism-composition tbody tr.realism-all-total>td,.realism-composition tbody tr.realism-all-total strong{font-weight:400}
+.realism-composition .realism-all-total+.realism-total{border-top:0}
 </style>
 
 <nav aria-label="NFL Realism Report tabs"><a class="realism-tab" href="#roster-composition" aria-current="page">Roster Composition</a></nav>
@@ -57,9 +41,10 @@
 <section class="panel"><h2>NFL vs. ADL Gameday Rosters by Position</h2><p id="realism-context"></p><p>NFL ACT = Gameday active player<br>
 NFL INA = Gameday Inactive player (on Active roster, i.e. not Reserve or Practice Squad)<br>
 ADL ACT = ADL Active Roster players suiting up on gameday (excludes IR and Suspended players held on Active Roster)<br>
-ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
+ADL INA = ADL Active Roster but declared Out (O) or on Bye<br>
+ADL Mispl. = IR (I and all IR variants), Holdout (H), or Suspended (S) players held on Active Roster</p>
 
-<div class="realism-scroll"><table class="realism-table realism-composition"><colgroup><col class="realism-position-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-percent-col"></colgroup><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="4">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col" aria-label="ADL percentage difference from NFL"></th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+<div class="realism-scroll"><table class="realism-table realism-composition"><colgroup><col class="realism-position-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-count-col"><col class="realism-percent-col"></colgroup><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="5">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Mispl.</th><th scope="col">Total</th><th scope="col" aria-label="ADL percentage difference from NFL"></th></tr></thead><tbody id="realism-positions"></tbody></table></div>
 
 </section>
 
@@ -71,7 +56,7 @@ ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
 
 <details class="realism-details"><summary>Methodology, position estimates and limitations</summary>
 
-<p><strong>ADL scope:</strong> Historical MFL weekly rosters for league 60206, seasons 2022–2025, weeks 1–17. The 2021 season is excluded because reconstructed Out labels substantially undercount MFL Out designations. Only ROSTER players count; taxi squad and ADL injured reserve are excluded. Players held on Active Roster with Suspended (S), Holdout (H), I, or any IR designation (including IR-R, IR-PUP and IR-NFI) are excluded from both ACT and INA, even on a bye. Remaining Active Roster players with O/Out or a Bye are INA; everyone else is ACT. Historical MFL injury exports supply Out. All 68 displayed season-weeks use direct MFL injury records. Where those exports are empty or unavailable, archived nflreadr injury reports reconstruct Out; this is an estimate of the historical ADL designation. The local player audit identifies every source; the public coverage download reports designation sources by week. When MFL lists the same player under multiple roster statuses in one franchise-week, count the player once and prefer explicit ROSTER membership; conflicting source statuses remain in the local audit and weekly coverage totals. Byes come from the NFL schedule using same-week or nearest-week NFL team observations, with annual MFL team fallback flagged.</p>
+<p><strong>ADL scope:</strong> Historical MFL weekly rosters for league 60206, seasons 2022–2025, weeks 1–17. The 2021 season is excluded because reconstructed Out labels substantially undercount MFL Out designations. Only ROSTER players count; taxi squad and ADL injured reserve are excluded. Players held on Active Roster with Suspended (S), Holdout (H), I, or any IR designation (including IR-R, IR-PUP and IR-NFI) are counted as Mispl. instead of ACT or INA, even on a bye. ACT + INA + Mispl. equals the ADL Active Roster total. Remaining Active Roster players with O/Out or a Bye are INA; everyone else is ACT. Historical MFL injury exports supply Out. All 68 displayed season-weeks use direct MFL injury records. Where those exports are empty or unavailable, archived nflreadr injury reports reconstruct Out; this is an estimate of the historical ADL designation. The local player audit identifies every source; the public coverage download reports designation sources by week. When MFL lists the same player under multiple roster statuses in one franchise-week, count the player once and prefer explicit ROSTER membership; conflicting source statuses remain in the local audit and weekly coverage totals. Byes come from the NFL schedule using same-week or nearest-week NFL team observations, with annual MFL team fallback flagged.</p>
 
 <p><strong>Comparison denominators:</strong> ADL averages include every franchise-week, including players on NFL byes. NFL averages include played team-games only. Both sides use weeks 1–17. These are comparable roster-position counts, but ADL INA is the requested Out/Bye definition, not an independently verified NFL gameday inactive list. Each franchise/team and season receives equal weight.</p>
 

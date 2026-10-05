@@ -25,24 +25,25 @@
   }
   function render() {
     const season = $('season').value, team = $('team').value, t = total(season,team);
-    const adlRostered = positions.filter(position => !['OL','LS'].includes(position)).reduce((sum,position) => sum + adlCount(season,'ACT',position) + adlCount(season,'INA',position),0);
+    const adlRostered = positions.filter(position => !['OL','LS'].includes(position)).reduce((sum,position) => sum + adlCount(season,'ACT',position) + adlCount(season,'INA',position) + adlCount(season,'MISPL',position),0);
     const difference = t.observed_non_ol_ls > 0 ? Number(((adlRostered/t.observed_non_ol_ls-1)*100).toFixed(1)) : null;
     const differenceText = difference === null ? '—' : (difference >= 0 ? '+' : '') + difference.toFixed(1) + '%';
     $('metrics').innerHTML = [['Avg. NFL Non-OL/LS Active Rostered',fmt(t.observed_non_ol_ls)],['ADL Active Rostered',fmt(adlRostered)],['Difference',differenceText]].map((r,i) => `<div class="realism-metric ${i===2?'primary':''}">${r[0]}<strong>${r[1]}</strong></div>`).join('');
     $('context').textContent = `League averages · ${season === 'ALL' ? '2022–2025' : season} · weeks 1–17`;
-    let totals = [0,0,0,0,0,0];
-    let allTotals = [0,0,0,0,0,0];
-    $('positions').innerHTML = positions.filter(position => position !== 'UNMAPPED' || ['ACT','INA'].some(status => nflCount(season,team,status,position) !== 0 || adlCount(season,status,position) !== 0)).map(position => {
+    let totals = [0,0,0,0,0,0,0];
+    let allTotals = [0,0,0,0,0,0,0];
+    $('positions').innerHTML = positions.filter(position => position !== 'UNMAPPED' || ['ACT','INA','MISPL'].some(status => nflCount(season,team,status,position) !== 0 || adlCount(season,status,position) !== 0)).map(position => {
       const nonADL = ['OL','LS'].includes(position);
       const aa = nonADL ? 0 : adlCount(season,'ACT',position), ai = nonADL ? 0 : adlCount(season,'INA',position);
+      const am = nonADL ? 0 : adlCount(season,'MISPL',position);
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
-      const values = [na,ni,na+ni,aa,ai,aa+ai];
+      const values = [na,ni,na+ni,aa,ai,am,aa+ai+am];
       allTotals = allTotals.map((v,i) => v+values[i]);
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(aa+ai,na+ni)}"` : ''}>${fmt(v)}</td>`).join('')}<td style="color:${comparisonColor(aa+ai,na+ni)}">(${pct(aa+ai,na+ni)})</td></tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td${i===6 ? ` style="color:${comparisonColor(aa+ai+am,na+ni)}"` : ''}>${fmt(v)}</td>`).join('')}<td style="color:${comparisonColor(aa+ai+am,na+ni)}">(${pct(aa+ai+am,na+ni)})</td></tr>`;
     }).join('');
     $('positions').innerHTML += `<tr class="realism-total realism-all-total"><th scope="row">All Positions Total</th>${allTotals.map(v => `<td>${fmt(v)}</td>`).join('')}<td></td></tr>`;
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td${i===5 ? ` style="color:${comparisonColor(totals[5],totals[2])}"` : ''}><strong>${fmt(v)}</strong></td>`).join('')}<td style="color:${comparisonColor(totals[5],totals[2])}"><strong>(${pct(totals[5],totals[2])})</strong></td></tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td${i===6 ? ` style="color:${comparisonColor(totals[6],totals[2])}"` : ''}><strong>${fmt(v)}</strong></td>`).join('')}<td style="color:${comparisonColor(totals[6],totals[2])}"><strong>(${pct(totals[6],totals[2])})</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
