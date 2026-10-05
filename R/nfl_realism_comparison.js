@@ -25,7 +25,10 @@
   }
   function render() {
     const season = $('season').value, team = $('team').value, t = total(season,team);
-    $('metrics').innerHTML = [['NFL Gameday Roster',t.observed_roster,'Observed roster'],['Offensive Line',t.ol,'OL · excluded'],['Long Snappers',t.ls,'LS · excluded'],['NFL Non-OL/LS',t.observed_non_ol_ls,'ACT + INA − OL − LS']].map((r,i) => `<div class="realism-metric ${i===3?'primary':''}">${r[0]}<strong>${fmt(r[1])}</strong></div>`).join('');
+    const adlRostered = positions.filter(position => !['OL','LS'].includes(position)).reduce((sum,position) => sum + adlCount(season,'ACT',position) + adlCount(season,'INA',position),0);
+    const difference = t.observed_non_ol_ls > 0 ? Number(((adlRostered/t.observed_non_ol_ls-1)*100).toFixed(1)) : null;
+    const differenceText = difference === null ? '—' : (difference >= 0 ? '+' : '') + difference.toFixed(1) + '%';
+    $('metrics').innerHTML = [['Avg. NFL Non-OL/LS Rostered',fmt(t.observed_non_ol_ls)],['ADL Rostered',fmt(adlRostered)],['Difference',differenceText]].map((r,i) => `<div class="realism-metric ${i===2?'primary':''}">${r[0]}<strong>${r[1]}</strong></div>`).join('');
     $('context').textContent = `League averages · ${season === 'ALL' ? '2022–2025' : season} · weeks 1–17`;
     let totals = [0,0,0,0,0,0];
     let allTotals = [0,0,0,0,0,0];
