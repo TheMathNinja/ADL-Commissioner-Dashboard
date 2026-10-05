@@ -351,10 +351,11 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
 
 
 dashboard_menu <- function(title) {
+  module_titles <- c("SalAdj Curator","Daily Roster Snapshots","Salary Cap Accounting & Rollover","Commissioner Alerts","NFL Realism Report")
+  module_links <- c("<a href='saladjcurator.html'>SalAdj Curator</a>","<a href='daily-roster-snapshots.html'>Daily Roster Snapshots</a>","<a href='salary-cap-accounting.html'>Salary Cap Accounting &amp; Rollover</a>","<a href='commissioner-alerts.html'>Commissioner Alerts</a>","<a href='nfl-realism-report.html'>NFL Realism Report</a>")
   paste0("<details class='commissioner-menu'><summary aria-label='Open dashboard menu' title='Open dashboard menu'><span aria-hidden='true'>&#9776;</span></summary><nav aria-label='Commissioner dashboard tools'>",
     if (identical(title, "ADL Commissioner Dashboard")) "<a href='https://themathninja.github.io/'>&#8624; Dashboard overview</a>" else "<a href='index.html'>&#8624; Commissioner Dashboard</a>",
-    "<a href='saladjcurator.html'>SalAdj Curator</a><a href='daily-roster-snapshots.html'>Daily Roster Snapshots</a><a href='salary-cap-accounting.html'>Salary Cap Accounting &amp; Rollover</a><a href='commissioner-alerts.html'>Commissioner Alerts</a><a href='nfl-realism-report.html'>NFL Realism Report</a>",
-    if (identical(title, "ADL Commissioner Dashboard")) "" else "<a href='https://themathninja.github.io/'>&#8624; Dashboard overview</a>",
+    paste0(module_links[module_titles != title], collapse = ""),
     "</nav></details>")
 }
 
