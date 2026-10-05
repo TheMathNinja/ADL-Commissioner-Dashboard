@@ -3,7 +3,7 @@
   const data = JSON.parse(document.getElementById('realism-data').textContent);
   const $ = id => document.getElementById('realism-' + id);
   const fmt = n => Number(n).toFixed(2);
-  const positions = ['QB','RB','WR','TE','PK','PN','DT','DE','LB','CB','S','UNMAPPED'];
+  const positions = ['QB','RB','WR','TE','PK','PN','DT','DE','LB','CB','S','OL','LS','UNMAPPED'];
   const teams = [...new Set(data.totals.map(r => r.team))].filter(t => t !== 'NFL').sort();
   for (const team of teams) {
     const option = document.createElement('option'); option.value = team; option.textContent = team; $('team').append(option);
@@ -24,10 +24,11 @@
   function render() {
     const season = $('season').value, team = $('team').value, t = total(season,team);
     $('metrics').innerHTML = [['NFL ACT + INA',t.observed_roster,'Observed roster'],['Offensive line',t.ol,'OL · excluded'],['Long snappers',t.ls,'LS · excluded'],['NFL non-OL/LS',t.observed_non_ol_ls,'ACT + INA − OL − LS']].map((r,i) => `<div class="realism-metric ${i===3?'primary':''}">${r[0]}<strong>${fmt(r[1])}</strong><span>${r[2]}</span></div>`).join('');
-    $('context').textContent = `${season === 'ALL' ? '2021–2025' : season} · weeks 1–17 · NFL: ${team==='NFL'?'average team':team} · ADL: average franchise. Both sides exclude OL/LS below.`;
+    $('context').textContent = `${season === 'ALL' ? '2021–2025' : season} · weeks 1–17 · NFL: ${team==='NFL'?'average team':team} · ADL: average franchise. NFL includes OL/LS below; ADL shows zero for these non-ADL positions.`;
     let totals = [0,0,0,0,0,0];
     $('positions').innerHTML = positions.map(position => {
-      const aa = adlCount(season,'ACT',position), ai = adlCount(season,'INA',position);
+      const nonADL = ['OL','LS'].includes(position);
+      const aa = nonADL ? 0 : adlCount(season,'ACT',position), ai = nonADL ? 0 : adlCount(season,'INA',position);
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
       const values = [aa,ai,aa+ai,na,ni,na+ni];
       totals = totals.map((v,i) => v+values[i]);
