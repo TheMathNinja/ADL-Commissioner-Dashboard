@@ -9,9 +9,6 @@ on:
   workflow_run:
     workflows: [daily-commissioner-alerts, Dashboard Watchdog, lineup-designation-snapshots, offseason-inactivity-monitor, Update Dashboard, Waiver Claim Cap Corrections, Weekly Salary Cap Accounting, Email weekly refresh completion]
     types: [completed]
-  schedule:
-    # One daily GitHub fallback; Apps Script checks hourly and events report immediately.
-    - cron: '43 10 * * *'
 permissions:
   contents: write
   actions: read
