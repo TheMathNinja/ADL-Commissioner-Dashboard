@@ -336,11 +336,17 @@ dashboard_css <- function() {
 .labs-directory-menu nav a{display:block;padding:11px 12px;border-radius:5px;color:#235789;font:600 14px/1.4 system-ui,sans-serif;text-decoration:none}
 .labs-directory-menu nav a:hover,.labs-directory-menu nav a:focus-visible{background:#eef4fa}
 header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-size:24px}}
-  </style>"
+  .labs-directory-menu nav .gm-overview-link{display:flex;align-items:center;gap:11px}.gm-overview-icon{font-size:23px;line-height:1}.gm-overview-copy{display:flex;flex-direction:column;gap:2px}.gm-overview-copy strong{font-size:13px;font-weight:650}.gm-overview-copy small{font-size:11px;color:#657386}</style>"
 
 }
 
 
+
+dashboard_menu <- function(title) {
+  paste0("<details class='labs-directory-menu'><summary class='labs-directory-link' aria-label='Open dashboard menu' title='Open dashboard menu'><span class='labs-directory-bars' aria-hidden='true'></span></summary><nav aria-label='Dashboard navigation'>",
+    if (identical(title, "ADL Commissioner Dashboard")) "" else "<a class='gm-overview-link' href='index.html'><span class='gm-overview-icon' aria-hidden='true'>&#8962;</span><span class='gm-overview-copy'><strong>Commissioner Dashboard</strong><small>Commissioner tools &amp; reports</small></span></a>",
+    "<a class='gm-overview-link' href='https://themathninja.github.io/'><span class='gm-overview-icon' aria-hidden='true'>&#8610;</span><span class='gm-overview-copy'><strong>Dashboard overview</strong><small>GM &amp; Commissioner dashboards</small></span></a></nav></details>")
+}
 
 dashboard_page <- function(title, body_html) {
 
@@ -369,7 +375,7 @@ dashboard_page <- function(title, body_html) {
     <img src='adl-shield.png' alt='ADL shield' />
 
     <h1>", title, "</h1>
-    ", "<details class='labs-directory-menu'><summary class='labs-directory-link' aria-label='Open dashboard menu' title='Open dashboard menu'><span class='labs-directory-bars' aria-hidden='true'></span></summary><nav aria-label='Dashboard navigation'><a href='index.html'>Commissioner Dashboard</a><a href='https://themathninja.github.io/'>Analytics Fantasy Labs Directory</a></nav></details>", "
+    ", dashboard_menu(title), "
   </header>
 
   <main>
@@ -412,9 +418,7 @@ tool_card <- function(title, description, href, button = "Open") {
 
 
 
-back_link <- function() {
-  "<a class='back-link' href='index.html'>Back to Commissioner Dashboard</a>"
-}
+back_link <- function() { "" }
 
 archive_link_parts <- function(label) {
   if (is.null(label) || length(label) == 0 || is.na(label)) {
