@@ -17,6 +17,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   report:
+    # GitHub already notifies the owner about the original cancelled run.
+    # Do not create a second workflow whose only purpose is reporting it.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
