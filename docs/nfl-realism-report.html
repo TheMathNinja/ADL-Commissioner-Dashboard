@@ -493,7 +493,7 @@ ADL INA = ADL Active Roster but declared Out (O) or on Bye</p>
     const adlRostered = positions.filter(position => !['OL','LS'].includes(position)).reduce((sum,position) => sum + adlCount(season,'ACT',position) + adlCount(season,'INA',position),0);
     const difference = t.observed_non_ol_ls > 0 ? Number(((adlRostered/t.observed_non_ol_ls-1)*100).toFixed(1)) : null;
     const differenceText = difference === null ? '—' : (difference >= 0 ? '+' : '') + difference.toFixed(1) + '%';
-    $('metrics').innerHTML = [['Avg. NFL Non-OL/LS Rostered',fmt(t.observed_non_ol_ls)],['ADL Rostered',fmt(adlRostered)],['Difference',differenceText]].map((r,i) => `<div class="realism-metric ${i===2?'primary':''}">${r[0]}<strong>${r[1]}</strong></div>`).join('');
+    $('metrics').innerHTML = [['Avg. NFL Non-OL/LS Active Rostered',fmt(t.observed_non_ol_ls)],['ADL Active Rostered',fmt(adlRostered)],['Difference',differenceText]].map((r,i) => `<div class="realism-metric ${i===2?'primary':''}">${r[0]}<strong>${r[1]}</strong></div>`).join('');
     $('context').textContent = `League averages · ${season === 'ALL' ? '2022–2025' : season} · weeks 1–17`;
     let totals = [0,0,0,0,0,0];
     let allTotals = [0,0,0,0,0,0];
