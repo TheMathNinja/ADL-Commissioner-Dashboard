@@ -387,11 +387,6 @@ build_dashboard_index_html <- function(
         "commissioner-alerts.html"
       ),
       tool_card(
-        "GM Dashboard",
-        "Player-facing ADL tools, including the live Contract Extension Calculator.",
-        "https://themathninja.github.io/ADL-GM-Dashboard/"
-      ),
-      tool_card(
         "NFL Realism Report",
         "Roster Composition: 2021–2025 NFL benchmarks using annual ADL positions, active and inactive players, and OL/LS exclusions.",
         "nfl-realism-report.html"
