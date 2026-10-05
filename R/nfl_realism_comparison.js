@@ -3,6 +3,7 @@
   const data = JSON.parse(document.getElementById('realism-data').textContent);
   const $ = id => document.getElementById('realism-' + id);
   const fmt = n => Number(n).toFixed(2);
+  const pct = (adl,nfl) => nfl > 0 ? ((adl/nfl-1)*100 >= 0 ? '+' : '') + ((adl/nfl-1)*100).toFixed(1) + '%' : '—';
   const positions = ['QB','RB','WR','TE','PK','PN','DT','DE','LB','CB','S','OL','LS','UNMAPPED'];
   const teams = [...new Set(data.totals.map(r => r.team))].filter(t => t !== 'NFL').sort();
   for (const team of teams) {
@@ -30,11 +31,11 @@
       const nonADL = ['OL','LS'].includes(position);
       const aa = nonADL ? 0 : adlCount(season,'ACT',position), ai = nonADL ? 0 : adlCount(season,'INA',position);
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
-      const values = [aa,ai,aa+ai,na,ni,na+ni];
+      const values = [na,ni,na+ni,aa,ai,aa+ai];
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${pct(aa+ai,na+ni)}</td></tr>`;
     }).join('');
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}</tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}<td><strong>${pct(totals[5],totals[2])}</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...['2022','2023','2024','2025'].map(year => ({label:year,season:year,team:'NFL'})),
       ...teams.map(tm => ({label:tm,season,team:tm}))];

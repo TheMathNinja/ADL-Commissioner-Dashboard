@@ -7,13 +7,13 @@
 
 /* Separate ADL from NFL and emphasize position totals in the top table. */
 .realism-composition tbody tr>:nth-child(5),
-.realism-composition thead tr:first-child>:last-child,
+.realism-composition thead tr:first-child>:nth-child(3),
 .realism-composition thead tr:nth-child(2)>:nth-child(4){border-left:3px solid var(--blue)}
 .realism-composition tbody tr>:nth-child(4),
 .realism-composition tbody tr>:nth-child(7){font-weight:700}
 
 /* Center group headings, status headings and their numeric columns. */
-.realism-composition thead tr:first-child th[colspan],
+.realism-composition thead tr:first-child th:not(:first-child),
 .realism-composition thead tr:nth-child(2) th,
 .realism-composition tbody tr>:not(:first-child){text-align:center}
 </style>
@@ -42,9 +42,9 @@
 
 <p id="realism-context"></p>
 
-<section class="panel"><h2>ADL and NFL roster composition</h2><p>Average players by ADL position. ADL INA means Out or Bye on the Active Roster. Non-OL/LS Total excludes OL and LS on both sides; their individual NFL counts remain visible.</p>
+<section class="panel"><h2>ADL and NFL roster composition</h2><p>Average players by ADL position. ADL INA means Out or Bye on the Active Roster. Non-OL/LS Total excludes OL and LS on both sides; their individual NFL counts remain visible. ADL vs NFL is the percentage difference in total players: (ADL ÷ NFL − 1) × 100; a dash indicates a zero NFL baseline.</p>
 
-<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">ADL</th><th scope="colgroup" colspan="3">NFL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="3">ADL</th><th scope="col" rowspan="2">ADL vs NFL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
 
 <p class="realism-caption">ADL positions come from that season’s ADL/MFL database when an ID match exists. NFL OL/LS are shown with zero ADL counts and excluded only from the non-OL/LS benchmark; estimated classifications are summarized in the public position-method coverage and fallback-schema downloads.</p></section>
 
