@@ -1,7 +1,12 @@
-# ADL Active Roster: only Out/O or a scheduled NFL bye is INA; everything else is ACT.
+# Exclude reserve, suspended and holdout designations even on ADL Active Roster.
+adl_realism_excluded <- function(designation) {
+  status <- toupper(trimws(ifelse(is.na(designation), "", designation)))
+  status %in% c("S", "SUSPENDED", "H", "HOLDOUT", "I", "INJURED RESERVE", "INJURED_RESERVE") | grepl("^IR($|[- /])", status)
+}
+
 adl_realism_status <- function(designation, bye) {
   status <- toupper(trimws(ifelse(is.na(designation), "", designation)))
-  ifelse(status %in% c("O", "OUT", "BYE") | bye, "INA", "ACT")
+  ifelse(adl_realism_excluded(designation), NA_character_, ifelse(status %in% c("O", "OUT", "BYE") | bye, "INA", "ACT"))
 }
 
 build_adl_realism <- function(history_dir = "data/nfl_realism/adl_history", nfl_injury_path) {
@@ -73,20 +78,22 @@ build_adl_realism <- function(history_dir = "data/nfl_realism/adl_history", nfl_
           team_source=if_else(!is.na(injury_nfl_team),"Same-week NFL injury report",coalesce(team_source,"Annual MFL team fallback")),
           is_bye=nfl_team%in%season_teams & !nfl_team%in%playing,
           season=year,week=week,designation_source=designation_source,
+          excluded_designation=adl_realism_excluded(designation),
           gameday_status=adl_realism_status(designation,is_bye),
           ina_reason=case_when(toupper(coalesce(designation,""))%in%c("O","OUT") & is_bye ~ "O + Bye",
             toupper(coalesce(designation,""))%in%c("O","OUT") ~ "O",is_bye | toupper(coalesce(designation,""))=="BYE" ~ "Bye",TRUE~""))
       all_players[[length(all_players)+1L]]<-rows
       grids[[length(grids)+1L]] <- expand.grid(season=year,week=week,franchise_id=franchises$franchise_id,gameday_status=c("ACT","INA"),adl_position=positions,stringsAsFactors=FALSE)
       coverage[[length(coverage)+1L]]<-data.frame(season=year,week=week,franchises=nrow(franchises),designation_source=designation_source,
-        report_rows=nrow(reports),active_players=sum(rows$roster_status=="ROSTER"),
+        report_rows=nrow(reports),active_players=sum(rows$roster_status=="ROSTER" & !rows$excluded_designation),
+        excluded_active_players=sum(rows$roster_status=="ROSTER" & rows$excluded_designation),
         annual_team_fallback=sum(rows$roster_status=="ROSTER" & rows$team_source=="Annual MFL team fallback"),
         membership_conflicts=sum(rows$membership_conflict))
     }
   }
   players <- bind_rows(all_players)
   if(any(players$roster_status=="ROSTER" & !players$adl_position %in% positions)) stop("Unexpected active ADL position.")
-  weekly <- bind_rows(grids) |> left_join(players |> filter(roster_status=="ROSTER") |> count(season,week,franchise_id,gameday_status,adl_position,name="players"),
+  weekly <- bind_rows(grids) |> left_join(players |> filter(roster_status=="ROSTER", !excluded_designation) |> count(season,week,franchise_id,gameday_status,adl_position,name="players"),
     by=c("season","week","franchise_id","gameday_status","adl_position")) |> mutate(players=coalesce(players,0L))
   team_year <- weekly |> group_by(season,franchise_id,gameday_status,adl_position) |>
     summarise(mean_players=mean(players),weeks=n(),.groups="drop")

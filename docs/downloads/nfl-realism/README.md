@@ -6,7 +6,7 @@ The displayed comparison uses ADL seasons 2021–2025, weeks 1–17, and the sam
 
 ## ADL historical comparison
 
-Use MFL weekly `rosters` exports for league 60206 and count only players whose roster status is `ROSTER`. ADL injured reserve and taxi squad membership are excluded. Among Active Roster players, only O/Out or Bye is INA; all others are ACT, including Questionable, IR, and other tags. Both columns add to the Active Roster total. This implements the requested ADL definition rather than reconstructing actual NFL gameday eligibility.
+Use MFL weekly `rosters` exports for league 60206 and count only players whose roster status is `ROSTER`. ADL injured reserve and taxi squad membership are excluded. Active Roster players designated Suspended (S), Holdout (H), I, or any IR designation (including IR-R, IR-PUP and IR-NFI) are excluded from both columns, including during byes. Among remaining players, O/Out or Bye is INA; all others are ACT, including Questionable. Both columns add to the eligible Active Roster total. This implements the requested ADL definition rather than reconstructing actual NFL gameday eligibility.
 
 Historical weekly MFL `injuries` exports supply Out. Empty or unavailable exports use archived `nflreadr::load_injuries(2021:2024)` report_status Out via GSIS-to-MFL IDs. These are reconstructed designations, not exact archived ADL display labels. Bye uses the scheduled NFL team's off week; same-week or nearest-week NFL roster observations supply team, with annual MFL team fallback explicitly audited. A missing Out label defaults to ACT under the requested rule.
 
