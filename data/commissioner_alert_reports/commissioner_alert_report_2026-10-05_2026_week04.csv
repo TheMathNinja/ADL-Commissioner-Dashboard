@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,4,2026-10-05 09:39:43 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,No inactive players allowed in starting lineup,"Coker, Jalen CAR WR is inactive (O)",,,
