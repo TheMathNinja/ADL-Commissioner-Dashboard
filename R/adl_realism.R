@@ -27,7 +27,7 @@ build_adl_realism <- function(history_dir = "data/nfl_realism/adl_history", nfl_
     mutate(priority=match(status,c("ACT","INA","RES","DEV","PUP","SUS","CUT","RET"))) |>
     arrange(season,mfl_id,week,priority) |> distinct(season,mfl_id,week,.keep_all=TRUE)
   all_players <- list(); grids <- list(); coverage <- list()
-  for (year in 2021:2025) {
+  for (year in 2022:2025) {
     league <- jsonlite::fromJSON(file.path(history_dir,sprintf("%d_league.json",year)))$league
     weeks <- seq.int(as.integer(league$startWeek),as.integer(league$endWeek))
     franchises <- league$franchises$franchise |> transmute(franchise_id=id,franchise_name=name)

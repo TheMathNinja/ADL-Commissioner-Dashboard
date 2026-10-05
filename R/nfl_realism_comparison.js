@@ -24,7 +24,7 @@
   function render() {
     const season = $('season').value, team = $('team').value, t = total(season,team);
     $('metrics').innerHTML = [['NFL ACT + INA',t.observed_roster,'Observed roster'],['Offensive line',t.ol,'OL · excluded'],['Long snappers',t.ls,'LS · excluded'],['NFL non-OL/LS',t.observed_non_ol_ls,'ACT + INA − OL − LS']].map((r,i) => `<div class="realism-metric ${i===3?'primary':''}">${r[0]}<strong>${fmt(r[1])}</strong><span>${r[2]}</span></div>`).join('');
-    $('context').textContent = `${season === 'ALL' ? '2021–2025' : season} · weeks 1–17 · NFL: ${team==='NFL'?'average team':team} · ADL: average franchise. NFL includes OL/LS below; ADL shows zero for these non-ADL positions.`;
+    $('context').textContent = `${season === 'ALL' ? '2022–2025' : season} · weeks 1–17 · NFL: ${team==='NFL'?'average team':team} · ADL: average franchise. NFL includes OL/LS below; ADL shows zero for these non-ADL positions.`;
     let totals = [0,0,0,0,0,0];
     $('positions').innerHTML = positions.map(position => {
       const nonADL = ['OL','LS'].includes(position);
@@ -35,8 +35,8 @@
       return `<tr><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`;
     }).join('');
     $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Active Roster</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}</tr>`;
-    const teamRows = [{label:'NFL Average 2021-2025',season:'ALL',team:'NFL'},
-      ...['2021','2022','2023','2024','2025'].map(year => ({label:year,season:year,team:'NFL'})),
+    const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
+      ...['2022','2023','2024','2025'].map(year => ({label:year,season:year,team:'NFL'})),
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
       const r = total(row.season,row.team);

@@ -53,3 +53,5 @@ Sources: [weekly rosters](https://nflreadr.nflverse.com/reference/load_rosters_w
 Duplicate MFL player/franchise/week records are counted once. If both ROSTER and reserve/taxi records appear, explicit ROSTER membership takes precedence. Source status combinations and membership_conflict flags remain in the player and coverage audits.
 
 Public deployment includes aggregate summary files only. Player snapshots, annual MFL player records, ID crosswalks, source RDS files, and detailed ADL history are local build inputs and are excluded from the public repository and site downloads. The frozen report renderer uses aggregate CSVs; source rebuilds and player-level validation require local inputs or explicit source retrieval.
+
+The displayed comparison now excludes 2021 because reconstructed Out counts materially understate MFL Out. Displayed and ADL comparison CSV composites cover 2022–2025 equally. The original NFL-only archive CSVs retain 2021–2025. One reconstructed week remains in 2022 (week 13), identified in coverage.

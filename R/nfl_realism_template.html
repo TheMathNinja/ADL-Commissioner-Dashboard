@@ -1,6 +1,9 @@
 <style>
+
 main{max-width:1280px}.realism-tab{display:inline-block;padding:12px 20px;border-bottom:3px solid var(--blue);font-weight:700;color:var(--blue);margin:10px 0 20px}.realism-kicker{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--blue);font-weight:700}.realism-controls{display:flex;flex-wrap:wrap;gap:20px;margin:20px 0}.realism-controls label{display:grid;gap:6px;font-size:13px;font-weight:600}.realism-controls select{padding:10px;border:1px solid var(--line);border-radius:6px;background:white;font:inherit;min-width:160px}.realism-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.realism-metric{background:white;border:1px solid var(--line);border-radius:8px;padding:18px}.realism-metric strong{display:block;font-size:32px;color:var(--blue);margin:8px 0}.realism-metric span{font-size:13px;color:var(--muted)}.realism-metric.primary{background:#174ea6;color:white}.realism-metric.primary strong,.realism-metric.primary span{color:white}.realism-scroll{overflow:auto}.realism-table{border-collapse:collapse;width:100%;font-size:14px}.realism-table th,.realism-table td{padding:11px;border-bottom:1px solid #e4e7ec;text-align:right;white-space:nowrap}.realism-table th:first-child,.realism-table td:first-child{text-align:left}.realism-table thead{background:#edf2f8}.realism-table td:first-child{font-weight:600}.realism-table .excluded{background:#fff7ec}.realism-bar{display:inline-block;height:7px;background:#6194d5;vertical-align:middle;border-radius:4px;margin-right:12px}.realism-note{padding:14px 18px;border-left:4px solid #e3a83c;background:#fff7ec;border-radius:4px;margin:15px 0;color:var(--ink)}details.realism-details{padding:16px;background:white;border:1px solid var(--line);border-radius:8px;margin:16px 0}details.realism-details summary{font-weight:600;cursor:pointer}details.realism-details p{margin-top:12px}.realism-downloads{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}.realism-downloads a{padding:8px 10px;background:#edf2f8;border-radius:5px;color:var(--blue);font-size:13px}.realism-caption{font-size:13px;margin-top:12px}@media(max-width:700px){.realism-metrics{grid-template-columns:repeat(2,1fr)}.realism-metric strong{font-size:26px}}
+
 .realism-total{background:#edf2f8;border-top:2px solid var(--blue)}
+
 
 /* Separate ADL from NFL and emphasize position totals in the top table. */
 .realism-composition tbody tr>:nth-child(5),
@@ -9,37 +12,72 @@ main{max-width:1280px}.realism-tab{display:inline-block;padding:12px 20px;border
 .realism-composition tbody tr>:nth-child(4),
 .realism-composition tbody tr>:nth-child(7){font-weight:700}
 </style>
+
 <nav aria-label="NFL Realism Report tabs"><a class="realism-tab" href="#roster-composition" aria-current="page">Roster Composition</a></nav>
+
 <section id="roster-composition">
-<div class="realism-kicker">2021–2025 · Historical ADL and NFL comparison</div>
+
+<div class="realism-kicker">2022–2025 · Historical ADL and NFL comparison</div>
+
 <h2 style="font-size:28px;margin-top:8px">How many roster spots translate to ADL?</h2>
+
 <p>Historical ADL Active Rosters alongside NFL weekly rosters, using season-specific ADL positions and weeks 1–17.</p>
+
 <div class="realism-controls">
-<label>Season<select id="realism-season"><option value="ALL">2021–2025 composite</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option></select></label>
+
+<label>Season<select id="realism-season"><option value="ALL">2022–2025 composite</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option></select></label>
+
 <label>NFL team<select id="realism-team"><option value="NFL">Whole NFL · average team</option></select></label>
 
+
+
 </div>
+
 <div id="realism-metrics" class="realism-metrics" aria-live="polite"></div>
+
 <p id="realism-context"></p>
+
 <section class="panel"><h2>ADL and NFL roster composition</h2><p>Average players by ADL position. ADL INA means Out or Bye on the Active Roster. Active Roster totals include all displayed positions; NFL includes OL and LS.</p>
+
 <div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">ADL</th><th scope="colgroup" colspan="3">NFL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+
 <p class="realism-caption">ADL positions come from that season’s ADL/MFL database when an ID match exists. NFL OL/LS are shown with zero ADL counts and excluded only from the non-OL/LS benchmark; estimated classifications are summarized in the public position-method coverage and fallback-schema downloads.</p></section>
-<section class="panel"><h2>Team comparison</h2><p>NFL average for 2021–2025, followed by each yearly average. Individual teams use the selected season. Composite gives every team and season equal weight.</p>
+
+<section class="panel"><h2>Team comparison</h2><p>NFL average for 2022–2025, followed by each yearly average. Individual teams use the selected season. Composite gives every team and season equal weight.</p>
+
 <div class="realism-scroll"><table class="realism-table"><thead><tr><th scope="col">Team</th><th scope="col">ACT + INA</th><th scope="col">OL</th><th scope="col">LS</th><th scope="col">Remaining</th></tr></thead><tbody id="realism-teams"></tbody></table></div></section>
+
 <div class="realism-note"><strong>Why a roster can exceed 53:</strong> Up to two practice-squad elevations can expand the active/inactive roster to 54 or 55. This report uses observed ACT + INA, including those players. It does not force roster totals to 53.</div>
+
 <details class="realism-details"><summary>Methodology, position estimates and limitations</summary>
-<p><strong>ADL scope:</strong> Historical MFL weekly rosters for league 60206, seasons 2021–2025, weeks 1–17. Only ROSTER players count; taxi squad and ADL injured reserve are excluded. Active Roster players with O/Out or a Bye are INA; everyone else is ACT, including other injury tags. Historical MFL injury exports supply Out. Where those exports are empty or unavailable, archived nflreadr injury reports reconstruct Out; this is an estimate of the historical ADL designation. The local player audit identifies every source; the public coverage download reports designation sources by week. When MFL lists the same player under multiple roster statuses in one franchise-week, count the player once and prefer explicit ROSTER membership; conflicting source statuses remain in the local audit and weekly coverage totals. Byes come from the NFL schedule using same-week or nearest-week NFL team observations, with annual MFL team fallback flagged.</p>
+
+<p><strong>ADL scope:</strong> Historical MFL weekly rosters for league 60206, seasons 2022–2025, weeks 1–17. The 2021 season is excluded because reconstructed Out labels substantially undercount MFL Out designations. Only ROSTER players count; taxi squad and ADL injured reserve are excluded. Active Roster players with O/Out or a Bye are INA; everyone else is ACT, including other injury tags. Historical MFL injury exports supply Out. Where those exports are empty or unavailable, archived nflreadr injury reports reconstruct Out; this is an estimate of the historical ADL designation. The local player audit identifies every source; the public coverage download reports designation sources by week. When MFL lists the same player under multiple roster statuses in one franchise-week, count the player once and prefer explicit ROSTER membership; conflicting source statuses remain in the local audit and weekly coverage totals. Byes come from the NFL schedule using same-week or nearest-week NFL team observations, with annual MFL team fallback flagged.</p>
+
 <p><strong>Comparison denominators:</strong> ADL averages include every franchise-week, including players on NFL byes. NFL averages include played team-games only. Both sides use weeks 1–17. These are comparable roster-position counts, but ADL INA is the requested Out/Bye definition, not an independently verified NFL gameday inactive list. Each franchise/team and season receives equal weight.</p>
+
 <p><strong>Roster scope:</strong> Completed regular-season team-games only. Byes and postseason are excluded. The canceled 2022 BUF–CIN game is excluded, so those teams have one fewer observed game in the comparison window. All original statuses are preserved in the source snapshot; only ACT and INA contribute to the composition benchmark. Status labels are source-reported and are not independently verified against gamebooks.</p>
-<p><strong>Averages:</strong> Count each player once per team-game, including zero position counts. Average games within each team-season, then give all 32 teams equal weight for the whole-NFL season. The five-year composite equally weights the five season means. Values represent an average NFL team, not a sum across the entire league. Two decimals are presentation rounding.</p>
+
+<p><strong>Averages:</strong> Count each player once per team-game, including zero position counts. Average games within each team-season, then give all 32 teams equal weight for the whole-NFL season. The displayed four-year composite equally weights the four season means. Values represent an average NFL team, not a sum across the entire league. Two decimals are presentation rounding.</p>
+
 <p><strong>Identity and position:</strong> Link nflreadr players to MFL IDs through GSIS, ESPN, Sportradar, PFR and Rotowire identifiers, plus direct ESPN/Rotowire identifiers in the annual ADL export. Conflicting candidates are not accepted. Use the matched MFL player’s position from that year’s league 60206 player export, never today’s position. Annual exports reflect the database as retrieved, not intra-season weekly MFL position history.</p>
+
 <p><strong>Fallback:</strong> For missing or unusable MFL matches, estimate from the most common MFL position among matched player classifications in the same season and NFL position/depth-position group. Count distinct player classifications, rather than weeks, when learning that schema. Save support and agreement share in the audit. If the group has no matched examples, translate FB→RB, K→PK, P→PN, NT→DT, ILB/MLB/OLB→LB and FS/SS→S; use the other explicit depth positions directly. Unresolved generic DB/DL stays UNMAPPED. NFL OL and LS remain non-ADL regardless of any MFL listing.</p>
+
 <p><strong>Remaining:</strong> ACT + INA − OL − LS. Any UNMAPPED players remain part of this total; their position is uncertain. This is an observed roster benchmark, not an adopted ADL roster rule or a reconstructed permanent 53-player roster.</p>
+
 <p><strong>Frozen snapshot:</strong> <span id="realism-provenance"></span> Refresh is explicit; ordinary dashboard builds reuse the saved data.</p>
+
 <p>Sources: <a href="https://nflreadr.nflverse.com/reference/load_rosters_weekly.html">nflreadr weekly rosters</a>, <a href="https://nflreadr.nflverse.com/reference/load_ff_playerids.html">fantasy player ID crosswalk</a>, <a href="https://operations.nfl.com/calendar-events/nfl-free-agency/contract-language">NFL roster rules</a>.</p>
+
 </details>
-<section class="panel"><h2>Readable data repository</h2><p>Download aggregate comparisons and coverage audits. Original NFL summaries below retain the full regular season, including week 18. Detailed player source archives remain local.</p><div class="realism-downloads"><a href="downloads/nfl-realism/adl_comparison.csv">ADL/NFL comparison CSV</a><a href="downloads/nfl-realism/adl_weekly.csv">ADL weekly counts CSV</a><a href="downloads/nfl-realism/adl_coverage.csv">ADL historical coverage CSV</a><a href="downloads/nfl-realism/nfl_adl_window_summary.csv">NFL comparison-window CSV</a>
-<a href="downloads/nfl-realism/team_year.csv">Team-season positions CSV</a><a href="downloads/nfl-realism/league_year.csv">NFL season positions CSV</a><a href="downloads/nfl-realism/composite.csv">Five-year composite CSV</a><a href="downloads/nfl-realism/totals.csv">Roster totals CSV</a><a href="downloads/nfl-realism/weekly.csv">Weekly counts CSV</a><a href="downloads/nfl-realism/position_coverage.csv">Position match coverage CSV</a><a href="downloads/nfl-realism/fallback_schema.csv">Estimated-position schema CSV</a><a href="downloads/nfl-realism/audit.csv">Roster quality audit CSV</a><a href="downloads/nfl-realism/status_codes.csv">All status codes CSV</a><a href="downloads/nfl-realism/manifest.json">Snapshot manifest</a>
+
+<section class="panel"><h2>Readable data repository</h2><p>Download aggregate comparisons and coverage audits. Original NFL archive summaries below retain 2021–2025 and the full regular season, including week 18; they are separate from the displayed 2022–2025 comparison. Detailed player source archives remain local.</p><div class="realism-downloads"><a href="downloads/nfl-realism/adl_comparison.csv">ADL/NFL comparison CSV</a><a href="downloads/nfl-realism/adl_weekly.csv">ADL weekly counts CSV</a><a href="downloads/nfl-realism/adl_coverage.csv">ADL historical coverage CSV</a><a href="downloads/nfl-realism/nfl_adl_window_summary.csv">NFL comparison-window CSV</a>
+
+<a href="downloads/nfl-realism/team_year.csv">Team-season positions CSV</a><a href="downloads/nfl-realism/league_year.csv">NFL season positions CSV</a><a href="downloads/nfl-realism/composite.csv">Original five-year NFL composite CSV</a><a href="downloads/nfl-realism/totals.csv">Roster totals CSV</a><a href="downloads/nfl-realism/weekly.csv">Weekly counts CSV</a><a href="downloads/nfl-realism/position_coverage.csv">Position match coverage CSV</a><a href="downloads/nfl-realism/fallback_schema.csv">Estimated-position schema CSV</a><a href="downloads/nfl-realism/audit.csv">Roster quality audit CSV</a><a href="downloads/nfl-realism/status_codes.csv">All status codes CSV</a><a href="downloads/nfl-realism/manifest.json">Snapshot manifest</a>
+
 </div></section></section>
+
 <script id="realism-data" type="application/json">REPORT_DATA</script>
+
 <script>REPORT_SCRIPT</script>
+

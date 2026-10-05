@@ -100,7 +100,7 @@ publish_nfl_realism <- function(data_dir = "data/nfl_realism", docs_dir = "docs"
       ol=sum(mean_players[adl_position=="OL"]),ls=sum(mean_players[adl_position=="LS"]),
       unmapped=sum(mean_players[adl_position=="UNMAPPED"]),.groups="drop") |>
       dplyr::mutate(observed_non_ol_ls=observed_roster-ol-ls)
-    manifest$comparison_scope <- "2021-2025, weeks 1-17; ADL per franchise-week, NFL per played team-game"
+    manifest$comparison_scope <- "2022-2025, weeks 1-17; ADL per franchise-week, NFL per played team-game"
   }
   downloads <- file.path(docs_dir, "downloads/nfl-realism")
   dir.create(downloads, recursive = TRUE, showWarnings = FALSE)
