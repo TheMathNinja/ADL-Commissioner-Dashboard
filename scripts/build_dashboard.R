@@ -6,6 +6,10 @@ library(dplyr)
 
 source("R/config_helpers.R")
 source("R/dashboard_helpers.R")
+source("R/nfl_realism.R")
+
+# Historical NFL data is frozen; rebuilding the site requires no external roster calls.
+if (file.exists("data/nfl_realism/manifest.json")) publish_nfl_realism()
 
 current_season <- get_current_season()
 

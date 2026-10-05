@@ -1,0 +1,16 @@
+{
+  "seasons": [2021, 2022, 2023, 2024, 2025],
+  "captured_at_utc": "2026-10-05T03:53:30Z",
+  "nflreadr_version": "1.5.1",
+  "source": "nflreadr::load_rosters_weekly(2021:2025)",
+  "adl_league_id": "60206",
+  "position_source": "Season-specific ADL MFL players exports, joined via nflreadr fantasy IDs and direct ESPN/Rotowire IDs",
+  "mfl_source_urls": ["https://api.myfantasyleague.com/2021/export?TYPE=players&L=60206&DETAILS=1&JSON=1", "https://api.myfantasyleague.com/2022/export?TYPE=players&L=60206&DETAILS=1&JSON=1", "https://api.myfantasyleague.com/2023/export?TYPE=players&L=60206&DETAILS=1&JSON=1", "https://api.myfantasyleague.com/2024/export?TYPE=players&L=60206&DETAILS=1&JSON=1", "https://api.myfantasyleague.com/2025/export?TYPE=players&L=60206&DETAILS=1&JSON=1"],
+  "id_crosswalk_scope": "Current identity crosswalk frozen at retrieval; positions always come from historical ADL exports",
+  "team_games": 2718,
+  "source_rows": 231942,
+  "source_md5": "86944a65aa244a4c6ab4814c0dca7823",
+  "scope": "Completed regular-season games; excludes byes, postseason and canceled games",
+  "weighting": "Equal games within team-season, equal teams within season, equal seasons in composite",
+  "exact_53_available": false
+}
