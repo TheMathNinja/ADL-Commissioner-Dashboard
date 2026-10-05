@@ -33,9 +33,9 @@
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
       const values = [na,ni,na+ni,aa,ai,aa+ai];
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${pct(aa+ai,na+ni)}</td></tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td>${fmt(v)}${i===5 ? ` (${pct(aa+ai,na+ni)})` : ''}</td>`).join('')}</tr>`;
     }).join('');
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}<td><strong>${pct(totals[5],totals[2])}</strong></td></tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td><strong>${fmt(v)}${i===5 ? ` (${pct(totals[5],totals[2])})` : ''}</strong></td>`).join('')}</tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {

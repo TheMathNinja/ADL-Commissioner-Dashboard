@@ -395,9 +395,9 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
 
 <p id="realism-context"></p>
 
-<section class="panel"><h2>ADL and NFL roster composition</h2><p>Average players by ADL position. ADL INA means Out or Bye on the Active Roster. Non-OL/LS Total excludes OL and LS on both sides; their individual NFL counts remain visible. ADL vs NFL is the percentage difference in total players: (ADL ÷ NFL − 1) × 100; a dash indicates a zero NFL baseline.</p>
+<section class="panel"><h2>ADL and NFL roster composition</h2><p>Average players by ADL position. ADL INA means Out or Bye on the Active Roster. Non-OL/LS Total excludes OL and LS on both sides; their individual NFL counts remain visible. The percentage beside each ADL total is its difference from NFL: (ADL ÷ NFL − 1) × 100; a dash indicates a zero NFL baseline.</p>
 
-<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="3">ADL</th><th scope="col" rowspan="2">ADL vs NFL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
+<div class="realism-scroll"><table class="realism-table realism-composition"><thead><tr><th scope="col" rowspan="2">Position</th><th scope="colgroup" colspan="3">NFL</th><th scope="colgroup" colspan="3">ADL</th></tr><tr><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th><th scope="col">ACT</th><th scope="col">INA</th><th scope="col">Total</th></tr></thead><tbody id="realism-positions"></tbody></table></div>
 
 <p class="realism-caption">ADL positions come from that season’s ADL/MFL database when an ID match exists. NFL OL/LS are shown with zero ADL counts and excluded only from the non-OL/LS benchmark; estimated classifications are summarized in the public position-method coverage and fallback-schema downloads.</p></section>
 
@@ -472,9 +472,9 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
       const na = nflCount(season,team,'ACT',position), ni = nflCount(season,team,'INA',position);
       const values = [na,ni,na+ni,aa,ai,aa+ai];
       if (!nonADL) totals = totals.map((v,i) => v+values[i]);
-      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${pct(aa+ai,na+ni)}</td></tr>`;
+      return `<tr class="${nonADL ? 'excluded' : ''}"><td>${position}</td>${values.map((v,i) => `<td>${fmt(v)}${i===5 ? ` (${pct(aa+ai,na+ni)})` : ''}</td>`).join('')}</tr>`;
     }).join('');
-    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}<td><strong>${pct(totals[5],totals[2])}</strong></td></tr>`;
+    $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map((v,i) => `<td><strong>${fmt(v)}${i===5 ? ` (${pct(totals[5],totals[2])})` : ''}</strong></td>`).join('')}</tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
