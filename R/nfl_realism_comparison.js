@@ -37,7 +37,6 @@
     }).join('');
     $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}<td><strong>${pct(totals[5],totals[2])}</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
-      ...['2022','2023','2024','2025'].map(year => ({label:year,season:year,team:'NFL'})),
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
       const r = total(row.season,row.team);

@@ -404,7 +404,7 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
 
 <p class="realism-caption">ADL positions come from that season’s ADL/MFL database when an ID match exists. NFL OL/LS are shown with zero ADL counts and excluded only from the non-OL/LS benchmark; estimated classifications are summarized in the public position-method coverage and fallback-schema downloads.</p></section>
 
-<section class="panel"><h2>Team comparison</h2><p>NFL average for 2022–2025, followed by each yearly average. Individual teams use the selected season. Composite gives every team and season equal weight.</p>
+<section class="panel"><h2>Team comparison</h2><p>NFL average for 2022–2025, followed by individual teams for the selected season. Composite gives every team and season equal weight.</p>
 
 <div class="realism-scroll"><table class="realism-table"><thead><tr><th scope="col">Team</th><th scope="col">ACT + INA</th><th scope="col">OL</th><th scope="col">LS</th><th scope="col">Remaining</th></tr></thead><tbody id="realism-teams"></tbody></table></div></section>
 
@@ -479,7 +479,6 @@ header h1{min-width:0}@media(max-width:480px){header{gap:12px}header h1{font-siz
     }).join('');
     $('positions').innerHTML += `<tr class="realism-total"><th scope="row">Non-OL/LS Total</th>${totals.map(v => `<td><strong>${fmt(v)}</strong></td>`).join('')}<td><strong>${pct(totals[5],totals[2])}</strong></td></tr>`;
     const teamRows = [{label:'NFL Average 2022-2025',season:'ALL',team:'NFL'},
-      ...['2022','2023','2024','2025'].map(year => ({label:year,season:year,team:'NFL'})),
       ...teams.map(tm => ({label:tm,season,team:tm}))];
     $('teams').innerHTML = teamRows.map(row => {
       const r = total(row.season,row.team);
