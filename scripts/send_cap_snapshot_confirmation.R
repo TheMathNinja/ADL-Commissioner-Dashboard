@@ -9,14 +9,40 @@ format_snapshot_confirmation <- function(metadata) {
   taken <- as.POSIXct(metadata$snapshot_taken_at_utc[[1]], tz = "UTC")
   taken_et <- as.POSIXct(format(taken, tz = "America/New_York", usetz = FALSE), tz = "America/New_York")
   date_text <- paste0(format(taken_et, "%A, %b "), as.integer(format(taken_et, "%d")), format(taken_et, ", %Y at %I:%M:%S %p ET"))
-  c(
+  weekly_update_url <- trimws(Sys.getenv("ADL_WEEKLY_UPDATE_URL", unset = ""))
+  lines <- c(
     paste0("ADL Week ", metadata$week[[1]], " Official Cap Snapshot"),
     "",
     paste0("The official Week ", metadata$week[[1]], " salary cap snapshot completed successfully."),
     paste0("Snapshot taken: ", date_text),
     paste0("Contract Admin Cap Rollover tab: ", Sys.getenv("ADL_CAP_SNAPSHOT_SHEET_STATUS", unset = "updated successfully")),
     paste0("Workflow: ", metadata$workflow_run_url[[1]])
-  ) |> paste(collapse = "\n")
+  )
+  if (nzchar(weekly_update_url)) {
+    lines <- c(
+      lines,
+      paste0("View the Week ", metadata$week[[1]], " weekly update process here: ", weekly_update_url)
+    )
+  }
+  paste(lines, collapse = "\n")
+}
+
+resolve_weekly_update_url <- function(season, week) {
+  configured_url <- trimws(Sys.getenv("ADL_WEEKLY_UPDATE_URL", unset = ""))
+  if (nzchar(configured_url)) return(configured_url)
+
+  completion_path <- file.path(
+    "data", "cap_accounting", season,
+    paste0(season, "w", week, "_ADLsalarycapcomplete.csv")
+  )
+  if (!file.exists(completion_path)) return("")
+
+  completion <- utils::read.csv(completion_path, stringsAsFactors = FALSE)
+  if (!"orchestrator_run_id" %in% names(completion) || !nrow(completion)) return("")
+  run_id <- trimws(as.character(completion$orchestrator_run_id[[1]]))
+  if (!grepl("^[0-9]+$", run_id)) return("")
+
+  paste0("https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/", run_id)
 }
 
 send_snapshot_mail <- function(subject, body, recipients) {
@@ -61,6 +87,7 @@ if (!file.exists(metadata_path)) stop("Official cap snapshot metadata is missing
 metadata <- readr::read_csv(metadata_path, show_col_types = FALSE)
 if (nrow(metadata) != 1L || metadata$week[[1]] != week) stop("Official cap snapshot metadata is invalid.")
 
+Sys.setenv(ADL_WEEKLY_UPDATE_URL = resolve_weekly_update_url(season, week))
 body <- format_snapshot_confirmation(metadata)
 preview_path <- Sys.getenv(
   "ADL_CAP_SNAPSHOT_PREVIEW_PATH",
