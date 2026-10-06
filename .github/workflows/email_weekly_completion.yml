@@ -26,6 +26,7 @@ jobs:
       - name: Verify live publication and email the owner
         env:
           GH_TOKEN: ${{ github.token }}
+          WEEKLY_ORCHESTRATION_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           WEEKLY_REPORT_EMAIL_TO: ${{ secrets.WEEKLY_REPORT_EMAIL_TO }}
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
