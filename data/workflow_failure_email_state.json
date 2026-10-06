@@ -201,6 +201,8 @@
     "TheMathNinja/ADL-GM-Dashboard:37218587804:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:37290561007:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:37300225154:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:37369843362:1": "cancelled before runner assignment; same-day watchdog already succeeded"
+    "TheMathNinja/ADL-Commissioner-Dashboard:37369843362:1": "cancelled before runner assignment; same-day watchdog already succeeded",
+    "TheMathNinja/FAFL-GM-Dashboard:37412907103:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:37413027159:1": "success"
   }
 }
