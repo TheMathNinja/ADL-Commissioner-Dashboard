@@ -1,0 +1,3 @@
+SEASON,WEEK,WAIVER_WINDOW_START_ET,WAIVER_WINDOW_END_ET,DATE,CONF,FRAN,FRANCHISE_ID,PLAYER,PLAYER_ID,SALARY,YEARS,CONTRACT,FG,1.XX+,RVSD?,SALARY_SNAPSHOT_TIME_ET,WAIVER_STATUS,NOTES
+2026,4,10/04/2026 05:00 AM EDT,10/05/2026 11:15 PM EDT,10/04/2026 12:39:40,NFC,LAR,0014,ArDarius Washington,15510,1.1,1,2026 R/F,,,,10/04/2026 12:17 PM EDT,Not rostered in same conference at cap run,Dropped in waiver-correction window; verify whether prior-week cap correction is needed.
+2026,4,10/04/2026 05:00 AM EDT,10/05/2026 11:15 PM EDT,10/04/2026 12:39:40,NFC,LAR,0014,Chris Brooks,16387,1.1,1,2026 UFA,,,,10/04/2026 12:17 PM EDT,Not rostered in same conference at cap run,Dropped in waiver-correction window; verify whether prior-week cap correction is needed.
