@@ -1,14 +1,1 @@
-SalAdj scraper scheduled: 10/7/2026 5:17 a.m. EDT
-Run started/triggered: 10/7/2026 7:33 p.m. EDT (push)
-Run completed / email prepared: 10/7/2026 7:34 p.m. EDT (runtime: 1m 1s)
-
-SalAdj Curator published 1 new row(s) at 10/7/2026 7:33 p.m. EDT.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_07_ADLSalAdjCurator.csv
-
-Please enter the following new salary adjustments in the Contract Admin sheet.
-
-AFC
----
-- Dropped 10/7/2026 19:30:35 ET by DEN | Tyrel Dodson CAR LB: $2.30 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 9, 2026
-
+No new SalAdj rows were found.
