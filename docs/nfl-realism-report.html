@@ -524,9 +524,9 @@ ADL Mispl. = IR (I), Holdout (H), or Suspended (S) players held on Active Roster
 <section class="panel"><h2>Defense · average starters</h2><p class="formations-sample" id="formations-def-sample"></p><div class="realism-scroll"><table class="formations-table"><thead><tr><th>Position</th><th>NFL</th><th>ADL</th><th>ADL − NFL</th></tr></thead><tbody id="formations-def-means"></tbody></table></div></section>
 </div>
 <h2 class="formations-pair-heading">Formation frequencies</h2>
-<p class="formations-muted">Offense uses personnel codes; defense lists the number at each position. Percentages give every team equal weight and total 100% within each league and side. Gap is ADL minus NFL in percentage points.</p>
+<p class="formations-muted">Each label lists the number at each position. Percentages give every team equal weight and total 100% within each league and side. Gap is ADL minus NFL in percentage points.</p>
 <div class="formations-grid">
-<section class="panel"><h2>Offensive formations</h2><p class="formations-muted">Personnel: RB / TE (e.g. 11 = 1 RB, 1 TE). Multiple-QB groups are marked separately.</p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-off-frequency"></tbody></table></div></section>
+<section class="panel"><h2>Offensive formations</h2><p class="formations-muted">Order: QB / RB / WR / TE</p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-off-frequency"></tbody></table></div></section>
 <section class="panel"><h2>Defensive formations</h2><p class="formations-muted" id="formations-def-order"></p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-def-frequency"></tbody></table></div><h3>Defensive position groups</h3><p class="formations-muted">Order: DL / LB / DB</p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-def-groups-frequency"></tbody></table></div></section>
 </div>
 <section class="panel"><h2>Season trends</h2><p id="formations-trend-note" class="formations-muted"></p><div class="realism-scroll"><table class="formations-table formations-trends"><thead id="formations-trend-head"></thead><tbody id="formations-trends"></tbody></table></div><p class="formations-muted">Each position shows NFL / ADL average starters. Changes in 2026 show observed lineup choices; they do not establish that scoring changes caused them.</p></section>
@@ -567,7 +567,7 @@ ADL Mispl. = IR (I), Holdout (H), or Suspended (S) players held on Active Roster
     const mean=Array(order(side).length).fill(0), frequencies=new Map();
     for(const group of teams.values()) {
       const denominator=group.reduce((s,r)=>s+r.weight,0);
-      for(const r of group){const c=counts(r),weight=r.weight/denominator/teams.size,key=side==='OFF'?`${c[1]}${c[3]}${c[0]===1?'':` (${c[0]} QB)`}`:c.join(' / ');c.forEach((v,i)=>mean[i]+=v*weight);frequencies.set(key,(frequencies.get(key)||0)+weight);}
+      for(const r of group){const c=counts(r),weight=r.weight/denominator/teams.size,key=c.join(' / ');c.forEach((v,i)=>mean[i]+=v*weight);frequencies.set(key,(frequencies.get(key)||0)+weight);}
     }
     return {mean:teams.size?mean:mean.map(()=>null),frequencies,teams:teams.size,games:Math.round(rows.reduce((s,r)=>s+r.weight,0))};
   }
