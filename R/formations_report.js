@@ -23,7 +23,7 @@
     const mean=Array(order(side).length).fill(0), frequencies=new Map();
     for(const group of teams.values()) {
       const denominator=group.reduce((s,r)=>s+r.weight,0);
-      for(const r of group){const c=counts(r),weight=r.weight/denominator/teams.size,key=c.join(' / ');c.forEach((v,i)=>mean[i]+=v*weight);frequencies.set(key,(frequencies.get(key)||0)+weight);}
+      for(const r of group){const c=counts(r),weight=r.weight/denominator/teams.size,key=side==='OFF'?`${c[1]}${c[3]}${c[0]===1?'':` (${c[0]} QB)`}`:c.join(' / ');c.forEach((v,i)=>mean[i]+=v*weight);frequencies.set(key,(frequencies.get(key)||0)+weight);}
     }
     return {mean:teams.size?mean:mean.map(()=>null),frequencies,teams:teams.size,games:Math.round(rows.reduce((s,r)=>s+r.weight,0))};
   }
