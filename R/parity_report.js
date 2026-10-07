@@ -6,7 +6,7 @@
   const num=(n,d=2)=>n==null?'—':n.toFixed(d),pct=n=>n==null?'—':(100*n).toFixed(1)+'%',pp=n=>n==null?'—':(100*n).toFixed(1)+' pp';
   const metricRows=(definitions,n,a,r)=>definitions.map(([key,label,format,explain])=>`<tr><th scope="row">${label}</th><td>${format(n[key])}</td><td>${format(a[key])}</td><td>${format(r[key])}</td><td class="parity-explain">${explain}</td></tr>`).join('');
   const within=[
-    ['win_pct_sd','Record spread (SD)',pp,'Lower = records cluster more closely around the mean.'],
+    ['win_pct_sd','Record spread (SD of win %)',n=>n==null?'—':(100*n).toFixed(1)+' percentage points','Standard deviation of team winning percentages; percentage points are not scoring points. Lower = records cluster more closely around the mean.'],
     ['record_dispersion_ratio','Record spread / coin-flip baseline',n=>num(n)+'×','Lower = less imbalance after allowing for games played.'],
     ['middle_band_share','Teams between .375 and .625',pct,'Higher = more teams near a balanced record.'],
     ['top_bottom_gap','Top–bottom quartile gap',pp,'Lower = less separation between the strongest and weakest records.'],
