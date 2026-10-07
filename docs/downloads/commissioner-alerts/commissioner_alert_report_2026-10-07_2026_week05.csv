@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,5,2026-10-07 09:39:31 UTC,Roster Warning,warning,NFC,LAR,Los Angeles Rams,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Cooper, Edgerrin GBP LB from Active to Injured Reserve to be fully compliant.",,
