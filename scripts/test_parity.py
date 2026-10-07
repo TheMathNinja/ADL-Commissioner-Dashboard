@@ -12,7 +12,7 @@ assert all(math.isclose(q[k],.25) for q in quartiles for k in values)
 
 d=json.loads((ROOT/'data/parity/report.json').read_text())
 assert not d['matched_weeks']
-assert len(d['teams'])==6*32*2 and len(d['movements'])==5*32*2
+assert len(d['teams'])==6*32*3 and len(d['movements'])==5*32*3
 for s in d['seasons']:
     teams=[t for t in d['teams'] if t['season']==s['season'] and t['league']==s['league']]
     assert len(teams)==32
@@ -21,8 +21,18 @@ for s in d['seasons']:
     assert all(t['wins']+t['losses']+t['ties']==t['games'] for t in teams)
     assert all(math.isclose((t['wins']+.5*t['ties'])/t['games'],t['win_pct']) for t in teams)
     assert math.isclose(sum(t['points_for'] for t in teams),sum(t['points_against'] for t in teams),abs_tol=1e-8)
-    assert math.isclose(sum(t['points_for'] for t in teams)/sum(t['games'] for t in teams),s['average_team_score'])
-    assert math.isclose(sum(s['record_histogram']),1) and math.isclose(sum(s['margin_histogram']),1)
+    if s['league']!='ADL Reg Season':
+        assert math.isclose(sum(t['points_for'] for t in teams)/sum(t['games'] for t in teams),s['average_team_score'])
+        assert math.isclose(sum(s['margin_histogram']),1)
+    assert math.isclose(sum(s['record_histogram']),1)
+    if s['league']=='ADL Reg Season':
+        h2h={t['team_id']:t for t in d['teams'] if t['season']==s['season'] and t['league']=='ADL'}
+        events=5 if s['season']<2026 else 1
+        assert all(t['games']==h2h[t['team_id']]['games']+events for t in teams)
+        assert sum(t['wins']-h2h[t['team_id']]['wins'] for t in teams)==15*events
+        assert sum(t['losses']-h2h[t['team_id']]['losses'] for t in teams)==15*events
+        assert sum(t['ties']-h2h[t['team_id']]['ties'] for t in teams)==2*events
+        assert s['mean_margin'] is None
     if s['league']=='ADL' and s['season']<2026:
         assert s['games']==192 and s['last_week']==12 and all(t['games']==12 for t in teams)
     if s['league']=='NFL' and s['season']<2026:
@@ -47,7 +57,7 @@ for p in d['pooled']:
         assert math.isclose(sum(r['top_weight'] for r in pair),8)
         assert abs(sum(r['prior_margin_centered'] for r in pair))<1e-8
         assert abs(sum(r['next_margin_centered'] for r in pair))<1e-8
-for league in ['NFL','ADL']:
+for league in ['NFL','ADL','ADL Reg Season']:
     rows=sorted([r for r in d['recovery'] if r['league']==league],key=lambda r:r['seasons_elapsed'])
     for k in ['bottom_ever_winning','top_ever_losing']:
         assert all(0<=r[k]<=1 for r in rows)

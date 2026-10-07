@@ -35,3 +35,7 @@ The recovery-speed table follows the fixed 2021 bottom/top cohorts through 2025 
 Run `python scripts/fetch_parity.py`, `python scripts/build_parity.py`, `python scripts/test_parity.py`, then `Rscript scripts/build_nfl_realism.R` from the repository root. Ordinary dashboard builds reuse the frozen aggregates. A research rebuild with `--matched-weeks` uses weeks 1–12 in both leagues; the published report uses ADL weeks 1–12 and NFL weeks 1–17.
 
 Sources: public MFL weeklyResults, [nflreadr schedules](https://nflreadr.nflverse.com/reference/load_schedules.html), [NFL game-data definitions](https://nflreadr.nflverse.com/articles/dictionary_schedules.html).
+
+## ADL Reg Season and Bonus Games
+
+ADL H2H uses only actual weekly matchups. ADL Reg Season adds the five Bonus Games defined in the local playoff-picture script: weeks 1–3, 4–6, 7–9, 10–12, and the whole 1–12 season. Rank cumulative weekly all-play wins (ties count half), then points, then potential points. Top 15 receive a win, ranks 16–17 a tie, bottom 15 a loss. An unresolved tie across a cutoff stops the build. Only completed events count (one through week 4 in 2026). These are reconstructed from historical weekly results using those rules. Record parity, mobility, quartiles and recovery are calculated separately for both ADL record types. Bonus Games have no opponent margin: regular-season margin cells show a dash; scoring comparisons retain H2H results. Bonus outcomes are correlated, so the independent coin-flip baseline is only descriptive.

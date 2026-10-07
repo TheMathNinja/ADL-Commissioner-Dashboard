@@ -4,7 +4,7 @@
   const seasons=data.scopes.map(r=>r.season),latest=Math.max(...seasons);let selected=Math.max(...data.scopes.filter(r=>!r.provisional).map(r=>r.season));
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=(n,d=2)=>n==null?'—':n.toFixed(d),pct=n=>n==null?'—':(100*n).toFixed(1)+'%',pp=n=>n==null?'—':(100*n).toFixed(1)+' pp';
-  const metricRows=(definitions,n,a)=>definitions.map(([key,label,format,explain])=>`<tr><th scope="row">${label}</th><td>${format(n[key])}</td><td>${format(a[key])}</td><td class="parity-explain">${explain}</td></tr>`).join('');
+  const metricRows=(definitions,n,a,r)=>definitions.map(([key,label,format,explain])=>`<tr><th scope="row">${label}</th><td>${format(n[key])}</td><td>${format(a[key])}</td><td>${format(r[key])}</td><td class="parity-explain">${explain}</td></tr>`).join('');
   const within=[
     ['win_pct_sd','Record spread (SD)',pp,'Lower = records cluster more closely around the mean.'],
     ['record_dispersion_ratio','Record spread / coin-flip baseline',n=>num(n)+'×','Lower = less imbalance after allowing for games played.'],
@@ -30,7 +30,7 @@
     ['top_to_losing','Top quartile → losing record',pct,'Prior top-quarter teams finishing strictly below .500.'],
     ['top_to_bottom','Top quartile → bottom quartile',pct,'A complete fall from the top group to the bottom group.']
   ];
-  const bands=(labels,n,a)=>labels.map((label,i)=>{const bar=v=>`<span class="parity-bar"><i style="width:${100*v}%"></i></span>${pct(v)}`;return `<tr><th scope="row">${label}</th><td>${bar(n[i])}</td><td>${bar(a[i])}</td></tr>`;}).join('');
+  const bands=(labels,n,a,r)=>labels.map((label,i)=>{const bar=v=>`<span class="parity-bar"><i style="width:${100*v}%"></i></span>${pct(v)}`;return `<tr><th scope="row">${label}</th><td>${bar(n[i])}</td><td>${bar(a[i])}</td>${r?`<td>${bar(r[i])}</td>`:''}</tr>`;}).join('');
   function scatter(rows,beta,league){
     const x=v=>48+v*282,y=v=>330-v*282,color=league==='NFL'?'#174ea6':'#c83a3f';
     const mx=rows.reduce((s,r)=>s+r.prior_win_pct,0)/rows.length,my=rows.reduce((s,r)=>s+r.next_win_pct,0)/rows.length;
@@ -44,28 +44,28 @@
   function matrix(values){const labels=['Bottom 25%','Lower middle','Upper middle','Top 25%'];return '<table class="parity-table parity-matrix"><thead><tr><th>Prior → next</th>'+labels.map(l=>`<th>${l}</th>`).join('')+'</tr></thead><tbody>'+values.map((row,i)=>`<tr><th scope="row">${labels[i]}</th>${row.map(v=>`<td style="background:rgba(23,78,166,${v*.65})">${pct(v)}</td>`).join('')}</tr>`).join('')+'</tbody></table>';}
   function render(){
     $('years').querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',Number(b.dataset.season)===selected?'true':'false'));
-    const n=data.seasons.find(r=>r.season===selected&&r.league==='NFL'),a=data.seasons.find(r=>r.season===selected&&r.league==='ADL'),scope=data.scopes.find(r=>r.season===selected);
+    const n=data.seasons.find(r=>r.season===selected&&r.league==='NFL'),a=data.seasons.find(r=>r.season===selected&&r.league==='ADL'),rs=data.seasons.find(r=>r.season===selected&&r.league==='ADL Reg Season'),scope=data.scopes.find(r=>r.season===selected);
     $('context').textContent=`Regular-season head-to-head · ${selected}${scope.provisional?' season-to-date':''} · NFL weeks 1–${scope.nfl_max_week} · ADL weeks 1–${scope.adl_max_week}`;
     $('partial').hidden=!scope.provisional;$('partial').textContent='2026 is provisional. Short records are more volatile, and the 2025→2026 transition is excluded from completed-season mobility.';
-    $('sample').textContent=`32 teams per league · NFL: ${n.games} games · ADL: ${a.games} games. Byes and bonus/all-play wins are excluded.`;
-    $('metrics').innerHTML=metricRows(within,n,a);
-    $('record-bands').innerHTML=bands(['Below 25%','25–<37.5%','37.5–62.5%','>62.5–75%','Above 75%'],n.record_histogram,a.record_histogram);
+    $('sample').textContent=`32 teams per league · NFL: ${n.games} games · ADL: ${a.games} games. ADL Reg Season adds Bonus Games to the H2H record. Margins use H2H games only.`;
+    $('metrics').innerHTML=metricRows(within,n,a,rs);
+    $('record-bands').innerHTML=bands(['Below 25%','25–<37.5%','37.5–62.5%','>62.5–75%','Above 75%'],n.record_histogram,a.record_histogram,rs.record_histogram);
     $('margin-bands').innerHTML=bands(['0–<10%','10–<25%','25–<50%','50–<100%','100% or more'],n.margin_histogram,a.margin_histogram);
-    $('trends').innerHTML=seasons.map(year=>{const nf=data.seasons.find(r=>r.season===year&&r.league==='NFL'),ad=data.seasons.find(r=>r.season===year&&r.league==='ADL');return `<tr class="${year===selected?'current':''}"><th scope="row">${year}${year===latest?' YTD':''}</th><td>${pp(nf.win_pct_sd)} / ${pp(ad.win_pct_sd)}</td><td>${num(nf.record_dispersion_ratio)} / ${num(ad.record_dispersion_ratio)}</td><td>${pct(nf.normalized_net_margin_sd)} / ${pct(ad.normalized_net_margin_sd)}</td><td>${pct(nf.close_game_share)} / ${pct(ad.close_game_share)}</td></tr>`;}).join('');
-    $('mobility-metrics').innerHTML=metricRows(mobility,data.pooled.find(r=>r.league==='NFL'),data.pooled.find(r=>r.league==='ADL'));
-    $('recovery').innerHTML=[1,2,3,4].map(h=>{const n=data.recovery.find(r=>r.league==='NFL'&&r.seasons_elapsed===h),a=data.recovery.find(r=>r.league==='ADL'&&r.seasons_elapsed===h);return `<tr><th scope="row">Within ${h} season${h===1?'':'s'}</th><td>${pct(n.bottom_ever_winning)}</td><td>${pct(a.bottom_ever_winning)}</td><td>${pct(n.top_ever_losing)}</td><td>${pct(a.top_ever_losing)}</td></tr>`;}).join('');
-    $('yearly-mobility').innerHTML=[...new Set(data.transitions.map(r=>r.to_season))].map(year=>{const nf=data.transitions.find(r=>r.to_season===year&&r.league==='NFL'),ad=data.transitions.find(r=>r.to_season===year&&r.league==='ADL');return `<tr class="${year===selected?'current':''}"><th scope="row">${year-1}→${year}${ad.provisional?' YTD*':''}</th><td>${num(nf.beta)}</td><td>${num(ad.beta)}</td><td>${pct(nf.regression_to_mean)} / ${pct(ad.regression_to_mean)}</td><td>${pp(nf.mean_absolute_change)} / ${pp(ad.mean_absolute_change)}</td><td>${pct(nf.bottom_to_winning)} / ${pct(ad.bottom_to_winning)}</td></tr>`;}).join('');
+    $('trends').innerHTML=seasons.map(year=>{const nf=data.seasons.find(r=>r.season===year&&r.league==='NFL'),ad=data.seasons.find(r=>r.season===year&&r.league==='ADL'),rs=data.seasons.find(r=>r.season===year&&r.league==='ADL Reg Season');return `<tr class="${year===selected?'current':''}"><th scope="row">${year}${year===latest?' YTD':''}</th><td>${pp(nf.win_pct_sd)} / ${pp(ad.win_pct_sd)} / ${pp(rs.win_pct_sd)}</td><td>${num(nf.record_dispersion_ratio)} / ${num(ad.record_dispersion_ratio)} / ${num(rs.record_dispersion_ratio)}</td><td>${pct(nf.normalized_net_margin_sd)} / ${pct(ad.normalized_net_margin_sd)}</td><td>${pct(nf.close_game_share)} / ${pct(ad.close_game_share)}</td></tr>`;}).join('');
+    $('mobility-metrics').innerHTML=metricRows(mobility,data.pooled.find(r=>r.league==='NFL'),data.pooled.find(r=>r.league==='ADL'),data.pooled.find(r=>r.league==='ADL Reg Season'));
+    $('recovery').innerHTML=[1,2,3,4].map(h=>{const n=data.recovery.find(r=>r.league==='NFL'&&r.seasons_elapsed===h),a=data.recovery.find(r=>r.league==='ADL'&&r.seasons_elapsed===h),rs=data.recovery.find(r=>r.league==='ADL Reg Season'&&r.seasons_elapsed===h);return `<tr><th scope="row">Within ${h} season${h===1?'':'s'}</th><td>${pct(n.bottom_ever_winning)}</td><td>${pct(a.bottom_ever_winning)}</td><td>${pct(rs.bottom_ever_winning)}</td><td>${pct(n.top_ever_losing)}</td><td>${pct(a.top_ever_losing)}</td><td>${pct(rs.top_ever_losing)}</td></tr>`;}).join('');
+    $('yearly-mobility').innerHTML=[...new Set(data.transitions.map(r=>r.to_season))].map(year=>{const nf=data.transitions.find(r=>r.to_season===year&&r.league==='NFL'),ad=data.transitions.find(r=>r.to_season===year&&r.league==='ADL'),rs=data.transitions.find(r=>r.to_season===year&&r.league==='ADL Reg Season');return `<tr class="${year===selected?'current':''}"><th scope="row">${year-1}→${year}${ad.provisional?' YTD*':''}</th><td>${num(nf.beta)}</td><td>${num(ad.beta)}</td><td>${num(rs.beta)}</td><td>${pct(nf.regression_to_mean)} / ${pct(ad.regression_to_mean)} / ${pct(rs.regression_to_mean)}</td><td>${pp(nf.mean_absolute_change)} / ${pp(ad.mean_absolute_change)} / ${pp(rs.mean_absolute_change)}</td><td>${pct(nf.bottom_to_winning)} / ${pct(ad.bottom_to_winning)} / ${pct(rs.bottom_to_winning)}</td></tr>`;}).join('');
     const transitions=data.transitions.filter(r=>r.to_season===selected),movement=data.movements.filter(r=>r.to_season===selected);
     $('transition-views').hidden=!transitions.length;
     $('transition-title').textContent=transitions.length?`${selected-1}→${selected}${scope.provisional?' season-to-date':''} · franchise movement`:'Franchise movement';
     $('transition-note').textContent=transitions.length?(scope.provisional?'Provisional: a completed prior season compared with current season-to-date.':'The selected transition follows the same franchises from one regular season to the next.'):'No prior season is included for 2021. Select 2022 or later to see franchise movement.';
-    for(const league of ['NFL','ADL']){
-      const id=league.toLowerCase(),t=transitions.find(r=>r.league===league);
+    for(const league of ['NFL','ADL','ADL Reg Season']){
+      const id=league==='ADL Reg Season'?'adl-reg':league.toLowerCase(),t=transitions.find(r=>r.league===league);
       if(t){$(id+'-scatter').innerHTML=scatter(movement.filter(r=>r.league===league),t.beta,league);$(id+'-matrix').innerHTML=matrix(t.transition_matrix);}
       const teams=data.teams.filter(r=>r.season===selected&&r.league===league).sort((x,y)=>y.win_pct-x.win_pct||y.normalized_net_margin-x.normalized_net_margin);
-      $(id+'-records').innerHTML=teams.map(r=>`<tr><th scope="row">${esc(r.team)}</th><td>${r.wins}–${r.losses}–${r.ties}</td><td>${pct(r.win_pct)}</td><td>${pct(r.normalized_net_margin)}</td></tr>`).join('');
+      $(id+'-records').innerHTML=teams.map(r=>`<tr><th scope="row">${esc(r.team)}</th><td>${r.wins}–${r.losses}–${r.ties}</td><td>${pct(r.win_pct)}</td><td>${league==='ADL Reg Season'?'—':pct(r.normalized_net_margin)}</td></tr>`).join('');
     }
-    $('movements').innerHTML=movement.sort((x,y)=>Math.abs(y.change)-Math.abs(x.change)).map(r=>`<tr><td>${r.league}</td><th scope="row">${esc(r.team)}</th><td>${pct(r.prior_win_pct)}</td><td>${pct(r.next_win_pct)}</td><td class="${r.change>0?'parity-positive':r.change<0?'parity-negative':''}">${r.change>0?'+':''}${pp(r.change)}</td></tr>`).join('');
+    $('movements').innerHTML=movement.sort((x,y)=>Math.abs(y.change)-Math.abs(x.change)).map(r=>`<tr><td>${r.league==='ADL'?'ADL H2H':r.league}</td><th scope="row">${esc(r.team)}</th><td>${pct(r.prior_win_pct)}</td><td>${pct(r.next_win_pct)}</td><td class="${r.change>0?'parity-positive':r.change<0?'parity-negative':''}">${r.change>0?'+':''}${pp(r.change)}</td></tr>`).join('');
   }
   $('years').innerHTML=seasons.map(year=>`<button type="button" role="tab" aria-controls="parity-report" aria-selected="${year===selected}" data-season="${year}">${year}${year===latest?' · YTD':''}</button>`).join('');
   $('years').addEventListener('click',event=>{const b=event.target.closest('button');if(b){selected=Number(b.dataset.season);render();}});

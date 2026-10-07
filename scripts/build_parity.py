@@ -93,6 +93,39 @@ def write_csv(name,rows):
     with (OUT/name).open('w',newline='',encoding='utf-8') as f:
         writer=csv.DictWriter(f,fieldnames=list(rows[0]));writer.writeheader();writer.writerows(rows)
 
+def regular_season(h2h,summary,last_week):
+    """Reconstruct Bonus Games using the local playoff-picture scoring rules."""
+    year=summary['season'];weekly={}
+    for week in range(1,last_week+1):
+        payload=json.loads((ADL/f'{year}_results_w{week:02}.json').read_text())['weeklyResults']
+        entries=[r for m in records(payload.get('matchup')) for r in records(m.get('franchise'))]+records(payload.get('franchise'))
+        values={r['id']:(float(r['score']),float(r['opt_pts'])) for r in entries if r['id'] in {t['team_id'] for t in h2h}}
+        assert len(values)==32
+        weekly[week]={k:(sum((s>other)+.5*(s==other) for j,(other,_) in values.items() if j!=k),s,p) for k,(s,p) in values.items()}
+    events=[range(end-2,end+1) for end in [3,6,9,12] if end<=last_week]
+    if last_week>=12: events.append(range(1,13))
+    bonus={t['team_id']:[0,0,0] for t in h2h}
+    for weeks in events:
+        totals={k:tuple(sum(weekly[w][k][i] for w in weeks) for i in range(3)) for k in bonus}
+        ranked=sorted(totals,key=lambda k:tuple(-v for v in totals[k])+(k,))
+        # Do not silently choose a franchise when every official tiebreaker ties.
+        for boundary in [15,17]:
+            assert totals[ranked[boundary-1]]!=totals[ranked[boundary]],(year,'Unresolved bonus cutoff tie')
+        for rank,k in enumerate(ranked): bonus[k][0 if rank<15 else 2 if rank<17 else 1]+=1
+    teams=[]
+    for original in h2h:
+        t=dict(original,league='ADL Reg Season')
+        for key,n in zip(['wins','losses','ties'],bonus[t['team_id']]): t[key]+=n
+        t['games']+=len(events);t['win_pct']=(t['wins']+.5*t['ties'])/t['games'];teams.append(t)
+    s=dict(summary,league='ADL Reg Season',games=sum(t['games'] for t in teams)//2)
+    values=[t['win_pct'] for t in teams];ordered=sorted(values)
+    baseline=math.sqrt(mean([.25/t['games'] for t in teams]))
+    s.update(mean_win_pct=mean(values),win_pct_sd=sd(values),coin_flip_sd=baseline,record_dispersion_ratio=sd(values)/baseline,
+             middle_band_share=sum(.375<=v<=.625 for v in values)/32,top_bottom_gap=mean(ordered[-8:])-mean(ordered[:8]),
+             record_histogram=[sum(low<=v<high for v in values)/32 for low,high in [(0,.25),(.25,.375),(.375,.625000001),(.625000001,.750000001),(.750000001,1.000000001)]])
+    for key in ['normalized_net_margin_sd','mean_margin','median_margin','mean_relative_margin','close_game_share','blowout_share','margin_histogram']: s[key]=None
+    return s,teams
+
 def build(matched_weeks=False):
     OUT.mkdir(parents=True,exist_ok=True)
     with (OUT/'source/nfl_games.csv').open(encoding='utf-8-sig') as f:nfl=list(csv.DictReader(f))
@@ -143,14 +176,16 @@ def build(matched_weeks=False):
     for year in range(2021,2027):
         for league in ['NFL','ADL']:
             s,t=season_summary(games,year,league);summaries.append(s);teams.extend(t)
+        s,t=regular_season([t for t in teams if t['season']==year and t['league']=='ADL'],summaries[-1],scopes[year-2021]['adl_max_week'])
+        summaries.append(s);teams.extend(t)
     transitions=[];movements=[]
     for end in range(2022,2027):
-        for league in ['NFL','ADL']:
+        for league in ['NFL','ADL','ADL Reg Season']:
             a=[t for t in teams if t['season']==end-1 and t['league']==league];b=[t for t in teams if t['season']==end and t['league']==league]
-            result,rows=mobility(a,b,league,end-1,end,league=='ADL' and scopes[end-2021]['provisional'] or league=='NFL' and end==2026)
+            result,rows=mobility(a,b,league,end-1,end,end==2026)
             transitions.append(result);movements.extend(rows)
     pooled=[];recovery=[]
-    for league in ['NFL','ADL']:
+    for league in ['NFL','ADL','ADL Reg Season']:
         rows=[r for r in movements if r['league']==league and not r['provisional']]
         den=sum(r['bottom_weight'] for r in rows);topden=sum(r['top_weight'] for r in rows)
         pooled.append({'league':league,'first_season':2021,'last_season':2025,'team_transitions':len(rows),'season_transitions':4,
@@ -182,10 +217,12 @@ def build(matched_weeks=False):
     for p in pooled:
         p['twelve_week_beta']=nfl_check['beta'] if p['league']=='NFL' else p['beta']
         p['twelve_week_regression_to_mean']=1-p['twelve_week_beta']
+    for p in pooled+transitions:
+        if p['league']=='ADL Reg Season': p['margin_beta']=None
     report={'seasons':summaries,'teams':teams,'transitions':transitions,'movements':movements,'pooled':pooled,'recovery':recovery,'scopes':scopes,'matched_weeks':matched_weeks,
             'captured_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (OUT/'report.json').write_text(json.dumps(report,separators=(',',':')))
-    write_csv('season_metrics.csv',[{k:v for k,v in r.items() if not isinstance(v,list)} for r in summaries])
+    write_csv('season_metrics.csv',[{k:v for k,v in r.items() if k not in ['record_histogram','margin_histogram']} for r in summaries])
     write_csv('team_records.csv',teams);write_csv('yearly_mobility.csv',[{k:v for k,v in r.items() if k!='transition_matrix'} for r in transitions])
     write_csv('team_movement.csv',movements);write_csv('pooled_mobility.csv',pooled);write_csv('coverage.csv',audit)
     write_csv('recovery_speed.csv',recovery)
