@@ -1,6 +1,6 @@
-.Rproj.user
-.Rhistory
-.RData
+.Rproj.user
+.Rhistory
+.RData
 .Ruserdata
 *.Rproj
 cache/
@@ -19,3 +19,5 @@ poll_audit_*.csv
 poll_franchise_audit_*.csv
 pre_ufa_auction_participation*.csv
 review_*_after_poll.csv
+
+data/formations/source/

@@ -679,7 +679,7 @@ build_dashboard_index_html <- function(
       ),
       tool_card(
         "NFL Realism Report",
-        "Roster Composition: 2021–2025 NFL benchmarks using annual ADL positions, active and inactive players, and OL/LS exclusions.",
+        "Compare NFL and ADL roster composition, starting-lineup positions and formation frequencies by season.",
         "nfl-realism-report.html"
       ),
       "</div>"
