@@ -679,7 +679,7 @@ build_dashboard_index_html <- function(
       ),
       tool_card(
         "NFL Realism Report",
-        "Compare NFL and ADL roster composition, starting-lineup positions and formation frequencies by season.",
+        "Compare NFL and ADL roster composition, formations and league parity by season.",
         "nfl-realism-report.html"
       ),
       "</div>"

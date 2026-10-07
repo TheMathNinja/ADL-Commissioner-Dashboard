@@ -16,5 +16,14 @@ build_nfl_realism_html <- function(summary, totals, manifest, adl_summary = NULL
     formations <- sub("FORMATIONS_SCRIPT",formation_script,formations,fixed=TRUE)
     template <- paste0(template, formations)
   }
+  if (file.exists("data/parity/report.json")) {
+    parity <- paste(readLines("R/parity_template.html",warn=FALSE,encoding="UTF-8"),collapse="\n")
+    parity_data <- paste(readLines("data/parity/report.json",warn=FALSE,encoding="UTF-8"),collapse="\n")
+    parity_data <- gsub("<", "\\u003c", parity_data, fixed=TRUE)
+    parity_script <- paste(readLines("R/parity_report.js",warn=FALSE,encoding="UTF-8"),collapse="\n")
+    parity <- sub("PARITY_DATA",parity_data,parity,fixed=TRUE)
+    parity <- sub("PARITY_SCRIPT",parity_script,parity,fixed=TRUE)
+    template <- paste0(template, parity)
+  }
   dashboard_page("NFL Realism Report", paste0(back_link(), template))
 }

@@ -1,0 +1,9 @@
+league,baseline_season,through_season,seasons_elapsed,cohort_team_equivalents,bottom_ever_winning,top_ever_losing
+NFL,2021,2022,1,8.0,0.40625,0.625
+NFL,2021,2023,2,8.0,0.53125,0.625
+NFL,2021,2024,3,8.0,0.59375,0.75
+NFL,2021,2025,4,8.0,0.71875,0.875
+ADL,2021,2022,1,8.0,0.25,0.25
+ADL,2021,2023,2,8.0,0.625,0.375
+ADL,2021,2024,3,8.0,0.75,0.75
+ADL,2021,2025,4,8.0,0.875,0.875

@@ -113,5 +113,10 @@ publish_nfl_realism <- function(data_dir = "data/nfl_realism", docs_dir = "docs"
     formation_files <- list.files("data/formations",pattern="\\.(csv|md|json)$",full.names=TRUE)
     file.copy(formation_files,formation_downloads,overwrite=TRUE)
   }
+  if (file.exists("data/parity/report.json")) {
+    parity_downloads <- file.path(docs_dir,"downloads/parity")
+    dir.create(parity_downloads,recursive=TRUE,showWarnings=FALSE)
+    file.copy(list.files("data/parity",pattern="\\.(csv|md|json)$",full.names=TRUE),parity_downloads,overwrite=TRUE)
+  }
   writeLines(build_nfl_realism_html(summary, totals, manifest, adl_summary, adl_team_year), file.path(docs_dir, "nfl-realism-report.html"), useBytes = TRUE)
 }
