@@ -26,12 +26,12 @@ for s in d['seasons']:
     if s['league']=='ADL' and s['season']<2026:
         assert s['games']==192 and s['last_week']==12 and all(t['games']==12 for t in teams)
     if s['league']=='NFL' and s['season']<2026:
-        assert s['last_week']==18 and s['games']==(271 if s['season']==2022 else 272)
+        assert s['last_week']==17 and s['games']==(255 if s['season']==2022 else 256)
 
 def team(y,code):return next(t for t in d['teams'] if t['season']==y and t['league']=='NFL' and t['team_id']==code)
-assert [team(2024,'KC')[k] for k in ['wins','losses','ties']]==[15,2,0]
-assert [team(2023,'CAR')[k] for k in ['wins','losses','ties']]==[2,15,0]
-assert [team(2022,'BUF')[k] for k in ['wins','losses','games']]==[13,3,16]
+assert [team(2024,'KC')[k] for k in ['wins','losses','ties']]==[15,1,0]
+assert [team(2023,'CAR')[k] for k in ['wins','losses','ties']]==[2,14,0]
+assert [team(2022,'BUF')[k] for k in ['wins','losses','games']]==[12,3,15]
 for t in d['transitions']:
     assert t['teams']==32 and t['provisional']==(t['to_season']==2026)
     assert all(math.isclose(sum(row),1) for row in t['transition_matrix'])
@@ -55,4 +55,4 @@ for league in ['NFL','ADL']:
     transition=next(t for t in d['transitions'] if t['league']==league and t['to_season']==2022)
     assert math.isclose(rows[0]['bottom_ever_winning'],transition['bottom_to_winning'])
     assert math.isclose(rows[0]['top_ever_losing'],transition['top_to_losing'])
-print('Parity verified: 12/18-week scope, known NFL records, game accounting, tied quartiles, regression pooling, recovery and 2026 exclusion.')
+print('Parity verified: 12/17-week scope, known NFL records, game accounting, tied quartiles, regression pooling, recovery and 2026 exclusion.')

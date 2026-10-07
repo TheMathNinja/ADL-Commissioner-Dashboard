@@ -102,7 +102,7 @@ def build(matched_weeks=False):
         # The local ADL playoff script defines a 12-week regular season.
         # Historical MFL metadata incorrectly marks postseason as regular.
         adl_max=12
-        nfl_max=12 if matched_weeks else 18
+        nfl_max=12 if matched_weeks else 17
         nfl_year=[r for r in nfl if int(r['season'])==year and r['game_type']=='REG' and int(r['week'])<=nfl_max]
         if year==2026:
             complete_weeks=[w for w in range(1,nfl_max+1) if any(int(r['week'])==w for r in nfl_year) and all(r['home_score'] and r['away_score'] for r in nfl_year if int(r['week'])==w)]

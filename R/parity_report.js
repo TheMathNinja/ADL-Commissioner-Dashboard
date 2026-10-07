@@ -69,7 +69,7 @@
   }
   $('years').innerHTML=seasons.map(year=>`<button type="button" role="tab" aria-controls="parity-report" aria-selected="${year===selected}" data-season="${year}">${year}${year===latest?' · YTD':''}</button>`).join('');
   $('years').addEventListener('click',event=>{const b=event.target.closest('button');if(b){selected=Number(b.dataset.season);render();}});
-  $('method-scope').textContent=data.matched_weeks?'Both leagues use regular-season weeks 1–12 in completed seasons, and completed weeks only in 2026.':'Completed seasons use each league’s full regular season: ADL weeks 1–12 and NFL weeks 1–18 (17 games). The 2026 season stops at the latest fully completed NFL week.';
+  $('method-scope').textContent=data.matched_weeks?'Both leagues use regular-season weeks 1–12 in completed seasons, and completed weeks only in 2026.':'Completed seasons use ADL regular-season weeks 1–12 and NFL regular-season weeks 1–17, excluding NFL week 18. The 2026 season stops at the latest fully completed NFL week.';
   $('provenance').textContent='Frozen comparison captured '+data.captured_at_utc+'.';
   function selectTab(){const tab=location.hash.startsWith('#parity')?'parity-report':location.hash.startsWith('#formations')?'formations-report':'roster-composition';for(const id of ['roster-composition','formations-report','parity-report']){const e=document.getElementById(id);if(e)e.hidden=id!==tab;}document.querySelectorAll('[aria-label="NFL Realism Report tabs"] a').forEach(a=>{if(a.hash==='#'+tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});}
   window.addEventListener('hashchange',selectTab);selectTab();render();
