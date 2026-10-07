@@ -1,6 +1,6 @@
 # Formations Report
 
-Compare NFL top 7 offensive and top 12 defensive snap leaders per team-game with ADL submitted starters for league 60206. Offense includes QB/RB/WR/TE and excludes OL. Defense uses DT/DE/LB/CB/S, with an optional DL/LB/DB view. These are weekly snap-leader groups, not play-by-play personnel formations.
+Compare NFL top 7 offensive and top 12 defensive snap leaders per team-game with ADL submitted starters for league 60206. Offense includes QB/RB/WR/TE and excludes OL. Defense uses DT/DE/LB/CB/S, with DL and DB aggregates appended after S (LB is already listed), plus DL/LB/DB formation frequencies. Group counts overlap individual positions and do not add to lineup totals. These are weekly snap-leader groups, not play-by-play personnel formations.
 
 ## Scope and seasons
 

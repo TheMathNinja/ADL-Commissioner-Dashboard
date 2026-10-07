@@ -7,10 +7,8 @@
 <h2>Formations Report</h2>
 <p>Compare NFL snap leaders with ADL submitted starters by that season’s ADL positions.</p>
 <div id="formations-years" class="formations-years" role="tablist" aria-label="Formation seasons"></div>
-<div class="formations-options">
-<label>Defense detail <select id="formations-detail"><option value="positions">ADL positions · DT / DE / LB / CB / S</option><option value="units">Position groups · DL / LB / DB</option></select></label>
-</div>
 <p id="formations-context" aria-live="polite"></p>
+<p class="formations-muted">DL = DT + DE; DB = CB + S. These overlapping groups appear after S; LB is already listed. Totals count individual positions once.</p>
 <p class="formations-legend">NFL = top 7 offensive and top 12 defensive snap-getters per team-game, among eligible ADL positions, excluding OL and special teams. ADL = submitted starters, including players who scored zero. Frequencies describe those selected groups, not individual NFL plays.</p>
 <div class="formations-grid">
 <section class="panel"><h2>Offense · average starters</h2><p class="formations-sample" id="formations-off-sample"></p><div class="realism-scroll"><table class="formations-table"><thead><tr><th>Position</th><th>NFL</th><th>ADL</th><th>ADL − NFL</th></tr></thead><tbody id="formations-off-means"></tbody></table></div></section>
@@ -20,7 +18,7 @@
 <p class="formations-muted">Each label lists the number at each position. Percentages give every team equal weight and total 100% within each league and side. Gap is ADL minus NFL in percentage points.</p>
 <div class="formations-grid">
 <section class="panel"><h2>Offensive formations</h2><p class="formations-muted">Order: QB / RB / WR / TE</p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-off-frequency"></tbody></table></div></section>
-<section class="panel"><h2>Defensive formations</h2><p class="formations-muted" id="formations-def-order"></p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-def-frequency"></tbody></table></div></section>
+<section class="panel"><h2>Defensive formations</h2><p class="formations-muted" id="formations-def-order"></p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-def-frequency"></tbody></table></div><h3>Defensive position groups</h3><p class="formations-muted">Order: DL / LB / DB</p><div class="formations-frequency"><table class="formations-table"><thead><tr><th>Formation</th><th>NFL</th><th>ADL</th><th>Gap</th></tr></thead><tbody id="formations-def-groups-frequency"></tbody></table></div></section>
 </div>
 <section class="panel"><h2>Season trends</h2><p id="formations-trend-note" class="formations-muted"></p><div class="realism-scroll"><table class="formations-table formations-trends"><thead id="formations-trend-head"></thead><tbody id="formations-trends"></tbody></table></div><p class="formations-muted">Each position shows NFL / ADL average starters. Changes in 2026 show observed lineup choices; they do not establish that scoring changes caused them.</p></section>
 <section class="panel"><h2>ADL franchise choices</h2><p class="formations-muted">Average starters for the selected season and week window. Only complete lineups count on each side.</p><div class="realism-scroll"><table class="formations-table"><thead id="formations-franchise-head"></thead><tbody id="formations-franchises"></tbody></table></div></section>
