@@ -14,7 +14,7 @@
   const coarse = () => $('detail').value==='units';
   const order = side => side==='DEF'&&coarse()?['DL','LB','DB']:data.positions[side];
   const counts = row => row.side==='DEF'&&coarse()?[row.counts[0]+row.counts[1],row.counts[2],row.counts[3]+row.counts[4]]:row.counts;
-  const inWindow = row => !$('matched').checked || latestWeeks.includes(row.week);
+  const inWindow = row => true;
   function summarize(season,league,side,team) {
     const rows=data.observations.filter(r=>r.season===season&&r.league===league&&r.side===side&&inWindow(r)&&(!team||r.team===team));
     const teams=new Map();
@@ -39,7 +39,6 @@
     [...$('years').querySelectorAll('button')].forEach(b=>b.setAttribute('aria-selected',Number(b.dataset.season)===selected?'true':'false'));
     const weeks=[...new Set(data.observations.filter(r=>r.season===selected&&inWindow(r)).map(r=>r.week))].sort((a,b)=>a-b);
     $('context').textContent=`League averages · ${selected}${selected===latest?' season-to-date':''} · weeks ${weeks[0]}–${weeks[weeks.length-1]}`;
-    $('matched-label').textContent=`Compare the same weeks across seasons (weeks ${latestWeeks[0]}–${latestWeeks[latestWeeks.length-1]})`;
     $('def-order').textContent='Order: '+order('DEF').join(' / ');
     renderSide('OFF');renderSide('DEF');
     const positions=[...order('OFF'),...order('DEF')];
@@ -49,7 +48,7 @@
       const w=[...new Set(data.observations.filter(r=>r.season===year&&inWindow(r)).map(r=>r.week))].sort((a,b)=>a-b);
       return `<tr class="${year===selected?'current':''}"><th scope="row">${year}${year===latest?' YTD':''}</th><td>${w[0]}–${w[w.length-1]}</td>${nf.map((v,i)=>`<td>${fmt(v)} / ${fmt(ad[i])}</td>`).join('')}</tr>`;
     }).join('');
-    $('trend-note').textContent=$('matched').checked?`All seasons use the same week numbers: ${latestWeeks.join(', ')}. Each cell is NFL / ADL.`:`Historical seasons use weeks 1–17; ${latest} uses available weeks ${latestWeeks[0]}–${latestWeeks[latestWeeks.length-1]}. Each cell is NFL / ADL.`;
+    $('trend-note').textContent=`Historical seasons use weeks 1–17; ${latest} uses available weeks ${latestWeeks[0]}–${latestWeeks[latestWeeks.length-1]}. Each cell is NFL / ADL.`;
     const franchises=[...new Set(data.coverage.filter(r=>r.season===selected&&r.league==='ADL').map(r=>r.team))].sort();
     $('franchise-head').innerHTML='<tr><th>Franchise</th><th>OFF / DEF lineups</th>'+positions.map(p=>`<th>${p}</th>`).join('')+'</tr>';
     $('franchises').innerHTML=franchises.map(team=>{const o=summarize(selected,'ADL','OFF',team),d=summarize(selected,'ADL','DEF',team);return `<tr><th scope="row">${escape(team)}</th><td>${o.games} / ${d.games}</td>${[...o.mean,...d.mean].map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>`;}).join('');
@@ -59,7 +58,7 @@
   }
   $('years').innerHTML=seasons.map(year=>`<button type="button" role="tab" aria-controls="formations-report" aria-selected="${year===selected}" data-season="${year}">${year}${year===latest?' · YTD':''}</button>`).join('');
   $('years').addEventListener('click',event=>{const b=event.target.closest('button');if(b){selected=Number(b.dataset.season);render();}});
-  for(const id of ['matched','detail'])$(id).addEventListener('change',render);
+  for(const id of ['detail'])$(id).addEventListener('change',render);
   $('provenance').textContent='Frozen source captured '+data.manifest.captured_at_utc+'.';
   function selectTab(){const formations=location.hash.startsWith('#formations');document.getElementById('formations-report').hidden=!formations;document.getElementById('roster-composition').hidden=formations;document.querySelectorAll('[aria-label="NFL Realism Report tabs"] a').forEach(a=>{if((a.hash==='#formations-report')===formations)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});}
   window.addEventListener('hashchange',selectTab);selectTab();render();

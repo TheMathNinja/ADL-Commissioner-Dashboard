@@ -4,7 +4,7 @@ Compare NFL top 7 offensive and top 12 defensive snap leaders per team-game with
 
 ## Scope and seasons
 
-2021–2025: regular-season weeks 1–17. 2026: weeks 1–4 in the source captured for this release. The report defaults to matching those week numbers across all seasons; uncheck that control to view each historical full season. The missing 2021 injury reports that affected Roster Composition do not affect submitted starters and snap counts, so 2021 is included here.
+2021–2025: regular-season weeks 1–17. 2026: weeks 1–4 in the source captured for this release. The report uses every available week within each season. The missing 2021 injury reports that affected Roster Composition do not affect submitted starters and snap counts, so 2021 is included here.
 
 ## NFL selection and ties
 
@@ -18,7 +18,7 @@ Use MFL `weeklyResults` players explicitly marked `starter`, or its submitted `s
 
 ## Averages and interpretation
 
-Average games/weeks within each team, then average teams equally within each season. Apply the same weighting to formation frequencies, so each league/side sums to 100%. True zero position counts are included. The same-weeks control applies to means, frequencies, season trends and franchise rows. The 2026 observations may reflect scoring changes, position changes, roster availability or other decisions; this report does not establish causation.
+Average games/weeks within each team, then average teams equally within each season. Apply the same weighting to formation frequencies, so each league/side sums to 100%. True zero position counts are included. Historical seasons use weeks 1–17; 2026 uses available weeks. The 2026 observations may reflect scoring changes, position changes, roster availability or other decisions; this report does not establish causation.
 
 `weekly_formations.csv` is an aggregate team-week-side formation distribution, with fractional `weight` only for NFL cutoff ties. `coverage.csv` records completeness and cutoff ties. `report.json` contains those aggregates for the static dashboard. Raw NFL player snaps, MFL weekly player results, annual player databases and ID maps stay in the ignored local source directory.
 
