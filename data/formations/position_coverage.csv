@@ -22,7 +22,8 @@ season,week,side,method,starter_equivalents
 2021,11,DEF,Season ADL/MFL ID match,360.0
 2021,11,OFF,Season ADL/MFL ID match,210.0
 2021,12,DEF,Season ADL/MFL ID match,360.0
-2021,12,OFF,Season ADL/MFL ID match,210.0
+2021,12,OFF,Estimated: season matched-player mode,0.1111111111111111
+2021,12,OFF,Season ADL/MFL ID match,209.88888888888889
 2021,13,DEF,Season ADL/MFL ID match,336.0
 2021,13,OFF,Season ADL/MFL ID match,196.0
 2021,14,DEF,Season ADL/MFL ID match,336.0

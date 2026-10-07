@@ -25,14 +25,16 @@ def unique_index(pairs):
     return {k:next(iter(v)) for k,v in candidates.items() if len(v)==1}
 
 def selection_candidates(players,side):
-    """One highest-snap QB plus the six highest-snap eligible non-QBs."""
+    """Combine every positive-snap QB into one entry before ranking seven slots."""
     if side!='OFF': return players
     qbs=[p for p in players if p['position']=='QB']
     if not qbs: raise ValueError('No positive-snap QB in NFL offensive group')
-    qb=sorted(qbs,key=lambda p:(-p['snaps'],p.get('id','')))[0]
+    total=sum(p['snaps'] for p in qbs)
+    methods=collections.defaultdict(float)
+    for p in qbs: methods[p.get('method','Season ADL/MFL ID match')]+=p['snaps']/total
+    qb={'position':'QB','snaps':total,'id':'combined-qb','method_weights':dict(methods)}
     others=[p for p in players if p['position']!='QB']
-    # Force the QB slot; all remaining candidates retain their actual snap ranks.
-    return [dict(qb,snaps=max(p['snaps'] for p in players)+1)]+others
+    return [qb]+others
 
 def distributions(players,side):
     """Uniform combinations at the cutoff: integer formations, fractional frequency."""
@@ -105,7 +107,10 @@ def build():
             above=sum(p['snaps']>cutoff for p in players); at=sum(p['snaps']==cutoff for p in players)
             for p in players:
                 weight=1 if p['snaps']>cutoff else (LIMIT[side]-above)/at if p['snaps']==cutoff else 0
-                if weight:mapping_audit.append({'season':year,'week':week,'side':side,'method':p['method'],'weight':weight})
+                if weight:
+                    methods=p.get('method_weights') or {p['method']:1}
+                    for method,share in methods.items():
+                        mapping_audit.append({'season':year,'week':week,'side':side,'method':method,'weight':weight*share})
             coverage.append({'season':year,'week':week,'league':'NFL','team':team,'side':side,'slots':LIMIT[side],'included':True,'boundary_tie':tie})
         league=json.loads((SOURCE/f'{year}_league.json').read_text())['league']
         franchises={r['id']:r['name'] for r in records(league['franchises']['franchise']) if r['id']!='0000'}

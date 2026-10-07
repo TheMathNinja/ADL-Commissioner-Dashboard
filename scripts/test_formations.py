@@ -1,6 +1,6 @@
 """Check tie probabilities, real lineup coverage and prior PositionLimits results."""
 import collections, itertools, json, math
-from build_formations import ROOT, POSITIONS, LIMIT, distributions, read_csv
+from build_formations import ROOT, POSITIONS, LIMIT, distributions, read_csv, selection_candidates
 
 # Independent enumeration of individual tied-player selections verifies the
 # position-combination weighting, including several players at one position.
@@ -16,6 +16,9 @@ assert all(sum(c)==7 for c,_ in actual)
 
 # A substitute QB cannot displace the next eligible skill-position player.
 replacement=[{'position':p,'snaps':s} for p,s in [('QB',90),('QB',80),('RB',75),('WR',70),('WR',65),('TE',60),('WR',55),('RB',50)]]
+combined=selection_candidates(replacement,'OFF')
+assert [p['snaps'] for p in combined if p['position']=='QB']==[170]
+assert len(combined)==7
 actual,tie=distributions(replacement,'OFF')
 assert actual==[((1,2,3,1),1)] and not tie
 # With two QBs removed from consideration, the sixth non-QB cutoff still splits ties.
