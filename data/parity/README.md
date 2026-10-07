@@ -39,3 +39,7 @@ Sources: public MFL weeklyResults, [nflreadr schedules](https://nflreadr.nflvers
 ## ADL Reg Season and Bonus Games
 
 ADL H2H uses only actual weekly matchups. ADL Reg Season adds the five Bonus Games defined in the local playoff-picture script: weeks 1–3, 4–6, 7–9, 10–12, and the whole 1–12 season. Rank cumulative weekly all-play wins (ties count half), then points, then potential points. Top 15 receive a win, ranks 16–17 a tie, bottom 15 a loss. An unresolved tie across a cutoff stops the build. Only completed events count (one through week 4 in 2026). These are reconstructed from historical weekly results using those rules. Record parity, mobility, quartiles and recovery are calculated separately for both ADL record types. Bonus Games have no opponent margin: regular-season margin cells show a dash; scoring comparisons retain H2H results. Bonus outcomes are correlated, so the independent coin-flip baseline is only descriptive.
+
+## Paired NFL windows
+
+NFL12 is a separately rebuilt NFL weeks 1–12 series, compared with ADL H2H. NFL weeks 1–17 is compared with ADL Reg Season (12 H2H + 5 Bonus Games). Every record, margin, mobility and recovery calculation uses its own window. Byes mean the NFL windows usually contain 11 or 16 actual games, not 12 or 17. 2026 uses only completed weeks and bonus events.

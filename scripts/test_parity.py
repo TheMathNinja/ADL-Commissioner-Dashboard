@@ -12,7 +12,7 @@ assert all(math.isclose(q[k],.25) for q in quartiles for k in values)
 
 d=json.loads((ROOT/'data/parity/report.json').read_text())
 assert not d['matched_weeks']
-assert len(d['teams'])==6*32*3 and len(d['movements'])==5*32*3
+assert len(d['teams'])==6*32*4 and len(d['movements'])==5*32*4
 for s in d['seasons']:
     teams=[t for t in d['teams'] if t['season']==s['season'] and t['league']==s['league']]
     assert len(teams)==32
@@ -37,6 +37,7 @@ for s in d['seasons']:
         assert s['games']==192 and s['last_week']==12 and all(t['games']==12 for t in teams)
     if s['league']=='NFL' and s['season']<2026:
         assert s['last_week']==17 and s['games']==(255 if s['season']==2022 else 256)
+    if s['league']=='NFL12': assert s['last_week']==(4 if s['season']==2026 else 12) and all(t['games']<=12 for t in teams)
 
 def team(y,code):return next(t for t in d['teams'] if t['season']==y and t['league']=='NFL' and t['team_id']==code)
 assert [team(2024,'KC')[k] for k in ['wins','losses','ties']]==[15,1,0]
@@ -57,7 +58,7 @@ for p in d['pooled']:
         assert math.isclose(sum(r['top_weight'] for r in pair),8)
         assert abs(sum(r['prior_margin_centered'] for r in pair))<1e-8
         assert abs(sum(r['next_margin_centered'] for r in pair))<1e-8
-for league in ['NFL','ADL','ADL Reg Season']:
+for league in ['NFL12','ADL','NFL','ADL Reg Season']:
     rows=sorted([r for r in d['recovery'] if r['league']==league],key=lambda r:r['seasons_elapsed'])
     for k in ['bottom_ever_winning','top_ever_losing']:
         assert all(0<=r[k]<=1 for r in rows)

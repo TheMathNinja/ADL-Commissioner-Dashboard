@@ -178,14 +178,18 @@ def build(matched_weeks=False):
             s,t=season_summary(games,year,league);summaries.append(s);teams.extend(t)
         s,t=regular_season([t for t in teams if t['season']==year and t['league']=='ADL'],summaries[-1],scopes[year-2021]['adl_max_week'])
         summaries.append(s);teams.extend(t)
+        s,t=season_summary([g for g in games if g['week']<=12],year,'NFL')
+        s['league']='NFL12'
+        for row in t: row['league']='NFL12'
+        summaries.append(s);teams.extend(t)
     transitions=[];movements=[]
     for end in range(2022,2027):
-        for league in ['NFL','ADL','ADL Reg Season']:
+        for league in ['NFL12','ADL','NFL','ADL Reg Season']:
             a=[t for t in teams if t['season']==end-1 and t['league']==league];b=[t for t in teams if t['season']==end and t['league']==league]
             result,rows=mobility(a,b,league,end-1,end,end==2026)
             transitions.append(result);movements.extend(rows)
     pooled=[];recovery=[]
-    for league in ['NFL','ADL','ADL Reg Season']:
+    for league in ['NFL12','ADL','NFL','ADL Reg Season']:
         rows=[r for r in movements if r['league']==league and not r['provisional']]
         den=sum(r['bottom_weight'] for r in rows);topden=sum(r['top_weight'] for r in rows)
         pooled.append({'league':league,'first_season':2021,'last_season':2025,'team_transitions':len(rows),'season_transitions':4,
