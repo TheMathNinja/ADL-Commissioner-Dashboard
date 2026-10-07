@@ -9,6 +9,7 @@
   const escape = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt = n => n == null ? '—' : n.toFixed(2);
   const percent = n => (100*n).toFixed(1)+'%';
+  const bar=v=>`<span class="formations-frequency-value"><span class="formations-bar"><i style="width:${Math.min(100,v*100)}%"></i></span><span class="formations-frequency-percent">${percent(v)}</span></span>`;
   const signed = (n,digits=2) => (n>0?'+':'')+n.toFixed(digits);
   const diff = (a,b,digits=2,suffix='') => a==null||b==null?'—':`<span class="${a>b?'formations-positive':a<b?'formations-negative':''}">${signed(a-b,digits)}${suffix}</span>`;
   const order = side => data.positions[side];
@@ -34,7 +35,6 @@
     const nm=side==='DEF'?extended(n.mean):n.mean, am=side==='DEF'?extended(a.mean):a.mean;
     $(id+'-means').innerHTML=displayOrder(side).map((p,i)=>`<tr><th scope="row">${p}</th><td>${fmt(nm[i])}</td><td>${fmt(am[i])}</td><td>${diff(am[i],nm[i])}</td></tr>`).join('')+`<tr class="formations-total"><th scope="row">Total</th><td>${fmt(n.mean.some(v=>v==null)?null:n.mean.reduce((s,v)=>s+v,0))}</td><td>${fmt(a.mean.some(v=>v==null)?null:a.mean.reduce((s,v)=>s+v,0))}</td><td></td></tr>`;
     const keys=[...new Set([...n.frequencies.keys(),...a.frequencies.keys()])].sort((x,y)=>Math.max(n.frequencies.get(y)||0,a.frequencies.get(y)||0)-Math.max(n.frequencies.get(x)||0,a.frequencies.get(x)||0));
-    const bar=v=>`<span class="formations-frequency-value"><span class="formations-bar"><i style="width:${Math.min(100,v*100)}%"></i></span><span class="formations-frequency-percent">${percent(v)}</span></span>`;
     $(id+'-frequency').innerHTML=keys.map(k=>{const nf=n.frequencies.get(k)||0,ad=a.frequencies.get(k)||0;return `<tr><th scope="row">${k}</th><td>${bar(nf)}</td><td>${bar(ad)}</td><td>${diff(100*ad,100*nf,1,' pp')}</td></tr>`;}).join('')+`<tr class="formations-total"><th>Total</th><td>${n.teams?'100.0%':'—'}</td><td>${a.teams?'100.0%':'—'}</td><td></td></tr>`;
   }
   function renderDefenseGroups() {
@@ -45,7 +45,7 @@
     };
     const n=groupFrequencies('NFL'),a=groupFrequencies('ADL');
     const keys=[...new Set([...n.keys(),...a.keys()])].sort((x,y)=>Math.max(n.get(y)||0,a.get(y)||0)-Math.max(n.get(x)||0,a.get(x)||0));
-    $('def-groups-frequency').innerHTML=keys.map(k=>{const nf=n.get(k)||0,ad=a.get(k)||0;return `<tr><th scope="row">${k}</th><td>${percent(nf)}</td><td>${percent(ad)}</td><td>${diff(100*ad,100*nf,1,' pp')}</td></tr>`;}).join('')+`<tr class="formations-total"><th>Total</th><td>100.0%</td><td>100.0%</td><td></td></tr>`;
+    $('def-groups-frequency').innerHTML=keys.map(k=>{const nf=n.get(k)||0,ad=a.get(k)||0;return `<tr><th scope="row">${k}</th><td>${bar(nf)}</td><td>${bar(ad)}</td><td>${diff(100*ad,100*nf,1,' pp')}</td></tr>`;}).join('')+`<tr class="formations-total"><th>Total</th><td>100.0%</td><td>100.0%</td><td></td></tr>`;
   }
   function render() {
     [...$('years').querySelectorAll('button')].forEach(b=>b.setAttribute('aria-selected',Number(b.dataset.season)===selected?'true':'false'));
