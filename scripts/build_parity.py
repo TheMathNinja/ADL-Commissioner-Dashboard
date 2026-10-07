@@ -1,5 +1,5 @@
 """Head-to-head parity and franchise mobility; no player-level data published."""
-import collections, csv, datetime, json, math, statistics
+import collections, csv, datetime, itertools, json, math, statistics
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -9,6 +9,10 @@ ADL=ROOT/'data/formations/source'
 def records(x):return x if isinstance(x,list) else [x] if x else []
 def mean(x):return statistics.mean(x) if x else None
 def sd(x):return statistics.pstdev(x) if x else None
+def score_percentiles(values):
+    """Midrank percentiles, spanning 0–1 for distinct lowest/highest scores."""
+    assert len(values)>1
+    return {k:(sum(v<s for v in values.values())+.5*(sum(v==s for v in values.values())-1))/(len(values)-1) for k,s in values.items()}
 def regression(x,y):
     mx,my=mean(x),mean(y)
     xx=sum((v-mx)**2 for v in x); yy=sum((v-my)**2 for v in y)
@@ -48,6 +52,20 @@ def season_summary(games,year,league):
     win_pcts=[t['win_pct'] for t in teams.values()]
     abs_margins=[abs(g['score_a']-g['score_b']) for g in rows]
     relative=[m/score_mean for m in abs_margins]
+    weekly=collections.defaultdict(dict)
+    for g in rows:
+        for k,score in [(g['team_a'],g['score_a']),(g['team_b'],g['score_b'])]:
+            assert k not in weekly[g['week']], 'Duplicate team-week score'
+            weekly[g['week']][k]=score
+    ranks={w:score_percentiles(scores) for w,scores in weekly.items()}
+    gaps=[abs(ranks[g['week']][g['team_a']]-ranks[g['week']][g['team_b']]) for g in rows]
+    expected_close=expected_lopsided=0
+    for w,values in ranks.items():
+        possible=[abs(a-b) for a,b in itertools.combinations(values.values(),2)]
+        weight=len(values)/2/len(rows)
+        expected_close+=weight*mean([v<=.1+1e-12 for v in possible])
+        expected_lopsided+=weight*mean([v>=.5-1e-12 for v in possible])
+    close=mean([v<=.1+1e-12 for v in gaps]);lopsided=mean([v>=.5-1e-12 for v in gaps])
     coin_sd=math.sqrt(mean([.25/t['games'] for t in teams.values()]))
     ordered=sorted(win_pcts); quartile=len(ordered)//4
     bins=[(0,.1),(.1,.25),(.25,.5),(.5,1),(1,math.inf)]
@@ -60,6 +78,11 @@ def season_summary(games,year,league):
              'mean_relative_margin':mean(relative),'close_game_share':sum(v<=.25 for v in relative)/len(relative),
              'blowout_share':sum(v>=.5 for v in relative)/len(relative),
              'margin_histogram':[sum(low<=v<high for v in relative)/len(relative) for low,high in bins],
+             'mean_percentile_gap':mean(gaps),'percentile_close_share':close,'percentile_lopsided_share':lopsided,
+             'random_pair_close_share':expected_close,'random_pair_lopsided_share':expected_lopsided,
+             'close_pairing_index':close/expected_close if expected_close else None,
+             'lopsided_pairing_index':lopsided/expected_lopsided if expected_lopsided else None,
+             'percentile_gap_histogram':[sum(low<=v<high for v in gaps)/len(gaps) for low,high in [(0,.1+1e-12),(.1+1e-12,.25),(.25,.5-1e-12),(.5-1e-12,1.000000001)]],
              'record_histogram':[sum(low<=v<high for v in win_pcts)/len(win_pcts) for low,high in [(0,.25),(.25,.375),(.375,.625000001),(.625000001,.750000001),(.750000001,1.000000001)]]}
     return summary,list(teams.values())
 
@@ -123,7 +146,7 @@ def regular_season(h2h,summary,last_week):
     s.update(mean_win_pct=mean(values),win_pct_sd=sd(values),coin_flip_sd=baseline,record_dispersion_ratio=sd(values)/baseline,
              middle_band_share=sum(.375<=v<=.625 for v in values)/32,top_bottom_gap=mean(ordered[-8:])-mean(ordered[:8]),
              record_histogram=[sum(low<=v<high for v in values)/32 for low,high in [(0,.25),(.25,.375),(.375,.625000001),(.625000001,.750000001),(.750000001,1.000000001)]])
-    for key in ['normalized_net_margin_sd','mean_margin','median_margin','mean_relative_margin','close_game_share','blowout_share','margin_histogram']: s[key]=None
+    for key in ['normalized_net_margin_sd','mean_margin','median_margin','mean_relative_margin','close_game_share','blowout_share','margin_histogram','mean_percentile_gap','percentile_close_share','percentile_lopsided_share','random_pair_close_share','random_pair_lopsided_share','close_pairing_index','lopsided_pairing_index','percentile_gap_histogram']: s[key]=None
     return s,teams
 
 def build(matched_weeks=False):
@@ -226,7 +249,7 @@ def build(matched_weeks=False):
     report={'seasons':summaries,'teams':teams,'transitions':transitions,'movements':movements,'pooled':pooled,'recovery':recovery,'scopes':scopes,'matched_weeks':matched_weeks,
             'captured_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (OUT/'report.json').write_text(json.dumps(report,separators=(',',':')))
-    write_csv('season_metrics.csv',[{k:v for k,v in r.items() if k not in ['record_histogram','margin_histogram']} for r in summaries])
+    write_csv('season_metrics.csv',[{k:v for k,v in r.items() if k not in ['record_histogram','margin_histogram','percentile_gap_histogram']} for r in summaries])
     write_csv('team_records.csv',teams);write_csv('yearly_mobility.csv',[{k:v for k,v in r.items() if k!='transition_matrix'} for r in transitions])
     write_csv('team_movement.csv',movements);write_csv('pooled_mobility.csv',pooled);write_csv('coverage.csv',audit)
     write_csv('recovery_speed.csv',recovery)

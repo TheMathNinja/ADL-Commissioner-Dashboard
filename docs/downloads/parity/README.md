@@ -43,3 +43,7 @@ ADL H2H uses only actual weekly matchups. ADL Reg Season adds the five Bonus Gam
 ## Paired NFL windows
 
 NFL12 is a separately rebuilt NFL weeks 1–12 series, compared with ADL H2H. NFL weeks 1–17 is compared with ADL Reg Season (12 H2H + 5 Bonus Games). Every record, margin, mobility and recovery calculation uses its own window. Byes mean the NFL windows usually contain 11 or 16 actual games, not 12 or 17. 2026 uses only completed weeks and bonus events.
+
+## Distribution-adjusted performance gaps
+
+Primary close/lopsided comparisons use the absolute difference between opponents’ weekly scoring midrank percentiles, normalized by n−1. Close is ≤0.10; lopsided ≥0.50. Tied scores share their rank. This removes score scale, dispersion and distribution shape while retaining relative performance. Random-pairing indices divide observed rates by the all-possible-pairs rates from that week’s scores, weighted by actual weekly games; this accounts for byes and ties. It measures relative whole-game performances, not lead changes or one-possession endings. Bonus Games have no pairwise scoring gap. Older mean-normalized margin fields remain in downloads for context, but are not the primary close/lopsided comparison.

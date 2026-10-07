@@ -1,6 +1,13 @@
 """Verify actual records, scope, accounting, regression and tied cohorts."""
 import json, math
-from build_parity import ROOT, quantile_weights, regression
+from build_parity import ROOT, quantile_weights, regression, score_percentiles
+
+scores=dict(enumerate([1,1,2,3]))
+ranks=score_percentiles(scores)
+assert all(math.isclose(ranks[i],v) for i,v in enumerate([1/6,1/6,2/3,1]))
+assert ranks==score_percentiles({k:10*v+100 for k,v in scores.items()})
+assert ranks==score_percentiles({k:v**3 for k,v in scores.items()})
+assert all(v==.5 for v in score_percentiles(dict(enumerate([7]*32))).values())
 
 assert math.isclose(regression([.25,.5,.75],[.375,.5,.625])['beta'],.5)
 assert math.isclose(regression([.25,.5,.75],[.75,.5,.25])['regression_to_mean'],2)
@@ -67,3 +74,14 @@ for league in ['NFL12','ADL','NFL','ADL Reg Season']:
     assert math.isclose(rows[0]['bottom_ever_winning'],transition['bottom_to_winning'])
     assert math.isclose(rows[0]['top_ever_losing'],transition['top_to_losing'])
 print('Parity verified: 12/17-week scope, known NFL records, game accounting, tied quartiles, regression pooling, recovery and 2026 exclusion.')
+
+for row in d['seasons']:
+    if row['league']=='ADL Reg Season':
+        assert row['percentile_gap_histogram'] is None
+        continue
+    assert math.isclose(sum(row['percentile_gap_histogram']),1)
+    assert math.isclose(row['percentile_gap_histogram'][0],row['percentile_close_share'])
+    assert math.isclose(row['percentile_gap_histogram'][-1],row['percentile_lopsided_share'])
+    for prefix in ['close','lopsided']:
+        assert math.isclose(row[prefix+'_pairing_index'],row['percentile_'+prefix+'_share']/row['random_pair_'+prefix+'_share'])
+print('Weekly score ranks, tie handling, monotonic invariance and random-pairing indices verified.')
