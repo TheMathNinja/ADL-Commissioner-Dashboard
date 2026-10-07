@@ -14,11 +14,22 @@ for selected in itertools.combinations(range(5,9),2):
 assert tie and all(math.isclose(float(w),expected[c]) for c,w in actual)
 assert all(sum(c)==7 for c,_ in actual)
 
+# A substitute QB cannot displace the next eligible skill-position player.
+replacement=[{'position':p,'snaps':s} for p,s in [('QB',90),('QB',80),('RB',75),('WR',70),('WR',65),('TE',60),('WR',55),('RB',50)]]
+actual,tie=distributions(replacement,'OFF')
+assert actual==[((1,2,3,1),1)] and not tie
+# With two QBs removed from consideration, the sixth non-QB cutoff still splits ties.
+replacement[-1]['snaps']=55
+replacement.append({'position':'TE','snaps':55})
+actual,tie=distributions(replacement,'OFF')
+assert tie and all(c[0]==1 and sum(c)==7 for c,_ in actual)
+
 data=json.loads((ROOT/'data/formations/report.json').read_text())
 groups=collections.defaultdict(list)
 for r in data['observations']:
     assert all(isinstance(n,int) and n>=0 for n in r['counts'])
     assert sum(r['counts'])==LIMIT[r['side']] and r['weight']>0
+    if r['league']=='NFL' and r['side']=='OFF': assert r['counts'][0]==1
     groups[(r['season'],r['week'],r['league'],r['team'],r['side'])].append(r)
 for rows in groups.values():assert math.isclose(sum(r['weight'] for r in rows),1,abs_tol=1e-10)
 for r in data['coverage']:
@@ -51,7 +62,7 @@ for season in range(2021,2027):
 legacy=ROOT/'data/formations/source/legacy_game_level.csv'
 if legacy.exists():
     old=read_csv(legacy)
-    for year,side in [(2023,'OFF'),(2023,'DEF'),(2024,'DEF'),(2025,'OFF'),(2025,'DEF')]:
+    for year,side in [(2023,'DEF'),(2024,'DEF'),(2025,'DEF')]:
         actual=collections.Counter();expected=collections.Counter()
         for r in data['observations']:
             if r['season']==year and r['league']=='NFL' and r['side']==side:

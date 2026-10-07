@@ -231,7 +231,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2021,4,NFL,LAC,DEF,12,True,False
 2021,4,NFL,LV,OFF,7,True,False
 2021,4,NFL,LV,DEF,12,True,False
-2021,4,NFL,NO,OFF,7,True,False
+2021,4,NFL,NO,OFF,7,True,True
 2021,4,NFL,NO,DEF,12,True,False
 2021,4,NFL,NYG,OFF,7,True,False
 2021,4,NFL,NYG,DEF,12,True,False
@@ -393,7 +393,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2021,7,NFL,CIN,DEF,12,True,False
 2021,7,NFL,CLE,OFF,7,True,False
 2021,7,NFL,CLE,DEF,12,True,False
-2021,7,NFL,DEN,OFF,7,True,True
+2021,7,NFL,DEN,OFF,7,True,False
 2021,7,NFL,DEN,DEF,12,True,False
 2021,7,NFL,LA,OFF,7,True,False
 2021,7,NFL,LA,DEF,12,True,False
@@ -735,7 +735,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2021,13,NFL,KC,DEF,12,True,False
 2021,13,NFL,DEN,OFF,7,True,False
 2021,13,NFL,DEN,DEF,12,True,False
-2021,13,NFL,HOU,OFF,7,True,False
+2021,13,NFL,HOU,OFF,7,True,True
 2021,13,NFL,HOU,DEF,12,True,False
 2021,13,NFL,IND,OFF,7,True,False
 2021,13,NFL,IND,DEF,12,True,False
@@ -941,7 +941,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2021,16,NFL,MIA,DEF,12,True,True
 2021,16,NFL,PHI,OFF,7,True,False
 2021,16,NFL,PHI,DEF,12,True,False
-2021,16,NFL,NYG,OFF,7,True,True
+2021,16,NFL,NYG,OFF,7,True,False
 2021,16,NFL,NYG,DEF,12,True,False
 2021,16,NFL,KC,OFF,7,True,False
 2021,16,NFL,KC,DEF,12,True,False
@@ -977,7 +977,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2021,17,NFL,CLE,DEF,12,True,True
 2021,17,NFL,LAC,OFF,7,True,False
 2021,17,NFL,LAC,DEF,12,True,False
-2021,17,NFL,DEN,OFF,7,True,True
+2021,17,NFL,DEN,OFF,7,True,False
 2021,17,NFL,DEN,DEF,12,True,False
 2021,17,NFL,SEA,OFF,7,True,False
 2021,17,NFL,SEA,DEF,12,True,False
@@ -2613,7 +2613,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2022,9,NFL,BUF,DEF,12,True,False
 2022,9,NFL,CIN,OFF,7,True,False
 2022,9,NFL,CIN,DEF,12,True,False
-2022,9,NFL,CAR,OFF,7,True,True
+2022,9,NFL,CAR,OFF,7,True,False
 2022,9,NFL,CAR,DEF,12,True,False
 2022,9,NFL,DET,OFF,7,True,False
 2022,9,NFL,DET,DEF,12,True,False
@@ -2905,7 +2905,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2022,14,NFL,CLE,DEF,12,True,False
 2022,14,NFL,DAL,OFF,7,True,False
 2022,14,NFL,DAL,DEF,12,True,False
-2022,14,NFL,HOU,OFF,7,True,True
+2022,14,NFL,HOU,OFF,7,True,False
 2022,14,NFL,HOU,DEF,12,True,False
 2022,14,NFL,TEN,OFF,7,True,False
 2022,14,NFL,TEN,DEF,12,True,False
@@ -3097,7 +3097,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2022,17,NFL,DEN,DEF,12,True,False
 2022,17,NFL,NYG,OFF,7,True,False
 2022,17,NFL,NYG,DEF,12,True,True
-2022,17,NFL,IND,OFF,7,True,True
+2022,17,NFL,IND,OFF,7,True,False
 2022,17,NFL,IND,DEF,12,True,False
 2022,17,NFL,HOU,OFF,7,True,False
 2022,17,NFL,HOU,DEF,12,True,False
@@ -4695,7 +4695,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2023,8,NFL,IND,DEF,12,True,False
 2023,8,NFL,NO,OFF,7,True,False
 2023,8,NFL,NO,DEF,12,True,False
-2023,8,NFL,NYG,OFF,7,True,True
+2023,8,NFL,NYG,OFF,7,True,False
 2023,8,NFL,NYG,DEF,12,True,False
 2023,8,NFL,NYJ,OFF,7,True,False
 2023,8,NFL,NYJ,DEF,12,True,False
@@ -4917,7 +4917,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2023,12,NFL,MIA,DEF,12,True,False
 2023,12,NFL,NYG,OFF,7,True,False
 2023,12,NFL,NYG,DEF,12,True,False
-2023,12,NFL,NE,OFF,7,True,True
+2023,12,NFL,NE,OFF,7,True,False
 2023,12,NFL,NE,DEF,12,True,False
 2023,12,NFL,ATL,OFF,7,True,False
 2023,12,NFL,ATL,DEF,12,True,False
@@ -5131,7 +5131,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2023,16,NFL,PIT,DEF,12,True,False
 2023,16,NFL,CIN,OFF,7,True,False
 2023,16,NFL,CIN,DEF,12,True,False
-2023,16,NFL,HOU,OFF,7,True,False
+2023,16,NFL,HOU,OFF,7,True,True
 2023,16,NFL,HOU,DEF,12,True,False
 2023,16,NFL,CLE,OFF,7,True,False
 2023,16,NFL,CLE,DEF,12,True,False
@@ -5199,7 +5199,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2023,17,NFL,DAL,DEF,12,True,False
 2023,17,NFL,DET,OFF,7,True,False
 2023,17,NFL,DET,DEF,12,True,False
-2023,17,NFL,MIN,OFF,7,True,True
+2023,17,NFL,MIN,OFF,7,True,False
 2023,17,NFL,MIN,DEF,12,True,False
 2023,17,NFL,GB,OFF,7,True,False
 2023,17,NFL,GB,DEF,12,True,False
@@ -6747,7 +6747,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2024,7,NFL,PIT,DEF,12,True,False
 2024,7,NFL,NYJ,OFF,7,True,False
 2024,7,NFL,NYJ,DEF,12,True,False
-2024,7,NFL,NYG,OFF,7,True,True
+2024,7,NFL,NYG,OFF,7,True,False
 2024,7,NFL,NYG,DEF,12,True,False
 2024,7,NFL,PHI,OFF,7,True,False
 2024,7,NFL,PHI,DEF,12,True,False
@@ -6829,7 +6829,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2024,9,NFL,CHI,DEF,12,True,False
 2024,9,NFL,ATL,OFF,7,True,False
 2024,9,NFL,ATL,DEF,12,True,False
-2024,9,NFL,DAL,OFF,7,True,False
+2024,9,NFL,DAL,OFF,7,True,True
 2024,9,NFL,DAL,DEF,12,True,False
 2024,9,NFL,BAL,OFF,7,True,False
 2024,9,NFL,BAL,DEF,12,True,True
@@ -9379,7 +9379,7 @@ season,week,league,team,side,slots,included,boundary_tie
 2025,16,NFL,NYG,DEF,12,True,False
 2025,16,NFL,MIN,OFF,7,True,False
 2025,16,NFL,MIN,DEF,12,True,False
-2025,16,NFL,BAL,OFF,7,True,True
+2025,16,NFL,BAL,OFF,7,True,False
 2025,16,NFL,BAL,DEF,12,True,False
 2025,16,NFL,NE,OFF,7,True,False
 2025,16,NFL,NE,DEF,12,True,False

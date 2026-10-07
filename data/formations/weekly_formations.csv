@@ -23,7 +23,7 @@ season,week,league,team,side,weight,formation
 2021,1,NFL,NYG,DEF,1.0,3 DT / 3 DE / 1 LB / 2 CB / 3 S
 2021,1,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,1,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,1,NFL,NO,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2021,1,NFL,NO,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,1,NFL,NO,DEF,1.0,1 DT / 4 DE / 2 LB / 3 CB / 2 S
 2021,1,NFL,GB,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,1,NFL,GB,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -92,7 +92,7 @@ season,week,league,team,side,weight,formation
 2021,2,NFL,DET,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2021,2,NFL,CLE,OFF,1.0,1 QB / 1 RB / 2 WR / 3 TE
 2021,2,NFL,CLE,DEF,1.0,2 DT / 3 DE / 1 LB / 3 CB / 3 S
-2021,2,NFL,HOU,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2021,2,NFL,HOU,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,2,NFL,HOU,DEF,1.0,3 DT / 1 DE / 3 LB / 3 CB / 2 S
 2021,2,NFL,BAL,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,2,NFL,BAL,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
@@ -174,7 +174,7 @@ season,week,league,team,side,weight,formation
 2021,3,NFL,MIA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,3,NFL,NE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,3,NFL,NE,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
-2021,3,NFL,NO,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2021,3,NFL,NO,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,3,NFL,NO,DEF,1.0,0 DT / 3 DE / 3 LB / 3 CB / 3 S
 2021,3,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,3,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -202,7 +202,7 @@ season,week,league,team,side,weight,formation
 2021,4,NFL,ARI,OFF,0.5,1 QB / 1 RB / 4 WR / 1 TE
 2021,4,NFL,ARI,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2021,4,NFL,ARI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,4,NFL,DEN,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2021,4,NFL,DEN,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,4,NFL,DEN,DEF,1.0,4 DT / 2 DE / 2 LB / 2 CB / 2 S
 2021,4,NFL,BAL,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,4,NFL,BAL,DEF,0.3333333333333333,1 DT / 3 DE / 3 LB / 4 CB / 1 S
@@ -241,7 +241,8 @@ season,week,league,team,side,weight,formation
 2021,4,NFL,LAC,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,4,NFL,LV,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,4,NFL,LV,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,4,NFL,NO,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2021,4,NFL,NO,OFF,0.5,1 QB / 2 RB / 2 WR / 2 TE
+2021,4,NFL,NO,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2021,4,NFL,NO,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
 2021,4,NFL,NYG,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,4,NFL,NYG,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
@@ -280,7 +281,7 @@ season,week,league,team,side,weight,formation
 2021,5,NFL,PIT,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
 2021,5,NFL,PIT,OFF,0.5,1 QB / 1 RB / 4 WR / 1 TE
 2021,5,NFL,PIT,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2021,5,NFL,DEN,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2021,5,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,5,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,5,NFL,MIN,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,5,NFL,MIN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -380,7 +381,7 @@ season,week,league,team,side,weight,formation
 2021,6,NFL,LA,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,6,NFL,LA,DEF,0.5,2 DT / 3 DE / 1 LB / 3 CB / 3 S
 2021,6,NFL,LA,DEF,0.5,3 DT / 2 DE / 1 LB / 3 CB / 3 S
-2021,6,NFL,DEN,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2021,6,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,6,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,6,NFL,LV,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,6,NFL,LV,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -421,8 +422,7 @@ season,week,league,team,side,weight,formation
 2021,7,NFL,CIN,DEF,1.0,3 DT / 2 DE / 3 LB / 2 CB / 2 S
 2021,7,NFL,CLE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,7,NFL,CLE,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
-2021,7,NFL,DEN,OFF,0.5,2 QB / 1 RB / 2 WR / 2 TE
-2021,7,NFL,DEN,OFF,0.5,2 QB / 2 RB / 2 WR / 1 TE
+2021,7,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,7,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,7,NFL,LA,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,7,NFL,LA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -596,7 +596,7 @@ season,week,league,team,side,weight,formation
 2021,10,NFL,BUF,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
 2021,10,NFL,BUF,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2021,10,NFL,BUF,DEF,1.0,4 DT / 1 DE / 2 LB / 3 CB / 2 S
-2021,10,NFL,ARI,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,10,NFL,ARI,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,10,NFL,ARI,DEF,1.0,4 DT / 2 DE / 2 LB / 2 CB / 2 S
 2021,10,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,10,NFL,CAR,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
@@ -626,7 +626,7 @@ season,week,league,team,side,weight,formation
 2021,10,NFL,MIN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,10,NFL,TEN,OFF,1.0,1 QB / 0 RB / 3 WR / 3 TE
 2021,10,NFL,TEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,10,NFL,NO,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,10,NFL,NO,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,10,NFL,NO,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2021,10,NFL,DEN,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,10,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -644,7 +644,7 @@ season,week,league,team,side,weight,formation
 2021,11,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,11,NFL,ARI,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,11,NFL,ARI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,11,NFL,CHI,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,11,NFL,CHI,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,11,NFL,CHI,DEF,1.0,3 DT / 3 DE / 2 LB / 2 CB / 2 S
 2021,11,NFL,BAL,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,11,NFL,BAL,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
@@ -785,7 +785,8 @@ season,week,league,team,side,weight,formation
 2021,13,NFL,KC,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2021,13,NFL,DEN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,13,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,13,NFL,HOU,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,13,NFL,HOU,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
+2021,13,NFL,HOU,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2021,13,NFL,HOU,DEF,1.0,3 DT / 2 DE / 2 LB / 4 CB / 1 S
 2021,13,NFL,IND,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,13,NFL,IND,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -901,7 +902,7 @@ season,week,league,team,side,weight,formation
 2021,15,NFL,BUF,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2021,15,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,15,NFL,CAR,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2021,15,NFL,DEN,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,15,NFL,DEN,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,15,NFL,DEN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2021,15,NFL,CIN,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
 2021,15,NFL,CIN,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
@@ -1007,8 +1008,7 @@ season,week,league,team,side,weight,formation
 2021,16,NFL,MIA,DEF,0.5,3 DT / 3 DE / 2 LB / 2 CB / 2 S
 2021,16,NFL,PHI,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,16,NFL,PHI,DEF,1.0,3 DT / 1 DE / 2 LB / 3 CB / 3 S
-2021,16,NFL,NYG,OFF,0.5,1 QB / 1 RB / 4 WR / 1 TE
-2021,16,NFL,NYG,OFF,0.5,2 QB / 1 RB / 3 WR / 1 TE
+2021,16,NFL,NYG,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,16,NFL,NYG,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
 2021,16,NFL,KC,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2021,16,NFL,KC,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
@@ -1019,7 +1019,7 @@ season,week,league,team,side,weight,formation
 2021,16,NFL,TEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2021,16,NFL,SF,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2021,16,NFL,SF,DEF,1.0,1 DT / 3 DE / 2 LB / 3 CB / 3 S
-2021,16,NFL,CAR,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2021,16,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,16,NFL,CAR,DEF,1.0,2 DT / 3 DE / 1 LB / 4 CB / 2 S
 2021,16,NFL,TB,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,16,NFL,TB,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -1046,8 +1046,7 @@ season,week,league,team,side,weight,formation
 2021,17,NFL,CLE,DEF,0.3333333333333333,3 DT / 2 DE / 2 LB / 4 CB / 1 S
 2021,17,NFL,LAC,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,17,NFL,LAC,DEF,1.0,3 DT / 3 DE / 1 LB / 3 CB / 2 S
-2021,17,NFL,DEN,OFF,0.6666666666666666,2 QB / 1 RB / 2 WR / 2 TE
-2021,17,NFL,DEN,OFF,0.3333333333333333,2 QB / 2 RB / 2 WR / 1 TE
+2021,17,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2021,17,NFL,DEN,DEF,1.0,3 DT / 1 DE / 3 LB / 3 CB / 2 S
 2021,17,NFL,SEA,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2021,17,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -2573,7 +2572,7 @@ season,week,league,team,side,weight,formation
 2022,7,NFL,CIN,DEF,0.5,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2022,7,NFL,ATL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,7,NFL,ATL,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2022,7,NFL,NE,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2022,7,NFL,NE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,7,NFL,NE,DEF,1.0,2 DT / 1 DE / 3 LB / 3 CB / 3 S
 2022,7,NFL,CHI,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2022,7,NFL,CHI,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -2705,8 +2704,7 @@ season,week,league,team,side,weight,formation
 2022,9,NFL,BUF,DEF,1.0,3 DT / 1 DE / 2 LB / 4 CB / 2 S
 2022,9,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,9,NFL,CIN,DEF,1.0,3 DT / 3 DE / 1 LB / 3 CB / 2 S
-2022,9,NFL,CAR,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
-2022,9,NFL,CAR,OFF,0.5,2 QB / 1 RB / 3 WR / 1 TE
+2022,9,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,9,NFL,CAR,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
 2022,9,NFL,DET,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,9,NFL,DET,DEF,1.0,3 DT / 1 DE / 2 LB / 4 CB / 2 S
@@ -2838,7 +2836,7 @@ season,week,league,team,side,weight,formation
 2022,11,NFL,KC,DEF,0.5,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2022,11,NFL,NO,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,11,NFL,NO,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2022,11,NFL,LA,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2022,11,NFL,LA,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2022,11,NFL,LA,DEF,1.0,3 DT / 3 DE / 2 LB / 2 CB / 2 S
 2022,11,NFL,DEN,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2022,11,NFL,DEN,DEF,1.0,4 DT / 1 DE / 2 LB / 3 CB / 2 S
@@ -3062,7 +3060,7 @@ season,week,league,team,side,weight,formation
 2022,14,NFL,TB,DEF,1.0,3 DT / 2 DE / 3 LB / 2 CB / 2 S
 2022,15,NFL,DEN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,15,NFL,DEN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2022,15,NFL,ARI,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2022,15,NFL,ARI,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2022,15,NFL,ARI,DEF,1.0,3 DT / 2 DE / 3 LB / 2 CB / 2 S
 2022,15,NFL,NO,OFF,1.0,1 QB / 1 RB / 2 WR / 3 TE
 2022,15,NFL,NO,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
@@ -3157,7 +3155,7 @@ season,week,league,team,side,weight,formation
 2022,16,NFL,TEN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2022,16,NFL,HOU,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,16,NFL,HOU,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2022,16,NFL,NYJ,OFF,1.0,2 QB / 0 RB / 3 WR / 2 TE
+2022,16,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,16,NFL,NYJ,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
 2022,16,NFL,JAX,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2022,16,NFL,JAX,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -4527,7 +4525,7 @@ season,week,league,team,side,weight,formation
 2023,3,NFL,NE,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2023,3,NFL,GB,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,3,NFL,GB,DEF,1.0,3 DT / 1 DE / 2 LB / 4 CB / 2 S
-2023,3,NFL,NO,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,3,NFL,NO,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,3,NFL,NO,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,3,NFL,SF,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,3,NFL,SF,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
@@ -4704,11 +4702,11 @@ season,week,league,team,side,weight,formation
 2023,6,NFL,JAX,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,6,NFL,IND,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,6,NFL,IND,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2023,6,NFL,CHI,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,6,NFL,CHI,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,6,NFL,CHI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,6,NFL,MIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,6,NFL,MIN,DEF,1.0,3 DT / 3 DE / 1 LB / 2 CB / 3 S
-2023,6,NFL,LV,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2023,6,NFL,LV,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,6,NFL,LV,DEF,1.0,2 DT / 2 DE / 2 LB / 4 CB / 2 S
 2023,6,NFL,NE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,6,NFL,NE,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -4797,7 +4795,7 @@ season,week,league,team,side,weight,formation
 2023,7,NFL,WAS,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
 2023,8,NFL,TEN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,8,NFL,TEN,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
-2023,8,NFL,ATL,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2023,8,NFL,ATL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,8,NFL,ATL,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,8,NFL,ARI,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,8,NFL,ARI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -4852,8 +4850,7 @@ season,week,league,team,side,weight,formation
 2023,8,NFL,IND,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2023,8,NFL,NO,OFF,1.0,1 QB / 1 RB / 2 WR / 3 TE
 2023,8,NFL,NO,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2023,8,NFL,NYG,OFF,0.5,1 QB / 1 RB / 4 WR / 1 TE
-2023,8,NFL,NYG,OFF,0.5,2 QB / 1 RB / 3 WR / 1 TE
+2023,8,NFL,NYG,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,8,NFL,NYG,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,8,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 2 WR / 3 TE
 2023,8,NFL,NYJ,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -4960,7 +4957,7 @@ season,week,league,team,side,weight,formation
 2023,10,NFL,MIN,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
 2023,10,NFL,MIN,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2023,10,NFL,MIN,DEF,1.0,2 DT / 3 DE / 1 LB / 3 CB / 3 S
-2023,10,NFL,NO,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,10,NFL,NO,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,10,NFL,NO,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,10,NFL,DAL,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,10,NFL,DAL,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
@@ -4993,7 +4990,7 @@ season,week,league,team,side,weight,formation
 2023,11,NFL,CHI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,11,NFL,BAL,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,11,NFL,BAL,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
-2023,11,NFL,CIN,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,11,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,11,NFL,CIN,DEF,1.0,2 DT / 2 DE / 2 LB / 4 CB / 2 S
 2023,11,NFL,CAR,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,11,NFL,CAR,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -5061,7 +5058,7 @@ season,week,league,team,side,weight,formation
 2023,12,NFL,CHI,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,12,NFL,DEN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,12,NFL,DEN,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2023,12,NFL,CLE,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,12,NFL,CLE,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,12,NFL,CLE,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2023,12,NFL,DET,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,12,NFL,DET,DEF,1.0,1 DT / 3 DE / 3 LB / 2 CB / 3 S
@@ -5086,8 +5083,7 @@ season,week,league,team,side,weight,formation
 2023,12,NFL,MIA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,12,NFL,NYG,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,12,NFL,NYG,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2023,12,NFL,NE,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
-2023,12,NFL,NE,OFF,0.5,2 QB / 1 RB / 2 WR / 2 TE
+2023,12,NFL,NE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,12,NFL,NE,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2023,12,NFL,ATL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,12,NFL,ATL,DEF,1.0,3 DT / 1 DE / 2 LB / 3 CB / 3 S
@@ -5171,7 +5167,7 @@ season,week,league,team,side,weight,formation
 2023,14,NFL,NO,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,14,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,14,NFL,CAR,DEF,1.0,3 DT / 2 DE / 1 LB / 3 CB / 3 S
-2023,14,NFL,LAC,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,14,NFL,LAC,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,14,NFL,LAC,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,14,NFL,DEN,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,14,NFL,DEN,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
@@ -5269,9 +5265,8 @@ season,week,league,team,side,weight,formation
 2023,15,NFL,NYG,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,15,NFL,MIA,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,15,NFL,MIA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2023,15,NFL,NYJ,OFF,0.3333333333333333,1 QB / 1 RB / 3 WR / 2 TE
-2023,15,NFL,NYJ,OFF,0.3333333333333333,1 QB / 2 RB / 3 WR / 1 TE
-2023,15,NFL,NYJ,OFF,0.3333333333333333,2 QB / 1 RB / 3 WR / 1 TE
+2023,15,NFL,NYJ,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
+2023,15,NFL,NYJ,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2023,15,NFL,NYJ,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,15,NFL,SEA,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,15,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -5312,7 +5307,8 @@ season,week,league,team,side,weight,formation
 2023,16,NFL,PIT,DEF,1.0,3 DT / 2 DE / 2 LB / 4 CB / 1 S
 2023,16,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,16,NFL,CIN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2023,16,NFL,HOU,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,16,NFL,HOU,OFF,0.5,1 QB / 1 RB / 4 WR / 1 TE
+2023,16,NFL,HOU,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2023,16,NFL,HOU,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2023,16,NFL,CLE,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,16,NFL,CLE,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
@@ -5361,7 +5357,7 @@ season,week,league,team,side,weight,formation
 2023,16,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2023,16,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2023,16,NFL,NYJ,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2023,16,NFL,WAS,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2023,16,NFL,WAS,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,16,NFL,WAS,DEF,1.0,2 DT / 3 DE / 2 LB / 2 CB / 3 S
 2023,17,NFL,PHI,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2023,17,NFL,PHI,DEF,0.5,3 DT / 3 DE / 2 LB / 2 CB / 2 S
@@ -5385,8 +5381,7 @@ season,week,league,team,side,weight,formation
 2023,17,NFL,DAL,DEF,1.0,1 DT / 3 DE / 1 LB / 3 CB / 4 S
 2023,17,NFL,DET,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2023,17,NFL,DET,DEF,1.0,1 DT / 3 DE / 3 LB / 2 CB / 3 S
-2023,17,NFL,MIN,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
-2023,17,NFL,MIN,OFF,0.5,2 QB / 1 RB / 3 WR / 1 TE
+2023,17,NFL,MIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,17,NFL,MIN,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
 2023,17,NFL,GB,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2023,17,NFL,GB,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -6704,7 +6699,7 @@ season,week,league,team,side,weight,formation
 2024,3,NFL,LAC,DEF,1.0,2 DT / 3 DE / 2 LB / 2 CB / 3 S
 2024,3,NFL,SEA,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,3,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2024,3,NFL,MIA,OFF,1.0,2 QB / 2 RB / 2 WR / 1 TE
+2024,3,NFL,MIA,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2024,3,NFL,MIA,DEF,1.0,3 DT / 3 DE / 2 LB / 2 CB / 2 S
 2024,3,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,3,NFL,NYJ,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
@@ -6928,7 +6923,7 @@ season,week,league,team,side,weight,formation
 2024,7,NFL,CAR,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,7,NFL,CAR,DEF,0.5,3 DT / 1 DE / 2 LB / 4 CB / 2 S
 2024,7,NFL,CAR,DEF,0.5,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2024,7,NFL,CLE,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,7,NFL,CLE,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2024,7,NFL,CLE,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2024,7,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,7,NFL,CIN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -6969,8 +6964,7 @@ season,week,league,team,side,weight,formation
 2024,7,NFL,PIT,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,7,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2024,7,NFL,NYJ,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
-2024,7,NFL,NYG,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
-2024,7,NFL,NYG,OFF,0.5,2 QB / 1 RB / 3 WR / 1 TE
+2024,7,NFL,NYG,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2024,7,NFL,NYG,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,7,NFL,PHI,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,7,NFL,PHI,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -7014,7 +7008,7 @@ season,week,league,team,side,weight,formation
 2024,8,NFL,DAL,DEF,1.0,3 DT / 2 DE / 3 LB / 2 CB / 2 S
 2024,8,NFL,JAX,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2024,8,NFL,JAX,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
-2024,8,NFL,GB,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,8,NFL,GB,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,8,NFL,GB,DEF,1.0,2 DT / 3 DE / 3 LB / 2 CB / 2 S
 2024,8,NFL,HOU,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,8,NFL,HOU,DEF,1.0,2 DT / 2 DE / 3 LB / 2 CB / 3 S
@@ -7057,7 +7051,8 @@ season,week,league,team,side,weight,formation
 2024,9,NFL,CHI,DEF,1.0,2 DT / 3 DE / 3 LB / 2 CB / 2 S
 2024,9,NFL,ATL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,9,NFL,ATL,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2024,9,NFL,DAL,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,9,NFL,DAL,OFF,0.6666666666666666,1 QB / 1 RB / 4 WR / 1 TE
+2024,9,NFL,DAL,OFF,0.3333333333333333,1 QB / 2 RB / 3 WR / 1 TE
 2024,9,NFL,DAL,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,9,NFL,BAL,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2024,9,NFL,BAL,DEF,0.5,2 DT / 2 DE / 2 LB / 3 CB / 3 S
@@ -7094,7 +7089,7 @@ season,week,league,team,side,weight,formation
 2024,9,NFL,LA,DEF,1.0,2 DT / 2 DE / 1 LB / 4 CB / 3 S
 2024,9,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,9,NFL,CIN,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
-2024,9,NFL,LV,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,9,NFL,LV,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2024,9,NFL,LV,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2024,9,NFL,BUF,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,9,NFL,BUF,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -7421,7 +7416,7 @@ season,week,league,team,side,weight,formation
 2024,15,NFL,LV,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,15,NFL,ATL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,ATL,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2024,15,NFL,NYG,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,15,NFL,NYG,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,NYG,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2024,15,NFL,BAL,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2024,15,NFL,BAL,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -7435,7 +7430,7 @@ season,week,league,team,side,weight,formation
 2024,15,NFL,CHI,OFF,0.5,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,CHI,OFF,0.5,1 QB / 2 RB / 3 WR / 1 TE
 2024,15,NFL,CHI,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
-2024,15,NFL,TEN,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,15,NFL,TEN,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2024,15,NFL,TEN,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S
 2024,15,NFL,CIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,CIN,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -7443,7 +7438,7 @@ season,week,league,team,side,weight,formation
 2024,15,NFL,CAR,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,15,NFL,DAL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,DAL,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
-2024,15,NFL,SEA,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,15,NFL,SEA,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,15,NFL,SEA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,15,NFL,GB,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2024,15,NFL,GB,DEF,0.5,3 DT / 1 DE / 3 LB / 3 CB / 2 S
@@ -7611,7 +7606,7 @@ season,week,league,team,side,weight,formation
 2024,17,NFL,MIA,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
 2024,17,NFL,BUF,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,17,NFL,BUF,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
-2024,17,NFL,NYJ,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2024,17,NFL,NYJ,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2024,17,NFL,NYJ,DEF,1.0,1 DT / 4 DE / 2 LB / 2 CB / 3 S
 2024,17,NFL,CHI,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2024,17,NFL,CHI,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
@@ -9364,7 +9359,7 @@ season,week,league,team,side,weight,formation
 2025,10,NFL,LAC,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
 2025,10,NFL,PIT,OFF,1.0,1 QB / 1 RB / 2 WR / 3 TE
 2025,10,NFL,PIT,DEF,1.0,3 DT / 2 DE / 2 LB / 4 CB / 1 S
-2025,11,NFL,CLE,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2025,11,NFL,CLE,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2025,11,NFL,CLE,DEF,1.0,2 DT / 3 DE / 2 LB / 3 CB / 2 S
 2025,11,NFL,BAL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2025,11,NFL,BAL,DEF,1.0,2 DT / 3 DE / 2 LB / 2 CB / 3 S
@@ -9481,7 +9476,7 @@ season,week,league,team,side,weight,formation
 2025,12,NFL,SEA,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2025,12,NFL,LA,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2025,12,NFL,LA,DEF,1.0,2 DT / 2 DE / 2 LB / 4 CB / 2 S
-2025,12,NFL,TB,OFF,1.0,2 QB / 1 RB / 3 WR / 1 TE
+2025,12,NFL,TB,OFF,1.0,1 QB / 2 RB / 3 WR / 1 TE
 2025,12,NFL,TB,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
 2025,13,NFL,TB,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2025,13,NFL,TB,DEF,1.0,2 DT / 3 DE / 2 LB / 4 CB / 1 S
@@ -9725,8 +9720,7 @@ season,week,league,team,side,weight,formation
 2025,16,NFL,NYG,DEF,1.0,2 DT / 2 DE / 2 LB / 3 CB / 3 S
 2025,16,NFL,MIN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2025,16,NFL,MIN,DEF,1.0,3 DT / 3 DE / 2 LB / 2 CB / 2 S
-2025,16,NFL,BAL,OFF,0.5,2 QB / 1 RB / 2 WR / 2 TE
-2025,16,NFL,BAL,OFF,0.5,2 QB / 2 RB / 2 WR / 1 TE
+2025,16,NFL,BAL,OFF,1.0,1 QB / 2 RB / 2 WR / 2 TE
 2025,16,NFL,BAL,DEF,1.0,2 DT / 3 DE / 2 LB / 2 CB / 3 S
 2025,16,NFL,NE,OFF,1.0,1 QB / 1 RB / 4 WR / 1 TE
 2025,16,NFL,NE,DEF,1.0,3 DT / 2 DE / 3 LB / 2 CB / 2 S
@@ -11170,7 +11164,7 @@ season,week,league,team,side,weight,formation
 2026,4,NFL,CLE,DEF,1.0,1 DT / 3 DE / 2 LB / 3 CB / 3 S
 2026,4,NFL,PIT,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2026,4,NFL,PIT,DEF,1.0,3 DT / 2 DE / 2 LB / 3 CB / 2 S
-2026,4,NFL,BAL,OFF,1.0,2 QB / 1 RB / 2 WR / 2 TE
+2026,4,NFL,BAL,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2026,4,NFL,BAL,DEF,1.0,3 DT / 2 DE / 2 LB / 2 CB / 3 S
 2026,4,NFL,TEN,OFF,1.0,1 QB / 1 RB / 3 WR / 2 TE
 2026,4,NFL,TEN,DEF,1.0,2 DT / 2 DE / 3 LB / 3 CB / 2 S

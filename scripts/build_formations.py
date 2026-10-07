@@ -24,8 +24,19 @@ def unique_index(pairs):
         if key and value: candidates[key].add(value)
     return {k:next(iter(v)) for k,v in candidates.items() if len(v)==1}
 
+def selection_candidates(players,side):
+    """One highest-snap QB plus the six highest-snap eligible non-QBs."""
+    if side!='OFF': return players
+    qbs=[p for p in players if p['position']=='QB']
+    if not qbs: raise ValueError('No positive-snap QB in NFL offensive group')
+    qb=sorted(qbs,key=lambda p:(-p['snaps'],p.get('id','')))[0]
+    others=[p for p in players if p['position']!='QB']
+    # Force the QB slot; all remaining candidates retain their actual snap ranks.
+    return [dict(qb,snaps=max(p['snaps'] for p in players)+1)]+others
+
 def distributions(players,side):
     """Uniform combinations at the cutoff: integer formations, fractional frequency."""
+    players=selection_candidates(players,side)
     slots=LIMIT[side]; ordered=sorted(players,key=lambda p:-p['snaps'])
     if len(ordered)<slots: raise ValueError(f'Insufficient positive-snap players: {side} {len(ordered)}')
     cutoff=ordered[slots-1]['snaps']
@@ -89,6 +100,7 @@ def build():
             dist,tie=distributions(players,side)
             for counts,weight in dist:
                 observations.append({'season':year,'week':week,'league':'NFL','team':team,'side':side,'counts':list(counts),'weight':float(weight)})
+            players=selection_candidates(players,side)
             cutoff=sorted((p['snaps'] for p in players),reverse=True)[LIMIT[side]-1]
             above=sum(p['snaps']>cutoff for p in players); at=sum(p['snaps']==cutoff for p in players)
             for p in players:
