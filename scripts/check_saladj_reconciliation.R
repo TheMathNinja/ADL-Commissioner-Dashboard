@@ -355,6 +355,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         player,
         player_team,
         amount = round(.data$expected_amount_known, 2),
+        salary_amount,
         row_date,
         is_cash_trade
       ))
@@ -624,7 +625,7 @@ contract_admin_saladj_entries <- function(season) {
     )
     rows <- as.data.frame(rows, stringsAsFactors = FALSE)
     headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
-    required <- c("DATE", "FRAN", "PLAYER", penalty_col)
+    required <- c("DATE", "FRAN", "PLAYER", "SALARY", penalty_col, "RVSD?")
     missing <- setdiff(required, headers)
     if (length(missing)) {
       stop(tab, " is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
@@ -635,12 +636,14 @@ contract_admin_saladj_entries <- function(season) {
     tibble(
       franchise = toupper(trimws(as.character(values[[column_index[["FRAN"]]]]))),
       player = trimws(as.character(values[[column_index[["PLAYER"]]]])),
-      amount = parse_amount(values[[column_index[[penalty_col]]]]),
+      input_salary = parse_amount(values[[column_index[["SALARY"]]]]),
+      penalty_amount = parse_amount(values[[column_index[[penalty_col]]]]),
       entered_at = as.character(values[[column_index[["DATE"]]]]),
       description = trimws(as.character(values[[column_index[["PLAYER"]]]])),
+      is_reversed = is_marked(values[[column_index[["RVSD?"]]]]),
       sheet_tab = tab
     ) |>
-      filter(nzchar(.data$franchise), nzchar(.data$player), !is.na(.data$amount))
+      filter(nzchar(.data$franchise), nzchar(.data$player), !.data$is_reversed)
   })) |>
     mutate(actual_id = row_number())
 }
@@ -696,8 +699,8 @@ audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
       actual_values <- as.character(unlist(sheet[sheet_row, start_col:end_col], use.names = FALSE))
       numeric_positions <- setdiff(seq_along(cols), 6L)
       numeric_bad <- vapply(numeric_positions, function(j) {
-        expected <- suppressWarnings(as.numeric(expected_values[[j]]))
-        actual <- suppressWarnings(as.numeric(actual_values[[j]]))
+        expected <- parse_amount(expected_values[[j]])
+        actual <- parse_amount(actual_values[[j]])
         (is.na(expected) != is.na(actual)) || (!is.na(expected) && abs(expected - actual) > tolerance)
       }, logical(1))
       text_bad <- !identical(trimws(expected_values[[6]]), trimws(actual_values[[6]]))
@@ -708,8 +711,8 @@ audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
           expected_franchise = trimws(summary$FRANCHISE[[i]]),
           actual_franchise = trimws(summary$FRANCHISE[[i]]),
           player = paste0("Week ", week, " ", sub(prefix, "", cols[[j]], fixed = TRUE)),
-          expected_amount = suppressWarnings(as.numeric(expected_values[[j]])),
-          actual_amount = suppressWarnings(as.numeric(actual_values[[j]])),
+          expected_amount = parse_amount(expected_values[[j]]),
+          actual_amount = parse_amount(actual_values[[j]]),
           mfl_description = paste0("Sheet value: ", actual_values[[j]]),
           transaction_date = "",
           mfl_entered_at = "",
@@ -741,10 +744,25 @@ mfl <- mfl_salary_adjustments_from_visible_page(season = season)
 expected_entries <- saladj_expected_by_franchise(saladj_csv, season = season, return_entries = TRUE)
 mfl_entries <- mfl_salary_adjustments_from_visible_page(season = season, return_entries = TRUE)
 sheet_entries <- contract_admin_saladj_entries(season)
-sheet_error_report <- build_commissioner_error_report(expected_entries, sheet_entries, tolerance = tolerance) |>
+sheet_expected_entries <- expected_entries |>
+  mutate(amount = .data$salary_amount)
+sheet_actual_entries <- sheet_entries |>
+  transmute(
+    actual_id = row_number(), franchise, amount = .data$input_salary,
+    description, entered_at
+  )
+sheet_error_report <- build_commissioner_error_report(sheet_expected_entries, sheet_actual_entries, tolerance = tolerance) |>
   label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin")
-mfl_error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance) |>
-  label_stage_findings("SalAdj Curator / Contract Admin -> MFL", "MFL")
+sheet_mfl_expected_entries <- sheet_entries |>
+  filter(!is.na(.data$penalty_amount)) |>
+  transmute(
+    expected_id = row_number(), franchise, player,
+    player_team = "", amount = .data$penalty_amount,
+    row_date = parse_saladj_date(.data$entered_at, season),
+    is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE"
+  )
+mfl_error_report <- build_commissioner_error_report(sheet_mfl_expected_entries, mfl_entries, tolerance = tolerance) |>
+  label_stage_findings("Contract Admin Sal Adj -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
 error_report <- bind_rows(sheet_error_report, mfl_error_report, cap_rollover_error_report)
 error_report <- error_report |>
