@@ -1312,6 +1312,15 @@ mfl_error_report <- build_commissioner_error_report(
   label_stage_findings("Contract Admin history / Curator-validated penalty logic -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
 error_report <- bind_rows(
+  tibble(
+    issue = character(), expected_franchise = character(), actual_franchise = character(),
+    player = character(), expected_amount = double(), actual_amount = double(),
+    mfl_description = character(), transaction_date = character(),
+    mfl_entered_at = character(), action = character(), stage = character(),
+    actual_system = character(), expected_player_team = character(),
+    expected_player_pos = character(), expected_years = double(),
+    expected_contract = character()
+  ),
   sheet_error_report,
   control_field_error_report,
   mfl_error_report,
