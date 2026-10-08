@@ -1,0 +1,51 @@
+name: Apply audited cap correction
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: Season
+        required: true
+        default: "2026"
+      week:
+        description: Official snapshot week
+        required: true
+      correction_key:
+        description: Stable idempotency key
+        required: true
+      corrections:
+        description: Comma-separated FRANCHISE:amount pairs
+        required: true
+      reason:
+        description: Audit reason
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up cached ADL R runtime
+        uses: ./.github/actions/setup-adl-r
+      - name: Apply and verify Google Sheet corrections
+        env:
+          CORRECTION_KEY: ${{ inputs.correction_key }}
+          CORRECTIONS: ${{ inputs.corrections }}
+          CORRECTION_REASON: ${{ inputs.reason }}
+        run: >-
+          Rscript scripts/apply_manual_cap_correction.R
+          --season=${{ inputs.season }}
+          --week=${{ inputs.week }}
+          --key="${CORRECTION_KEY}"
+          --corrections="${CORRECTIONS}"
+          --reason="${CORRECTION_REASON}"
+          --apply-files=false
+          --apply-sheet=true
