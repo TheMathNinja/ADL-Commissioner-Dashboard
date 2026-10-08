@@ -39,12 +39,21 @@ jobs:
 
       - name: Run current checker and email only the requested recipient
         shell: bash
+        env:
+          ADL_SMTP_SERVER: ""
         run: >-
           Rscript scripts/check_saladj_reconciliation.R
           --season=${CURRENT_SEASON}
           --send-email
           --to="${{ inputs.recipient }}"
           --issued-ledger="${RUNNER_TEMP}/commissioner-error-checker-resend-issued.csv"
+
+      - name: Send rendered checker email only to the requested recipient
+        run: >-
+          python scripts/send_plain_email.py
+          "[ADL Commissioner Alerts] Commissioner cap-entry errors found"
+          "${{ inputs.recipient }}"
+          data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
 
       - name: Upload current checker results
         if: always()
