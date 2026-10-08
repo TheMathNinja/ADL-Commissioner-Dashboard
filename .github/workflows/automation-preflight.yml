@@ -151,6 +151,7 @@ jobs:
           name: saladj-reconciliation
           path: |
             data/saladj_reconciliation.csv
+            data/commissioner_error_checker.csv
             data/SalAdjCurator_latest.csv
             data/SalAdjCurator_2026.csv
             data/saladj_transaction_audit.csv

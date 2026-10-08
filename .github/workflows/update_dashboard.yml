@@ -163,6 +163,16 @@ jobs:
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
         run: Rscript scripts/run_saladjcurator.R
 
+      - name: Check commissioner salary-adjustment entries
+        if: steps.localtime.outputs.should_run == 'true'
+        env:
+          CURRENT_SEASON: ${{ steps.localtime.outputs.current_season }}
+          ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+          MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+          MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+          MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+        run: Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} --send-email
+
       - name: Build official July 1 salary snapshot
         if: steps.localtime.outputs.should_run == 'true'
         env:

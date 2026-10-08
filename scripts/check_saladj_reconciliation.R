@@ -250,7 +250,8 @@ row_has_acceleration_declaration <- function(franchise, player, salary, years, a
   ))
 }
 
-saladj_expected_by_franchise <- function(path, season = get_current_season(), accelerations = NULL) {
+saladj_expected_by_franchise <- function(path, season = get_current_season(), accelerations = NULL,
+                                         return_entries = FALSE) {
   if (!file.exists(path)) {
     stop("SalAdj Curator CSV not found: ", path, call. = FALSE)
   }
@@ -283,10 +284,11 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
     accelerations <- fetch_saladj_accelerations(season)
   }
 
-  saladj |>
+  prepared <- saladj |>
     mutate(
       franchise = toupper(trimws(.data$FRAN)),
       player = as.character(.env$player_col),
+      player_team = as.character(.env$get_col("PLAYER_TEAM")),
       salary_amount = parse_amount(.data$SALARY),
       years_amount = parse_amount(.data$YEARS),
       row_date = parse_saladj_date(.env$date_col, .env$season),
@@ -331,7 +333,22 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         )
       )
     ) |>
-    filter(nzchar(.data$franchise), !.data$is_reversed) |>
+    filter(nzchar(.data$franchise), !.data$is_reversed)
+
+  if (isTRUE(return_entries)) {
+    return(prepared |>
+      transmute(
+        expected_id = row_number(),
+        franchise,
+        player,
+        player_team,
+        amount = round(.data$expected_amount_known, 2),
+        row_date,
+        is_cash_trade
+      ))
+  }
+
+  prepared |>
     group_by(.data$franchise) |>
     summarize(
       saladj_expected_known = round(sum(.data$expected_amount_known, na.rm = TRUE), 2),
@@ -351,7 +368,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
     )
 }
 
-mfl_salary_adjustments_from_visible_page <- function(season = get_current_season()) {
+mfl_salary_adjustments_from_visible_page <- function(season = get_current_season(), return_entries = FALSE) {
   if (!requireNamespace("httr", quietly = TRUE)) {
     stop("Package httr is required to fetch the MFL salary adjustments page.", call. = FALSE)
   }
@@ -408,15 +425,31 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
     )
   }
 
-  rows |>
+  remaining_cols <- setdiff(names(rows), c(franchise_col, amount_col, ".table_id"))
+  description_col <- remaining_cols[match(TRUE, grepl("description|explanation|comment|reason|details", tolower(remaining_cols)))]
+  if (is.na(description_col) && length(remaining_cols)) description_col <- remaining_cols[[1]]
+  date_candidates <- setdiff(remaining_cols, description_col)
+  entered_col <- date_candidates[match(TRUE, grepl("date|time|entered|added", tolower(date_candidates)))]
+  if (is.na(entered_col) && length(date_candidates)) entered_col <- date_candidates[[1]]
+  description_values <- if (!is.na(description_col)) as.character(rows[[description_col]]) else rep("", nrow(rows))
+  entered_values <- if (!is.na(entered_col)) as.character(rows[[entered_col]]) else rep("", nrow(rows))
+
+  entries <- rows |>
     transmute(
       franchise_raw = as.character(.data[[franchise_col]]),
-      amount = parse_amount(.data[[amount_col]])
+      amount = parse_amount(.data[[amount_col]]),
+      description = .env$description_values,
+      entered_at = .env$entered_values
     ) |>
     mutate(
       franchise = vapply(.data$franchise_raw, franchise_from_visible_label, character(1), franchises = franchises)
     ) |>
     filter(nzchar(.data$franchise), !is.na(.data$amount)) |>
+    mutate(actual_id = row_number())
+
+  if (isTRUE(return_entries)) return(entries)
+
+  entries |>
     group_by(.data$franchise) |>
     summarize(
       mfl_saladj = round(sum(.data$amount, na.rm = TRUE), 2),
@@ -425,18 +458,127 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
     )
 }
 
+description_matches_expected <- function(description, player, is_cash_trade) {
+  description <- normalize_player_token(description)
+  if (isTRUE(is_cash_trade)) return(TRUE)
+  last <- normalize_player_token(player_last_name(player))
+  first <- normalize_player_token(player_first_initial(player))
+  nzchar(last) && grepl(paste0("\\b", last, "\\b"), description, perl = TRUE) &&
+    (!nzchar(first) || grepl(paste0("\\b", first, "\\b"), description, perl = TRUE))
+}
+
+build_commissioner_error_report <- function(expected_entries, actual_entries, tolerance = 0.01) {
+  used_actual <- integer()
+  findings <- vector("list", nrow(expected_entries))
+
+  for (i in seq_len(nrow(expected_entries))) {
+    expected <- expected_entries[i, ]
+    if (is.na(expected$amount)) {
+      findings[[i]] <- tibble(
+        issue = "INCOMPLETE_FORMULA", expected_franchise = expected$franchise,
+        actual_franchise = NA_character_, player = expected$player,
+        expected_amount = NA_real_, actual_amount = NA_real_, mfl_description = "",
+        action = "Complete the penalty formula before reconciling this entry."
+      )
+      next
+    }
+
+    description_match <- vapply(
+      actual_entries$description, description_matches_expected, logical(1),
+      player = expected$player, is_cash_trade = expected$is_cash_trade
+    )
+    identity_candidates <- which(description_match & !(actual_entries$actual_id %in% used_actual))
+    amount_candidates <- identity_candidates[
+      abs(actual_entries$amount[identity_candidates] - expected$amount) <= tolerance
+    ]
+    identity_same_franchise <- identity_candidates[
+      actual_entries$franchise[identity_candidates] == expected$franchise
+    ]
+    same_franchise <- amount_candidates[
+      actual_entries$franchise[amount_candidates] == expected$franchise
+    ]
+
+    if (length(same_franchise)) {
+      chosen <- same_franchise[[1]]
+      used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
+      next
+    }
+
+    if (isTRUE(expected$is_cash_trade)) {
+      findings[[i]] <- tibble(
+        issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
+        actual_franchise = NA_character_, player = expected$player,
+        expected_amount = expected$amount, actual_amount = NA_real_, mfl_description = "",
+        action = paste0("Add or verify the missing $", sprintf("%.2f", expected$amount),
+                        " cash-trade adjustment for ", expected$franchise, ".")
+      )
+      next
+    }
+
+    if (length(amount_candidates)) {
+      chosen <- amount_candidates[[1]]
+      used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
+      findings[[i]] <- tibble(
+        issue = "WRONG_FRANCHISE", expected_franchise = expected$franchise,
+        actual_franchise = actual_entries$franchise[[chosen]], player = expected$player,
+        expected_amount = expected$amount, actual_amount = actual_entries$amount[[chosen]],
+        mfl_description = actual_entries$description[[chosen]],
+        action = paste0("Move this MFL adjustment from ", actual_entries$franchise[[chosen]],
+                        " to ", expected$franchise, ".")
+      )
+      next
+    }
+
+    if (length(identity_same_franchise)) {
+      chosen <- identity_same_franchise[[which.min(abs(actual_entries$amount[identity_same_franchise] - expected$amount))]]
+      used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
+      findings[[i]] <- tibble(
+        issue = "WRONG_AMOUNT", expected_franchise = expected$franchise,
+        actual_franchise = actual_entries$franchise[[chosen]], player = expected$player,
+        expected_amount = expected$amount, actual_amount = actual_entries$amount[[chosen]],
+        mfl_description = actual_entries$description[[chosen]],
+        action = paste0("Change the MFL adjustment to $", sprintf("%.2f", expected$amount), ".")
+      )
+      next
+    }
+
+    findings[[i]] <- tibble(
+      issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
+      actual_franchise = NA_character_, player = expected$player,
+      expected_amount = expected$amount, actual_amount = NA_real_, mfl_description = "",
+      action = paste0("Add the missing $", sprintf("%.2f", expected$amount),
+                      " MFL adjustment to ", expected$franchise, ".")
+    )
+  }
+
+  bind_rows(findings) |>
+    arrange(factor(.data$issue, c("WRONG_FRANCHISE", "WRONG_AMOUNT", "MISSING_ENTRY",
+                                  "INCOMPLETE_FORMULA")),
+            .data$expected_franchise, .data$actual_franchise, .data$player)
+}
+
 season <- suppressWarnings(as.integer(arg_value("season", Sys.getenv("CURRENT_SEASON", unset = get_current_season()))))
 saladj_csv <- arg_value("saladj-csv", file.path("data", "SalAdjCurator_latest.csv"))
 output_csv <- arg_value("output", file.path("data", "saladj_reconciliation.csv"))
+error_output_csv <- arg_value("error-output", file.path("data", "commissioner_error_checker.csv"))
 tolerance <- suppressWarnings(as.numeric(arg_value("tolerance", "0.01")))
 fail_on_mismatch <- arg_flag("fail-on-mismatch") ||
   tolower(Sys.getenv("ADL_SALADJ_RECONCILE_FAIL_ON_MISMATCH", unset = "false")) %in% c("1", "true", "yes")
+send_email <- arg_flag("send-email")
+issued_csv <- arg_value("issued-ledger", file.path("data", "commissioner_error_checker_issued.csv"))
 
 if (is.na(season)) stop("Provide a valid --season or CURRENT_SEASON.", call. = FALSE)
 if (is.na(tolerance) || tolerance < 0) tolerance <- 0.01
 
 expected <- saladj_expected_by_franchise(saladj_csv, season = season)
 mfl <- mfl_salary_adjustments_from_visible_page(season = season)
+expected_entries <- saladj_expected_by_franchise(saladj_csv, season = season, return_entries = TRUE)
+mfl_entries <- mfl_salary_adjustments_from_visible_page(season = season, return_entries = TRUE)
+error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance)
+error_report <- error_report |>
+  mutate(issue_key = paste(.data$issue, .data$expected_franchise, .data$actual_franchise,
+                           .data$player, sprintf("%.2f", .data$expected_amount),
+                           sprintf("%.2f", .data$actual_amount), sep = "|"))
 
 report <- mfl |>
   full_join(expected, by = "franchise") |>
@@ -481,10 +623,68 @@ report <- mfl |>
 
 dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
 write_csv(report, output_csv, na = "")
+write_csv(error_report, error_output_csv, na = "")
 
 mismatches <- report |> filter(.data$status == "MISMATCH")
 incomplete <- report |> filter(.data$status == "INCOMPLETE_FORMULA")
 message("Wrote SalAdj reconciliation report: ", output_csv)
+message("Wrote commissioner error report: ", error_output_csv)
+message(nrow(error_report), " item-level commissioner error(s).")
+
+if (send_email && nrow(error_report)) {
+  issued <- if (file.exists(issued_csv)) {
+    readr::read_csv(issued_csv, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+  } else {
+    tibble(issue_key = character(), issued_at = character())
+  }
+  new_errors <- error_report |> filter(!.data$issue_key %in% issued$issue_key)
+
+  if (nrow(new_errors)) {
+    lines <- unlist(lapply(seq_len(nrow(new_errors)), function(i) {
+      row <- new_errors[i, ]
+      actual <- if (is.na(row$actual_franchise) || !nzchar(row$actual_franchise)) "not found" else row$actual_franchise
+      c(
+        paste0(row$issue, ": ", row$player),
+        paste0("Expected: ", row$expected_franchise, " / $", sprintf("%.2f", row$expected_amount)),
+        paste0("MFL: ", actual,
+               if (!is.na(row$actual_amount)) paste0(" / $", sprintf("%.2f", row$actual_amount)) else ""),
+        if (nzchar(row$mfl_description)) paste0("MFL entry: ", row$mfl_description) else NULL,
+        paste0("Required: ", row$action),
+        ""
+      )
+    }))
+    body <- paste(c(
+      "The Commissioner Error Checker found new salary-adjustment discrepancies.",
+      "",
+      lines,
+      "This checker is read-only. No MFL entries were changed automatically."
+    ), collapse = "\n")
+    dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
+    writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))
+    recipients <- resolve_commissioner_alert_recipients(season = season)
+    status <- tryCatch(
+      send_alert_mail(
+        subject = "[ADL Commissioner Alerts] Commissioner cap-entry errors found",
+        body = body,
+        to = recipients$email
+      ),
+      error = function(e) list(sent = FALSE, reason = conditionMessage(e))
+    )
+    if (isTRUE(status$sent)) {
+      issued <- bind_rows(
+        issued,
+        new_errors |> transmute(issue_key, issued_at = format(Sys.time(), tz = "America/Toronto", usetz = TRUE))
+      ) |> distinct(.data$issue_key, .keep_all = TRUE)
+      dir.create(dirname(issued_csv), recursive = TRUE, showWarnings = FALSE)
+      write_csv(issued, issued_csv)
+      message("Sent commissioner error email for ", nrow(new_errors), " new issue(s).")
+    } else {
+      warning("Commissioner error email was not sent: ", status$reason, call. = FALSE)
+    }
+  } else {
+    message("No new commissioner errors to email; all current issues were previously reported.")
+  }
+}
 message(nrow(mismatches), " franchise mismatch(es).")
 message(nrow(incomplete), " franchise(s) need Contract Admin penalty formula values.")
 if (nrow(mismatches)) print(mismatches)
