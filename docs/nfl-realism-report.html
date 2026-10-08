@@ -763,7 +763,7 @@ ADL Mispl. = IR (I), Holdout (H), or Suspended (S) players held on Active Roster
     $('mobility-sample').textContent=movement.length?`${movement.length/4} franchise transitions per league. Adjacent seasons inside the selected range.`:'Select at least two years to measure year-to-year mobility.';
     $('transition-views').hidden=!movement.length;
     $('transition-title').textContent=`${label} · franchise movement`;
-    $('transition-note').textContent=ytd?'Provisional: 2025 compared with 2026 season-to-date.':'Dots represent franchise-year transitions within the selected range. Regression uses season-centered values.';
+    $('transition-note').textContent='ADL’s 17-game regular-season record adds Bonus Games to the H2H results.'+(ytd?' 2026 is season-to-date.':'');
     $('recovery-panel').hidden=ytd||minimum===maximum;
     $('recovery-note').textContent=`Follow the ${minimum} bottom and top quartiles through ${maximum}. Cumulative first-crossing rates count whether each franchise crosses .500 at least once; it need not stay there.`;
     $('recovery').innerHTML=Array.from({length:maximum-minimum},(_,i)=>i+1).map(h=>{
