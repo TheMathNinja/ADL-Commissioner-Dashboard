@@ -40,7 +40,10 @@ parse_amount <- function(x) {
   match_at <- regexpr("[+-]?[0-9][0-9,]*(\\.[0-9]+)?", raw, perl = TRUE)
   cleaned <- rep(NA_character_, length(raw))
   found <- !is.na(match_at) & match_at > 0
-  cleaned[found] <- regmatches(raw, match_at)[found]
+  if (any(found)) {
+    found_match_at <- regexpr("[+-]?[0-9][0-9,]*(\\.[0-9]+)?", raw[found], perl = TRUE)
+    cleaned[found] <- regmatches(raw[found], found_match_at)
+  }
   cleaned <- gsub(",", "", cleaned, fixed = TRUE)
   parsed <- suppressWarnings(as.numeric(cleaned))
   parsed[is_negative & !is.na(parsed)] <- -abs(parsed[is_negative & !is.na(parsed)])
