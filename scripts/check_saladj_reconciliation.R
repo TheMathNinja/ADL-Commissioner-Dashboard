@@ -381,8 +381,8 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
   franchises <- franchise_reference(conn)
   url <- paste0(
     "https://www46.myfantasyleague.com/", season,
-    "/options?L=", league_id,
-    "&O=142&SORT=FID&FRANCHISE_ID=0000&DAYS=999"
+    "/csetup?L=", league_id,
+    "&C=SALADJ"
   )
 
   response <- httr::GET(
@@ -399,7 +399,7 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
   doc <- xml2::read_html(html)
   tables <- rvest::html_table(doc, fill = TRUE)
   if (!length(tables)) {
-    stop("MFL salary adjustments page did not contain parseable tables.", call. = FALSE)
+    stop("MFL commissioner salary-adjustment ledger did not contain parseable tables.", call. = FALSE)
   }
 
   rows <- dplyr::bind_rows(lapply(seq_along(tables), function(i) {
@@ -411,7 +411,7 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
   }))
 
   if (!nrow(rows)) {
-    stop("MFL salary adjustments page tables were empty.", call. = FALSE)
+    stop("MFL commissioner salary-adjustment ledger tables were empty.", call. = FALSE)
   }
 
   names_lower <- tolower(names(rows))
