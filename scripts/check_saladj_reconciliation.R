@@ -547,7 +547,49 @@ format_audit_datetime <- function(x) {
   if (is.na(parsed)) raw else render(parsed)
 }
 
-build_commissioner_error_report <- function(expected_entries, actual_entries, tolerance = 0.01) {
+missing_entry_affected_official_snapshot <- function(drop_time, latest_snapshot_time) {
+  drop_time <- suppressWarnings(as.POSIXct(drop_time, tz = "UTC"))
+  latest_snapshot_time <- suppressWarnings(as.POSIXct(latest_snapshot_time, tz = "UTC"))
+  !is.na(drop_time) && !is.na(latest_snapshot_time) && latest_snapshot_time >= drop_time
+}
+
+latest_official_cap_snapshot_time <- function(season, base_dir = file.path("data", "cap_accounting")) {
+  season_dir <- file.path(base_dir, as.character(season))
+  metadata_files <- list.files(
+    season_dir,
+    pattern = paste0("^", season, "w[0-9]+_ADLsalarycapmetadata[.]csv$"),
+    full.names = TRUE
+  )
+  metadata_times <- unlist(lapply(metadata_files, function(path) {
+    rows <- suppressWarnings(readr::read_csv(path, show_col_types = FALSE))
+    if (!"snapshot_taken_at_utc" %in% names(rows)) return(as.POSIXct(character()))
+    suppressWarnings(as.POSIXct(rows$snapshot_taken_at_utc, tz = "UTC"))
+  }))
+  metadata_times <- as.POSIXct(metadata_times, origin = "1970-01-01", tz = "UTC")
+  metadata_times <- metadata_times[!is.na(metadata_times)]
+  if (length(metadata_times)) return(max(metadata_times))
+
+  adjustment_files <- list.files(
+    file.path(season_dir, "adjustment_snapshots"),
+    pattern = paste0("^", season, "w[0-9]+_ADLsalaryadjustments[.]csv$"),
+    full.names = TRUE
+  )
+  adjustment_times <- unlist(lapply(adjustment_files, function(path) {
+    rows <- suppressWarnings(readr::read_csv(path, show_col_types = FALSE))
+    if (!"captured_at_utc" %in% names(rows)) return(as.POSIXct(character()))
+    suppressWarnings(as.POSIXct(rows$captured_at_utc, tz = "UTC"))
+  }))
+  adjustment_times <- as.POSIXct(adjustment_times, origin = "1970-01-01", tz = "UTC")
+  adjustment_times <- adjustment_times[!is.na(adjustment_times)]
+  if (length(adjustment_times)) max(adjustment_times) else as.POSIXct(NA, tz = "UTC")
+}
+
+build_commissioner_error_report <- function(
+  expected_entries,
+  actual_entries,
+  tolerance = 0.01,
+  latest_snapshot_time = as.POSIXct(NA, tz = "UTC")
+) {
   used_actual <- integer()
   findings <- vector("list", nrow(expected_entries))
 
@@ -588,6 +630,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
     }
 
     if (isTRUE(expected$is_cash_trade)) {
+      if (!missing_entry_affected_official_snapshot(expected$row_date, latest_snapshot_time)) next
       findings[[i]] <- tibble(
         issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
         actual_franchise = NA_character_, player = expected$player,
@@ -665,6 +708,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
       next
     }
 
+    if (!missing_entry_affected_official_snapshot(expected$row_date, latest_snapshot_time)) next
     findings[[i]] <- tibble(
       issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
       actual_franchise = NA_character_, player = expected$player,
@@ -1133,7 +1177,15 @@ if (arg_flag("self-test-name-matching")) {
   stopifnot(
     description_matches_expected("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koramoah", FALSE),
     description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koromoah", FALSE),
-    !description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Other-Player", FALSE)
+    !description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Other-Player", FALSE),
+    !missing_entry_affected_official_snapshot(
+      as.POSIXct("2026-10-07 23:30:35", tz = "UTC"),
+      as.POSIXct("2026-10-06 04:18:48", tz = "UTC")
+    ),
+    missing_entry_affected_official_snapshot(
+      as.POSIXct("2026-10-07 23:30:35", tz = "UTC"),
+      as.POSIXct("2026-10-13 03:15:00", tz = "UTC")
+    )
   )
   expected_test <- tibble(
     franchise = "MIN", player = "J. Owusu-Koromoah", amount = 0.63,
@@ -1232,7 +1284,17 @@ sheet_entry_details <- expected_entries |>
     expected_contract = .data$contract_type
   ) |>
   distinct()
-sheet_error_report <- build_commissioner_error_report(sheet_expected_entries, sheet_actual_entries, tolerance = tolerance) |>
+latest_snapshot_time <- latest_official_cap_snapshot_time(season)
+message(
+  "Latest completed official cap snapshot used for missing-entry gating: ",
+  if (is.na(latest_snapshot_time)) "none" else format(latest_snapshot_time, "%Y-%m-%d %H:%M:%S UTC", tz = "UTC")
+)
+sheet_error_report <- build_commissioner_error_report(
+  sheet_expected_entries,
+  sheet_actual_entries,
+  tolerance = tolerance,
+  latest_snapshot_time = latest_snapshot_time
+) |>
   label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin") |>
   left_join(sheet_entry_details, by = c("expected_franchise", "player", "expected_amount"))
 control_field_error_report <- audit_contract_admin_control_fields(
@@ -1242,7 +1304,10 @@ historical_mfl_expected_entries <- build_historical_mfl_expectations(
   sheet_entries, expected_entries, season = season, tolerance = tolerance
 )
 mfl_error_report <- build_commissioner_error_report(
-  historical_mfl_expected_entries, mfl_entries, tolerance = tolerance
+  historical_mfl_expected_entries,
+  mfl_entries,
+  tolerance = tolerance,
+  latest_snapshot_time = latest_snapshot_time
 ) |>
   label_stage_findings("Contract Admin history / Curator-validated penalty logic -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)

@@ -47,12 +47,21 @@ jobs:
         shell: bash
         env:
           ADL_SMTP_SERVER: ""
-        run: >-
-          Rscript scripts/check_saladj_reconciliation.R
-          --season=${CURRENT_SEASON}
-          --send-email
-          --to="${{ inputs.recipient }}"
-          --issued-ledger="${RUNNER_TEMP}/commissioner-error-checker-resend-issued.csv"
+        run: |
+          rm -f data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
+          Rscript scripts/check_saladj_reconciliation.R \
+            --season=${CURRENT_SEASON} \
+            --send-email \
+            --to="${{ inputs.recipient }}" \
+            --issued-ledger="${RUNNER_TEMP}/commissioner-error-checker-resend-issued.csv"
+          if [ ! -f data/commissioner_alerts/email_outbox_commissioner_error_checker.txt ]; then
+            mkdir -p data/commissioner_alerts
+            printf '%s\n' \
+              'The Commissioner Error Checker found no current salary-adjustment discrepancies.' \
+              '' \
+              'This was a fresh live check of SalAdj Curator, Contract Admin, MFL salary adjustments, and official Cap Rollover records.' \
+              > data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
+          fi
 
       - name: Render frozen checker snapshot
         if: ${{ inputs.snapshot_path != '' }}
