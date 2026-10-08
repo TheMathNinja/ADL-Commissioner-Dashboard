@@ -381,8 +381,8 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
   franchises <- franchise_reference(conn)
   url <- paste0(
     "https://www46.myfantasyleague.com/", season,
-    "/csetup?L=", league_id,
-    "&C=SALADJ"
+    "/options?L=", league_id,
+    "&O=142&SORT=FID&FRANCHISE_ID=0000&DAYS=999"
   )
 
   response <- httr::GET(
@@ -397,26 +397,50 @@ mfl_salary_adjustments_from_visible_page <- function(season = get_current_season
 
   html <- httr::content(response, as = "text", encoding = "UTF-8")
   doc <- xml2::read_html(html)
-  adjustment_rows <- rvest::html_elements(doc, "tr[id^='row_D_']")
-  adjustment_rows <- adjustment_rows[
-    grepl("^row_D_[0-9]+$", rvest::html_attr(adjustment_rows, "id"))
-  ]
-  if (!length(adjustment_rows)) {
-    stop("MFL commissioner salary-adjustment ledger contained no adjustment rows.", call. = FALSE)
+  tables <- rvest::html_table(doc, fill = TRUE)
+  if (!length(tables)) {
+    stop("MFL salary adjustments page did not contain parseable tables.", call. = FALSE)
   }
 
-  rows <- dplyr::bind_rows(lapply(adjustment_rows, function(row) {
-    cells <- rvest::html_elements(row, "td")
-    if (length(cells) < 5L) return(tibble())
-    tibble(
-      franchise_raw = rvest::html_text2(cells[[2]]),
-      amount = parse_amount(rvest::html_text2(cells[[3]])),
-      description = rvest::html_text2(cells[[4]]),
-      entered_at = rvest::html_text2(cells[[5]])
-    )
+  rows <- dplyr::bind_rows(lapply(seq_along(tables), function(i) {
+    tbl <- tibble::as_tibble(tables[[i]], .name_repair = "unique")
+    if (!nrow(tbl)) return(tibble())
+    names(tbl) <- make.names(names(tbl), unique = TRUE)
+    tbl$.table_id <- i
+    tbl
   }))
 
+  if (!nrow(rows)) {
+    stop("MFL salary adjustments page tables were empty.", call. = FALSE)
+  }
+
+  names_lower <- tolower(names(rows))
+  franchise_col <- names(rows)[match(TRUE, grepl("franchise|team|owner", names_lower))]
+  amount_col <- names(rows)[match(TRUE, grepl("amount|adjust", names_lower))]
+  if (is.na(franchise_col) || is.na(amount_col)) {
+    stop(
+      "Could not identify franchise/amount columns on MFL salary adjustments page. Columns: ",
+      paste(names(rows), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  remaining_cols <- setdiff(names(rows), c(franchise_col, amount_col, ".table_id"))
+  description_col <- remaining_cols[match(TRUE, grepl("description|explanation|comment|reason|details", tolower(remaining_cols)))]
+  if (is.na(description_col) && length(remaining_cols)) description_col <- remaining_cols[[1]]
+  date_candidates <- setdiff(remaining_cols, description_col)
+  entered_col <- date_candidates[match(TRUE, grepl("date|time|entered|added", tolower(date_candidates)))]
+  if (is.na(entered_col) && length(date_candidates)) entered_col <- date_candidates[[1]]
+  description_values <- if (!is.na(description_col)) as.character(rows[[description_col]]) else rep("", nrow(rows))
+  entered_values <- if (!is.na(entered_col)) as.character(rows[[entered_col]]) else rep("", nrow(rows))
+
   entries <- rows |>
+    transmute(
+      franchise_raw = as.character(.data[[franchise_col]]),
+      amount = parse_amount(.data[[amount_col]]),
+      description = .env$description_values,
+      entered_at = .env$entered_values
+    ) |>
     mutate(
       franchise = vapply(.data$franchise_raw, franchise_from_visible_label, character(1), franchises = franchises)
     ) |>
@@ -440,7 +464,7 @@ description_matches_expected <- function(description, player, is_cash_trade) {
   last <- normalize_player_token(player_last_name(player))
   first <- normalize_player_token(player_first_initial(player))
   nzchar(last) && grepl(paste0("\\b", last, "\\b"), description, perl = TRUE) &&
-    (!nzchar(first) || grepl(paste0("\\b", first, "\\b"), description, perl = TRUE))
+    (!nzchar(first) || grepl(paste0("\\b", first, "[A-Z]*\\b"), description, perl = TRUE))
 }
 
 format_audit_datetime <- function(x) {
