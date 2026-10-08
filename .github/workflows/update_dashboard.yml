@@ -4,6 +4,10 @@ run-name: ${{ inputs.orchestrator_run_id != '' && format('Daily maintenance {0} 
 on:
   workflow_call:
     inputs:
+      send_saladj_email:
+        required: false
+        default: false
+        type: boolean
       enable_mfl_salary_writes:
         required: false
         default: false
@@ -18,6 +22,11 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      send_saladj_email:
+        description: "Send the accumulated daily SalAdj digest. Reserved for the 5:17 a.m. maintenance package."
+        required: false
+        default: false
+        type: boolean
       enable_mfl_salary_writes:
         description: "Enable live MFL salary writes for this manual run. Use only for controlled testing."
         required: false
@@ -37,8 +46,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'data/**'
-      - '.github/**'
-      - 'tests/**'
 permissions:
   contents: write
 
@@ -55,7 +62,7 @@ jobs:
       RAW_CACHE_VERSION: v1
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_DASHBOARD_RUN_TYPE: ${{ github.event_name }}
-      ADL_SALADJ_SEND_EMAIL: true
+      ADL_SALADJ_SEND_EMAIL: ${{ inputs.send_saladj_email || false }}
       ADL_ALERT_RECIPIENT_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_FRANCHISES: CHI,KCC,IND,SEA
       ADL_ALERT_DIGEST_EXTRA_EMAILS: ${{ secrets.ADL_ALERT_DIGEST_EXTRA_EMAILS }}
