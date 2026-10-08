@@ -467,6 +467,27 @@ description_matches_expected <- function(description, player, is_cash_trade) {
     (!nzchar(first) || grepl(paste0("\\b", first, "\\b"), description, perl = TRUE))
 }
 
+format_audit_datetime <- function(x) {
+  if (!length(x) || is.na(x) || !nzchar(trimws(as.character(x)))) return("")
+  render <- function(value) {
+    paste0(
+      format(value, "%b", tz = "America/Toronto"), " ",
+      as.integer(format(value, "%d", tz = "America/Toronto")), ", ",
+      format(value, "%Y", tz = "America/Toronto"), " at ",
+      as.integer(format(value, "%I", tz = "America/Toronto")),
+      format(value, ":%M:%S %p ET", tz = "America/Toronto")
+    )
+  }
+  if (inherits(x, "POSIXt")) {
+    return(render(x))
+  }
+  raw <- trimws(as.character(x))
+  normalized <- gsub("a\\.m\\.", "AM", raw, ignore.case = TRUE)
+  normalized <- gsub("p\\.m\\.", "PM", normalized, ignore.case = TRUE)
+  parsed <- suppressWarnings(as.POSIXct(normalized, format = "%a %b %d %I:%M:%S %p ET %Y", tz = "America/Toronto"))
+  if (is.na(parsed)) raw else render(parsed)
+}
+
 build_commissioner_error_report <- function(expected_entries, actual_entries, tolerance = 0.01) {
   used_actual <- integer()
   findings <- vector("list", nrow(expected_entries))
@@ -478,6 +499,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
         issue = "INCOMPLETE_FORMULA", expected_franchise = expected$franchise,
         actual_franchise = NA_character_, player = expected$player,
         expected_amount = NA_real_, actual_amount = NA_real_, mfl_description = "",
+        transaction_date = format_audit_datetime(expected$row_date), mfl_entered_at = "",
         action = "Complete the penalty formula before reconciling this entry."
       )
       next
@@ -509,6 +531,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
         issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
         actual_franchise = NA_character_, player = expected$player,
         expected_amount = expected$amount, actual_amount = NA_real_, mfl_description = "",
+        transaction_date = format_audit_datetime(expected$row_date), mfl_entered_at = "",
         action = paste0("Add or verify the missing $", sprintf("%.2f", expected$amount),
                         " cash-trade adjustment for ", expected$franchise, ".")
       )
@@ -523,6 +546,8 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
         actual_franchise = actual_entries$franchise[[chosen]], player = expected$player,
         expected_amount = expected$amount, actual_amount = actual_entries$amount[[chosen]],
         mfl_description = actual_entries$description[[chosen]],
+        transaction_date = format_audit_datetime(expected$row_date),
+        mfl_entered_at = format_audit_datetime(actual_entries$entered_at[[chosen]]),
         action = paste0("Move this MFL adjustment from ", actual_entries$franchise[[chosen]],
                         " to ", expected$franchise, ".")
       )
@@ -537,6 +562,8 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
         actual_franchise = actual_entries$franchise[[chosen]], player = expected$player,
         expected_amount = expected$amount, actual_amount = actual_entries$amount[[chosen]],
         mfl_description = actual_entries$description[[chosen]],
+        transaction_date = format_audit_datetime(expected$row_date),
+        mfl_entered_at = format_audit_datetime(actual_entries$entered_at[[chosen]]),
         action = paste0("Change the MFL adjustment to $", sprintf("%.2f", expected$amount), ".")
       )
       next
@@ -546,6 +573,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
       issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
       actual_franchise = NA_character_, player = expected$player,
       expected_amount = expected$amount, actual_amount = NA_real_, mfl_description = "",
+      transaction_date = format_audit_datetime(expected$row_date), mfl_entered_at = "",
       action = paste0("Add the missing $", sprintf("%.2f", expected$amount),
                       " MFL adjustment to ", expected$franchise, ".")
     )
@@ -648,6 +676,8 @@ if (send_email && nrow(error_report)) {
         paste0("Expected: ", row$expected_franchise, " / $", sprintf("%.2f", row$expected_amount)),
         paste0("MFL: ", actual,
                if (!is.na(row$actual_amount)) paste0(" / $", sprintf("%.2f", row$actual_amount)) else ""),
+        if (nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
+        if (nzchar(row$mfl_entered_at)) paste0("MFL adjustment entered: ", row$mfl_entered_at) else NULL,
         if (nzchar(row$mfl_description)) paste0("MFL entry: ", row$mfl_description) else NULL,
         paste0("Required: ", row$action),
         ""
