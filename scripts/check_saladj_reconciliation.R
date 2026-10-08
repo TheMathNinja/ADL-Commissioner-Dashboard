@@ -618,24 +618,28 @@ contract_admin_saladj_entries <- function(season) {
       ss = sheet_id,
       sheet = tab,
       range = "A1:X",
+      col_names = FALSE,
       col_types = "c",
-      .name_repair = "unique_quiet"
+      .name_repair = "minimal"
     )
+    rows <- as.data.frame(rows, stringsAsFactors = FALSE)
+    headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
     required <- c("DATE", "FRAN", "PLAYER", penalty_col)
-    missing <- setdiff(required, names(rows))
+    missing <- setdiff(required, headers)
     if (length(missing)) {
       stop(tab, " is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
     }
+    column_index <- vapply(required, function(name) which(headers == name)[[1]], integer(1))
+    values <- rows[-1, , drop = FALSE]
 
-    rows |>
-      transmute(
-        franchise = toupper(trimws(as.character(.data$FRAN))),
-        player = trimws(as.character(.data$PLAYER)),
-        amount = parse_amount(.data[[penalty_col]]),
-        entered_at = as.character(.data$DATE),
-        description = trimws(as.character(.data$PLAYER)),
-        sheet_tab = tab
-      ) |>
+    tibble(
+      franchise = toupper(trimws(as.character(values[[column_index[["FRAN"]]]]))),
+      player = trimws(as.character(values[[column_index[["PLAYER"]]]])),
+      amount = parse_amount(values[[column_index[[penalty_col]]]]),
+      entered_at = as.character(values[[column_index[["DATE"]]]]),
+      description = trimws(as.character(values[[column_index[["PLAYER"]]]])),
+      sheet_tab = tab
+    ) |>
       filter(nzchar(.data$franchise), nzchar(.data$player), !is.na(.data$amount))
   })) |>
     mutate(actual_id = row_number())
