@@ -183,6 +183,7 @@ dir.create("data", recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path("data", "archive"), recursive = TRUE, showWarnings = FALSE)
 
 latest_csv <- file.path("data", "SalAdjCurator_latest.csv")
+last_emailed_csv <- file.path("data", "SalAdjCurator_last_emailed.csv")
 archive_file <- file.path("data", "archive", archive_filename)
 metadata_file <- file.path("data", "run_metadata.csv")
 
@@ -190,6 +191,12 @@ prior_latest_df <- if (file.exists(latest_csv)) {
   readr::read_csv(latest_csv, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
 } else {
   NULL
+}
+
+prior_emailed_df <- if (file.exists(last_emailed_csv)) {
+  readr::read_csv(last_emailed_csv, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+} else {
+  prior_latest_df
 }
 
 prior_meta <- if (file.exists(metadata_file)) {
@@ -218,7 +225,7 @@ saladj_rows <- build_saladj_curator(
 )
 
 output_changed <- !same_df_output(saladj_rows, prior_latest_df)
-email_rows <- new_saladj_rows(saladj_rows, prior_latest_df)
+email_rows <- new_saladj_rows(saladj_rows, prior_emailed_df)
 archive_missing <- is.na(prior_archive_file) || !file.exists(prior_archive_file)
 should_publish_archive <- output_changed || !file.exists(latest_csv) || archive_missing
 
@@ -280,6 +287,9 @@ if (send_email && should_publish_archive) {
   message("SalAdj email outbox: ", email_status$outbox_path[[1]])
   if (!isTRUE(email_status$sent[[1]]) && !identical(email_status$reason[[1]], "no_new_rows")) {
     stop("SalAdj email was requested but not sent: ", email_status$reason[[1]], call. = FALSE)
+  }
+  if (isTRUE(email_status$sent[[1]]) || identical(email_status$reason[[1]], "no_new_rows")) {
+    readr::write_csv(saladj_rows, last_emailed_csv, na = "")
   }
 }
 
