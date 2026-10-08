@@ -675,7 +675,17 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
     )
   }
 
-  bind_rows(findings) |>
+  result <- bind_rows(findings)
+  if (!nrow(result)) {
+    return(tibble(
+      issue = character(), expected_franchise = character(), actual_franchise = character(),
+      player = character(), expected_amount = double(), actual_amount = double(),
+      mfl_description = character(), transaction_date = character(),
+      mfl_entered_at = character(), action = character()
+    ))
+  }
+
+  result |>
     arrange(factor(.data$issue, c("WRONG_FRANCHISE", "WRONG_AMOUNT", "SUSPECTED_NAME_MATCH", "MISSING_ENTRY",
                                   "INCOMPLETE_FORMULA")),
             .data$expected_franchise, .data$actual_franchise, .data$player)
