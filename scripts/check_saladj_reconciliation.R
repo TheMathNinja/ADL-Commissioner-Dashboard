@@ -781,6 +781,51 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
   bind_rows(findings)
 }
 
+build_historical_mfl_expectations <- function(sheet_entries, curator_entries, season, tolerance = 0.01) {
+  expected <- sheet_entries |>
+    filter(!is.na(.data$penalty_amount)) |>
+    transmute(
+      expected_id = row_number(),
+      source_sheet_id = .data$actual_id,
+      franchise,
+      player,
+      player_team = "",
+      amount = .data$penalty_amount,
+      input_salary,
+      row_date = parse_saladj_date(.data$entered_at, season),
+      is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE"
+    )
+  used_sheet_ids <- integer()
+
+  for (i in seq_len(nrow(curator_entries))) {
+    curator <- curator_entries[i, ]
+    candidates <- which(
+      expected$franchise == curator$franchise &
+        !(expected$source_sheet_id %in% used_sheet_ids) &
+        vapply(
+          expected$player,
+          description_matches_expected,
+          logical(1),
+          player = curator$player,
+          is_cash_trade = curator$is_cash_trade
+        ) &
+        !is.na(expected$input_salary) &
+        abs(expected$input_salary - curator$salary_amount) <= tolerance
+    )
+    if (!length(candidates)) next
+    chosen <- candidates[[1]]
+    expected$amount[[chosen]] <- curator$amount
+    expected$player[[chosen]] <- curator$player
+    expected$player_team[[chosen]] <- curator$player_team
+    expected$row_date[[chosen]] <- curator$row_date
+    expected$is_cash_trade[[chosen]] <- curator$is_cash_trade
+    used_sheet_ids <- c(used_sheet_ids, expected$source_sheet_id[[chosen]])
+  }
+
+  expected |>
+    select(-.data$source_sheet_id, -.data$input_salary)
+}
+
 label_stage_findings <- function(findings, stage, actual_system) {
   if (!nrow(findings)) return(findings)
   findings |>
@@ -890,8 +935,13 @@ sheet_error_report <- build_commissioner_error_report(sheet_expected_entries, sh
 control_field_error_report <- audit_contract_admin_control_fields(
   expected_entries, sheet_entries, tolerance = tolerance
 )
-mfl_error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance) |>
-  label_stage_findings("SalAdj Curator / validated penalty logic -> MFL", "MFL")
+historical_mfl_expected_entries <- build_historical_mfl_expectations(
+  sheet_entries, expected_entries, season = season, tolerance = tolerance
+)
+mfl_error_report <- build_commissioner_error_report(
+  historical_mfl_expected_entries, mfl_entries, tolerance = tolerance
+) |>
+  label_stage_findings("Contract Admin history / Curator-validated penalty logic -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
 error_report <- bind_rows(
   sheet_error_report,
