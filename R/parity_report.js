@@ -68,7 +68,7 @@
       for(const r of rows)svg+=`<circle data-league="${r.league}" cx="${x(r.prior_win_pct)}" cy="${y(r.next_win_pct)}" r="4" fill="${color}" opacity=".55"><title>${label} · ${esc(r.team)} (${r.from_season}→${r.to_season}): ${pct(r.prior_win_pct)} → ${pct(r.next_win_pct)}</title></circle>`;
     }
     svg+='<text x="190" y="377" text-anchor="middle" font-size="12">Prior season win %</text><text transform="translate(14 190) rotate(-90)" text-anchor="middle" font-size="12">Next season win %</text></svg>';
-    return '<p class="parity-legend">'+groups.map(g=>`<span style="color:${g.color}">● ${g.label} · r = ${num(g.pool.correlation)}</span>`).join(' ')+ '</p>'+svg;
+    return '<p class="parity-legend">'+groups.map(g=>`<span style="color:${g.color}">● ${g.label}<br>r = ${num(g.pool.correlation)}</span>`).join(' ')+ '</p>'+svg;
   }
   function matrix(values){const labels=['Bottom 25%','Lower middle','Upper middle','Top 25%'];return '<table class="parity-table parity-matrix"><thead><tr><th>Prior → next</th>'+labels.map(l=>`<th>${l}</th>`).join('')+'</tr></thead><tbody>'+values.map((row,i)=>`<tr><th scope="row">${labels[i]}</th>${row.map(v=>`<td style="background:rgba(23,78,166,${v*.65})">${pct(v)}</td>`).join('')}</tr>`).join('')+'</tbody></table>';}
   function render(){
