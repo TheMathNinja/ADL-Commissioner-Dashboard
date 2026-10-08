@@ -931,14 +931,20 @@ checker_row_value <- function(row, name, default = "") {
 
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
-  expected_amount <- if (is.na(row$expected_amount)) "Amount/formula pending" else if (
-    grepl(" Sal Adj tab ", list_label, fixed = TRUE)
-  ) {
-    paste0("Salary: $", sprintf("%.2f", row$expected_amount))
+  is_control_issue <- as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE")
+  amount_prefix <- if (is_control_issue) {
+    "Calculated penalty"
+  } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+    "Salary"
   } else if (identical(list_label, "MFL salary adjustments")) {
-    paste0("Penalty/adjustment: $", sprintf("%.2f", row$expected_amount))
+    "Penalty/adjustment"
   } else {
-    paste0("Value: $", sprintf("%.2f", row$expected_amount))
+    "Value"
+  }
+  expected_amount <- if (is.na(row$expected_amount)) {
+    "Amount/formula pending"
+  } else {
+    paste0(amount_prefix, ": $", sprintf("%.2f", row$expected_amount))
   }
   player_team <- checker_row_value(row, "expected_player_team")
   player_pos <- checker_row_value(row, "expected_player_pos")
@@ -950,8 +956,31 @@ format_checker_finding <- function(row) {
   } else character()
   expected_parts <- c(row$expected_franchise, player_identity, expected_amount, contract_details)
   expected_parts <- expected_parts[!is.na(expected_parts) & nzchar(expected_parts)]
+  actual_franchise <- checker_row_value(row, "actual_franchise")
+  actual_amount <- suppressWarnings(as.numeric(checker_row_value(row, "actual_amount", NA_character_)))
+  actual_description <- checker_row_value(row, "mfl_description")
+  actual_identity <- if (identical(list_label, "MFL salary adjustments") && nzchar(actual_description)) {
+    actual_description
+  } else {
+    player_identity
+  }
+  actual_parts <- c(
+    actual_franchise,
+    actual_identity,
+    if (!is.na(actual_amount)) paste0(amount_prefix, ": $", sprintf("%.2f", actual_amount)),
+    contract_details
+  )
+  actual_parts <- actual_parts[!is.na(actual_parts) & nzchar(actual_parts)]
+  actual_label <- if (as.character(row$issue) == "SUSPECTED_NAME_MATCH") {
+    paste0("Possible matching ", list_label, " entry")
+  } else {
+    paste0("Erroneous ", list_label, " entry")
+  }
   c(
     paste0("Error Type: ", checker_error_label(row$issue, list_label)),
+    if (nzchar(actual_franchise) && !is.na(actual_amount)) {
+      paste0(actual_label, ": ", paste(actual_parts, collapse = " | "))
+    } else NULL,
     paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | ")),
     if (!is.na(row$transaction_date) && nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
     if (!is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) paste0(list_label, " entry date: ", row$mfl_entered_at) else NULL,
@@ -1077,17 +1106,23 @@ if (arg_flag("self-test-name-matching")) {
   )
   stopifnot(
     rendered_test[[1]] == "Error Type: Suspected typo match in MFL salary adjustments",
-    rendered_test[[2]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | Penalty/adjustment: $0.63",
+    rendered_test[[2]] == paste0(
+      "Possible matching MFL salary adjustments entry: MIN | ",
+      "J. Owusu-Koramoah - B/R - 4/24/25 | Penalty/adjustment: $0.63"
+    ),
+    rendered_test[[3]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | Penalty/adjustment: $0.63",
     !any(grepl("^Stage:|^MFL:", rendered_test))
   )
   afc_test <- finding_test[1, ] |>
     mutate(issue = "MISSING_ENTRY", expected_franchise = "DEN", player = "Tyrel Dodson",
            expected_amount = 2.3, stage = "SalAdj Curator -> Contract Admin Sal Adj",
            actual_system = "Contract Admin", action = "Add the missing entry.",
+           actual_franchise = NA_character_, actual_amount = NA_real_,
            expected_player_team = "CAR", expected_player_pos = "LB",
            expected_years = 1, expected_contract = "2026 UFA")
   nfc_test <- afc_test |>
-    mutate(expected_franchise = "ATL", player = "Dre Greenlaw", expected_amount = 6.06,
+    mutate(issue = "WRONG_FRANCHISE", expected_franchise = "ATL", actual_franchise = "SFO",
+           player = "Dre Greenlaw", expected_amount = 6.06, actual_amount = 6.06,
            expected_player_team = "SFO", expected_contract = "2025 UFA")
   stopifnot(
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
@@ -1095,8 +1130,12 @@ if (arg_flag("self-test-name-matching")) {
       "Expected AFC Sal Adj tab (Contract Admin Sheet) entry: DEN | Tyrel Dodson CAR LB | ",
       "Salary: $2.30 | 1 yr | 2026 UFA"
     ),
-    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj tab (Contract Admin Sheet)",
+    format_checker_finding(nfc_test)[[1]] == "Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(nfc_test)[[2]] == paste0(
+      "Erroneous NFC Sal Adj tab (Contract Admin Sheet) entry: SFO | Dre Greenlaw SFO LB | ",
+      "Salary: $6.06 | 1 yr | 2025 UFA"
+    ),
+    format_checker_finding(nfc_test)[[3]] == paste0(
       "Expected NFC Sal Adj tab (Contract Admin Sheet) entry: ATL | Dre Greenlaw SFO LB | ",
       "Salary: $6.06 | 1 yr | 2025 UFA"
     )
