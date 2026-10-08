@@ -68,15 +68,23 @@ render_saladj_run_audit <- function(run_audit = list()) {
   completed <- as.character(run_audit$completed_display %||% "")
   duration <- as.character(run_audit$duration_display %||% "")
   trigger <- as.character(run_audit$trigger %||% "")
+  trigger_label <- switch(
+    trigger,
+    push = "Transaction-triggered refresh",
+    schedule = "Scheduled daily refresh",
+    workflow_dispatch = "Manually triggered refresh",
+    trigger
+  )
 
   if (!nzchar(scheduled) && !nzchar(started) && !nzchar(duration)) return(character())
 
   c(
-    if (nzchar(scheduled)) paste0("SalAdj scraper scheduled: ", scheduled) else "SalAdj scraper scheduled: Not available",
+    if (nzchar(scheduled)) paste0("SalAdj scraper scheduled: ", scheduled) else NULL,
+    if (nzchar(trigger_label)) paste0("Run type: ", trigger_label) else NULL,
     if (nzchar(started)) {
-      paste0("Run started/triggered: ", started, if (nzchar(trigger)) paste0(" (", trigger, ")") else "")
+      paste0("Run started: ", started)
     } else {
-      paste0("Run started/triggered: ", trigger)
+      NULL
     },
     if (nzchar(completed)) paste0(
       "Run completed / email prepared: ", completed,
