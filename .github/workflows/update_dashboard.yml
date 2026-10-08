@@ -173,7 +173,13 @@ jobs:
           MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
-        run: Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} --send-email
+        shell: bash
+        run: |
+          EMAIL_ARG=""
+          if [ "${{ inputs.send_saladj_email || false }}" = "true" ]; then
+            EMAIL_ARG="--send-email"
+          fi
+          Rscript scripts/check_saladj_reconciliation.R --season=${CURRENT_SEASON} ${EMAIL_ARG}
 
       - name: Build official July 1 salary snapshot
         if: steps.localtime.outputs.should_run == 'true'

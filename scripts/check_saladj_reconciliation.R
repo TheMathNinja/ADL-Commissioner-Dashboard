@@ -864,6 +864,7 @@ tolerance <- suppressWarnings(as.numeric(arg_value("tolerance", "0.01")))
 fail_on_mismatch <- arg_flag("fail-on-mismatch") ||
   tolower(Sys.getenv("ADL_SALADJ_RECONCILE_FAIL_ON_MISMATCH", unset = "false")) %in% c("1", "true", "yes")
 send_email <- arg_flag("send-email")
+email_to <- trimws(arg_value("to", ""))
 issued_csv <- arg_value("issued-ledger", file.path("data", "commissioner_error_checker_issued.csv"))
 
 if (is.na(season)) stop("Provide a valid --season or CURRENT_SEASON.", call. = FALSE)
@@ -992,7 +993,11 @@ if (send_email && nrow(error_report)) {
     ), collapse = "\n")
     dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
     writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))
-    recipients <- resolve_commissioner_alert_recipients(season = season)
+    recipients <- if (nzchar(email_to)) {
+      tibble(email = email_to)
+    } else {
+      resolve_commissioner_alert_recipients(season = season)
+    }
     status <- tryCatch(
       send_alert_mail(
         subject = "[ADL Commissioner Alerts] Commissioner cap-entry errors found",

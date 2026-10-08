@@ -1,0 +1,58 @@
+name: Resend Commissioner Error Checker
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: Single recipient for this verification run.
+        required: true
+        default: fili.mikey@gmail.com
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resend:
+    runs-on: ubuntu-latest
+    env:
+      CURRENT_SEASON: 2026
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+      ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+      ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+      ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+      ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up cached ADL R runtime
+        uses: ./.github/actions/setup-adl-r
+
+      - name: Run current checker and email only the requested recipient
+        shell: bash
+        run: >-
+          Rscript scripts/check_saladj_reconciliation.R
+          --season=${CURRENT_SEASON}
+          --send-email
+          --to="${{ inputs.recipient }}"
+          --issued-ledger="${RUNNER_TEMP}/commissioner-error-checker-resend-issued.csv"
+
+      - name: Upload current checker results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commissioner-error-checker-resend
+          path: |
+            data/commissioner_error_checker.csv
+            data/saladj_reconciliation.csv
+            data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
+          if-no-files-found: warn
