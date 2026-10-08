@@ -37,7 +37,8 @@ stopifnot(grepl("Joey Porter PIT CB: $2.01 / 1 yr / 2026 oEXT", body, fixed = TR
 stopifnot(!grepl("There are new salary adjustments to enter", body, fixed = TRUE))
 stopifnot(!grepl("Run audit", body, fixed = TRUE))
 stopifnot(grepl("SalAdj scraper scheduled: 10/1/2026 5:17 a.m. EDT", body, fixed = TRUE))
-stopifnot(grepl("Run started/triggered: 10/1/2026 12:29 p.m. EDT (schedule)", body, fixed = TRUE))
+stopifnot(grepl("Run type: Scheduled daily refresh", body, fixed = TRUE))
+stopifnot(grepl("Run started: 10/1/2026 12:29 p.m. EDT", body, fixed = TRUE))
 stopifnot(grepl("Run completed / email prepared: 10/1/2026 12:34 p.m. EDT (runtime: 5m 12s)", body, fixed = TRUE))
 stopifnot(grepl("Dashboard CSV here: https://", body, fixed = TRUE))
 stopifnot(grepl(
@@ -46,6 +47,22 @@ stopifnot(grepl(
   fixed = TRUE
 ))
 stopifnot(!grepl("EDT.\n\nDashboard CSV here:", body, fixed = TRUE))
+
+push_body <- render_saladj_email(
+  rows[1, , drop = FALSE],
+  "2026_10_01_ADLSalAdjCurator.csv",
+  "10/1/2026 7:34 p.m. EDT",
+  list(
+    scheduled_display = "",
+    started_display = "10/1/2026 7:33 p.m. EDT",
+    completed_display = "10/1/2026 7:34 p.m. EDT",
+    duration_display = "1m 1s",
+    trigger = "push"
+  )
+)
+stopifnot(grepl("Run type: Transaction-triggered refresh", push_body, fixed = TRUE))
+stopifnot(grepl("Run started: 10/1/2026 7:33 p.m. EDT", push_body, fixed = TRUE))
+stopifnot(!grepl("SalAdj scraper scheduled:", push_body, fixed = TRUE))
 
 html_body <- render_saladj_email_html(body, "2026_10_01_ADLSalAdjCurator.csv")
 stopifnot(grepl('<a href="https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_01_ADLSalAdjCurator.csv">Dashboard CSV here</a>', html_body, fixed = TRUE))
