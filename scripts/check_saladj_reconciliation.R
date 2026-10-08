@@ -990,6 +990,23 @@ format_checker_finding <- function(row) {
   } else {
     paste0("Erroneous ", list_label, " entry")
   }
+  required_action <- if (as.character(row$issue) == "MISSING_ENTRY" &&
+                         grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+    conference <- sub(" Sal Adj tab.*$", "", list_label)
+    missing_contract <- paste(c(
+      if (!is.na(row$expected_amount)) paste0("$", sprintf("%.2f", row$expected_amount)),
+      contract_details
+    )[nzchar(c(
+      if (!is.na(row$expected_amount)) paste0("$", sprintf("%.2f", row$expected_amount)),
+      contract_details
+    ))], collapse = " / ")
+    paste0(
+      "Add ", row$expected_franchise, "'s ", row$player, " drop (", missing_contract,
+      ") to the ", conference, " Sal Adj tab."
+    )
+  } else {
+    as.character(row$action)
+  }
   c(
     paste0("Error Type: ", checker_error_label(row$issue, list_label)),
     if (nzchar(actual_franchise) && !is.na(actual_amount)) {
@@ -1001,7 +1018,7 @@ format_checker_finding <- function(row) {
         !is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) {
       paste0("MFL salary-adjustment entry date: ", row$mfl_entered_at)
     } else NULL,
-    paste0("Required: ", row$action),
+    paste0("Required: ", required_action),
     ""
   )
 }
@@ -1146,6 +1163,8 @@ if (arg_flag("self-test-name-matching")) {
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(afc_test)[[2]] ==
       "Expected Sal Adj tab entry: DEN | Tyrel Dodson | Contract: $2.30 / 1 yr / 2026 UFA",
+    format_checker_finding(afc_test)[[3]] ==
+      "Required: Add DEN's Tyrel Dodson drop ($2.30 / 1 yr / 2026 UFA) to the AFC Sal Adj tab.",
     format_checker_finding(nfc_test)[[1]] == "Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(nfc_test)[[2]] == paste0(
       "Erroneous Sal Adj tab entry: SFO | Dre Greenlaw | ",
