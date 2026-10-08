@@ -8,6 +8,11 @@ on:
         required: true
         default: fili.mikey@gmail.com
         type: string
+      snapshot_path:
+        description: Optional committed CSV snapshot to re-render instead of running live checks.
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -37,7 +42,8 @@ jobs:
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
 
-      - name: Run current checker and email only the requested recipient
+      - name: Run current checker
+        if: ${{ inputs.snapshot_path == '' }}
         shell: bash
         env:
           ADL_SMTP_SERVER: ""
@@ -47,6 +53,13 @@ jobs:
           --send-email
           --to="${{ inputs.recipient }}"
           --issued-ledger="${RUNNER_TEMP}/commissioner-error-checker-resend-issued.csv"
+
+      - name: Render frozen checker snapshot
+        if: ${{ inputs.snapshot_path != '' }}
+        run: >-
+          Rscript scripts/check_saladj_reconciliation.R
+          --render-error-csv="${{ inputs.snapshot_path }}"
+          --render-output="data/commissioner_alerts/email_outbox_commissioner_error_checker.txt"
 
       - name: Send rendered checker email only to the requested recipient
         run: >-

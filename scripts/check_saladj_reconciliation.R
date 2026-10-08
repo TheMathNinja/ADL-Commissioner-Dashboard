@@ -890,7 +890,10 @@ checker_list_label <- function(row) {
     return("Contract Admin Cap Rollover")
   }
   if (identical(as.character(row$actual_system), "Contract Admin")) {
-    return("Contract Admin Sal Adj")
+    nfc <- c("DAL", "NYG", "PHI", "WAS", "CHI", "DET", "GBP", "MIN",
+             "ATL", "CAR", "NOS", "TBB", "ARI", "LAR", "SFO", "SEA")
+    conference <- if (as.character(row$expected_franchise) %in% nfc) "NFC" else "AFC"
+    return(paste(conference, "Sal Adj"))
   }
   as.character(row$actual_system)
 }
@@ -930,6 +933,18 @@ format_checker_finding <- function(row) {
     paste0("Required: ", row$action),
     ""
   )
+}
+
+build_checker_email_body <- function(error_report) {
+  lines <- unlist(lapply(seq_len(nrow(error_report)), function(i) {
+    format_checker_finding(error_report[i, ])
+  }))
+  paste(c(
+    "The Commissioner Error Checker found salary-adjustment discrepancies.",
+    "",
+    lines,
+    "This checker is read-only. No Contract Admin or MFL entries were changed automatically."
+  ), collapse = "\n")
 }
 
 audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
@@ -1010,6 +1025,11 @@ fail_on_mismatch <- arg_flag("fail-on-mismatch") ||
 send_email <- arg_flag("send-email")
 email_to <- trimws(arg_value("to", ""))
 issued_csv <- arg_value("issued-ledger", file.path("data", "commissioner_error_checker_issued.csv"))
+render_error_csv <- arg_value("render-error-csv", "")
+render_output <- arg_value(
+  "render-output",
+  file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt")
+)
 
 if (arg_flag("self-test-name-matching")) {
   stopifnot(
@@ -1035,7 +1055,32 @@ if (arg_flag("self-test-name-matching")) {
     rendered_test[[2]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | $0.63",
     !any(grepl("^Stage:|^MFL:", rendered_test))
   )
+  afc_test <- finding_test[1, ] |>
+    mutate(issue = "MISSING_ENTRY", expected_franchise = "DEN", player = "Tyrel Dodson",
+           expected_amount = 2.3, stage = "SalAdj Curator -> Contract Admin Sal Adj",
+           actual_system = "Contract Admin", action = "Add the missing entry.")
+  nfc_test <- afc_test |> mutate(expected_franchise = "ATL")
+  stopifnot(
+    format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj",
+    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj"
+  )
   message("Commissioner Error Checker suspected-name matching tests passed.")
+  quit(save = "no", status = 0L)
+}
+
+if (nzchar(render_error_csv)) {
+  frozen_report <- readr::read_csv(
+    render_error_csv,
+    col_types = readr::cols(.default = readr::col_character()),
+    show_col_types = FALSE
+  ) |>
+    mutate(
+      expected_amount = suppressWarnings(as.numeric(.data$expected_amount)),
+      actual_amount = suppressWarnings(as.numeric(.data$actual_amount))
+    )
+  dir.create(dirname(render_output), recursive = TRUE, showWarnings = FALSE)
+  writeLines(build_checker_email_body(frozen_report), render_output)
+  message("Rendered frozen Commissioner Error Checker report: ", render_output)
   quit(save = "no", status = 0L)
 }
 
@@ -1146,15 +1191,7 @@ if (send_email && nrow(error_report)) {
   new_errors <- error_report |> filter(!.data$issue_key %in% issued$issue_key)
 
   if (nrow(new_errors)) {
-    lines <- unlist(lapply(seq_len(nrow(new_errors)), function(i) {
-      format_checker_finding(new_errors[i, ])
-    }))
-    body <- paste(c(
-      "The Commissioner Error Checker found new salary-adjustment discrepancies.",
-      "",
-      lines,
-      "This checker is read-only. No Contract Admin or MFL entries were changed automatically."
-    ), collapse = "\n")
+    body <- build_checker_email_body(new_errors)
     dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
     writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))
     recipients <- if (nzchar(email_to)) {
