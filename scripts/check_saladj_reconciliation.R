@@ -315,6 +315,8 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
       franchise = toupper(trimws(.data$FRAN)),
       player = as.character(.env$player_col),
       player_team = as.character(.env$get_col("PLAYER_TEAM")),
+      player_pos = as.character(.env$get_col("PLAYER_POS")),
+      contract_type = as.character(.env$get_col("CONTRACT")),
       salary_amount = parse_amount(.data$SALARY),
       years_amount = parse_amount(.data$YEARS),
       row_date = parse_saladj_date(.env$date_col, .env$season),
@@ -369,8 +371,11 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         franchise,
         player,
         player_team,
+        player_pos,
+        contract_type,
         amount = round(.data$expected_amount_known, 2),
         salary_amount,
+        years_amount,
         row_date,
         is_cash_trade,
         is_br,
@@ -919,15 +924,35 @@ checker_expected_label <- function(list_label) {
   paste0("Expected ", list_label, " entry")
 }
 
+checker_row_value <- function(row, name, default = "") {
+  if (!name %in% names(row) || !length(row[[name]]) || is.na(row[[name]][[1]])) return(default)
+  as.character(row[[name]][[1]])
+}
+
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
-  expected_amount <- if (is.na(row$expected_amount)) "amount/formula pending" else {
-    paste0("$", sprintf("%.2f", row$expected_amount))
+  expected_amount <- if (is.na(row$expected_amount)) "Amount/formula pending" else if (
+    list_label %in% c("NFC Sal Adj", "AFC Sal Adj")
+  ) {
+    paste0("Salary: $", sprintf("%.2f", row$expected_amount))
+  } else if (identical(list_label, "MFL salary adjustments")) {
+    paste0("Penalty/adjustment: $", sprintf("%.2f", row$expected_amount))
+  } else {
+    paste0("Value: $", sprintf("%.2f", row$expected_amount))
   }
+  player_team <- checker_row_value(row, "expected_player_team")
+  player_pos <- checker_row_value(row, "expected_player_pos")
+  player_identity <- paste(c(row$player, player_team, player_pos)[nzchar(c(row$player, player_team, player_pos))], collapse = " ")
+  years <- suppressWarnings(as.numeric(checker_row_value(row, "expected_years", NA_character_)))
+  contract <- checker_row_value(row, "expected_contract")
+  contract_details <- if (list_label %in% c("NFC Sal Adj", "AFC Sal Adj")) {
+    c(if (!is.na(years)) paste0(format(years, trim = TRUE, scientific = FALSE), " yr"), contract)
+  } else character()
+  expected_parts <- c(row$expected_franchise, player_identity, expected_amount, contract_details)
+  expected_parts <- expected_parts[!is.na(expected_parts) & nzchar(expected_parts)]
   c(
     paste0("Error Type: ", checker_error_label(row$issue, list_label)),
-    paste0(checker_expected_label(list_label), ": ", row$expected_franchise,
-           " | ", row$player, " | ", expected_amount),
+    paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | ")),
     if (!is.na(row$transaction_date) && nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
     if (!is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) paste0(list_label, " entry date: ", row$mfl_entered_at) else NULL,
     paste0("Required: ", row$action),
@@ -1052,7 +1077,7 @@ if (arg_flag("self-test-name-matching")) {
   )
   stopifnot(
     rendered_test[[1]] == "Error Type: Suspected typo match in MFL salary adjustments",
-    rendered_test[[2]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | $0.63",
+    rendered_test[[2]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | Penalty/adjustment: $0.63",
     !any(grepl("^Stage:|^MFL:", rendered_test))
   )
   afc_test <- finding_test[1, ] |>
@@ -1099,8 +1124,20 @@ sheet_actual_entries <- sheet_entries |>
     actual_id = row_number(), franchise, amount = .data$input_salary,
     description, entered_at
   )
+sheet_entry_details <- expected_entries |>
+  transmute(
+    expected_franchise = .data$franchise,
+    player,
+    expected_amount = .data$salary_amount,
+    expected_player_team = .data$player_team,
+    expected_player_pos = .data$player_pos,
+    expected_years = .data$years_amount,
+    expected_contract = .data$contract_type
+  ) |>
+  distinct()
 sheet_error_report <- build_commissioner_error_report(sheet_expected_entries, sheet_actual_entries, tolerance = tolerance) |>
-  label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin")
+  label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin") |>
+  left_join(sheet_entry_details, by = c("expected_franchise", "player", "expected_amount"))
 control_field_error_report <- audit_contract_admin_control_fields(
   expected_entries, sheet_entries, tolerance = tolerance
 )
