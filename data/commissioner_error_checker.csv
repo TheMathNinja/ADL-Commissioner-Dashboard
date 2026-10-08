@@ -1,0 +1,4 @@
+issue,expected_franchise,actual_franchise,player,expected_amount,actual_amount,mfl_description,action,issue_key
+WRONG_FRANCHISE,ATL,SFO,Dre Greenlaw,3.64,3.64,D. Greenlaw - 1 yr at $6.06 mil dropped 9/30/26,Move this MFL adjustment from SFO to ATL.,WRONG_FRANCHISE|ATL|SFO|Dre Greenlaw|3.64|3.64
+MISSING_ENTRY,ATL,,Luke Schoonmaker,2.46,,,Add the missing $2.46 MFL adjustment to ATL.,MISSING_ENTRY|ATL|NA|Luke Schoonmaker|2.46|NA
+MISSING_ENTRY,DEN,,Tyrel Dodson,1.38,,,Add the missing $1.38 MFL adjustment to DEN.,MISSING_ENTRY|DEN|NA|Tyrel Dodson|1.38|NA

@@ -1,0 +1,19 @@
+The Commissioner Error Checker found new salary-adjustment discrepancies.
+
+WRONG_FRANCHISE: Dre Greenlaw
+Expected: ATL / $3.64
+MFL: SFO / $3.64
+MFL entry: D. Greenlaw - 1 yr at $6.06 mil dropped 9/30/26
+Required: Move this MFL adjustment from SFO to ATL.
+
+MISSING_ENTRY: Luke Schoonmaker
+Expected: ATL / $2.46
+MFL: not found
+Required: Add the missing $2.46 MFL adjustment to ATL.
+
+MISSING_ENTRY: Tyrel Dodson
+Expected: DEN / $1.38
+MFL: not found
+Required: Add the missing $1.38 MFL adjustment to DEN.
+
+This checker is read-only. No MFL entries were changed automatically.
