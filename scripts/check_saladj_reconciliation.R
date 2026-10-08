@@ -503,6 +503,24 @@ description_matches_expected <- function(description, player, is_cash_trade) {
     (!nzchar(first) || grepl(paste0("\\b", first, "[A-Z]*\\b"), description, perl = TRUE))
 }
 
+description_suspected_name_match <- function(description, player, is_cash_trade) {
+  if (isTRUE(is_cash_trade) || description_matches_expected(description, player, FALSE)) return(FALSE)
+  description <- normalize_player_token(description)
+  last <- normalize_player_token(player_last_name(player))
+  first <- normalize_player_token(player_first_initial(player))
+  if (!nzchar(last) || !nzchar(description) ||
+      (nzchar(first) && !grepl(paste0("\\b", first, "[A-Z]*\\b"), description, perl = TRUE))) {
+    return(FALSE)
+  }
+  description_words <- strsplit(description, "\\s+")[[1]]
+  last_word_count <- length(strsplit(last, "\\s+")[[1]])
+  if (length(description_words) < last_word_count) return(FALSE)
+  candidates <- vapply(seq_len(length(description_words) - last_word_count + 1L), function(i) {
+    paste(description_words[i:(i + last_word_count - 1L)], collapse = " ")
+  }, character(1))
+  min(utils::adist(last, candidates)) <= 1L
+}
+
 format_audit_datetime <- function(x) {
   if (!length(x) || is.na(x) || !nzchar(trimws(as.character(x)))) return("")
   render <- function(value) {
@@ -612,6 +630,35 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
       next
     }
 
+
+    suspected_match <- vapply(
+      actual_entries$description, description_suspected_name_match, logical(1),
+      player = expected$player, is_cash_trade = expected$is_cash_trade
+    )
+    suspected_candidates <- which(
+      suspected_match & !(actual_entries$actual_id %in% used_actual) &
+        actual_entries$franchise == expected$franchise &
+        !is.na(actual_entries$amount) &
+        abs(actual_entries$amount - expected$amount) <= tolerance
+    )
+    if (length(suspected_candidates)) {
+      chosen <- suspected_candidates[[1]]
+      used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
+      findings[[i]] <- tibble(
+        issue = "SUSPECTED_NAME_MATCH", expected_franchise = expected$franchise,
+        actual_franchise = actual_entries$franchise[[chosen]], player = expected$player,
+        expected_amount = expected$amount, actual_amount = actual_entries$amount[[chosen]],
+        mfl_description = actual_entries$description[[chosen]],
+        transaction_date = format_audit_datetime(expected$row_date),
+        mfl_entered_at = format_audit_datetime(actual_entries$entered_at[[chosen]]),
+        action = paste0(
+          "Verify that Contract Admin player '", expected$player,
+          "' matches the MFL entry; correct the typo in Contract Admin if so."
+        )
+      )
+      next
+    }
+
     findings[[i]] <- tibble(
       issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
       actual_franchise = NA_character_, player = expected$player,
@@ -623,7 +670,7 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
   }
 
   bind_rows(findings) |>
-    arrange(factor(.data$issue, c("WRONG_FRANCHISE", "WRONG_AMOUNT", "MISSING_ENTRY",
+    arrange(factor(.data$issue, c("WRONG_FRANCHISE", "WRONG_AMOUNT", "SUSPECTED_NAME_MATCH", "MISSING_ENTRY",
                                   "INCOMPLETE_FORMULA")),
             .data$expected_franchise, .data$actual_franchise, .data$player)
 }
@@ -914,6 +961,26 @@ fail_on_mismatch <- arg_flag("fail-on-mismatch") ||
 send_email <- arg_flag("send-email")
 email_to <- trimws(arg_value("to", ""))
 issued_csv <- arg_value("issued-ledger", file.path("data", "commissioner_error_checker_issued.csv"))
+
+if (arg_flag("self-test-name-matching")) {
+  stopifnot(
+    description_matches_expected("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koramoah", FALSE),
+    description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koromoah", FALSE),
+    !description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Other-Player", FALSE)
+  )
+  expected_test <- tibble(
+    franchise = "MIN", player = "J. Owusu-Koromoah", amount = 0.63,
+    row_date = as.POSIXct(NA), is_cash_trade = FALSE
+  )
+  actual_test <- tibble(
+    actual_id = 1L, franchise = "MIN", amount = 0.63,
+    description = "J. Owusu-Koramoah - B/R - 4/24/25", entered_at = ""
+  )
+  finding_test <- build_commissioner_error_report(expected_test, actual_test)
+  stopifnot(nrow(finding_test) == 1L, finding_test$issue[[1]] == "SUSPECTED_NAME_MATCH")
+  message("Commissioner Error Checker suspected-name matching tests passed.")
+  quit(save = "no", status = 0L)
+}
 
 if (is.na(season)) stop("Provide a valid --season or CURRENT_SEASON.", call. = FALSE)
 if (is.na(tolerance) || tolerance < 0) tolerance <- 0.01

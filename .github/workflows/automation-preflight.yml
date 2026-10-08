@@ -115,6 +115,9 @@ jobs:
       - name: Verify SalAdj email template
         run: Rscript scripts/test_saladj_email.R
 
+      - name: Verify Commissioner Error Checker typo matching
+        run: Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching
+
       - name: Verify roster-cap streak and inactivity labels
         run: Rscript scripts/test_roster_cap_streaks.R
 
