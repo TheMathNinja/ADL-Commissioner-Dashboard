@@ -44,7 +44,6 @@
     ['percentile_lopsided_share','Lopsided performances · gap ≥50 percentile points',pct,'Lower = fewer opponents finished at least half the scoring rankings apart.'],
     ['close_pairing_index','Close performances / random pairing',n=>n==null?'—':num(n)+'×','1.00× = random pairing of that week’s scores; above 1 means more close pairings. Accounts for ties and different numbers of teams playing.'],
     ['lopsided_pairing_index','Lopsided performances / random pairing',n=>n==null?'—':num(n)+'×','Below 1 means fewer lopsided pairings than random pairing of that week’s scores.'],
-    ['mean_margin','Mean absolute margin · raw points',n=>num(n,1),'Context only: NFL points and ADL fantasy points use different scales.']
   ];
   const mobility=[
     ['correlation','Record persistence · r',num,'Lower positive correlation = less continuity in records.'],
