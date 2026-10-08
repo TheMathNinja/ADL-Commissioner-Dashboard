@@ -652,8 +652,9 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
         transaction_date = format_audit_datetime(expected$row_date),
         mfl_entered_at = format_audit_datetime(actual_entries$entered_at[[chosen]]),
         action = paste0(
-          "Verify that Contract Admin player '", expected$player,
-          "' matches the MFL entry; correct the typo in Contract Admin if so."
+          "Verify whether Contract Admin '", expected$player, "' and MFL '",
+          actual_entries$description[[chosen]],
+          "' refer to the same player; correct the Contract Admin spelling if so."
         )
       )
       next
@@ -883,6 +884,54 @@ label_stage_findings <- function(findings, stage, actual_system) {
     )
 }
 
+checker_list_label <- function(row) {
+  if (identical(as.character(row$actual_system), "MFL")) return("MFL salary adjustments")
+  if (grepl("Cap Rollover", as.character(row$stage), fixed = TRUE)) {
+    return("Contract Admin Cap Rollover")
+  }
+  if (identical(as.character(row$actual_system), "Contract Admin")) {
+    return("Contract Admin Sal Adj")
+  }
+  as.character(row$actual_system)
+}
+
+checker_error_label <- function(issue, list_label) {
+  label <- switch(
+    as.character(issue),
+    MISSING_ENTRY = "Missing entry in",
+    SUSPECTED_NAME_MATCH = "Suspected typo match in",
+    WRONG_FRANCHISE = "Incorrect franchise in",
+    WRONG_AMOUNT = "Incorrect amount in",
+    INCOMPLETE_FORMULA = "Incomplete formula in",
+    WRONG_CONTROL_FLAG = "Incorrect control flag in",
+    WRONG_CONTROL_VALUE = "Incorrect control value in",
+    CAP_ROLLOVER_MISMATCH = "Incorrect value in",
+    "Discrepancy in"
+  )
+  paste(label, list_label)
+}
+
+checker_expected_label <- function(list_label) {
+  if (identical(list_label, "MFL salary adjustments")) return("Expected MFL salary-adjustment entry")
+  paste0("Expected ", list_label, " entry")
+}
+
+format_checker_finding <- function(row) {
+  list_label <- checker_list_label(row)
+  expected_amount <- if (is.na(row$expected_amount)) "amount/formula pending" else {
+    paste0("$", sprintf("%.2f", row$expected_amount))
+  }
+  c(
+    paste0("Error Type: ", checker_error_label(row$issue, list_label)),
+    paste0(checker_expected_label(list_label), ": ", row$expected_franchise,
+           " | ", row$player, " | ", expected_amount),
+    if (!is.na(row$transaction_date) && nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
+    if (!is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) paste0(list_label, " entry date: ", row$mfl_entered_at) else NULL,
+    paste0("Required: ", row$action),
+    ""
+  )
+}
+
 audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
   credentials <- get_google_service_account_path()
   if (!nzchar(credentials) || !requireNamespace("googlesheets4", quietly = TRUE)) {
@@ -978,6 +1027,14 @@ if (arg_flag("self-test-name-matching")) {
   )
   finding_test <- build_commissioner_error_report(expected_test, actual_test)
   stopifnot(nrow(finding_test) == 1L, finding_test$issue[[1]] == "SUSPECTED_NAME_MATCH")
+  rendered_test <- format_checker_finding(
+    label_stage_findings(finding_test, "Contract Admin history / Curator-validated penalty logic -> MFL", "MFL")[1, ]
+  )
+  stopifnot(
+    rendered_test[[1]] == "Error Type: Suspected typo match in MFL salary adjustments",
+    rendered_test[[2]] == "Expected MFL salary-adjustment entry: MIN | J. Owusu-Koromoah | $0.63",
+    !any(grepl("^Stage:|^MFL:", rendered_test))
+  )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
 }
@@ -1090,20 +1147,7 @@ if (send_email && nrow(error_report)) {
 
   if (nrow(new_errors)) {
     lines <- unlist(lapply(seq_len(nrow(new_errors)), function(i) {
-      row <- new_errors[i, ]
-      actual <- if (is.na(row$actual_franchise) || !nzchar(row$actual_franchise)) "not found" else row$actual_franchise
-      c(
-        paste0(row$issue, ": ", row$player),
-        paste0("Stage: ", row$stage),
-        paste0("Expected: ", row$expected_franchise, " / $", sprintf("%.2f", row$expected_amount)),
-        paste0(row$actual_system, ": ", actual,
-               if (!is.na(row$actual_amount)) paste0(" / $", sprintf("%.2f", row$actual_amount)) else ""),
-        if (nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
-        if (nzchar(row$mfl_entered_at)) paste0(row$actual_system, " entry date: ", row$mfl_entered_at) else NULL,
-        if (nzchar(row$mfl_description)) paste0(row$actual_system, " entry: ", row$mfl_description) else NULL,
-        paste0("Required: ", row$action),
-        ""
-      )
+      format_checker_finding(new_errors[i, ])
     }))
     body <- paste(c(
       "The Commissioner Error Checker found new salary-adjustment discrepancies.",
