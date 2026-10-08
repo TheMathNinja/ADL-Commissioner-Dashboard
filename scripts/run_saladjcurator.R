@@ -168,7 +168,7 @@ run_audit <- list(
   scheduled_display = if (!is.na(workflow_scheduled_at)) {
     format_run_time(workflow_scheduled_at)
   } else {
-    format_run_time(as.POSIXct(paste(format(run_time_toronto, "%Y-%m-%d"), "05:17:00"), tz = "America/Toronto"))
+    ""
   },
   started_display = if (!is.na(workflow_started_at)) format_run_time(workflow_started_at) else "",
   completed_display = run_time_display,
