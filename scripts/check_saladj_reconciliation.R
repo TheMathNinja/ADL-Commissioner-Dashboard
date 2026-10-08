@@ -523,8 +523,10 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
       player = expected$player, is_cash_trade = expected$is_cash_trade
     )
     identity_candidates <- which(description_match & !(actual_entries$actual_id %in% used_actual))
+    candidate_amounts <- actual_entries$amount[identity_candidates]
     amount_candidates <- identity_candidates[
-      abs(actual_entries$amount[identity_candidates] - expected$amount) <= tolerance
+      !is.na(candidate_amounts) &
+        abs(candidate_amounts - expected$amount) <= tolerance
     ]
     identity_same_franchise <- identity_candidates[
       actual_entries$franchise[identity_candidates] == expected$franchise
