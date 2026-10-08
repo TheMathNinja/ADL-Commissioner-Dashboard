@@ -39,7 +39,7 @@ parse_amount <- function(x) {
   is_negative <- grepl("^\\s*-", raw) | grepl("^\\(.*\\)$", raw)
   match_at <- regexpr("[+-]?[0-9][0-9,]*(\\.[0-9]+)?", raw, perl = TRUE)
   cleaned <- rep(NA_character_, length(raw))
-  found <- match_at > 0
+  found <- !is.na(match_at) & match_at > 0
   cleaned[found] <- regmatches(raw, match_at)[found]
   cleaned <- gsub(",", "", cleaned, fixed = TRUE)
   parsed <- suppressWarnings(as.numeric(cleaned))
