@@ -936,7 +936,7 @@ format_checker_finding <- function(row) {
   amount_prefix <- if (is_control_issue) {
     "Calculated penalty"
   } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
-    "Salary"
+    "Contract"
   } else if (identical(list_label, "MFL salary adjustments")) {
     "Penalty/adjustment"
   } else {
@@ -1141,15 +1141,15 @@ if (arg_flag("self-test-name-matching")) {
   stopifnot(
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(afc_test)[[2]] ==
-      "Expected Sal Adj tab entry: DEN | Tyrel Dodson | Salary: $2.30 / 1 yr / 2026 UFA",
+      "Expected Sal Adj tab entry: DEN | Tyrel Dodson | Contract: $2.30 / 1 yr / 2026 UFA",
     format_checker_finding(nfc_test)[[1]] == "Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(nfc_test)[[2]] == paste0(
       "Erroneous Sal Adj tab entry: SFO | Dre Greenlaw | ",
-      "Salary: $6.06 / 1 yr / 2025 UFA"
+      "Contract: $6.06 / 1 yr / 2025 UFA"
     ),
     format_checker_finding(nfc_test)[[3]] == paste0(
       "Expected Sal Adj tab entry: ATL | Dre Greenlaw | ",
-      "Salary: $6.06 / 1 yr / 2025 UFA"
+      "Contract: $6.06 / 1 yr / 2025 UFA"
     )
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
