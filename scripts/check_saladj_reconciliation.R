@@ -898,7 +898,7 @@ checker_list_label <- function(row) {
     nfc <- c("DAL", "NYG", "PHI", "WAS", "CHI", "DET", "GBP", "MIN",
              "ATL", "CAR", "NOS", "TBB", "ARI", "LAR", "SFO", "SEA")
     conference <- if (as.character(row$expected_franchise) %in% nfc) "NFC" else "AFC"
-    return(paste(conference, "Sal Adj"))
+    return(paste(conference, "Sal Adj tab (Contract Admin Sheet)"))
   }
   as.character(row$actual_system)
 }
@@ -932,7 +932,7 @@ checker_row_value <- function(row, name, default = "") {
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
   expected_amount <- if (is.na(row$expected_amount)) "Amount/formula pending" else if (
-    list_label %in% c("NFC Sal Adj", "AFC Sal Adj")
+    grepl(" Sal Adj tab ", list_label, fixed = TRUE)
   ) {
     paste0("Salary: $", sprintf("%.2f", row$expected_amount))
   } else if (identical(list_label, "MFL salary adjustments")) {
@@ -945,7 +945,7 @@ format_checker_finding <- function(row) {
   player_identity <- paste(c(row$player, player_team, player_pos)[nzchar(c(row$player, player_team, player_pos))], collapse = " ")
   years <- suppressWarnings(as.numeric(checker_row_value(row, "expected_years", NA_character_)))
   contract <- checker_row_value(row, "expected_contract")
-  contract_details <- if (list_label %in% c("NFC Sal Adj", "AFC Sal Adj")) {
+  contract_details <- if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     c(if (!is.na(years)) paste0(format(years, trim = TRUE, scientific = FALSE), " yr"), contract)
   } else character()
   expected_parts <- c(row$expected_franchise, player_identity, expected_amount, contract_details)
@@ -1086,8 +1086,8 @@ if (arg_flag("self-test-name-matching")) {
            actual_system = "Contract Admin", action = "Add the missing entry.")
   nfc_test <- afc_test |> mutate(expected_franchise = "ATL")
   stopifnot(
-    format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj",
-    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj"
+    format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
+    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj tab (Contract Admin Sheet)"
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
