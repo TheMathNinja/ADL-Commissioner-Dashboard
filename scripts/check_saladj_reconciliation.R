@@ -284,6 +284,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
 
   player_col <- get_col("PLAYER")
   date_col <- get_col("DATE")
+  br_col <- get_col("B/R")
   tr_ib_col <- get_col("TR/IB")
   fg_col <- get_col("FG")
   suspended_col <- get_col("(S)")
@@ -306,6 +307,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
       row_date = parse_saladj_date(.env$date_col, .env$season),
       is_pre_july_1 = !is.na(.data$row_date) &
         as.Date(.data$row_date, tz = "America/Toronto") < as.Date(paste0(.env$season, "-07-01")),
+      is_br = is_marked(.env$br_col),
       is_trade_or_ib = is_marked(.env$tr_ib_col),
       is_fg = is_marked(.env$fg_col),
       is_suspended = is_marked(.env$suspended_col),
@@ -357,7 +359,15 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         amount = round(.data$expected_amount_known, 2),
         salary_amount,
         row_date,
-        is_cash_trade
+        is_cash_trade,
+        is_br,
+        is_trade_or_ib,
+        is_fg,
+        is_suspended,
+        is_jt,
+        is_accelerated,
+        plus_raw,
+        plus_amount
       ))
   }
 
@@ -627,7 +637,10 @@ contract_admin_saladj_entries <- function(season) {
     )
     rows <- as.data.frame(rows, stringsAsFactors = FALSE)
     headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
-    required <- c("DATE", "FRAN", "PLAYER", "SALARY", penalty_col, "RVSD?")
+    required <- c(
+      "DATE", "FRAN", "PLAYER", "SALARY", "B/R", "TR/IB", "FG", "(S)",
+      "JT", "ACC", "1.XX+", penalty_col, "RVSD?"
+    )
     missing <- setdiff(required, headers)
     if (length(missing)) {
       stop(tab, " is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
@@ -642,12 +655,112 @@ contract_admin_saladj_entries <- function(season) {
       penalty_amount = parse_amount(values[[column_index[[penalty_col]]]]),
       entered_at = as.character(values[[column_index[["DATE"]]]]),
       description = trimws(as.character(values[[column_index[["PLAYER"]]]])),
+      is_br = is_marked(values[[column_index[["B/R"]]]]),
+      is_trade_or_ib = is_marked(values[[column_index[["TR/IB"]]]]),
+      is_fg = is_marked(values[[column_index[["FG"]]]]),
+      is_suspended = is_marked(values[[column_index[["(S)"]]]]),
+      is_jt = is_marked(values[[column_index[["JT"]]]]),
+      is_accelerated = is_marked(values[[column_index[["ACC"]]]]),
+      plus_raw = trimws(as.character(values[[column_index[["1.XX+"]]]])),
+      plus_amount = case_when(
+        is.na(.data$plus_raw) | !nzchar(.data$plus_raw) ~ 0,
+        TRUE ~ parse_amount(.data$plus_raw)
+      ),
       is_reversed = is_marked(values[[column_index[["RVSD?"]]]]),
       sheet_tab = tab
     ) |>
       filter(nzchar(.data$franchise), nzchar(.data$player), !.data$is_reversed)
   })) |>
     mutate(actual_id = row_number())
+}
+
+audit_contract_admin_control_fields <- function(expected_entries, sheet_entries, tolerance = 0.01) {
+  controls <- tibble::tribble(
+    ~field, ~label,
+    "is_br", "B/R",
+    "is_trade_or_ib", "TR/IB",
+    "is_fg", "FG",
+    "is_suspended", "(S)",
+    "is_jt", "JT",
+    "is_accelerated", "ACC"
+  )
+  findings <- list()
+  finding_index <- 0L
+
+  for (i in seq_len(nrow(expected_entries))) {
+    expected <- expected_entries[i, ]
+    candidates <- which(
+      sheet_entries$franchise == expected$franchise &
+        vapply(
+          sheet_entries$description,
+          description_matches_expected,
+          logical(1),
+          player = expected$player,
+          is_cash_trade = expected$is_cash_trade
+        ) &
+        !is.na(sheet_entries$input_salary) &
+        abs(sheet_entries$input_salary - expected$salary_amount) <= tolerance
+    )
+    if (!length(candidates)) next
+    actual <- sheet_entries[candidates[[1]], ]
+
+    for (j in seq_len(nrow(controls))) {
+      field <- controls$field[[j]]
+      if (identical(isTRUE(expected[[field]]), isTRUE(actual[[field]]))) next
+      label <- controls$label[[j]]
+      direction <- if (isTRUE(expected[[field]])) "missing" else "unexpected"
+      finding_index <- finding_index + 1L
+      findings[[finding_index]] <- tibble(
+        issue = "WRONG_CONTROL_FLAG",
+        expected_franchise = expected$franchise,
+        actual_franchise = actual$franchise,
+        player = paste0(expected$player, " (", label, ")"),
+        expected_amount = expected$amount,
+        actual_amount = actual$penalty_amount,
+        mfl_description = paste0(
+          "Contract Admin ", label, " flag is ", direction,
+          "; this caused the sheet formula to calculate $",
+          sprintf("%.2f", actual$penalty_amount), " instead of $",
+          sprintf("%.2f", expected$amount), "."
+        ),
+        transaction_date = format_audit_datetime(expected$row_date),
+        mfl_entered_at = format_audit_datetime(actual$entered_at),
+        action = if (isTRUE(expected[[field]])) {
+          paste0("Mark ", label, " with x in Contract Admin and let its penalty formula recalculate.")
+        } else {
+          paste0("Remove the unexpected ", label, " mark in Contract Admin and let its penalty formula recalculate.")
+        },
+        stage = "SalAdj Curator controls -> Contract Admin formula",
+        actual_system = "Contract Admin"
+      )
+    }
+
+    expected_plus <- dplyr::coalesce(expected$plus_amount, 0)
+    actual_plus <- dplyr::coalesce(actual$plus_amount, 0)
+    if (abs(expected_plus - actual_plus) > tolerance) {
+      finding_index <- finding_index + 1L
+      findings[[finding_index]] <- tibble(
+        issue = "WRONG_CONTROL_VALUE",
+        expected_franchise = expected$franchise,
+        actual_franchise = actual$franchise,
+        player = paste0(expected$player, " (1.XX+)"),
+        expected_amount = expected$amount,
+        actual_amount = actual$penalty_amount,
+        mfl_description = paste0(
+          "Contract Admin 1.XX+ is '", actual$plus_raw, "' but Curator has '",
+          expected$plus_raw, "'; the formula produced $", sprintf("%.2f", actual$penalty_amount),
+          " instead of $", sprintf("%.2f", expected$amount), "."
+        ),
+        transaction_date = format_audit_datetime(expected$row_date),
+        mfl_entered_at = format_audit_datetime(actual$entered_at),
+        action = "Copy the Curator 1.XX+ value into Contract Admin and let its penalty formula recalculate.",
+        stage = "SalAdj Curator controls -> Contract Admin formula",
+        actual_system = "Contract Admin"
+      )
+    }
+  }
+
+  bind_rows(findings)
 }
 
 label_stage_findings <- function(findings, stage, actual_system) {
@@ -755,18 +868,18 @@ sheet_actual_entries <- sheet_entries |>
   )
 sheet_error_report <- build_commissioner_error_report(sheet_expected_entries, sheet_actual_entries, tolerance = tolerance) |>
   label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin")
-sheet_mfl_expected_entries <- sheet_entries |>
-  filter(!is.na(.data$penalty_amount)) |>
-  transmute(
-    expected_id = row_number(), franchise, player,
-    player_team = "", amount = .data$penalty_amount,
-    row_date = parse_saladj_date(.data$entered_at, season),
-    is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE"
-  )
-mfl_error_report <- build_commissioner_error_report(sheet_mfl_expected_entries, mfl_entries, tolerance = tolerance) |>
-  label_stage_findings("Contract Admin Sal Adj -> MFL", "MFL")
+control_field_error_report <- audit_contract_admin_control_fields(
+  expected_entries, sheet_entries, tolerance = tolerance
+)
+mfl_error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance) |>
+  label_stage_findings("SalAdj Curator / validated penalty logic -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
-error_report <- bind_rows(sheet_error_report, mfl_error_report, cap_rollover_error_report)
+error_report <- bind_rows(
+  sheet_error_report,
+  control_field_error_report,
+  mfl_error_report,
+  cap_rollover_error_report
+)
 error_report <- error_report |>
   mutate(
     legacy_issue_key = paste(.data$issue, .data$expected_franchise, .data$actual_franchise,
