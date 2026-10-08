@@ -81,57 +81,67 @@ if (is.na(season) || is.na(week) || week < 1L || week > 17L) stop("Valid season 
 if (!grepl("^[A-Za-z0-9._-]+$", key)) stop("Correction key must contain only letters, numbers, dot, underscore, or hyphen")
 
 base_dir <- file.path("data", "cap_accounting", season)
-summary_csv <- file.path(base_dir, "summaries", paste0(season, "w", week, "_ADLsalarycapsummary.csv"))
-summary_rds <- sub("\\.csv$", ".rds", summary_csv)
 ledger_csv <- file.path(base_dir, "manual_cap_corrections.csv")
 corr_col <- paste0("W", week, "_Corr")
 
 if (apply_files) {
-  if (!file.exists(summary_csv) || !file.exists(summary_rds)) stop("Official summary CSV/RDS is missing for week ", week)
+  summary_weeks <- week:17L
+  summary_csvs <- file.path(base_dir, "summaries", paste0(season, "w", summary_weeks, "_ADLsalarycapsummary.csv"))
+  summary_rdss <- sub("\\.csv$", ".rds", summary_csvs)
+  available <- file.exists(summary_csvs) & file.exists(summary_rdss)
+  summary_weeks <- summary_weeks[available]
+  summary_csvs <- summary_csvs[available]
+  summary_rdss <- summary_rdss[available]
+  if (!length(summary_weeks) || summary_weeks[[1]] != week) {
+    stop("Official summary CSV/RDS is missing for week ", week)
+  }
   ledger <- if (file.exists(ledger_csv)) {
     read.csv(ledger_csv, stringsAsFactors = FALSE, check.names = FALSE)
   } else {
     data.frame(season = integer(), week = integer(), key = character(), franchise = character(),
                amount = numeric(), reason = character(), applied_at_utc = character())
   }
-  csv_lines <- readLines(summary_csv, warn = FALSE)
-  csv_header <- strsplit(csv_lines[[1]], ",", fixed = TRUE)[[1]]
-  corr_index <- match(corr_col, csv_header)
-  summary_rds_data <- readRDS(summary_rds)
-
   for (i in seq_len(nrow(corrections))) {
     franchise <- corrections$FRANCHISE[[i]]
     amount <- corrections$amount[[i]]
     already <- ledger$season == season & ledger$week == week & ledger$key == key & ledger$franchise == franchise
     if (any(already)) next
 
-    csv_row <- which(startsWith(csv_lines[-1L], paste0(franchise, ","))) + 1L
-    rds_row <- which(summary_rds_data$FRANCHISE == franchise)
-    if (length(csv_row) != 1L || length(rds_row) != 1L || is.na(corr_index) || !corr_col %in% names(summary_rds_data)) {
-      stop("Could not uniquely locate ", franchise, " / ", corr_col, " in both summary files")
+    for (j in seq_along(summary_weeks)) {
+      csv_lines <- readLines(summary_csvs[[j]], warn = FALSE)
+      csv_header <- strsplit(csv_lines[[1]], ",", fixed = TRUE)[[1]]
+      corr_index <- match(corr_col, csv_header)
+      summary_rds_data <- readRDS(summary_rdss[[j]])
+      csv_row <- which(startsWith(csv_lines[-1L], paste0(franchise, ","))) + 1L
+      rds_row <- which(summary_rds_data$FRANCHISE == franchise)
+      if (length(csv_row) != 1L || length(rds_row) != 1L || is.na(corr_index) || !corr_col %in% names(summary_rds_data)) {
+        stop("Could not uniquely locate ", franchise, " / ", corr_col,
+             " in the Week ", summary_weeks[[j]], " summary files")
+      }
+      csv_line <- csv_lines[[csv_row]]
+      trailing_commas <- nchar(csv_line) - nchar(sub(",+$", "", csv_line))
+      csv_body <- if (trailing_commas > 0L) substr(csv_line, 1L, nchar(csv_line) - trailing_commas) else csv_line
+      csv_fields <- strsplit(csv_body, ",", fixed = TRUE)[[1]]
+      if (trailing_commas > 0L) csv_fields <- c(csv_fields, rep("", trailing_commas))
+      csv_current <- suppressWarnings(as.numeric(gsub("[$,]", "", csv_fields[[corr_index]])))
+      rds_current <- suppressWarnings(as.numeric(summary_rds_data[[corr_col]][[rds_row]]))
+      if (is.na(csv_current)) csv_current <- 0
+      if (is.na(rds_current)) rds_current <- 0
+      csv_fields[[corr_index]] <- sprintf("%.2f", csv_current + amount)
+      csv_lines[[csv_row]] <- paste(csv_fields, collapse = ",")
+      summary_rds_data[[corr_col]][[rds_row]] <- rds_current + amount
+      writeLines(csv_lines, summary_csvs[[j]], useBytes = TRUE)
+      saveRDS(summary_rds_data, summary_rdss[[j]])
     }
-    csv_line <- csv_lines[[csv_row]]
-    trailing_commas <- nchar(csv_line) - nchar(sub(",+$", "", csv_line))
-    csv_body <- if (trailing_commas > 0L) substr(csv_line, 1L, nchar(csv_line) - trailing_commas) else csv_line
-    csv_fields <- strsplit(csv_body, ",", fixed = TRUE)[[1]]
-    if (trailing_commas > 0L) csv_fields <- c(csv_fields, rep("", trailing_commas))
-    csv_current <- suppressWarnings(as.numeric(gsub("[$,]", "", csv_fields[[corr_index]])))
-    rds_current <- suppressWarnings(as.numeric(summary_rds_data[[corr_col]][[rds_row]]))
-    if (is.na(csv_current)) csv_current <- 0
-    if (is.na(rds_current)) rds_current <- 0
-    csv_fields[[corr_index]] <- sprintf("%.2f", csv_current + amount)
-    csv_lines[[csv_row]] <- paste(csv_fields, collapse = ",")
-    summary_rds_data[[corr_col]][[rds_row]] <- rds_current + amount
     ledger <- rbind(ledger, data.frame(
       season = season, week = week, key = key, franchise = franchise, amount = amount,
       reason = reason, applied_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     ))
   }
 
-  writeLines(csv_lines, summary_csv, useBytes = TRUE)
-  saveRDS(summary_rds_data, summary_rds)
   write.csv(ledger, ledger_csv, row.names = FALSE, na = "", quote = TRUE)
-  message("Updated dashboard summary CSV/RDS and correction ledger for week ", week, ".")
+  message("Updated dashboard summary CSV/RDS files from week ", week,
+          " through week ", max(summary_weeks), " and the correction ledger.")
 }
 
 if (apply_sheet) {

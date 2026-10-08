@@ -1,3 +1,7 @@
 "season","week","key","franchise","amount","reason","applied_at_utc"
 2026,4,"greenlaw-w4-wrong-franchise","ATL",3.64,"Dre Greenlaw drop penalty entered under SFO instead of ATL","2026-10-08T01:57:58Z"
 2026,4,"greenlaw-w4-wrong-franchise","SFO",-3.64,"Dre Greenlaw drop penalty entered under SFO instead of ATL","2026-10-08T01:57:58Z"
+2026,1,"diggs-penalty-7.38-to-7.83-w1","LAR",0.45,"Stefon Diggs MFL salary adjustment corrected from 7.38 to 7.83","2026-10-08T21:23:56Z"
+2026,2,"diggs-penalty-7.38-to-7.83-w2","LAR",0.45,"Stefon Diggs MFL salary adjustment corrected from 7.38 to 7.83","2026-10-08T21:23:56Z"
+2026,3,"diggs-penalty-7.38-to-7.83-w3","LAR",0.45,"Stefon Diggs MFL salary adjustment corrected from 7.38 to 7.83","2026-10-08T21:23:56Z"
+2026,4,"diggs-penalty-7.38-to-7.83-w4","LAR",0.45,"Stefon Diggs MFL salary adjustment corrected from 7.38 to 7.83","2026-10-08T21:23:57Z"
