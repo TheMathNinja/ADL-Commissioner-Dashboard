@@ -6,7 +6,7 @@ vm.runInNewContext(fs.readFileSync('R/parity_report.js','utf8'),{document:{getEl
 const change=(id,value)=>{element('parity-'+id).value=value;element('parity-'+id).handlers.change();};
 assert(element('parity-sample').textContent.includes('160 team-seasons'));
 assert(element('parity-mobility-sample').textContent.includes('128 franchise transitions'));
-for(const p of data.pooled)assert(element('parity-mobility-metrics').innerHTML.includes(p.beta.toFixed(2)));
+for(const p of data.pooled)assert(element('parity-mobility-metrics').innerHTML.includes(p.correlation.toFixed(2)));
 change('minimum','2023');change('maximum','2024');
 assert(element('parity-sample').textContent.includes('64 team-seasons'));
 assert(element('parity-mobility-sample').textContent.includes('32 franchise transitions'));
@@ -21,4 +21,6 @@ assert(element('parity-range-controls').hidden);
 assert(element('parity-context').textContent.includes('2026 season-to-date'));
 assert(element('parity-movements').innerHTML.includes('2025→2026'));
 assert(!element('parity-metrics').innerHTML.includes('NaN'));
+assert(!element('parity-mobility-metrics').innerHTML.includes('β'));
+assert(element('parity-mobility-metrics').innerHTML.includes('Record persistence · r'));
 console.log('Parity ranges verified: full pool, restricted adjacent transitions, one year, crossed endpoints and separate YTD.');

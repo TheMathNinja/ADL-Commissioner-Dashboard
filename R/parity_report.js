@@ -24,7 +24,7 @@
     if(!rows.length)return out;
     const xx=rows.reduce((v,r)=>v+r.prior_centered**2,0),yy=rows.reduce((v,r)=>v+r.next_centered**2,0),xy=rows.reduce((v,r)=>v+r.prior_centered*r.next_centered,0);
     out.beta=xx?xy/xx:null;out.regression_to_mean=out.beta==null?null:1-out.beta;out.correlation=xx&&yy?xy/Math.sqrt(xx*yy):null;
-    const den=rows.reduce((v,r)=>v+r.prior_margin_centered**2,0);out.margin_beta=league==='ADL Reg Season'||!den?null:rows.reduce((v,r)=>v+r.prior_margin_centered*r.next_margin_centered,0)/den;
+    const marginXX=rows.reduce((v,r)=>v+r.prior_margin_centered**2,0),marginYY=rows.reduce((v,r)=>v+r.next_margin_centered**2,0),marginXY=rows.reduce((v,r)=>v+r.prior_margin_centered*r.next_margin_centered,0);out.margin_correlation=league==='ADL Reg Season'||!marginXX||!marginYY?null:marginXY/Math.sqrt(marginXX*marginYY);
     out.mean_absolute_change=avg(rows.map(r=>Math.abs(r.change)));
     const cohort=(key,f)=>rows.reduce((v,r)=>v+r[key]*f(r),0)/rows.reduce((v,r)=>v+r[key],0);
     out.bottom_next_win_pct=cohort('bottom_weight',r=>r.next_win_pct);out.bottom_improvement=cohort('bottom_weight',r=>r.change);out.bottom_to_winning=cohort('bottom_weight',r=>r.next_win_pct>.5);out.bottom_to_top=cohort('bottom_weight',r=>r.next_top_weight);out.top_to_losing=cohort('top_weight',r=>r.next_win_pct<.5);out.top_to_bottom=cohort('top_weight',r=>r.next_bottom_weight);
@@ -47,10 +47,8 @@
     ['mean_margin','Mean absolute margin · raw points',n=>num(n,1),'Context only: NFL points and ADL fantasy points use different scales.']
   ];
   const mobility=[
-    ['beta','Record persistence · β',num,'Lower = prior records carry over less strongly.'],
-    ['regression_to_mean','Regression toward the mean · 1 − β',pct,'Higher = more reduction in the prior above/below-average gap.'],
-    ['correlation','Record correlation · r',num,'Lower positive correlation = less continuity in records.'],
-    ['margin_beta','Normalized net-margin persistence · β',num,'A second persistence measure based on scoring margins.'],
+    ['correlation','Record persistence · r',num,'Lower positive correlation = less continuity in records.'],
+    ['margin_correlation','Normalized net-margin persistence · r',num,'A second persistence measure based on scoring margins.'],
     ['mean_absolute_change','Average absolute win % movement',pp,'Larger = more year-to-year movement; also affected by record noise.'],
     ['bottom_next_win_pct','Bottom quartile · next-year win %',pct,'How far weaker teams rebound on average.'],
     ['bottom_improvement','Bottom quartile · average improvement',pp,'Change in winning percentage for the prior bottom group.'],
@@ -60,7 +58,7 @@
     ['top_to_bottom','Top quartile → bottom quartile',pct,'A complete fall from the top group to the bottom group.']
   ];
   const bands=(labels,b,n,a,r)=>labels.map((label,i)=>{const bar=v=>`<span class="parity-bar"><i style="width:${100*v}%"></i></span>${pct(v)}`;return `<tr><th scope="row">${label}</th><td>${bar(b[i])}</td><td>${bar(a[i])}</td><td>${bar(n[i])}</td>${r?`<td>${bar(r[i])}</td>`:''}</tr>`;}).join('');
-  function scatter(rows,beta,league){
+  function scatter(rows,beta,correlation,league){
     const x=v=>48+v*282,y=v=>330-v*282,color=league==='NFL'?'#174ea6':'#c83a3f';
     const mx=rows.reduce((s,r)=>s+r.prior_win_pct,0)/rows.length,my=rows.reduce((s,r)=>s+r.next_win_pct,0)/rows.length;
     let svg=`<svg class="parity-scatter" viewBox="0 0 390 390" role="img" aria-label="${league} prior versus next year winning percentage"><rect x="48" y="48" width="282" height="282" fill="#fafbfc" stroke="#d0d5dd"/>`;
@@ -68,7 +66,7 @@
     svg+=`<line x1="48" y1="330" x2="330" y2="48" stroke="#98a2b3" stroke-dasharray="4 4"/>`;
     if(beta!=null)svg+=`<line x1="48" x2="330" y1="${y(Math.max(0,Math.min(1,my-beta*mx)))}" y2="${y(Math.max(0,Math.min(1,my+beta*(1-mx))))}" stroke="${color}" stroke-width="2"/>`;
     for(const r of rows)svg+=`<circle cx="${x(r.prior_win_pct)}" cy="${y(r.next_win_pct)}" r="4" fill="${color}" opacity=".65"><title>${esc(r.team)} (${r.from_season}→${r.to_season}): ${pct(r.prior_win_pct)} → ${pct(r.next_win_pct)}</title></circle>`;
-    return svg+`<text x="190" y="377" text-anchor="middle" font-size="12">Prior season win %</text><text transform="translate(14 190) rotate(-90)" text-anchor="middle" font-size="12">Next season win %</text><text x="48" y="30" font-size="13" fill="${color}">β = ${num(beta)}</text></svg>`;
+    return svg+`<text x="190" y="377" text-anchor="middle" font-size="12">Prior season win %</text><text transform="translate(14 190) rotate(-90)" text-anchor="middle" font-size="12">Next season win %</text><text x="48" y="30" font-size="13" fill="${color}">r = ${num(correlation)}</text></svg>`;
   }
   function matrix(values){const labels=['Bottom 25%','Lower middle','Upper middle','Top 25%'];return '<table class="parity-table parity-matrix"><thead><tr><th>Prior → next</th>'+labels.map(l=>`<th>${l}</th>`).join('')+'</tr></thead><tbody>'+values.map((row,i)=>`<tr><th scope="row">${labels[i]}</th>${row.map(v=>`<td style="background:rgba(23,78,166,${v*.65})">${pct(v)}</td>`).join('')}</tr>`).join('')+'</tbody></table>';}
   function render(){
@@ -97,7 +95,7 @@
     }).join('');
     for(const league of ['NFL12','ADL','NFL','ADL Reg Season']){
       const id=league==='ADL Reg Season'?'adl-reg':league.toLowerCase(),t=pools[leagues.indexOf(league)];
-      if(movement.length){$(id+'-scatter').innerHTML=scatter(movement.filter(r=>r.league===league),t.beta,league);$(id+'-matrix').innerHTML=matrix(t.transition_matrix);}
+      if(movement.length){$(id+'-scatter').innerHTML=scatter(movement.filter(r=>r.league===league),t.beta,t.correlation,league);$(id+'-matrix').innerHTML=matrix(t.transition_matrix);}
       const source=data.teams.filter(r=>r.league===league&&(ytd?r.season===latest:r.season>=minimum&&r.season<=maximum)),grouped=new Map();
       for(const r of source){if(!grouped.has(r.team_id))grouped.set(r.team_id,{...r,wins:0,losses:0,ties:0,games:0,normalized_net_margin:0,count:0});const v=grouped.get(r.team_id);for(const key of ['wins','losses','ties','games'])v[key]+=r[key];v.normalized_net_margin+=r.normalized_net_margin;v.count++;v.team=r.team;}
       const teams=[...grouped.values()].map(r=>({...r,win_pct:(r.wins+.5*r.ties)/r.games,normalized_net_margin:r.normalized_net_margin/r.count})).sort((x,y)=>y.win_pct-x.win_pct);
