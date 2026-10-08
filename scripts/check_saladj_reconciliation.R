@@ -997,7 +997,10 @@ format_checker_finding <- function(row) {
     } else NULL,
     paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | ")),
     if (!is.na(row$transaction_date) && nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
-    if (!is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) paste0(list_label, " entry date: ", row$mfl_entered_at) else NULL,
+    if (identical(list_label, "MFL salary adjustments") &&
+        !is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) {
+      paste0("MFL salary-adjustment entry date: ", row$mfl_entered_at)
+    } else NULL,
     paste0("Required: ", row$action),
     ""
   )
@@ -1137,7 +1140,8 @@ if (arg_flag("self-test-name-matching")) {
   nfc_test <- afc_test |>
     mutate(issue = "WRONG_FRANCHISE", expected_franchise = "ATL", actual_franchise = "SFO",
            player = "Dre Greenlaw", expected_amount = 6.06, actual_amount = 6.06,
-           expected_player_team = "SFO", expected_contract = "2025 UFA")
+           expected_player_team = "SFO", expected_contract = "2025 UFA",
+           mfl_entered_at = "9/30/2026")
   stopifnot(
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(afc_test)[[2]] ==
@@ -1150,7 +1154,8 @@ if (arg_flag("self-test-name-matching")) {
     format_checker_finding(nfc_test)[[3]] == paste0(
       "Expected Sal Adj tab entry: ATL | Dre Greenlaw | ",
       "Contract: $6.06 / 1 yr / 2025 UFA"
-    )
+    ),
+    !any(grepl("entry date", format_checker_finding(nfc_test), ignore.case = TRUE))
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
