@@ -34,7 +34,17 @@ arg_flag <- function(name) {
 }
 
 parse_amount <- function(x) {
-  suppressWarnings(as.numeric(gsub("[$,]", "", as.character(x))))
+  raw <- trimws(as.character(x))
+  raw <- gsub("[\u2212\u2012\u2013\u2014]", "-", raw, perl = TRUE)
+  is_negative <- grepl("^\\s*-", raw) | grepl("^\\(.*\\)$", raw)
+  match_at <- regexpr("[+-]?[0-9][0-9,]*(\\.[0-9]+)?", raw, perl = TRUE)
+  cleaned <- rep(NA_character_, length(raw))
+  found <- match_at > 0
+  cleaned[found] <- regmatches(raw, match_at)[found]
+  cleaned <- gsub(",", "", cleaned, fixed = TRUE)
+  parsed <- suppressWarnings(as.numeric(cleaned))
+  parsed[is_negative & !is.na(parsed)] <- -abs(parsed[is_negative & !is.na(parsed)])
+  parsed
 }
 
 parse_saladj_date <- function(x, season) {
