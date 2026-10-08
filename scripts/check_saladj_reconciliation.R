@@ -590,7 +590,12 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
     }
 
     if (length(identity_same_franchise)) {
-      chosen <- identity_same_franchise[[which.min(abs(actual_entries$amount[identity_same_franchise] - expected$amount))]]
+      numeric_identity_candidates <- identity_same_franchise[!is.na(actual_entries$amount[identity_same_franchise])]
+      chosen <- if (length(numeric_identity_candidates)) {
+        numeric_identity_candidates[[which.min(abs(actual_entries$amount[numeric_identity_candidates] - expected$amount))]]
+      } else {
+        identity_same_franchise[[1]]
+      }
       used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
       findings[[i]] <- tibble(
         issue = "WRONG_AMOUNT", expected_franchise = expected$franchise,
