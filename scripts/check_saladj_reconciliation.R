@@ -1083,11 +1083,23 @@ if (arg_flag("self-test-name-matching")) {
   afc_test <- finding_test[1, ] |>
     mutate(issue = "MISSING_ENTRY", expected_franchise = "DEN", player = "Tyrel Dodson",
            expected_amount = 2.3, stage = "SalAdj Curator -> Contract Admin Sal Adj",
-           actual_system = "Contract Admin", action = "Add the missing entry.")
-  nfc_test <- afc_test |> mutate(expected_franchise = "ATL")
+           actual_system = "Contract Admin", action = "Add the missing entry.",
+           expected_player_team = "CAR", expected_player_pos = "LB",
+           expected_years = 1, expected_contract = "2026 UFA")
+  nfc_test <- afc_test |>
+    mutate(expected_franchise = "ATL", player = "Dre Greenlaw", expected_amount = 6.06,
+           expected_player_team = "SFO", expected_contract = "2025 UFA")
   stopifnot(
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
-    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj tab (Contract Admin Sheet)"
+    format_checker_finding(afc_test)[[2]] == paste0(
+      "Expected AFC Sal Adj tab (Contract Admin Sheet) entry: DEN | Tyrel Dodson CAR LB | ",
+      "Salary: $2.30 | 1 yr | 2026 UFA"
+    ),
+    format_checker_finding(nfc_test)[[1]] == "Error Type: Missing entry in NFC Sal Adj tab (Contract Admin Sheet)",
+    format_checker_finding(nfc_test)[[2]] == paste0(
+      "Expected NFC Sal Adj tab (Contract Admin Sheet) entry: ATL | Dre Greenlaw SFO LB | ",
+      "Salary: $6.06 | 1 yr | 2025 UFA"
+    )
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
