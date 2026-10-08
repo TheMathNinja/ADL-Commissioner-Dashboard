@@ -317,6 +317,6 @@ function installCloudScheduler() {
     if (trigger.getHandlerFunction() === 'runCloudGitHubPolls' ||
         trigger.getHandlerFunction() === 'runCloudLeagueScheduler') ScriptApp.deleteTrigger(trigger);
   });
-  ScriptApp.newTrigger('runCloudLeagueScheduler').timeBased().everyMinutes(15).create();
-  return 'Installed one free 15-minute scheduler for all recurring league workflows.';
+  ScriptApp.newTrigger('runCloudLeagueScheduler').timeBased().everyMinutes(5).create();
+  return 'Installed one free 5-minute scheduler for all recurring league workflows.';
 }
