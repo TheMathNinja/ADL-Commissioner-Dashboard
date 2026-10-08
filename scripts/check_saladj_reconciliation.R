@@ -921,6 +921,7 @@ checker_error_label <- function(issue, list_label) {
 
 checker_expected_label <- function(list_label) {
   if (identical(list_label, "MFL salary adjustments")) return("Expected MFL salary-adjustment entry")
+  if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) return("Expected Sal Adj tab entry")
   paste0("Expected ", list_label, " entry")
 }
 
@@ -948,13 +949,18 @@ format_checker_finding <- function(row) {
   }
   player_team <- checker_row_value(row, "expected_player_team")
   player_pos <- checker_row_value(row, "expected_player_pos")
-  player_identity <- paste(c(row$player, player_team, player_pos)[nzchar(c(row$player, player_team, player_pos))], collapse = " ")
+  player_identity <- if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+    as.character(row$player)
+  } else {
+    paste(c(row$player, player_team, player_pos)[nzchar(c(row$player, player_team, player_pos))], collapse = " ")
+  }
   years <- suppressWarnings(as.numeric(checker_row_value(row, "expected_years", NA_character_)))
   contract <- checker_row_value(row, "expected_contract")
   contract_details <- if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     c(if (!is.na(years)) paste0(format(years, trim = TRUE, scientific = FALSE), " yr"), contract)
   } else character()
-  expected_parts <- c(row$expected_franchise, player_identity, expected_amount, contract_details)
+  expected_financial <- paste(c(expected_amount, contract_details)[nzchar(c(expected_amount, contract_details))], collapse = " / ")
+  expected_parts <- c(row$expected_franchise, player_identity, expected_financial)
   expected_parts <- expected_parts[!is.na(expected_parts) & nzchar(expected_parts)]
   actual_franchise <- checker_row_value(row, "actual_franchise")
   actual_amount <- suppressWarnings(as.numeric(checker_row_value(row, "actual_amount", NA_character_)))
@@ -964,15 +970,23 @@ format_checker_finding <- function(row) {
   } else {
     player_identity
   }
+  actual_financial <- paste(c(
+    if (!is.na(actual_amount)) paste0(amount_prefix, ": $", sprintf("%.2f", actual_amount)),
+    contract_details
+  )[nzchar(c(
+    if (!is.na(actual_amount)) paste0(amount_prefix, ": $", sprintf("%.2f", actual_amount)),
+    contract_details
+  ))], collapse = " / ")
   actual_parts <- c(
     actual_franchise,
     actual_identity,
-    if (!is.na(actual_amount)) paste0(amount_prefix, ": $", sprintf("%.2f", actual_amount)),
-    contract_details
+    actual_financial
   )
   actual_parts <- actual_parts[!is.na(actual_parts) & nzchar(actual_parts)]
   actual_label <- if (as.character(row$issue) == "SUSPECTED_NAME_MATCH") {
     paste0("Possible matching ", list_label, " entry")
+  } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+    "Erroneous Sal Adj tab entry"
   } else {
     paste0("Erroneous ", list_label, " entry")
   }
@@ -1126,18 +1140,16 @@ if (arg_flag("self-test-name-matching")) {
            expected_player_team = "SFO", expected_contract = "2025 UFA")
   stopifnot(
     format_checker_finding(afc_test)[[1]] == "Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)",
-    format_checker_finding(afc_test)[[2]] == paste0(
-      "Expected AFC Sal Adj tab (Contract Admin Sheet) entry: DEN | Tyrel Dodson CAR LB | ",
-      "Salary: $2.30 | 1 yr | 2026 UFA"
-    ),
+    format_checker_finding(afc_test)[[2]] ==
+      "Expected Sal Adj tab entry: DEN | Tyrel Dodson | Salary: $2.30 / 1 yr / 2026 UFA",
     format_checker_finding(nfc_test)[[1]] == "Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)",
     format_checker_finding(nfc_test)[[2]] == paste0(
-      "Erroneous NFC Sal Adj tab (Contract Admin Sheet) entry: SFO | Dre Greenlaw SFO LB | ",
-      "Salary: $6.06 | 1 yr | 2025 UFA"
+      "Erroneous Sal Adj tab entry: SFO | Dre Greenlaw | ",
+      "Salary: $6.06 / 1 yr / 2025 UFA"
     ),
     format_checker_finding(nfc_test)[[3]] == paste0(
-      "Expected NFC Sal Adj tab (Contract Admin Sheet) entry: ATL | Dre Greenlaw SFO LB | ",
-      "Salary: $6.06 | 1 yr | 2025 UFA"
+      "Expected Sal Adj tab entry: ATL | Dre Greenlaw | ",
+      "Salary: $6.06 / 1 yr / 2025 UFA"
     )
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
