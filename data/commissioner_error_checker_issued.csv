@@ -272,3 +272,7 @@ MISSING_ENTRY|NOS|NA|Cash Trade|5.16|NA,2026-10-07 22:33:35 EDT
 MISSING_ENTRY|NOS|NA|Cash Trade|2.16|NA,2026-10-07 22:33:35 EDT
 MISSING_ENTRY|NYG|NA|Cash Trade|-2.16|NA,2026-10-07 22:33:35 EDT
 MISSING_ENTRY|WAS|NA|Cash Trade|-5.16|NA,2026-10-07 22:33:35 EDT
+SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NOS|NOS|Cash Trade (TR/IB)|8.60|5.16,2026-10-08 00:10:59 EDT
+SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|WAS|WAS|Cash Trade (TR/IB)|-8.60|-5.16,2026-10-08 00:10:59 EDT
+SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NOS|NOS|Cash Trade (TR/IB)|3.60|2.16,2026-10-08 00:10:59 EDT
+SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NYG|NYG|Cash Trade (TR/IB)|-3.60|-2.16,2026-10-08 00:10:59 EDT

@@ -1,61 +1,39 @@
 The Commissioner Error Checker found new salary-adjustment discrepancies.
 
-WRONG_FRANCHISE: Dre Greenlaw
-Stage: SalAdj Curator -> Contract Admin Sal Adj
-Expected: ATL / $6.06
-Contract Admin: SFO / $6.06
-Original transaction/drop: Sep 30, 2026 at 2:03:42 PM ET
-Contract Admin entry date: 9/30/2026
-Contract Admin entry: D. Greenlaw
-Required: Move this Contract Admin entry from SFO to ATL.
+WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
+Stage: SalAdj Curator controls -> Contract Admin formula
+Expected: NOS / $8.60
+Contract Admin: NOS / $5.16
+Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
+Contract Admin entry date: 8/26/2026
+Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $5.16 instead of $8.60.
+Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
 
-MISSING_ENTRY: Tyrel Dodson
-Stage: SalAdj Curator -> Contract Admin Sal Adj
-Expected: DEN / $2.30
-Contract Admin: not found
-Original transaction/drop: Oct 7, 2026 at 7:30:35 PM ET
-Required: Add the missing $2.30 Contract Admin entry to DEN.
+WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
+Stage: SalAdj Curator controls -> Contract Admin formula
+Expected: WAS / $-8.60
+Contract Admin: WAS / $-5.16
+Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
+Contract Admin entry date: 8/26/2026
+Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $-5.16 instead of $-8.60.
+Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
 
-WRONG_AMOUNT: S. Diggs
-Stage: Contract Admin Sal Adj -> MFL
-Expected: LAR / $7.83
-MFL: LAR / $7.38
-MFL entry date: Apr 27, 2026 at 1:15:22 PM ET
-MFL entry: S. Diggs - 2026 B/R
-Required: Change the MFL entry to $7.83.
+WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
+Stage: SalAdj Curator controls -> Contract Admin formula
+Expected: NOS / $3.60
+Contract Admin: NOS / $2.16
+Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
+Contract Admin entry date: 9/1/2026
+Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $2.16 instead of $3.60.
+Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
 
-MISSING_ENTRY: J. Owusu-Koromoah
-Stage: Contract Admin Sal Adj -> MFL
-Expected: MIN / $0.63
-MFL: not found
-Required: Add the missing $0.63 MFL entry to MIN.
-
-MISSING_ENTRY: Cash Trade
-Stage: Contract Admin Sal Adj -> MFL
-Expected: NOS / $5.16
-MFL: not found
-Original transaction/drop: Aug 26, 2026 at 12:00:00 AM ET
-Required: Add or verify the missing $5.16 cash-trade adjustment for NOS.
-
-MISSING_ENTRY: Cash Trade
-Stage: Contract Admin Sal Adj -> MFL
-Expected: NOS / $2.16
-MFL: not found
-Original transaction/drop: Sep 1, 2026 at 12:00:00 AM ET
-Required: Add or verify the missing $2.16 cash-trade adjustment for NOS.
-
-MISSING_ENTRY: Cash Trade
-Stage: Contract Admin Sal Adj -> MFL
-Expected: NYG / $-2.16
-MFL: not found
-Original transaction/drop: Sep 1, 2026 at 12:00:00 AM ET
-Required: Add or verify the missing $-2.16 cash-trade adjustment for NYG.
-
-MISSING_ENTRY: Cash Trade
-Stage: Contract Admin Sal Adj -> MFL
-Expected: WAS / $-5.16
-MFL: not found
-Original transaction/drop: Aug 26, 2026 at 12:00:00 AM ET
-Required: Add or verify the missing $-5.16 cash-trade adjustment for WAS.
+WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
+Stage: SalAdj Curator controls -> Contract Admin formula
+Expected: NYG / $-3.60
+Contract Admin: NYG / $-2.16
+Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
+Contract Admin entry date: 9/1/2026
+Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $-2.16 instead of $-3.60.
+Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
