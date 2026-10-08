@@ -9,6 +9,18 @@ library(tibble)
 source("R/config_helpers.R")
 source("R/commissioner_alerts.R")
 
+get_google_service_account_path <- function() {
+  credentials_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS", unset = "")
+  if (nzchar(credentials_path)) return(credentials_path)
+
+  credentials_json <- Sys.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", unset = "")
+  if (!nzchar(credentials_json)) return("")
+
+  path <- tempfile(fileext = ".json")
+  writeLines(credentials_json, path, useBytes = TRUE)
+  path
+}
+
 arg_value <- function(name, default = NULL) {
   args <- commandArgs(trailingOnly = TRUE)
   prefix <- paste0("--", name, "=")
@@ -585,6 +597,128 @@ build_commissioner_error_report <- function(expected_entries, actual_entries, to
             .data$expected_franchise, .data$actual_franchise, .data$player)
 }
 
+contract_admin_saladj_entries <- function(season) {
+  if (!requireNamespace("googlesheets4", quietly = TRUE)) {
+    stop("Package googlesheets4 is required for the Contract Admin audit.", call. = FALSE)
+  }
+  credentials <- get_google_service_account_path()
+  if (!nzchar(credentials)) {
+    stop("GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS is required for the Contract Admin audit.", call. = FALSE)
+  }
+
+  googlesheets4::gs4_auth(path = credentials)
+  sheet_id <- Sys.getenv(
+    "CONTRACT_ADMIN_SHEET_ID",
+    unset = "1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw"
+  )
+  penalty_col <- paste0(season, " PEN")
+
+  bind_rows(lapply(c("NFC Sal Adj", "AFC Sal Adj"), function(tab) {
+    rows <- googlesheets4::read_sheet(
+      ss = sheet_id,
+      sheet = tab,
+      range = "A1:X",
+      col_types = "c",
+      .name_repair = "unique_quiet"
+    )
+    required <- c("DATE", "FRAN", "PLAYER", penalty_col)
+    missing <- setdiff(required, names(rows))
+    if (length(missing)) {
+      stop(tab, " is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
+    }
+
+    rows |>
+      transmute(
+        franchise = toupper(trimws(as.character(.data$FRAN))),
+        player = trimws(as.character(.data$PLAYER)),
+        amount = parse_amount(.data[[penalty_col]]),
+        entered_at = as.character(.data$DATE),
+        description = trimws(as.character(.data$PLAYER)),
+        sheet_tab = tab
+      ) |>
+      filter(nzchar(.data$franchise), nzchar(.data$player), !is.na(.data$amount))
+  })) |>
+    mutate(actual_id = row_number())
+}
+
+label_stage_findings <- function(findings, stage, actual_system) {
+  if (!nrow(findings)) return(findings)
+  findings |>
+    mutate(
+      stage = stage,
+      actual_system = actual_system,
+      action = gsub("MFL adjustment", paste0(actual_system, " entry"), .data$action, fixed = TRUE)
+    )
+}
+
+audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
+  credentials <- get_google_service_account_path()
+  if (!nzchar(credentials) || !requireNamespace("googlesheets4", quietly = TRUE)) {
+    return(tibble())
+  }
+
+  sheet_id <- Sys.getenv(
+    "CONTRACT_ADMIN_SHEET_ID",
+    unset = "1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw"
+  )
+  summary_dir <- file.path("data", "cap_accounting", as.character(season), "summaries")
+  files <- list.files(summary_dir, pattern = paste0("^", season, "w[0-9]+_ADLsalarycapsummary\\.csv$"), full.names = TRUE)
+  if (!length(files)) return(tibble())
+
+  googlesheets4::gs4_auth(path = credentials)
+  sheet <- googlesheets4::read_sheet(
+    ss = sheet_id, sheet = "Cap Rollover", range = "A1:HC34",
+    col_names = FALSE, col_types = "c", .name_repair = "minimal"
+  )
+  sheet <- as.data.frame(sheet, stringsAsFactors = FALSE)
+  teams <- trimws(as.character(sheet[3:34, 1]))
+  findings <- list()
+
+  for (file in files) {
+    week <- suppressWarnings(as.integer(sub(paste0("^.*", season, "w([0-9]+)_.*$"), "\\1", file)))
+    if (is.na(week)) next
+    summary <- readr::read_csv(file, show_col_types = FALSE)
+    prefix <- paste0("W", week, "_")
+    cols <- paste0(prefix, c("A", "IR", "S", "TE", "Yrs", "Ill?", "Paid", "Vac$", "RostSal", "Adj"))
+    if (!all(c("FRANCHISE", cols) %in% names(summary))) next
+    start_col <- 2L + (week - 1L) * 12L
+    end_col <- start_col + 9L
+    if (end_col > ncol(sheet)) next
+
+    for (i in seq_len(nrow(summary))) {
+      sheet_row <- match(trimws(summary$FRANCHISE[[i]]), teams) + 2L
+      if (is.na(sheet_row)) next
+      expected_values <- as.character(unlist(summary[i, cols], use.names = FALSE))
+      actual_values <- as.character(unlist(sheet[sheet_row, start_col:end_col], use.names = FALSE))
+      numeric_positions <- setdiff(seq_along(cols), 6L)
+      numeric_bad <- vapply(numeric_positions, function(j) {
+        expected <- suppressWarnings(as.numeric(expected_values[[j]]))
+        actual <- suppressWarnings(as.numeric(actual_values[[j]]))
+        (is.na(expected) != is.na(actual)) || (!is.na(expected) && abs(expected - actual) > tolerance)
+      }, logical(1))
+      text_bad <- !identical(trimws(expected_values[[6]]), trimws(actual_values[[6]]))
+      bad <- c(numeric_positions[numeric_bad], if (text_bad) 6L else integer())
+      for (j in bad) {
+        findings[[length(findings) + 1L]] <- tibble(
+          issue = "CAP_ROLLOVER_MISMATCH",
+          expected_franchise = trimws(summary$FRANCHISE[[i]]),
+          actual_franchise = trimws(summary$FRANCHISE[[i]]),
+          player = paste0("Week ", week, " ", sub(prefix, "", cols[[j]], fixed = TRUE)),
+          expected_amount = suppressWarnings(as.numeric(expected_values[[j]])),
+          actual_amount = suppressWarnings(as.numeric(actual_values[[j]])),
+          mfl_description = paste0("Sheet value: ", actual_values[[j]]),
+          transaction_date = "",
+          mfl_entered_at = "",
+          action = paste0("Restore Cap Rollover from ", basename(file), "."),
+          stage = "Official snapshot CSV -> Contract Admin Cap Rollover",
+          actual_system = "Contract Admin"
+        )
+      }
+    }
+  }
+  bind_rows(findings)
+}
+
 season <- suppressWarnings(as.integer(arg_value("season", Sys.getenv("CURRENT_SEASON", unset = get_current_season()))))
 saladj_csv <- arg_value("saladj-csv", file.path("data", "SalAdjCurator_latest.csv"))
 output_csv <- arg_value("output", file.path("data", "saladj_reconciliation.csv"))
@@ -602,11 +736,25 @@ expected <- saladj_expected_by_franchise(saladj_csv, season = season)
 mfl <- mfl_salary_adjustments_from_visible_page(season = season)
 expected_entries <- saladj_expected_by_franchise(saladj_csv, season = season, return_entries = TRUE)
 mfl_entries <- mfl_salary_adjustments_from_visible_page(season = season, return_entries = TRUE)
-error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance)
+sheet_entries <- contract_admin_saladj_entries(season)
+sheet_error_report <- build_commissioner_error_report(expected_entries, sheet_entries, tolerance = tolerance) |>
+  label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin")
+mfl_error_report <- build_commissioner_error_report(expected_entries, mfl_entries, tolerance = tolerance) |>
+  label_stage_findings("SalAdj Curator / Contract Admin -> MFL", "MFL")
+cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
+error_report <- bind_rows(sheet_error_report, mfl_error_report, cap_rollover_error_report)
 error_report <- error_report |>
-  mutate(issue_key = paste(.data$issue, .data$expected_franchise, .data$actual_franchise,
-                           .data$player, sprintf("%.2f", .data$expected_amount),
-                           sprintf("%.2f", .data$actual_amount), sep = "|"))
+  mutate(
+    legacy_issue_key = paste(.data$issue, .data$expected_franchise, .data$actual_franchise,
+                             .data$player, sprintf("%.2f", .data$expected_amount),
+                             sprintf("%.2f", .data$actual_amount), sep = "|"),
+    issue_key = if_else(
+      .data$actual_system == "MFL",
+      .data$legacy_issue_key,
+      paste(.data$stage, .data$legacy_issue_key, sep = "|")
+    )
+  ) |>
+  select(-.data$legacy_issue_key)
 
 report <- mfl |>
   full_join(expected, by = "franchise") |>
@@ -673,12 +821,13 @@ if (send_email && nrow(error_report)) {
       actual <- if (is.na(row$actual_franchise) || !nzchar(row$actual_franchise)) "not found" else row$actual_franchise
       c(
         paste0(row$issue, ": ", row$player),
+        paste0("Stage: ", row$stage),
         paste0("Expected: ", row$expected_franchise, " / $", sprintf("%.2f", row$expected_amount)),
-        paste0("MFL: ", actual,
+        paste0(row$actual_system, ": ", actual,
                if (!is.na(row$actual_amount)) paste0(" / $", sprintf("%.2f", row$actual_amount)) else ""),
         if (nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
-        if (nzchar(row$mfl_entered_at)) paste0("MFL adjustment entered: ", row$mfl_entered_at) else NULL,
-        if (nzchar(row$mfl_description)) paste0("MFL entry: ", row$mfl_description) else NULL,
+        if (nzchar(row$mfl_entered_at)) paste0(row$actual_system, " entry date: ", row$mfl_entered_at) else NULL,
+        if (nzchar(row$mfl_description)) paste0(row$actual_system, " entry: ", row$mfl_description) else NULL,
         paste0("Required: ", row$action),
         ""
       )
@@ -687,7 +836,7 @@ if (send_email && nrow(error_report)) {
       "The Commissioner Error Checker found new salary-adjustment discrepancies.",
       "",
       lines,
-      "This checker is read-only. No MFL entries were changed automatically."
+      "This checker is read-only. No Contract Admin or MFL entries were changed automatically."
     ), collapse = "\n")
     dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
     writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))

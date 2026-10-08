@@ -74,6 +74,8 @@ jobs:
       ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
       ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
       ADL_SMTP_SSL: ${{ secrets.ADL_SMTP_SSL }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
 
     steps:
       - name: Check out repository
