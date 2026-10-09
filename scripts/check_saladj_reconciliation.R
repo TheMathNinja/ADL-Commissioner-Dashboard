@@ -152,6 +152,10 @@ franchise_reference <- function(conn) {
   franchise_tbl <- tibble::as_tibble(ffscrapr::ff_franchises(conn))
   franchise_tbl |>
     transmute(
+      franchise_id = stringr::str_pad(
+        as.character(coalesce_col(franchise_tbl, c("franchise_id", "id"), NA_character_)),
+        width = 4, side = "left", pad = "0"
+      ),
       franchise = toupper(trimws(as.character(coalesce_col(franchise_tbl, c("franchise", "franchise_abbrev", "abbrev"), NA_character_)))),
       franchise_name = as.character(coalesce_col(franchise_tbl, c("franchise_name", "name"), NA_character_)),
       label_abbrev = normalize_label(.data$franchise),
@@ -799,6 +803,142 @@ contract_admin_saladj_entries <- function(season) {
     mutate(actual_id = row_number())
 }
 
+contract_admin_saladj_totals <- function(season) {
+  if (!requireNamespace("googlesheets4", quietly = TRUE)) {
+    stop("Package googlesheets4 is required for the Contract Admin totals audit.", call. = FALSE)
+  }
+  credentials <- get_google_service_account_path()
+  if (!nzchar(credentials)) {
+    stop("GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS is required for the Contract Admin totals audit.", call. = FALSE)
+  }
+
+  googlesheets4::gs4_auth(path = credentials)
+  sheet_id <- Sys.getenv(
+    "CONTRACT_ADMIN_SHEET_ID",
+    unset = "1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw"
+  )
+  expected_header <- paste0(season, " ADJ")
+
+  totals <- bind_rows(lapply(c("NFC Sal Adj", "AFC Sal Adj"), function(tab) {
+    rows <- googlesheets4::read_sheet(
+      ss = sheet_id,
+      sheet = tab,
+      range = "U1:V17",
+      col_names = FALSE,
+      col_types = "c",
+      .name_repair = "minimal"
+    )
+    rows <- as.data.frame(rows, stringsAsFactors = FALSE)
+    headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
+    if (ncol(rows) != 2L || !identical(headers, c("FRAN", expected_header))) {
+      stop(tab, " U:V headers must be FRAN and ", expected_header, ".", call. = FALSE)
+    }
+    values <- rows[-1, , drop = FALSE]
+    result <- tibble(
+      franchise = toupper(trimws(as.character(values[[1]]))),
+      sheet_saladj_total = parse_amount(values[[2]]),
+      sheet_tab = tab
+    ) |>
+      filter(nzchar(.data$franchise))
+    if (nrow(result) != 16L) {
+      stop(tab, " must contain exactly 16 franchise totals in U2:V17.", call. = FALSE)
+    }
+    result
+  }))
+
+  if (nrow(totals) != 32L || n_distinct(totals$franchise) != 32L || anyNA(totals$sheet_saladj_total)) {
+    stop("Contract Admin Sal Adj tabs did not yield 32 unique numeric franchise totals.", call. = FALSE)
+  }
+  totals
+}
+
+mfl_roster_salary_adjustment_totals <- function(season = get_current_season()) {
+  if (!requireNamespace("httr", quietly = TRUE) ||
+      !requireNamespace("rvest", quietly = TRUE) ||
+      !requireNamespace("xml2", quietly = TRUE)) {
+    stop("Packages httr, rvest, and xml2 are required for the MFL roster totals audit.", call. = FALSE)
+  }
+
+  conn <- connect_adl_mfl(season)
+  league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  franchises <- franchise_reference(conn) |>
+    filter(nzchar(.data$franchise_id), nzchar(.data$franchise))
+  if (nrow(franchises) != 32L || n_distinct(franchises$franchise_id) != 32L) {
+    stop("MFL franchise reference did not yield exactly 32 unique franchises.", call. = FALSE)
+  }
+
+  parsed <- bind_rows(lapply(c("00", "01"), function(conference_id) {
+    url <- paste0(
+      "https://www46.myfantasyleague.com/", season,
+      "/options?L=", league_id, "&O=07&DISPLAY=CONFERENCE", conference_id
+    )
+    response <- httr::GET(
+      url,
+      httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
+      conn$auth_cookie,
+      httr::timeout(as.numeric(get_env_or_default("ADL_MFL_ROSTER_TIMEOUT_SECONDS", "45")))
+    )
+    if (httr::http_error(response)) {
+      stop("MFL roster page request failed with HTTP ", httr::status_code(response), ".", call. = FALSE)
+    }
+    doc <- xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8"))
+    all_hrefs <- rvest::html_attr(rvest::html_elements(doc, "a[href]"), "href")
+    visible_ids <- unique(stringr::str_match(all_hrefs, "[?&]F=(\\d{4})(?:&|$)")[, 2])
+    visible_ids <- visible_ids[!is.na(visible_ids)]
+    expected_ids <- sprintf("%04d", if (conference_id == "00") 1:16 else 17:32)
+    if (!all(expected_ids %in% visible_ids)) {
+      stop("MFL roster page did not expose all 16 expected conference franchises for CONFERENCE", conference_id, ".", call. = FALSE)
+    }
+
+    links <- rvest::html_elements(doc, "a")
+    links <- links[trimws(rvest::html_text2(links)) == "Salary Adjustments:"]
+    if (!length(links)) return(tibble(franchise_id = character(), mfl_roster_saladj_total = double()))
+    bind_rows(lapply(links, function(link) {
+      href <- rvest::html_attr(link, "href")
+      franchise_id <- stringr::str_match(href, "[?&]F=(\\d{4})(?:&|$)")[, 2]
+      row <- rvest::html_element(link, xpath = "ancestor::tr[1]")
+      amount <- parse_amount(rvest::html_text2(rvest::html_element(row, "td.salary")))
+      tibble(franchise_id = franchise_id, mfl_roster_saladj_total = amount)
+    }))
+  }))
+
+  franchises |>
+    select(.data$franchise_id, .data$franchise) |>
+    left_join(parsed, by = "franchise_id") |>
+    mutate(mfl_roster_saladj_total = coalesce(.data$mfl_roster_saladj_total, 0))
+}
+
+audit_saladj_total_parity <- function(sheet_totals, mfl_totals, season) {
+  comparison <- full_join(sheet_totals, mfl_totals, by = "franchise")
+  mismatches <- comparison |>
+    filter(
+      is.na(.data$sheet_saladj_total) |
+        is.na(.data$mfl_roster_saladj_total) |
+        round(.data$sheet_saladj_total, 2) != round(.data$mfl_roster_saladj_total, 2)
+    )
+  if (!nrow(mismatches)) return(tibble())
+
+  mismatches |>
+    transmute(
+      issue = "SALADJ_TOTAL_MISMATCH",
+      expected_franchise = .data$franchise,
+      actual_franchise = .data$franchise,
+      player = paste0(season, " ADJ total"),
+      expected_amount = .data$mfl_roster_saladj_total,
+      actual_amount = .data$sheet_saladj_total,
+      mfl_description = "MFL roster-page Salary Adjustments total",
+      transaction_date = "",
+      mfl_entered_at = "",
+      action = paste0(
+        "Update ", .data$sheet_tab, " ", season,
+        " ADJ total for ", .data$franchise,
+        " to match the MFL roster-page Salary Adjustments total."
+      ),
+      stage = paste0("Contract Admin ", season, " ADJ totals -> MFL roster page"),
+      actual_system = "Contract Admin Sal Adj totals"
+    )
+}
+
 audit_contract_admin_control_fields <- function(expected_entries, sheet_entries, tolerance = 0.01) {
   controls <- tibble::tribble(
     ~field, ~label,
@@ -948,7 +1088,7 @@ checker_list_label <- function(row) {
   if (grepl("Cap Rollover", as.character(row$stage), fixed = TRUE)) {
     return("Contract Admin Cap Rollover")
   }
-  if (identical(as.character(row$actual_system), "Contract Admin")) {
+  if (as.character(row$actual_system) %in% c("Contract Admin", "Contract Admin Sal Adj totals")) {
     nfc <- c("DAL", "NYG", "PHI", "WAS", "CHI", "DET", "GBP", "MIN",
              "ATL", "CAR", "NOS", "TBB", "ARI", "LAR", "SFO", "SEA")
     conference <- if (as.character(row$expected_franchise) %in% nfc) "NFC" else "AFC"
@@ -968,6 +1108,7 @@ checker_error_label <- function(issue, list_label) {
     WRONG_CONTROL_FLAG = "Incorrect control flag in",
     WRONG_CONTROL_VALUE = "Incorrect control value in",
     CAP_ROLLOVER_MISMATCH = "Incorrect value in",
+    SALADJ_TOTAL_MISMATCH = "Incorrect current-season ADJ total in",
     "Discrepancy in"
   )
   paste(label, list_label)
@@ -986,9 +1127,12 @@ checker_row_value <- function(row, name, default = "") {
 
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
+  is_total_issue <- identical(as.character(row$issue), "SALADJ_TOTAL_MISMATCH")
   is_control_issue <- as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE")
   amount_prefix <- if (is_control_issue) {
     "Calculated penalty"
+  } else if (is_total_issue) {
+    "Total"
   } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     "Contract"
   } else if (identical(list_label, "MFL salary adjustments")) {
@@ -1003,14 +1147,16 @@ format_checker_finding <- function(row) {
   }
   player_team <- checker_row_value(row, "expected_player_team")
   player_pos <- checker_row_value(row, "expected_player_pos")
-  player_identity <- if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+  player_identity <- if (is_total_issue) {
+    ""
+  } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     as.character(row$player)
   } else {
     paste(c(row$player, player_team, player_pos)[nzchar(c(row$player, player_team, player_pos))], collapse = " ")
   }
   years <- suppressWarnings(as.numeric(checker_row_value(row, "expected_years", NA_character_)))
   contract <- checker_row_value(row, "expected_contract")
-  contract_details <- if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
+  contract_details <- if (!is_total_issue && grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     c(if (!is.na(years)) paste0(format(years, trim = TRUE, scientific = FALSE), " yr"), contract)
   } else character()
   expected_financial <- paste(c(expected_amount, contract_details)[nzchar(c(expected_amount, contract_details))], collapse = " / ")
@@ -1037,7 +1183,9 @@ format_checker_finding <- function(row) {
     actual_financial
   )
   actual_parts <- actual_parts[!is.na(actual_parts) & nzchar(actual_parts)]
-  actual_label <- if (as.character(row$issue) == "SUSPECTED_NAME_MATCH") {
+  actual_label <- if (is_total_issue) {
+    "Contract Admin ADJ total"
+  } else if (as.character(row$issue) == "SUSPECTED_NAME_MATCH") {
     paste0("Possible matching ", list_label, " entry")
   } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
     "Erroneous Sal Adj tab entry"
@@ -1066,7 +1214,11 @@ format_checker_finding <- function(row) {
     if (nzchar(actual_franchise) && !is.na(actual_amount)) {
       paste0(actual_label, ": ", paste(actual_parts, collapse = " | "))
     } else NULL,
-    paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | ")),
+    if (is_total_issue) {
+      paste0("MFL roster-page Salary Adjustments total: ", paste(expected_parts, collapse = " | "))
+    } else {
+      paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | "))
+    },
     if (!is.na(row$transaction_date) && nzchar(row$transaction_date)) paste0("Original transaction/drop: ", row$transaction_date) else NULL,
     if (identical(list_label, "MFL salary adjustments") &&
         !is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) {
@@ -1238,6 +1390,26 @@ if (arg_flag("self-test-name-matching")) {
     ),
     !any(grepl("entry date", format_checker_finding(nfc_test), ignore.case = TRUE))
   )
+  total_sheet_test <- tibble(
+    franchise = c("DAL", "ATL"),
+    sheet_saladj_total = c(17.128, 74.25),
+    sheet_tab = c("NFC Sal Adj", "NFC Sal Adj")
+  )
+  total_mfl_test <- tibble(
+    franchise = c("DAL", "ATL"),
+    franchise_id = c("0001", "0009"),
+    mfl_roster_saladj_total = c(17.13, 73.62)
+  )
+  total_finding_test <- audit_saladj_total_parity(total_sheet_test, total_mfl_test, season = 2026)
+  total_rendered_test <- format_checker_finding(total_finding_test[1, ])
+  stopifnot(
+    nrow(total_finding_test) == 1L,
+    total_finding_test$expected_franchise[[1]] == "ATL",
+    total_rendered_test[[1]] ==
+      "Error Type: Incorrect current-season ADJ total in NFC Sal Adj tab (Contract Admin Sheet)",
+    total_rendered_test[[2]] == "Contract Admin ADJ total: ATL | Total: $74.25",
+    total_rendered_test[[3]] == "MFL roster-page Salary Adjustments total: ATL | Total: $73.62"
+  )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
 }
@@ -1266,6 +1438,8 @@ mfl <- mfl_salary_adjustments_from_visible_page(season = season)
 expected_entries <- saladj_expected_by_franchise(saladj_csv, season = season, return_entries = TRUE)
 mfl_entries <- mfl_salary_adjustments_from_visible_page(season = season, return_entries = TRUE)
 sheet_entries <- contract_admin_saladj_entries(season)
+sheet_saladj_totals <- contract_admin_saladj_totals(season)
+mfl_roster_saladj_totals <- mfl_roster_salary_adjustment_totals(season)
 sheet_expected_entries <- expected_entries |>
   mutate(amount = .data$salary_amount)
 sheet_actual_entries <- sheet_entries |>
@@ -1311,6 +1485,15 @@ mfl_error_report <- build_commissioner_error_report(
 ) |>
   label_stage_findings("Contract Admin history / Curator-validated penalty logic -> MFL", "MFL")
 cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolerance)
+saladj_total_error_report <- audit_saladj_total_parity(
+  sheet_saladj_totals,
+  mfl_roster_saladj_totals,
+  season = season
+)
+message(
+  "Contract Admin vs MFL roster-page salary-adjustment totals: ",
+  32L - nrow(saladj_total_error_report), "/32 matched."
+)
 error_report <- bind_rows(
   tibble(
     issue = character(), expected_franchise = character(), actual_franchise = character(),
@@ -1324,7 +1507,8 @@ error_report <- bind_rows(
   sheet_error_report,
   control_field_error_report,
   mfl_error_report,
-  cap_rollover_error_report
+  cap_rollover_error_report,
+  saladj_total_error_report
 )
 error_report <- error_report |>
   mutate(
