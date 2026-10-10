@@ -1,4 +1,5 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0012|pl=14924|ts=2026-10-08 12:47:53|ty=FREE_AGENT|td=dropped|cm=NA,14924,Jaylon Johnson,NFC,0012,2026-10-08 12:47:53,2026-10-10 09:00:00,0003,1.1,2026 R/F
 txn=|fr=0004|pl=16678|ts=2026-10-08 06:05:00|ty=FREE_AGENT|td=dropped|cm=NA,16678,Sione Vaki,NFC,0004,2026-10-08 06:05:00,2026-10-09 09:00:00,0003,1.1,2026 UFA
 txn=|fr=0019|pl=16216|ts=2026-10-07 16:13:18|ty=FREE_AGENT|td=dropped|cm=NA,16216,Darnell Washington,AFC,0019,2026-10-07 16:13:18,2026-10-09 09:00:00,0017,1.9,2026 UFA
 txn=|fr=0021|pl=16189|ts=2026-10-06 05:38:24|ty=FREE_AGENT|td=dropped|cm=NA,16189,Marvin Mims,AFC,0021,2026-10-06 05:38:24,2026-10-07 09:00:00,0029,1.1,2026 UFA
