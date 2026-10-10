@@ -1404,7 +1404,6 @@ AFC,DEN,Denver Broncos,17636,"Dugger, Jaden SFO LB","Dugger, Jaden",SFO,LB,Activ
 AFC,DEN,Denver Broncos,17627,"Hibner, Matthew BAL TE","Hibner, Matthew",BAL,TE,Active,R,1.1,1,261.42,2026 UFA,,hibner
 AFC,DEN,Denver Broncos,17574,"Hood, Colton NYG CB","Hood, Colton",NYG,CB,Active,R,1.1,1,261.42,2026 UFA,,hood
 AFC,DEN,Denver Broncos,16731,"Hart, Cam LAC CB","Hart, Cam",LAC,CB,Active,,1.1,1,261.42,2026 UFA,,hart
-AFC,DEN,Denver Broncos,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,Active,IR,1.09,3,261.42,2025 4.12,,bryant
 AFC,DEN,Denver Broncos,17196,"Phillips, Jordan MIA DT","Phillips, Jordan",MIA,DT,Active,,1.1,1,261.42,2026 UFA,,phillips
 AFC,DEN,Denver Broncos,13115,"Trubisky, Mitchell TEN QB","Trubisky, Mitchell",TEN,QB,Active,,1.1,1,261.42,2026 UFA,,trubisky
 AFC,DEN,Denver Broncos,16189,"Mims, Marvin DEN WR","Mims, Marvin",DEN,WR,Active,,1.1,1,261.42,2026 UFA,,mims
@@ -1419,6 +1418,7 @@ AFC,DEN,Denver Broncos,17130,"Amos, Trey WAS CB","Amos, Trey",WAS,CB,INJURED_RES
 AFC,DEN,Denver Broncos,16628,"McMillan, Jalen TBB WR","McMillan, Jalen",TBB,WR,INJURED_RESERVE,IR,1.19,2,261.42,2024 4.05,,mcmillan
 AFC,DEN,Denver Broncos,15253,"Etienne, Travis NOS RB","Etienne, Travis",NOS,RB,INJURED_RESERVE,IR,14.48,2,261.42,2026 oEXT,,etienne
 AFC,DEN,Denver Broncos,16639,"Legette, Xavier CAR WR","Legette, Xavier",CAR,WR,INJURED_RESERVE,IR,1.1,1,261.42,2026 UFA,,legette
+AFC,DEN,Denver Broncos,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,INJURED_RESERVE,IR,1.09,3,261.42,2025 4.12,,bryant
 AFC,KCC,Kansas City Chiefs,14836,"Jefferson, Justin MIN WR","Jefferson, Justin",MIN,WR,Active,Questionable,43.12,3,254.86,2024 iEXT,,jefferson
 AFC,KCC,Kansas City Chiefs,16616,"Odunze, Rome CHI WR","Odunze, Rome",CHI,WR,Active,,5.43,2,254.86,2024 1.05,,odunze
 AFC,KCC,Kansas City Chiefs,15835,"Brisker, Jaquan PIT S","Brisker, Jaquan",PIT,S,Active,,4.47,2,254.86,2025 iEXT,,brisker
