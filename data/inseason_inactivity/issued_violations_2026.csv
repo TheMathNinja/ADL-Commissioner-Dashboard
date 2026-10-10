@@ -1,3 +1,4 @@
 violation_key,issued_at,season,conference,franchise,franchise_name,violation_category,rule
 final_roster_cutdown|2026|CLE,2026-09-08 12:38:37 EDT,2026,AFC,CLE,Cleveland Browns,Illegal Roster at Cutdown,Illegal roster at the Final Roster Cutdown Deadline
 illegal_waiver_claim|2026|TEN|17254|2026-09-22,2026-09-22 10:54:52 EDT,2026,AFC,TEN,Tennessee Titans,Illegal Waiver Claim,Illegal waiver claim
+repeated_roster_violation|2026|BUF|Roster Cap Violation|Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad|2026-10-09,2026-10-10 05:28:00 EDT,2026,AFC,BUF,Buffalo Bills,Roster Snapshot Violation,Repeated illegal roster violation for two consecutive days at the early morning snapshot
