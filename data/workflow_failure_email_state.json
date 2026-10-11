@@ -175,6 +175,11 @@
     "TheMathNinja/ADL-GM-Dashboard:37785447569:1": {
       "sent_at": "2026-10-08T14:05:22.860367+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL correction update \u00b7 Week 4 \u00b7"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:38127960528:1": {
+      "sent_at": "2026-10-11T09:31:05.456975+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Daily ADL League Maintenance",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance"
     }
   },
   "checked": {
