@@ -1,39 +1,13 @@
-The Commissioner Error Checker found new salary-adjustment discrepancies.
+The Commissioner Error Checker found salary-adjustment discrepancies.
 
-WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
-Stage: SalAdj Curator controls -> Contract Admin formula
-Expected: NOS / $8.60
-Contract Admin: NOS / $5.16
-Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
-Contract Admin entry date: 8/26/2026
-Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $5.16 instead of $8.60.
-Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
+Error Type: Incorrect current-season ADJ total in NFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin ADJ total: PHI | Total: $6.76
+MFL roster-page Salary Adjustments total: PHI | Total: $3.38
+Required: Update NFC Sal Adj 2026 ADJ total for PHI to match the MFL roster-page Salary Adjustments total.
 
-WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
-Stage: SalAdj Curator controls -> Contract Admin formula
-Expected: WAS / $-8.60
-Contract Admin: WAS / $-5.16
-Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
-Contract Admin entry date: 8/26/2026
-Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $-5.16 instead of $-8.60.
-Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
-
-WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
-Stage: SalAdj Curator controls -> Contract Admin formula
-Expected: NOS / $3.60
-Contract Admin: NOS / $2.16
-Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
-Contract Admin entry date: 9/1/2026
-Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $2.16 instead of $3.60.
-Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
-
-WRONG_CONTROL_FLAG: Cash Trade (TR/IB)
-Stage: SalAdj Curator controls -> Contract Admin formula
-Expected: NYG / $-3.60
-Contract Admin: NYG / $-2.16
-Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
-Contract Admin entry date: 9/1/2026
-Contract Admin entry: Contract Admin TR/IB flag is missing; this caused the sheet formula to calculate $-2.16 instead of $-3.60.
-Required: Mark TR/IB with x in Contract Admin and let its penalty formula recalculate.
+Error Type: Incorrect current-season ADJ total in AFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin ADJ total: DEN | Total: $38.89
+MFL roster-page Salary Adjustments total: DEN | Total: $37.51
+Required: Update AFC Sal Adj 2026 ADJ total for DEN to match the MFL roster-page Salary Adjustments total.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
