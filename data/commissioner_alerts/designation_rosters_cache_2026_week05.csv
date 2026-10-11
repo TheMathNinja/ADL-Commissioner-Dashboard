@@ -57,7 +57,7 @@ NFC,NYG,New York Giants,15290,"Collins, Nico HOU WR","Collins, Nico",HOU,WR,Acti
 NFC,NYG,New York Giants,17116,"Sawyer, Jack PIT DE","Sawyer, Jack",PIT,DE,Active,,0.99,2,248.62,2025 UDFA,,sawyer
 NFC,NYG,New York Giants,15979,"Dicker, Cameron LAC PK","Dicker, Cameron",LAC,PK,Active,,2.05,2,248.62,2025 UFA,,dicker
 NFC,NYG,New York Giants,17033,"Milroe, Jalen SEA QB","Milroe, Jalen",SEA,QB,Active,,1.23,3,248.62,2025 3.17,,milroe
-NFC,NYG,New York Giants,17138,"Grant, Kenneth MIA DT","Grant, Kenneth",MIA,DT,Active,Questionable,1.26,3,248.62,2025 3.14,,grant
+NFC,NYG,New York Giants,17138,"Grant, Kenneth MIA DT","Grant, Kenneth",MIA,DT,Active,,1.26,3,248.62,2025 3.14,,grant
 NFC,NYG,New York Giants,16670,"McKinstry, Kool-Aid NOS CB","McKinstry, Kool-Aid",NOS,CB,Active,,1.08,2,248.62,2024 5.13,,mckinstry
 NFC,NYG,New York Giants,16181,"Brown, Chase CIN RB","Brown, Chase",CIN,RB,Active,,1.33,1,248.62,2023 3.17,,brown
 NFC,NYG,New York Giants,13113,"Watson, Deshaun CLE QB","Watson, Deshaun",CLE,QB,Active,,1.1,1,248.62,2026 R/F,,watson
@@ -1198,7 +1198,6 @@ AFC,HOU,Houston Texans,12610,"Wentz, Carson MIN QB","Wentz, Carson",MIN,QB,Activ
 AFC,HOU,Houston Texans,13418,"Bourne, Kendrick ARI WR","Bourne, Kendrick",ARI,WR,Active,,1.1,1,257.89,2026 R/F,,bourne
 AFC,HOU,Houston Texans,10783,"Smith, Harrison MIN S","Smith, Harrison",MIN,S,Active,,2.1,1,257.89,2026 UFA,,smith
 AFC,HOU,Houston Texans,15445,"Lenoir, Deommodore SFO CB","Lenoir, Deommodore",SFO,CB,Active,,1.1,1,257.89,2026 UFA,,lenoir
-AFC,HOU,Houston Texans,13289,"Hollins, Mack NEP WR","Hollins, Mack",NEP,WR,Active,IR,1.1,1,257.89,2026 UFA,,hollins
 AFC,HOU,Houston Texans,13672,"Gesicki, Mike CIN TE","Gesicki, Mike",CIN,TE,Active,,1.1,1,257.89,2026 UFA,,gesicki
 AFC,HOU,Houston Texans,17222,"Loop, Tyler BAL PK","Loop, Tyler",BAL,PK,Active,,1.1,1,257.89,2026 UFA,,loop
 AFC,HOU,Houston Texans,16009,"Gibbens, Jack ARI LB","Gibbens, Jack",ARI,LB,Active,,1.1,1,257.89,2026 UFA,,gibbens
@@ -1219,6 +1218,7 @@ AFC,HOU,Houston Texans,17517,"Lane, Ja'Kobi BAL WR","Lane, Ja'Kobi",BAL,WR,INJUR
 AFC,HOU,Houston Texans,17514,"Stribling, De'Zhaun SFO WR","Stribling, De'Zhaun",SFO,WR,INJURED_RESERVE,IR,2.62,4,257.89,2026 1.16,,stribling
 AFC,HOU,Houston Texans,15768,"Pierce, Alec IND WR","Pierce, Alec",IND,WR,INJURED_RESERVE,IR,20.69,3,257.89,2025 iEXT,,pierce
 AFC,HOU,Houston Texans,16207,"Iosivas, Andrei CIN WR","Iosivas, Andrei",CIN,WR,INJURED_RESERVE,,1.17,1,257.89,2023 5.09,,iosivas
+AFC,HOU,Houston Texans,13289,"Hollins, Mack NEP WR","Hollins, Mack",NEP,WR,INJURED_RESERVE,IR,1.1,1,257.89,2026 UFA,,hollins
 AFC,IND,Indianapolis Colts,15846,"Walker, Quay LVR LB","Walker, Quay",LVR,LB,Active,,5.52,3,245.71,2025 iEXT,,walker
 AFC,IND,Indianapolis Colts,15761,"Shakir, Khalil BUF WR","Shakir, Khalil",BUF,WR,Active,,7.11,1,245.71,2025 iEXT,,shakir
 AFC,IND,Indianapolis Colts,14149,"Gary, Rashan DAL DE","Gary, Rashan",DAL,DE,Active,,7.43,2,245.71,2025 iEXT,,gary
@@ -1312,7 +1312,7 @@ AFC,JAC,Jacksonville Jaguars,15717,"Pierce, Dameon PHI RB","Pierce, Dameon",PHI,
 AFC,JAC,Jacksonville Jaguars,16601,"Shipley, Will PHI RB","Shipley, Will",PHI,RB,Active,,1.1,1,260.59,2026 UFA,,shipley
 AFC,JAC,Jacksonville Jaguars,17037,"Gabriel, Dillon CLE QB","Gabriel, Dillon",CLE,QB,INJURED_RESERVE,,1.06,3,260.59,2025 4.19,,gabriel
 AFC,JAC,Jacksonville Jaguars,13146,"Conner, James ARI RB","Conner, James",ARI,RB,INJURED_RESERVE,IR-R,3.69,3,260.59,2026 B/R,,conner
-AFC,JAC,Jacksonville Jaguars,17138,"Grant, Kenneth MIA DT","Grant, Kenneth",MIA,DT,INJURED_RESERVE,Questionable,1.43,3,260.59,2025 3.05,,grant
+AFC,JAC,Jacksonville Jaguars,17138,"Grant, Kenneth MIA DT","Grant, Kenneth",MIA,DT,INJURED_RESERVE,,1.43,3,260.59,2025 3.05,,grant
 AFC,JAC,Jacksonville Jaguars,17152,"Norman-Lott, Omarr KCC DT","Norman-Lott, Omarr",KCC,DT,INJURED_RESERVE,,1.03,3,260.59,2025 5.17,,norman-lott
 AFC,JAC,Jacksonville Jaguars,16733,"Bertrand, JD ATL LB","Bertrand, JD",ATL,LB,INJURED_RESERVE,,1.13,2,260.59,2024 4.14,,bertrand
 AFC,JAC,Jacksonville Jaguars,17127,"Johnson, Will ARI CB","Johnson, Will",ARI,CB,INJURED_RESERVE,IR,1.12,3,260.59,2025 4.05,,johnson
