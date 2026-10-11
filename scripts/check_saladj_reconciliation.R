@@ -768,7 +768,7 @@ contract_admin_saladj_entries <- function(season) {
     headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
     required <- c(
       "DATE", "FRAN", "PLAYER", "SALARY", "B/R", "TR/IB", "FG", "(S)",
-      "JT", "ACC", "1.XX+", penalty_col, "RVSD?"
+      "JT", "ACC", "1.XX+", penalty_col, "RVSD?", "ENTD?"
     )
     missing <- setdiff(required, headers)
     if (length(missing)) {
@@ -778,6 +778,7 @@ contract_admin_saladj_entries <- function(season) {
     values <- rows[-1, , drop = FALSE]
 
     tibble(
+      sheet_row = seq_len(nrow(values)) + 1L,
       franchise = toupper(trimws(as.character(values[[column_index[["FRAN"]]]]))),
       player = trimws(as.character(values[[column_index[["PLAYER"]]]])),
       input_salary = parse_amount(values[[column_index[["SALARY"]]]]),
@@ -796,6 +797,7 @@ contract_admin_saladj_entries <- function(season) {
         TRUE ~ parse_amount(.data$plus_raw)
       ),
       is_reversed = is_marked(values[[column_index[["RVSD?"]]]]),
+      is_entered = is_marked(values[[column_index[["ENTD?"]]]]),
       sheet_tab = tab
     ) |>
       filter(nzchar(.data$franchise), nzchar(.data$player), !.data$is_reversed)
@@ -837,7 +839,8 @@ contract_admin_saladj_totals <- function(season) {
     result <- tibble(
       franchise = toupper(trimws(as.character(values[[1]]))),
       sheet_saladj_total = parse_amount(values[[2]]),
-      sheet_tab = tab
+      sheet_tab = tab,
+      sheet_total_cell = paste0("V", seq_len(nrow(values)) + 1L)
     ) |>
       filter(nzchar(.data$franchise))
     if (nrow(result) != 16L) {
@@ -908,8 +911,48 @@ mfl_roster_salary_adjustment_totals <- function(season = get_current_season()) {
     mutate(mfl_roster_saladj_total = coalesce(.data$mfl_roster_saladj_total, 0))
 }
 
-audit_saladj_total_parity <- function(sheet_totals, mfl_totals, season) {
-  comparison <- full_join(sheet_totals, mfl_totals, by = "franchise")
+audit_saladj_total_parity <- function(
+  sheet_totals,
+  mfl_totals,
+  season,
+  sheet_entries = NULL,
+  mfl_entries = NULL,
+  tolerance = 0.01
+) {
+  sheet_entry_totals <- if (is.null(sheet_entries)) {
+    tibble(
+      franchise = character(), sheet_entry_total = double(), sheet_entered_total = double(),
+      sheet_pending_total = double(), pending_entry_details = character()
+    )
+  } else {
+    sheet_entries |>
+      filter(!is.na(.data$penalty_amount)) |>
+      group_by(.data$franchise) |>
+      summarize(
+        sheet_entry_total = round(sum(.data$penalty_amount, na.rm = TRUE), 2),
+        sheet_entered_total = round(sum(.data$penalty_amount[.data$is_entered], na.rm = TRUE), 2),
+        sheet_pending_total = round(sum(.data$penalty_amount[!.data$is_entered], na.rm = TRUE), 2),
+        pending_entry_details = paste(
+          paste0(
+            .data$player[!.data$is_entered], " ($",
+            sprintf("%.2f", .data$penalty_amount[!.data$is_entered]),
+            "; ", .data$sheet_tab[!.data$is_entered], " row ", .data$sheet_row[!.data$is_entered], ")"
+          ),
+          collapse = "; "
+        ),
+        .groups = "drop"
+      )
+  }
+  mfl_entry_totals <- if (is.null(mfl_entries)) {
+    tibble(franchise = character(), mfl_entry_total = double())
+  } else {
+    mfl_entries |>
+      group_by(.data$franchise) |>
+      summarize(mfl_entry_total = round(sum(.data$amount, na.rm = TRUE), 2), .groups = "drop")
+  }
+  comparison <- full_join(sheet_totals, mfl_totals, by = "franchise") |>
+    left_join(sheet_entry_totals, by = "franchise") |>
+    left_join(mfl_entry_totals, by = "franchise")
   mismatches <- comparison |>
     filter(
       is.na(.data$sheet_saladj_total) |
@@ -919,8 +962,33 @@ audit_saladj_total_parity <- function(sheet_totals, mfl_totals, season) {
   if (!nrow(mismatches)) return(tibble())
 
   mismatches |>
+    mutate(
+      entry_totals_match = !is.na(.data$sheet_entry_total) & !is.na(.data$mfl_entry_total) &
+        abs(.data$sheet_entry_total - .data$mfl_entry_total) <= .env$tolerance,
+      sheet_rows_match_mfl_total = !is.na(.data$sheet_entry_total) & !is.na(.data$mfl_roster_saladj_total) &
+        abs(.data$sheet_entry_total - .data$mfl_roster_saladj_total) <= .env$tolerance,
+      mfl_entries_match_roster_total = !is.na(.data$mfl_entry_total) & !is.na(.data$mfl_roster_saladj_total) &
+        abs(.data$mfl_entry_total - .data$mfl_roster_saladj_total) <= .env$tolerance,
+      pending_entries_explain_difference = !is.na(.data$sheet_pending_total) & .data$sheet_pending_total > .env$tolerance &
+        !is.na(.data$sheet_entry_total) &
+        abs(.data$sheet_saladj_total - .data$sheet_entry_total) <= .env$tolerance &
+        !is.na(.data$sheet_entered_total) & !is.na(.data$mfl_entry_total) &
+        abs(.data$sheet_entered_total - .data$mfl_entry_total) <= .env$tolerance &
+        .data$mfl_entries_match_roster_total,
+      discrepancy_nature = case_when(
+        .data$pending_entries_explain_difference ~ "PENDING_MFL_ENTRY",
+        .data$entry_totals_match & .data$sheet_rows_match_mfl_total & .data$mfl_entries_match_roster_total ~
+          "CONTRACT_ADMIN_TOTAL_FORMULA",
+        .data$entry_totals_match & !.data$mfl_entries_match_roster_total ~ "MFL_ROSTER_TOTAL",
+        TRUE ~ "ENTRY_LEVEL_DIFFERENCE"
+      )
+    ) |>
     transmute(
-      issue = "SALADJ_TOTAL_MISMATCH",
+      issue = if_else(
+        .data$discrepancy_nature == "PENDING_MFL_ENTRY",
+        "PENDING_MFL_ENTRY",
+        "SALADJ_TOTAL_MISMATCH"
+      ),
       expected_franchise = .data$franchise,
       actual_franchise = .data$franchise,
       player = paste0(season, " ADJ total"),
@@ -929,13 +997,37 @@ audit_saladj_total_parity <- function(sheet_totals, mfl_totals, season) {
       mfl_description = "MFL roster-page Salary Adjustments total",
       transaction_date = "",
       mfl_entered_at = "",
-      action = paste0(
-        "Update ", .data$sheet_tab, " ", season,
-        " ADJ total for ", .data$franchise,
-        " to match the MFL roster-page Salary Adjustments total."
+      action = case_when(
+        .data$discrepancy_nature == "PENDING_MFL_ENTRY" ~ paste0(
+          "Enter the pending ", .data$franchise, " adjustment(s) in MFL before the next official cap snapshot: ",
+          .data$pending_entry_details,
+          ". After confirming the MFL entries, mark those Contract Admin rows ENTD?."
+        ),
+        .data$discrepancy_nature == "CONTRACT_ADMIN_TOTAL_FORMULA" ~ paste0(
+          "Correct ", .data$sheet_tab, "!", .data$sheet_total_cell,
+          " so the displayed ", season, " ADJ total returns $",
+          sprintf("%.2f", .data$mfl_roster_saladj_total),
+          ". Do not change MFL or any individual Sal Adj entry."
+        ),
+        .data$discrepancy_nature == "MFL_ROSTER_TOTAL" ~ paste0(
+          "Investigate the MFL roster-page total because the individual Contract Admin and MFL entries agree at $",
+          sprintf("%.2f", .data$mfl_entry_total), "."
+        ),
+        TRUE ~ paste0(
+          "Resolve the individual-entry differences listed elsewhere in this report before changing the summary total."
+        )
       ),
       stage = paste0("Contract Admin ", season, " ADJ totals -> MFL roster page"),
-      actual_system = "Contract Admin Sal Adj totals"
+      actual_system = "Contract Admin Sal Adj totals",
+      discrepancy_nature,
+      sheet_tab,
+      sheet_total_cell,
+      sheet_entry_total,
+      sheet_entered_total,
+      sheet_pending_total,
+      pending_entry_details,
+      mfl_entry_total,
+      total_difference = round(.data$sheet_saladj_total - .data$mfl_roster_saladj_total, 2)
     )
 }
 
@@ -1109,6 +1201,7 @@ checker_error_label <- function(issue, list_label) {
     WRONG_CONTROL_VALUE = "Incorrect control value in",
     CAP_ROLLOVER_MISMATCH = "Incorrect value in",
     SALADJ_TOTAL_MISMATCH = "Incorrect current-season ADJ total in",
+    PENDING_MFL_ENTRY = "Pending MFL entry from",
     "Discrepancy in"
   )
   paste(label, list_label)
@@ -1127,7 +1220,7 @@ checker_row_value <- function(row, name, default = "") {
 
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
-  is_total_issue <- identical(as.character(row$issue), "SALADJ_TOTAL_MISMATCH")
+  is_total_issue <- as.character(row$issue) %in% c("SALADJ_TOTAL_MISMATCH", "PENDING_MFL_ENTRY")
   is_control_issue <- as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE")
   amount_prefix <- if (is_control_issue) {
     "Calculated penalty"
@@ -1209,6 +1302,69 @@ format_checker_finding <- function(row) {
   } else {
     as.character(row$action)
   }
+  if (is_total_issue) {
+    discrepancy_nature <- checker_row_value(row, "discrepancy_nature")
+    sheet_tab <- checker_row_value(row, "sheet_tab")
+    sheet_total_cell <- checker_row_value(row, "sheet_total_cell")
+    sheet_entry_total <- suppressWarnings(as.numeric(checker_row_value(row, "sheet_entry_total", NA_character_)))
+    mfl_entry_total <- suppressWarnings(as.numeric(checker_row_value(row, "mfl_entry_total", NA_character_)))
+    total_difference <- suppressWarnings(as.numeric(checker_row_value(row, "total_difference", NA_character_)))
+    pending_entry_details <- checker_row_value(row, "pending_entry_details")
+    direction <- if (!is.na(total_difference)) {
+      paste0("$", sprintf("%.2f", abs(total_difference)), if (total_difference > 0) " too high" else " too low")
+    } else {
+      "difference unavailable"
+    }
+    source_detail <- if (identical(discrepancy_nature, "PENDING_MFL_ENTRY")) {
+      c(
+        paste0("Pending Contract Admin rows: ", pending_entry_details),
+        paste0(
+          "Explanation: The $", sprintf("%.2f", abs(total_difference)),
+          " difference is fully explained by rows whose ENTD? field is not marked."
+        )
+      )
+    } else if (identical(discrepancy_nature, "CONTRACT_ADMIN_TOTAL_FORMULA")) {
+      c(
+        paste0("Discrepancy isolated to: ", sheet_tab, "!", sheet_total_cell, " summary formula."),
+        paste0(
+          "Individual-entry comparison: Contract Admin ", season_from_total_player(row$player),
+          " PEN rows total $", sprintf("%.2f", sheet_entry_total),
+          "; MFL listed adjustments total $", sprintf("%.2f", mfl_entry_total),
+          ". The individual entries match."
+        ),
+        paste0("Displayed-total difference: ", direction, ".")
+      )
+    } else if (identical(discrepancy_nature, "MFL_ROSTER_TOTAL")) {
+      c(
+        "Discrepancy isolated to: MFL roster-page summary total.",
+        paste0(
+          "Individual-entry comparison: Contract Admin rows and MFL listed adjustments both total $",
+          sprintf("%.2f", mfl_entry_total), "."
+        ),
+        paste0("Displayed-total difference: ", direction, ".")
+      )
+    } else {
+      c(
+        "Discrepancy includes one or more individual entries; review the entry-level findings in this report.",
+        if (!is.na(sheet_entry_total) && !is.na(mfl_entry_total)) paste0(
+          "Individual-entry totals: Contract Admin $", sprintf("%.2f", sheet_entry_total),
+          "; MFL $", sprintf("%.2f", mfl_entry_total), "."
+        ) else NULL
+      )
+    }
+    return(c(
+      if (identical(discrepancy_nature, "PENDING_MFL_ENTRY")) {
+        paste0("Status: Pending MFL entries from ", list_label)
+      } else {
+        paste0("Error Type: ", checker_error_label(row$issue, list_label))
+      },
+      paste0("Contract Admin displayed total: ", row$expected_franchise, " | $", sprintf("%.2f", row$actual_amount)),
+      paste0("MFL roster-page total: ", row$expected_franchise, " | $", sprintf("%.2f", row$expected_amount)),
+      source_detail,
+      paste0("Required: ", required_action),
+      ""
+    ))
+  }
   c(
     paste0("Error Type: ", checker_error_label(row$issue, list_label)),
     if (nzchar(actual_franchise) && !is.na(actual_amount)) {
@@ -1229,12 +1385,29 @@ format_checker_finding <- function(row) {
   )
 }
 
+season_from_total_player <- function(player) {
+  season <- stringr::str_extract(as.character(player), "[0-9]{4}")
+  ifelse(is.na(season), "current-season", season)
+}
+
 build_checker_email_body <- function(error_report) {
   lines <- unlist(lapply(seq_len(nrow(error_report)), function(i) {
     format_checker_finding(error_report[i, ])
   }))
+  only_pending <- nrow(error_report) > 0L && all(error_report$issue == "PENDING_MFL_ENTRY")
+  has_pending <- any(error_report$issue == "PENDING_MFL_ENTRY")
+  intro <- if (only_pending) {
+    paste0(
+      "The Commissioner Error Checker found salary adjustments awaiting MFL entry ",
+      "before the next official cap snapshot."
+    )
+  } else if (has_pending) {
+    "The Commissioner Error Checker found salary-adjustment items requiring review."
+  } else {
+    "The Commissioner Error Checker found salary-adjustment discrepancies."
+  }
   paste(c(
-    "The Commissioner Error Checker found salary-adjustment discrepancies.",
+    intro,
     "",
     lines,
     "This checker is read-only. No Contract Admin or MFL entries were changed automatically."
@@ -1393,22 +1566,92 @@ if (arg_flag("self-test-name-matching")) {
   total_sheet_test <- tibble(
     franchise = c("DAL", "ATL"),
     sheet_saladj_total = c(17.128, 74.25),
-    sheet_tab = c("NFC Sal Adj", "NFC Sal Adj")
+    sheet_tab = c("NFC Sal Adj", "NFC Sal Adj"),
+    sheet_total_cell = c("V2", "V10")
   )
   total_mfl_test <- tibble(
     franchise = c("DAL", "ATL"),
     franchise_id = c("0001", "0009"),
     mfl_roster_saladj_total = c(17.13, 73.62)
   )
-  total_finding_test <- audit_saladj_total_parity(total_sheet_test, total_mfl_test, season = 2026)
+  total_sheet_entries_test <- tibble(
+    franchise = "ATL",
+    player = "Test Player",
+    penalty_amount = 73.62,
+    is_entered = TRUE,
+    sheet_tab = "NFC Sal Adj",
+    sheet_row = 10L
+  )
+  total_mfl_entries_test <- tibble(
+    franchise = "ATL",
+    amount = 73.62
+  )
+  total_finding_test <- audit_saladj_total_parity(
+    total_sheet_test,
+    total_mfl_test,
+    season = 2026,
+    sheet_entries = total_sheet_entries_test,
+    mfl_entries = total_mfl_entries_test
+  )
   total_rendered_test <- format_checker_finding(total_finding_test[1, ])
   stopifnot(
     nrow(total_finding_test) == 1L,
     total_finding_test$expected_franchise[[1]] == "ATL",
     total_rendered_test[[1]] ==
       "Error Type: Incorrect current-season ADJ total in NFC Sal Adj tab (Contract Admin Sheet)",
-    total_rendered_test[[2]] == "Contract Admin ADJ total: ATL | Total: $74.25",
-    total_rendered_test[[3]] == "MFL roster-page Salary Adjustments total: ATL | Total: $73.62"
+    total_rendered_test[[2]] == "Contract Admin displayed total: ATL | $74.25",
+    total_rendered_test[[3]] == "MFL roster-page total: ATL | $73.62",
+    total_rendered_test[[4]] == "Discrepancy isolated to: NFC Sal Adj!V10 summary formula.",
+    total_rendered_test[[5]] == paste0(
+      "Individual-entry comparison: Contract Admin 2026 PEN rows total $73.62; ",
+      "MFL listed adjustments total $73.62. The individual entries match."
+    ),
+    total_rendered_test[[6]] == "Displayed-total difference: $0.63 too high.",
+    total_rendered_test[[7]] == paste0(
+      "Required: Correct NFC Sal Adj!V10 so the displayed 2026 ADJ total returns $73.62. ",
+      "Do not change MFL or any individual Sal Adj entry."
+    )
+  )
+  pending_sheet_test <- tibble(
+    franchise = "PHI",
+    sheet_saladj_total = 6.76,
+    sheet_tab = "NFC Sal Adj",
+    sheet_total_cell = "V4"
+  )
+  pending_mfl_test <- tibble(
+    franchise = "PHI",
+    franchise_id = "0003",
+    mfl_roster_saladj_total = 3.38
+  )
+  pending_sheet_entries_test <- tibble(
+    franchise = c("PHI", "PHI"),
+    player = c("Entered Player", "Pending Player"),
+    penalty_amount = c(3.38, 3.38),
+    is_entered = c(TRUE, FALSE),
+    sheet_tab = c("NFC Sal Adj", "NFC Sal Adj"),
+    sheet_row = c(5L, 6L)
+  )
+  pending_mfl_entries_test <- tibble(franchise = "PHI", amount = 3.38)
+  pending_finding_test <- audit_saladj_total_parity(
+    pending_sheet_test,
+    pending_mfl_test,
+    season = 2026,
+    sheet_entries = pending_sheet_entries_test,
+    mfl_entries = pending_mfl_entries_test
+  )
+  pending_rendered_test <- format_checker_finding(pending_finding_test[1, ])
+  stopifnot(
+    nrow(pending_finding_test) == 1L,
+    pending_finding_test$issue[[1]] == "PENDING_MFL_ENTRY",
+    pending_rendered_test[[1]] ==
+      "Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)",
+    pending_rendered_test[[4]] ==
+      "Pending Contract Admin rows: Pending Player ($3.38; NFC Sal Adj row 6)",
+    grepl("before the next official cap snapshot", pending_rendered_test[[6]], fixed = TRUE),
+    startsWith(
+      build_checker_email_body(pending_finding_test),
+      "The Commissioner Error Checker found salary adjustments awaiting MFL entry"
+    )
   )
   message("Commissioner Error Checker suspected-name matching tests passed.")
   quit(save = "no", status = 0L)
@@ -1488,7 +1731,10 @@ cap_rollover_error_report <- audit_cap_rollover_sheet(season, tolerance = tolera
 saladj_total_error_report <- audit_saladj_total_parity(
   sheet_saladj_totals,
   mfl_roster_saladj_totals,
-  season = season
+  season = season,
+  sheet_entries = sheet_entries,
+  mfl_entries = mfl_entries,
+  tolerance = tolerance
 )
 message(
   "Contract Admin vs MFL roster-page salary-adjustment totals: ",
@@ -1572,7 +1818,7 @@ mismatches <- report |> filter(.data$status == "MISMATCH")
 incomplete <- report |> filter(.data$status == "INCOMPLETE_FORMULA")
 message("Wrote SalAdj reconciliation report: ", output_csv)
 message("Wrote commissioner error report: ", error_output_csv)
-message(nrow(error_report), " item-level commissioner error(s).")
+message(nrow(error_report), " item-level commissioner review item(s).")
 
 if (send_email && nrow(error_report)) {
   issued <- if (file.exists(issued_csv)) {
@@ -1584,6 +1830,13 @@ if (send_email && nrow(error_report)) {
 
   if (nrow(new_errors)) {
     body <- build_checker_email_body(new_errors)
+    subject <- if (all(new_errors$issue == "PENDING_MFL_ENTRY")) {
+      "[ADL Commissioner Alerts] Salary adjustments pending MFL entry"
+    } else if (any(new_errors$issue == "PENDING_MFL_ENTRY")) {
+      "[ADL Commissioner Alerts] Commissioner cap-entry review"
+    } else {
+      "[ADL Commissioner Alerts] Commissioner cap-entry errors found"
+    }
     dir.create(file.path("data", "commissioner_alerts"), recursive = TRUE, showWarnings = FALSE)
     writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))
     recipients <- if (nzchar(email_to)) {
@@ -1593,7 +1846,7 @@ if (send_email && nrow(error_report)) {
     }
     status <- tryCatch(
       send_alert_mail(
-        subject = "[ADL Commissioner Alerts] Commissioner cap-entry errors found",
+        subject = subject,
         body = body,
         to = recipients$email
       ),

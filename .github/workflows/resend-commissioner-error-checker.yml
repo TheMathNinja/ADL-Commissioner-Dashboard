@@ -73,7 +73,7 @@ jobs:
       - name: Send rendered checker email only to the requested recipient
         run: >-
           python scripts/send_plain_email.py
-          "[ADL Commissioner Alerts] Commissioner cap-entry errors found"
+          "[ADL Commissioner Alerts] Commissioner cap-entry review"
           "${{ inputs.recipient }}"
           data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
 
