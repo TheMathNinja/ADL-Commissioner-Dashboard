@@ -1,0 +1,6 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,5,2026-10-11 09:27:48 UTC,Illegal Lineup Warning,warning,AFC,BUF,Buffalo Bills,No inactive players allowed in starting lineup,"Cross, Nick WAS S is inactive (O)",,,
+2026,5,2026-10-11 09:27:48 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Gonzalez, Christian NEP CB is inactive (O)",,,
+2026,5,2026-10-11 09:27:48 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Wingard, Andrew ARI S is inactive (O)",,,
+2026,5,2026-10-11 09:27:48 UTC,Illegal Lineup Warning,warning,NFC,SEA,Seattle Seahawks,No inactive players allowed in starting lineup,"Cross, Nick WAS S is inactive (O)",,,
+2026,5,2026-10-11 09:27:48 UTC,Roster Cap Violation,violation,AFC,BUF,Buffalo Bills,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,3
