@@ -102,6 +102,9 @@ jobs:
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
 
+      - name: Test Commissioner recipient resolution
+        run: Rscript tests/test_commissioner_recipient_directory.R
+
       - name: Run commissioner alerts
         run: |
           CUTDOWN_ID="${{ inputs.cutdown_id }}"

@@ -3148,14 +3148,29 @@ normalize_mfl_franchise_email_rows <- function(franchise_tbl, franchises = NULL)
 
 fetch_mfl_franchise_recipients <- function(
   season = get_current_season(),
-  franchises = NULL
+  franchises = NULL,
+  max_attempts = 3L
 ) {
   if (!requireNamespace("ffscrapr", quietly = TRUE)) {
     stop("Package ffscrapr is required to fetch MFL alert recipients.", call. = FALSE)
   }
 
   conn <- connect_adl_mfl(season)
-  franchise_tbl <- tibble::as_tibble(ffscrapr::ff_franchises(conn))
+  max_attempts <- max(1L, as.integer(max_attempts))
+  franchise_tbl <- NULL
+  last_error <- NULL
+  for (attempt in seq_len(max_attempts)) {
+    franchise_tbl <- tryCatch(
+      tibble::as_tibble(ffscrapr::ff_franchises(conn)),
+      error = function(e) {
+        last_error <<- e
+        NULL
+      }
+    )
+    if (!is.null(franchise_tbl)) break
+    if (attempt < max_attempts) Sys.sleep(15 * attempt)
+  }
+  if (is.null(franchise_tbl)) stop(last_error)
   normalize_mfl_franchise_email_rows(franchise_tbl, franchises = franchises)
 }
 
@@ -3188,18 +3203,26 @@ commissioner_alert_extra_digest_recipients <- function() {
   )
 }
 
-resolve_commissioner_alert_recipients <- function(season = get_current_season()) {
+resolve_commissioner_alert_recipients <- function(
+  season = get_current_season(),
+  mfl_recipients = NULL
+) {
   extra_recipients <- commissioner_alert_extra_digest_recipients()
-  mfl_recipients <- tryCatch(
-    fetch_mfl_commissioner_alert_recipients(season = season),
-    error = function(e) {
-      attr(e, "recipient_lookup_failed") <- TRUE
-      e
-    }
-  )
+  if (is.null(mfl_recipients)) {
+    mfl_recipients <- tryCatch(
+      fetch_mfl_commissioner_alert_recipients(season = season),
+      error = function(e) {
+        attr(e, "recipient_lookup_failed") <- TRUE
+        e
+      }
+    )
+  }
 
   if (!inherits(mfl_recipients, "error") && nrow(mfl_recipients)) {
-    return(bind_rows(mfl_recipients, extra_recipients) |>
+    digest_franchises <- commissioner_alert_default_digest_franchises()
+    digest_recipients <- mfl_recipients |>
+      filter(toupper(.data$franchise) %in% toupper(.env$digest_franchises))
+    return(bind_rows(digest_recipients, extra_recipients) |>
       filter(nzchar(.data$email)) |>
       distinct(.data$email, .keep_all = TRUE))
   }
@@ -3307,7 +3330,28 @@ send_commissioner_alert_email <- function(
     return(tibble(sent = FALSE, reason = "no_alerts", outbox_path = outbox_path))
   }
 
-  recipients <- resolve_commissioner_alert_recipients(season = season)
+  offender_alerts <- alerts |>
+    filter(
+      !is_commissioner_only_alert(dplyr::pick(dplyr::everything())),
+      !is.na(.data$franchise),
+      nzchar(.data$franchise)
+    )
+  offender_franchises <- unique(offender_alerts$franchise)
+
+  # Fetch the MFL franchise directory once for both digest and offender mail.
+  # A second immediate ff_franchises() request can cross MFL's rate limit even
+  # when the first request succeeds.
+  recipient_directory <- tryCatch(
+    fetch_mfl_franchise_recipients(season = season),
+    error = function(e) {
+      attr(e, "recipient_lookup_failed") <- TRUE
+      e
+    }
+  )
+  recipients <- resolve_commissioner_alert_recipients(
+    season = season,
+    mfl_recipients = recipient_directory
+  )
   recipients_path <- write_commissioner_alert_recipients(recipients, season = season, week = week)
   subject <- digest_subject %||% paste0("ADL Commissioner Alerts - ", commissioner_digest_date_label(checked_date, week))
 
@@ -3324,13 +3368,6 @@ send_commissioner_alert_email <- function(
     ))
   }
 
-  offender_alerts <- alerts |>
-    filter(
-      !is_commissioner_only_alert(dplyr::pick(dplyr::everything())),
-      !is.na(.data$franchise),
-      nzchar(.data$franchise)
-    )
-  offender_franchises <- unique(offender_alerts$franchise)
   if (!length(offender_franchises)) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
     outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
@@ -3345,15 +3382,14 @@ send_commissioner_alert_email <- function(
     ))
   }
 
-  offender_recipients <- tryCatch(
-    fetch_mfl_franchise_recipients(season = season, franchises = offender_franchises),
-    error = function(e) e
-  )
+  offender_recipients <- recipient_directory
   if (inherits(offender_recipients, "error")) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
     outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
     return(tibble(sent = FALSE, reason = paste0("offender_recipient_lookup_failed: ", conditionMessage(offender_recipients)), outbox_path = outbox_path, recipients_path = recipients_path, recipients = paste(recipients$email, collapse = ", ")))
   }
+  offender_recipients <- offender_recipients |>
+    filter(toupper(.data$franchise) %in% toupper(.env$offender_franchises))
 
   offender_recipient_path <- commissioner_alert_path("email_recipients_offenders", season, week)
   write_csv(offender_recipients, offender_recipient_path, na = "")
