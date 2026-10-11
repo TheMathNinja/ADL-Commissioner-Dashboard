@@ -64,6 +64,22 @@ stopifnot(grepl("Run type: Transaction-triggered refresh", push_body, fixed = TR
 stopifnot(grepl("Run started: 10/1/2026 7:33 p.m. EDT", push_body, fixed = TRUE))
 stopifnot(!grepl("SalAdj scraper scheduled:", push_body, fixed = TRUE))
 
+orchestrated_body <- render_saladj_email(
+  rows[1, , drop = FALSE],
+  "2026_10_10_ADLSalAdjCurator.csv",
+  "10/10/2026 5:20 a.m. EDT",
+  list(
+    scheduled_display = "10/10/2026 5:17 a.m. EDT",
+    started_display = "10/10/2026 5:19 a.m. EDT",
+    completed_display = "10/10/2026 5:21 a.m. EDT",
+    duration_display = "1m 19s",
+    trigger = "daily_maintenance"
+  )
+)
+stopifnot(grepl("Run type: Scheduled daily refresh", orchestrated_body, fixed = TRUE))
+stopifnot(!grepl("Manually triggered refresh", orchestrated_body, fixed = TRUE))
+stopifnot(grepl("SalAdj scraper scheduled: 10/10/2026 5:17 a.m. EDT", orchestrated_body, fixed = TRUE))
+
 html_body <- render_saladj_email_html(body, "2026_10_01_ADLSalAdjCurator.csv")
 stopifnot(grepl('<a href="https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_01_ADLSalAdjCurator.csv">Dashboard CSV here</a>', html_body, fixed = TRUE))
 stopifnot(!grepl("Dashboard CSV here: https://", html_body, fixed = TRUE))

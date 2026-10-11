@@ -89,12 +89,18 @@ jobs:
         shell: bash
         run: |
           echo "ADL_WORKFLOW_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-          echo "ADL_WORKFLOW_TRIGGER=${{ github.event_name }}" >> "$GITHUB_ENV"
           LOCAL_DATE=$(TZ=America/Toronto date +%F)
           LOCAL_MONTH_DAY=$(TZ=America/Toronto date +%m-%d)
           CURRENT_SEASON=${LOCAL_DATE%%-*}
           echo "local_date=${LOCAL_DATE}" >> "$GITHUB_OUTPUT"
           echo "current_season=${CURRENT_SEASON}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${{ inputs.orchestrator_run_id }}" ]; then
+            echo "ADL_WORKFLOW_TRIGGER=daily_maintenance" >> "$GITHUB_ENV"
+            echo "ADL_WORKFLOW_SCHEDULED_AT=${LOCAL_DATE} 05:17:00" >> "$GITHUB_ENV"
+          else
+            echo "ADL_WORKFLOW_TRIGGER=${{ github.event_name }}" >> "$GITHUB_ENV"
+          fi
 
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"

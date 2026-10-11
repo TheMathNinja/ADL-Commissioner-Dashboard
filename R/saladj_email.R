@@ -72,6 +72,7 @@ render_saladj_run_audit <- function(run_audit = list()) {
     trigger,
     push = "Transaction-triggered refresh",
     schedule = "Scheduled daily refresh",
+    daily_maintenance = "Scheduled daily refresh",
     workflow_dispatch = "Manually triggered refresh",
     trigger
   )
