@@ -76,19 +76,26 @@ jobs:
           if missing:
               sys.exit("Daily maintenance is missing required jobs: " + ", ".join(missing))
 
-          unresolved = [
-              name for name in required_jobs
-              if name != "Run Commissioner alerts" and jobs_by_name[name].get("conclusion") != "success"
-          ]
+          recovery_specs = {
+              "Refresh SalAdj and Commissioner data": ("update_dashboard.yml", "Commissioner data"),
+              "Apply waiver cap corrections": ("waiver-cap-corrections.yml", "Waiver corrections"),
+              "Run Commissioner alerts": ("daily-commissioner-alerts.yml", "Commissioner alerts"),
+          }
+          unresolved = []
+          recovered = {}
+          for name in required_jobs:
+              if jobs_by_name[name].get("conclusion") == "success":
+                  continue
+              if name not in recovery_specs:
+                  unresolved.append(name)
+                  continue
 
-          alerts_recovered = False
-          recovery_url = ""
-          if jobs_by_name["Run Commissioner alerts"].get("conclusion") != "success":
+              workflow, title_suffix = recovery_specs[name]
               recovery_runs = github_json(
                   "https://api.github.com/repos/TheMathNinja/ADL-Commissioner-Dashboard/"
-                  "actions/workflows/daily-commissioner-alerts.yml/runs?per_page=50"
+                  f"actions/workflows/{workflow}/runs?per_page=50"
               ).get("workflow_runs", [])
-              expected_title = f"Daily maintenance {run['id']} - Commissioner alerts"
+              expected_title = f"Daily maintenance {run['id']} - {title_suffix}"
               recoveries = [
                   candidate for candidate in recovery_runs
                   if candidate.get("display_title") == expected_title
@@ -96,10 +103,9 @@ jobs:
               ]
               if recoveries:
                   recovery = max(recoveries, key=lambda candidate: candidate["created_at"])
-                  alerts_recovered = True
-                  recovery_url = recovery["html_url"]
+                  recovered[name] = recovery["html_url"]
               else:
-                  unresolved.append("Run Commissioner alerts")
+                  unresolved.append(name)
 
           if unresolved:
               details = ", ".join(
@@ -110,8 +116,8 @@ jobs:
 
           print(f"Daily maintenance components verified: {created:%b %d, %Y %I:%M:%S %p %Z}")
           print(run["html_url"])
-          if alerts_recovered:
-              print("Commissioner Alerts recovered successfully:")
+          for name, recovery_url in recovered.items():
+              print(f"{name} recovered successfully:")
               print(recovery_url)
 
       - name: Verify SalAdjCurator checked in recently
