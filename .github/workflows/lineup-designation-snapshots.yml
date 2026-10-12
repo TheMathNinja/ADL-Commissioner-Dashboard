@@ -18,16 +18,17 @@ concurrency:
 jobs:
   lineup-designation-snapshots:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     env:
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_FORCE_LIVE: true
       ADL_ALERT_WEEK: ${{ github.event.inputs.week }}
-      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID }}
+      ADL_LEAGUE_ID: ${{ secrets.ADL_LEAGUE_ID || '60206' }}
       MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
       MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
-      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
+      MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT || 'ADLCommissionerDashboard' }}
 
     steps:
       - name: Checkout dashboard repo
@@ -51,7 +52,27 @@ jobs:
         uses: ./.github/actions/setup-adl-r
 
       - name: Capture designation snapshot
-        run: Rscript scripts/run_commissioner_alerts.R --mode=snapshot --season=${CURRENT_SEASON} --force-live
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            echo "Live designation snapshot attempt ${attempt} of 6."
+            if Rscript scripts/run_commissioner_alerts.R \
+              --mode=snapshot \
+              --season=${CURRENT_SEASON} \
+              --force-live; then
+              echo "Live designation snapshot completed on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [ "${attempt}" -eq 6 ]; then
+              echo "MFL remained unavailable after 6 live snapshot attempts."
+              exit 1
+            fi
+
+            delay=$((attempt * 15))
+            echo "MFL request failed; retrying in ${delay} seconds."
+            sleep "${delay}"
+          done
 
       - name: Commit designation snapshots
         run: |
