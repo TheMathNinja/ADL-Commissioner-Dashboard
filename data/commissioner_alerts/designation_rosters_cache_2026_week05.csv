@@ -572,6 +572,7 @@ NFC,TBB,Tampa Bay Buccaneers,16601,"Shipley, Will PHI RB","Shipley, Will",PHI,RB
 NFC,TBB,Tampa Bay Buccaneers,16664,"Trotter Jr., Jeremiah PHI LB","Trotter Jr., Jeremiah",PHI,LB,Active,,1.1,1,252.92,2026 UFA,,trotter jr.
 NFC,TBB,Tampa Bay Buccaneers,17352,"Kroeger, Kai HOU PN","Kroeger, Kai",HOU,PN,Active,,2,1,252.92,2026 UFA,,kroeger
 NFC,TBB,Tampa Bay Buccaneers,17706,"Benson, Malik LVR WR","Benson, Malik",LVR,WR,Active,R,0.94,3,252.92,2026 UDFA,,benson
+NFC,TBB,Tampa Bay Buccaneers,17269,"Chism, Efton NEP WR","Chism, Efton",NEP,WR,Active,,1.1,1,252.92,2026 UFA,,chism
 NFC,TBB,Tampa Bay Buccaneers,17647,"Law, Kendrick DET WR","Law, Kendrick",DET,WR,INJURED_RESERVE,IR,0.94,3,252.92,2026 UDFA,,law
 NFC,TBB,Tampa Bay Buccaneers,15972,"Mason, Jordan MIN RB","Mason, Jordan",MIN,RB,INJURED_RESERVE,IR,8.36,1,252.92,2025 UFA,,mason
 NFC,TBB,Tampa Bay Buccaneers,17578,"Louis, Kyle MIA LB","Louis, Kyle",MIA,LB,INJURED_RESERVE,IR,1.04,4,252.92,2026 4.16,,louis
@@ -1209,6 +1210,7 @@ AFC,HOU,Houston Texans,16717,"Taylor-Demerson, Dadrion ARI S","Taylor-Demerson, 
 AFC,HOU,Houston Texans,11247,"Ertz, Zach PHI TE","Ertz, Zach",PHI,TE,Active,,1.1,1,257.89,2026 UFA,,ertz
 AFC,HOU,Houston Texans,16799,"Bethune, Tatum SFO LB","Bethune, Tatum",SFO,LB,Active,,1.1,1,257.89,2026 UFA,,bethune
 AFC,HOU,Houston Texans,15051,"Townsend, Tommy TEN PN","Townsend, Tommy",TEN,PN,Active,,1.3,1,257.89,2026 UFA,,townsend
+AFC,HOU,Houston Texans,15292,"Brown, Dyami WAS WR","Brown, Dyami",WAS,WR,Active,,1.1,1,257.89,2026 UFA,,brown
 AFC,HOU,Houston Texans,15749,"Pacheco, Isiah DET RB","Pacheco, Isiah",DET,RB,INJURED_RESERVE,,5.3,1,257.89,2026 UFA,,pacheco
 AFC,HOU,Houston Texans,16688,"Guerendo, Isaac SFO RB","Guerendo, Isaac",SFO,RB,INJURED_RESERVE,,1.13,2,257.89,2024 4.12,,guerendo
 AFC,HOU,Houston Texans,16215,"Musgrave, Luke GBP TE","Musgrave, Luke",GBP,TE,INJURED_RESERVE,IR-PUP,1.1,1,257.89,2026 UFA,,musgrave
