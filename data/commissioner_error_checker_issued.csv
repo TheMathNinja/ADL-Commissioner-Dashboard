@@ -278,3 +278,5 @@ SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NOS|NOS|Cas
 SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NYG|NYG|Cash Trade (TR/IB)|-3.60|-2.16,2026-10-08 00:10:59 EDT
 Contract Admin 2026 ADJ totals -> MFL roster page|SALADJ_TOTAL_MISMATCH|PHI|PHI|2026 ADJ total|3.38|6.76,2026-10-11 05:21:10 EDT
 Contract Admin 2026 ADJ totals -> MFL roster page|SALADJ_TOTAL_MISMATCH|DEN|DEN|2026 ADJ total|37.51|38.89,2026-10-11 05:21:10 EDT
+Contract Admin 2026 ADJ totals -> MFL roster page|PENDING_MFL_ENTRY|PHI|PHI|2026 ADJ total|3.38|6.76,2026-10-12 05:21:26 EDT
+Contract Admin 2026 ADJ totals -> MFL roster page|PENDING_MFL_ENTRY|DEN|DEN|2026 ADJ total|37.51|38.89,2026-10-12 05:21:26 EDT

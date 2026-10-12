@@ -1,13 +1,17 @@
-The Commissioner Error Checker found salary-adjustment discrepancies.
+The Commissioner Error Checker found salary adjustments awaiting MFL entry before the next official cap snapshot.
 
-Error Type: Incorrect current-season ADJ total in NFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin ADJ total: PHI | Total: $6.76
-MFL roster-page Salary Adjustments total: PHI | Total: $3.38
-Required: Update NFC Sal Adj 2026 ADJ total for PHI to match the MFL roster-page Salary Adjustments total.
+Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin displayed total: PHI | $6.76
+MFL roster-page total: PHI | $3.38
+Pending Contract Admin rows: F. Luvu ($3.38; NFC Sal Adj row 111)
+Explanation: The $3.38 difference is fully explained by rows whose ENTD? field is not marked.
+Required: Enter the pending PHI adjustment(s) in MFL before the next official cap snapshot: F. Luvu ($3.38; NFC Sal Adj row 111). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
 
-Error Type: Incorrect current-season ADJ total in AFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin ADJ total: DEN | Total: $38.89
-MFL roster-page Salary Adjustments total: DEN | Total: $37.51
-Required: Update AFC Sal Adj 2026 ADJ total for DEN to match the MFL roster-page Salary Adjustments total.
+Status: Pending MFL entries from AFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin displayed total: DEN | $38.89
+MFL roster-page total: DEN | $37.51
+Pending Contract Admin rows: T. Dodson ($1.38; AFC Sal Adj row 107)
+Explanation: The $1.38 difference is fully explained by rows whose ENTD? field is not marked.
+Required: Enter the pending DEN adjustment(s) in MFL before the next official cap snapshot: T. Dodson ($1.38; AFC Sal Adj row 107). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
