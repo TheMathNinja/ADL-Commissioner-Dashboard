@@ -3,6 +3,7 @@ library(readr)
 library(tibble)
 
 source("R/roster_source.R")
+source("R/cash_trade_limits.R")
 
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
@@ -682,6 +683,50 @@ evaluate_contract_years_alerts <- function(rosters, max_active_years = 120L) {
       rule = paste0("Active Roster contract years cannot exceed ", .env$max_active_years),
       observed = paste0(.data$active_contract_years, " active contract years"),
       details = paste0(.data$active_contract_years - .env$max_active_years, " over maximum")
+    )
+}
+
+evaluate_cash_trade_limit_alerts <- function(
+  rosters,
+  season = get_current_season(),
+  saladj_path = file.path("data", "SalAdjCurator_latest.csv")
+) {
+  if (!file.exists(saladj_path)) return(tibble::tibble())
+
+  violations <- evaluate_cash_trade_limit(
+    readr::read_csv(saladj_path, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE),
+    season = season
+  )
+  if (!nrow(violations)) return(tibble::tibble())
+
+  franchise_index <- tibble::as_tibble(rosters) |>
+    dplyr::transmute(
+      franchise = toupper(as.character(.data$franchise)),
+      roster_conference = as.character(.data$conference),
+      franchise_name = as.character(.data$franchise_name)
+    ) |>
+    dplyr::distinct(.data$franchise, .keep_all = TRUE)
+
+  violations |>
+    dplyr::left_join(franchise_index, by = "franchise") |>
+    dplyr::transmute(
+      alert_type = "Cash Trade Limit Violation",
+      severity = "violation",
+      conference = dplyr::coalesce(.data$roster_conference, .data$conference),
+      franchise = .data$franchise,
+      franchise_name = dplyr::coalesce(.data$franchise_name, .data$franchise),
+      rule = paste0(
+        "Net cash given or acquired in trades cannot exceed $",
+        sprintf("%.2f", .data$limit), "m in ", .data$season
+      ),
+      observed = paste0(
+        "Net cash ", .data$net_direction, ": $", sprintf("%.2f", .data$net_amount), "m"
+      ),
+      details = paste0(
+        "$", sprintf("%.2f", .data$overage), "m above maximum ($",
+        sprintf("%.2f", .data$total_given), "m given; $",
+        sprintf("%.2f", .data$total_acquired), "m acquired)"
+      )
     )
 }
 
@@ -2655,6 +2700,7 @@ build_commissioner_alerts <- function(
     evaluate_salary_adjustment_alerts(rosters, season = season, checked_at = checked_at),
     evaluate_bid_adjustment_alerts(rosters, season = season, checked_at = checked_at, force_live = force_live)
   )
+  alerts$cash_trade_limit <- evaluate_cash_trade_limit_alerts(rosters, season = season)
 
   if (include_offseason) {
     alerts$roster_cap <- evaluate_roster_cap_alerts(rosters, rule = roster_cap_rule, season = season, checked_at = checked_at)

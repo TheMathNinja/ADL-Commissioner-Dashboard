@@ -171,6 +171,7 @@ Required annual values:
 
 - ADL salary cap baseline and individual franchise salary caps from MFL.
 - ADL SD minimum, via ADL\_SD\_MIN\_<season> or the fallback table in R/commissioner\_alerts.R.
+- ADL maximum seasonal net cash given or acquired in trades, via ADL\_NET\_CASH\_TRADE\_LIMIT\_<season> or the fallback table in R/cash\_trade\_limits.R.
 - Commissioner digest franchises and optional extra recipients/CCs if roles changed.
 
 One-time checks:

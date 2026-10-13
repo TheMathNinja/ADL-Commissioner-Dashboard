@@ -48,6 +48,19 @@ stopifnot(grepl(
 ))
 stopifnot(!grepl("EDT.\n\nDashboard CSV here:", body, fixed = TRUE))
 
+cash_body <- render_saladj_email(
+  rows[1, , drop = FALSE],
+  "2026_10_01_ADLSalAdjCurator.csv",
+  "10/1/2026 12:34 p.m. EDT",
+  cash_limit_violations = tibble::tibble(
+    franchise = "WAS", net_direction = "acquired", net_amount = 12.25,
+    limit = 12.20, overage = 0.05, total_given = 0, total_acquired = 12.25
+  )
+)
+stopifnot(grepl("Cash Trade Limit Violation", cash_body, fixed = TRUE))
+stopifnot(grepl("WAS: Net cash acquired is $12.25m; maximum is $12.20m.", cash_body, fixed = TRUE))
+stopifnot(grepl("Details: $0.05m above maximum ($0.00m given; $12.25m acquired).", cash_body, fixed = TRUE))
+
 push_body <- render_saladj_email(
   rows[1, , drop = FALSE],
   "2026_10_01_ADLSalAdjCurator.csv",

@@ -103,8 +103,21 @@ saladj_email_subject <- function() {
   "[ADL Commissioner Alerts] New salary adjustments to enter"
 }
 
-send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list(), season = get_current_season()) {
-  body <- render_saladj_email(new_rows, archive_filename, run_time_display, run_audit)
+send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list(), season = get_current_season(), all_rows = new_rows) {
+  touched_cash_franchises <- new_rows |>
+    dplyr::filter(toupper(trimws(as.character(.data$PLAYER))) == "CASH TRADE") |>
+    dplyr::pull(.data$FRAN) |>
+    toupper() |>
+    unique()
+  cash_limit_violations <- evaluate_cash_trade_limit(all_rows, season = season) |>
+    dplyr::filter(.data$franchise %in% .env$touched_cash_franchises)
+  body <- render_saladj_email(
+    new_rows,
+    archive_filename,
+    run_time_display,
+    run_audit,
+    cash_limit_violations = cash_limit_violations
+  )
   outbox_path <- write_commissioner_alert_outbox(body, season = season, name = "email_outbox_saladj_digest")
 
   if (!nrow(new_rows)) {
@@ -280,7 +293,8 @@ if (send_email && should_publish_archive) {
     archive_filename = latest_archive_filename,
     run_time_display = run_time_display,
     run_audit = run_audit,
-    season = current_season
+    season = current_season,
+    all_rows = saladj_rows
   )
   readr::write_csv(email_status, file.path("data", "saladj_email_status.csv"), na = "")
   message("SalAdj email status: ", email_status$reason[[1]])

@@ -115,6 +115,9 @@ jobs:
       - name: Verify SalAdj email template
         run: Rscript scripts/test_saladj_email.R
 
+      - name: Verify seasonal net cash trade limit
+        run: Rscript scripts/test_cash_trade_limits.R
+
       - name: Verify Commissioner Error Checker typo matching
         run: Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching
 

@@ -2,6 +2,10 @@ if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, y) if (is.null(x) || !length(x) || all(is.na(x))) y else x
 }
 
+if (!exists("evaluate_cash_trade_limit", mode = "function")) {
+  source("R/cash_trade_limits.R")
+}
+
 format_saladj_digest_amount <- function(x) {
   x_chr <- trimws(as.character(x %||% ""))
   if (!nzchar(x_chr)) return("")
@@ -95,7 +99,7 @@ render_saladj_run_audit <- function(run_audit = list()) {
   )
 }
 
-render_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list()) {
+render_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list(), cash_limit_violations = tibble::tibble()) {
   if (!nrow(new_rows)) {
     return("No new SalAdj rows were found.")
   }
@@ -112,6 +116,27 @@ render_saladj_email <- function(new_rows, archive_filename, run_time_display, ru
     "Please enter the following new salary adjustments in the Contract Admin sheet.",
     ""
   )
+
+  if (nrow(cash_limit_violations)) {
+    lines <- c(lines, "Cash Trade Limit Violation", strrep("-", 26L))
+    for (i in seq_len(nrow(cash_limit_violations))) {
+      row <- cash_limit_violations[i, , drop = FALSE]
+      lines <- c(
+        lines,
+        paste0(
+          row$franchise[[1]], ": Net cash ", row$net_direction[[1]], " is $",
+          sprintf("%.2f", row$net_amount[[1]]), "m; maximum is $",
+          sprintf("%.2f", row$limit[[1]]), "m."
+        ),
+        paste0(
+          "Details: $", sprintf("%.2f", row$overage[[1]]), "m above maximum ($",
+          sprintf("%.2f", row$total_given[[1]]), "m given; $",
+          sprintf("%.2f", row$total_acquired[[1]]), "m acquired)."
+        ),
+        ""
+      )
+    }
+  }
 
   for (conf in names(groups)) {
     rows <- groups[[conf]]
