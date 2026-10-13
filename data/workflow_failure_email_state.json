@@ -180,6 +180,11 @@
       "sent_at": "2026-10-11T09:31:05.456975+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Daily ADL League Maintenance",
       "incident_key": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:38346303523:1": {
+      "sent_at": "2026-10-13T04:26:05.518401+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL weekly update \u00b7 Week 5",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL weekly update \u00b7 Week 5"
     }
   },
   "checked": {
