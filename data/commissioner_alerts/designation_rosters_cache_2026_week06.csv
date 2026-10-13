@@ -284,7 +284,7 @@ NFC,GBP,Green Bay Packers,15711,"Walker III, Kenneth KCC RB","Walker III, Kennet
 NFC,GBP,Green Bay Packers,15329,"Pitts, Kyle ATL TE","Pitts, Kyle",ATL,TE,Active,,9.39,4,266.62,2024 iEXT,,pitts
 NFC,GBP,Green Bay Packers,16161,"Robinson, Bijan ATL RB","Robinson, Bijan",ATL,RB,Active,,9.22,1,266.62,2023 1.02,,robinson
 NFC,GBP,Green Bay Packers,16230,"Van Ness, Lukas GBP DE","Van Ness, Lukas",GBP,DE,Active,,1.59,1,266.62,2023 3.02,,van ness
-NFC,GBP,Green Bay Packers,16614,"Harrison Jr., Marvin ARI WR","Harrison Jr., Marvin",ARI,WR,Active,,9.67,2,266.62,2024 1.01,,harrison jr.
+NFC,GBP,Green Bay Packers,16614,"Harrison Jr., Marvin HOU WR","Harrison Jr., Marvin",HOU,WR,Active,,9.67,2,266.62,2024 1.01,,harrison jr.
 NFC,GBP,Green Bay Packers,16080,"Shaheed, Rashid SEA WR","Shaheed, Rashid",SEA,WR,Active,,5.96,2,266.62,2025 oEXT,,shaheed
 NFC,GBP,Green Bay Packers,17135,"Ezeiruaku, Donovan DAL DE","Ezeiruaku, Donovan",DAL,DE,Active,,1.39,3,266.62,2025 3.07,,ezeiruaku
 NFC,GBP,Green Bay Packers,17099,"Gadsden, Oronde LAC TE","Gadsden, Oronde",LAC,TE,Active,,1.04,3,266.62,2025 5.10,,gadsden
@@ -782,7 +782,7 @@ AFC,BUF,Buffalo Bills,16265,"Dexter, Gervon ATL DT","Dexter, Gervon",ATL,DT,Acti
 AFC,BUF,Buffalo Bills,16223,"Anderson, Will HOU DE","Anderson, Will",HOU,DE,Active,,4.48,1,266.62,2023 1.08,,anderson
 AFC,BUF,Buffalo Bills,14109,"McLaurin, Terry WAS WR","McLaurin, Terry",WAS,WR,Active,,10.29,2,266.62,2024 B/R,,mclaurin
 AFC,BUF,Buffalo Bills,16641,"Bowers, Brock LVR TE","Bowers, Brock",LVR,TE,Active,,7.02,2,266.62,2024 1.03,,bowers
-AFC,BUF,Buffalo Bills,16614,"Harrison Jr., Marvin ARI WR","Harrison Jr., Marvin",ARI,WR,Active,,6.14,2,266.62,2024 1.04,,harrison jr.
+AFC,BUF,Buffalo Bills,16614,"Harrison Jr., Marvin HOU WR","Harrison Jr., Marvin",HOU,WR,Active,,6.14,2,266.62,2024 1.04,,harrison jr.
 AFC,BUF,Buffalo Bills,16651,"Latu, Laiatu IND DE","Latu, Laiatu",IND,DE,Active,,2.37,2,266.62,2024 2.01,,latu
 AFC,BUF,Buffalo Bills,16677,"Bullard, Javon GBP S","Bullard, Javon",GBP,S,Active,,1.44,2,266.62,2024 3.05,,bullard
 AFC,BUF,Buffalo Bills,16148,"Young, Bryce CAR QB","Young, Bryce",CAR,QB,Active,,7.93,1,266.62,2023 1.03,,young
@@ -1008,7 +1008,6 @@ AFC,BAL,Baltimore Ravens,17622,"Muhammad, Malik CHI CB","Muhammad, Malik",CHI,CB
 AFC,BAL,Baltimore Ravens,15357,"Barmore, Christian NEP DT","Barmore, Christian",NEP,DT,Active,,2,1,262.58,2026 UFA,,barmore
 AFC,BAL,Baltimore Ravens,17361,"Ponder, Elijah NEP DE","Ponder, Elijah",NEP,DE,Active,,1.1,1,262.58,2026 UFA,,ponder
 AFC,BAL,Baltimore Ravens,15884,"Stout, Jordan NYG PN","Stout, Jordan",NYG,PN,Active,,1.1,1,262.58,2026 UFA,,stout
-AFC,BAL,Baltimore Ravens,17653,"Masses, Hezekiah LVR CB","Masses, Hezekiah",LVR,CB,Active,R,1.5,1,262.58,2026 UFA,,masses
 AFC,BAL,Baltimore Ravens,17469,"Daniels, Jalon TBB QB","Daniels, Jalon",TBB,QB,Active,Questionable,1.1,1,262.58,2026 UFA,,daniels
 AFC,BAL,Baltimore Ravens,13404,"Ekeler, Austin WAS RB","Ekeler, Austin",WAS,RB,Active,,1.1,1,262.58,2026 UFA,,ekeler
 AFC,BAL,Baltimore Ravens,16019,"Hansen, Jake HOU LB","Hansen, Jake",HOU,LB,Active,,1.1,1,262.58,2026 UFA,,hansen
