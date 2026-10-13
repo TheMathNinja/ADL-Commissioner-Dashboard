@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,6,2026-10-13 09:40:06 UTC,Cash Trade Limit Violation,violation,NFC,WAS,Washington Commanders,Net cash given or acquired in trades cannot exceed $12.20m in 2026,Net cash acquired: $12.25m,$0.05m above maximum ($0.00m given; $12.25m acquired),,
