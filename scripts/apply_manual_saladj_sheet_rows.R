@@ -35,6 +35,11 @@ existing <- googlesheets4::read_sheet(
 
 row_key <- function(date, fran, player, salary) {
   date <- sub(" .*", "", trimws(as.character(date)))
+  date <- ifelse(
+    grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date),
+    date,
+    format(as.Date(date, format = "%m/%d/%Y"), "%Y-%m-%d")
+  )
   paste(date, toupper(trimws(fran)), toupper(trimws(player)),
         sprintf("%.2f", as.numeric(salary)), sep = "|")
 }
