@@ -1,0 +1,21 @@
+name: Apply audited manual SalAdj rows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      R_LIBS_USER: ${{ github.workspace }}/_lib
+      CURRENT_SEASON: "2026"
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-adl-r
+      - name: Append and verify manual SalAdj rows
+        run: Rscript scripts/apply_manual_saladj_sheet_rows.R

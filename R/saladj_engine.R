@@ -1537,6 +1537,41 @@ final_out_csv <- qualified_all %>%
     ))
   )
 
+# Some commissioner-authorized adjustments do not have an MFL transaction
+# record (for example, a cash-only correction). Keep those rows in a small,
+# audited source file so every rebuild preserves them.
+manual_adjustments_csv <- file.path(
+  output_dir,
+  paste0("manual_saladj_adjustments_", current_season, ".csv")
+)
+if (file.exists(manual_adjustments_csv)) {
+  manual_adjustments <- readr::read_csv(
+    manual_adjustments_csv,
+    col_types = readr::cols(.default = readr::col_character()),
+    show_col_types = FALSE
+  )
+  missing_manual_cols <- setdiff(names(final_out_csv), names(manual_adjustments))
+  if (length(missing_manual_cols)) {
+    stop(
+      "Manual SalAdj source is missing columns: ",
+      paste(missing_manual_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  manual_adjustments <- manual_adjustments %>%
+    dplyr::select(dplyr::all_of(names(final_out_csv)))
+  final_out_csv <- dplyr::bind_rows(final_out_csv, manual_adjustments) %>%
+    dplyr::distinct(
+      .data$CONF, .data$DATE, .data$FRAN, .data$PLAYER, .data$SALARY,
+      .keep_all = TRUE
+    ) %>%
+    dplyr::mutate(
+      .manual_date_sort = suppressWarnings(lubridate::mdy_hms(.data$DATE, tz = "America/Toronto"))
+    ) %>%
+    dplyr::arrange(.data$CONF, .data$.manual_date_sort, .data$FRAN) %>%
+    dplyr::select(-.data$.manual_date_sort)
+}
+
 readr::write_csv(final_out_csv, out_csv, na = "")
 saveRDS(final_out_csv, out_rds)
 
