@@ -1,1 +1,24 @@
-No new SalAdj rows were found.
+SalAdj scraper scheduled: 10/14/2026 5:17 a.m. EDT
+Run type: Scheduled daily refresh
+Run started: 10/14/2026 5:19 a.m. EDT
+Run completed / email prepared: 10/14/2026 5:20 a.m. EDT (runtime: 0m 59s)
+
+SalAdj Curator published 4 new row(s) at 10/14/2026 5:20 a.m. EDT.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_14_ADLSalAdjCurator.csv
+
+Please enter the following new salary adjustments in the Contract Admin sheet.
+
+NFC
+---
+- Dropped 10/13/2026 10:09:00 ET by ATL | Kevin Byard NEP S: $4.18 / 1 yr / 2025 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+- Dropped 10/13/2026 11:59:11 ET by CAR | Kenny Clark DAL DT: $5.23 / 1 yr / 2024 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+- Dropped 10/13/2026 13:34:29 ET by WAS | Vernon Broughton NOS DT: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+
+AFC
+---
+- Dropped 10/13/2026 22:14:58 ET by CLE | Cedric Tillman NOS WR: $4.85 / 1 yr / 2025 oEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+
