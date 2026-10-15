@@ -1,0 +1,2 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,6,2026-10-15 09:33:29 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,47 non-suspended/non-holdout Active + Taxi players,2 above maximum (44 Active + 3 Taxi),,1
