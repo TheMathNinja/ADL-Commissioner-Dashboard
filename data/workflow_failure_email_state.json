@@ -185,6 +185,11 @@
       "sent_at": "2026-10-13T04:26:05.518401+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL weekly update \u00b7 Week 5",
       "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL weekly update \u00b7 Week 5"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:38701389107:1": {
+      "sent_at": "2026-10-15T08:50:33.875191+00:00",
+      "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL correction update \u00b7 Week 5 \u00b7",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 5 \u00b7 af3298ee695771ba5ff3c2c8fada27b52ef135a113be3923d0254819794bb944"
     }
   },
   "checked": {
