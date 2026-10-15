@@ -1,24 +1,26 @@
-SalAdj scraper scheduled: 10/14/2026 5:17 a.m. EDT
+SalAdj scraper scheduled: 10/15/2026 5:17 a.m. EDT
 Run type: Scheduled daily refresh
-Run started: 10/14/2026 5:19 a.m. EDT
-Run completed / email prepared: 10/14/2026 5:20 a.m. EDT (runtime: 0m 59s)
+Run started: 10/15/2026 5:24 a.m. EDT
+Run completed / email prepared: 10/15/2026 5:26 a.m. EDT (runtime: 1m 12s)
 
-SalAdj Curator published 4 new row(s) at 10/14/2026 5:20 a.m. EDT.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_14_ADLSalAdjCurator.csv
+SalAdj Curator published 6 new row(s) at 10/15/2026 5:25 a.m. EDT.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_15_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 NFC
 ---
-- Dropped 10/13/2026 10:09:00 ET by ATL | Kevin Byard NEP S: $4.18 / 1 yr / 2025 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
-- Dropped 10/13/2026 11:59:11 ET by CAR | Kenny Clark DAL DT: $5.23 / 1 yr / 2024 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
-- Dropped 10/13/2026 13:34:29 ET by WAS | Vernon Broughton NOS DT: $2.10 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+- Dropped 8/26/2026 08:41:41 ET by NOS | Cash Trade: $-0.05
+  Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
+- Dropped 8/26/2026 08:41:41 ET by WAS | Cash Trade: $0.05
+  Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
+- Dropped 10/14/2026 11:39:49 ET by DET | Cash Trade: $2.00
+- Dropped 10/14/2026 11:39:49 ET by LAR | Cash Trade: $-2.00
+- Dropped 10/14/2026 12:04:51 ET by NYG | Zaire Franklin GBP LB: $11.00 / 1 yr / 2024 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 16, 2026
 
 AFC
 ---
-- Dropped 10/13/2026 22:14:58 ET by CLE | Cedric Tillman NOS WR: $4.85 / 1 yr / 2025 oEXT
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 15, 2026
+- Dropped 10/14/2026 11:32:34 ET by IND | Kerby Joseph DET S: $8.21 / 2 yr / 2025 FRFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 16, 2026
 

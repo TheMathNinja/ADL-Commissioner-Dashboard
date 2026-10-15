@@ -1,4 +1,6 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0006|pl=17752|ts=2026-10-14 00:04:07|ty=FREE_AGENT|td=dropped|cm=NA,17752,Dohnte Meyers,NFC,0006,2026-10-14 00:04:07,2026-10-15 09:00:00,0009,2,2026 UFA
+txn=|fr=0004|pl=14247|ts=2026-10-13 17:33:57|ty=FREE_AGENT|td=dropped|cm=NA,14247,Dre Greenlaw,NFC,0004,2026-10-13 17:33:57,2026-10-15 09:00:00,0011,2,2026 UFA
 txn=|fr=0012|pl=14924|ts=2026-10-08 12:47:53|ty=FREE_AGENT|td=dropped|cm=NA,14924,Jaylon Johnson,NFC,0012,2026-10-08 12:47:53,2026-10-10 09:00:00,0003,1.1,2026 R/F
 txn=|fr=0004|pl=16678|ts=2026-10-08 06:05:00|ty=FREE_AGENT|td=dropped|cm=NA,16678,Sione Vaki,NFC,0004,2026-10-08 06:05:00,2026-10-09 09:00:00,0003,1.1,2026 UFA
 txn=|fr=0019|pl=16216|ts=2026-10-07 16:13:18|ty=FREE_AGENT|td=dropped|cm=NA,16216,Darnell Washington,AFC,0019,2026-10-07 16:13:18,2026-10-09 09:00:00,0017,1.9,2026 UFA
