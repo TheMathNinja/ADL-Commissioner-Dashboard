@@ -1,0 +1,7 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,6,2026-10-16 09:28:26 UTC,Illegal Lineup Warning,warning,AFC,MIA,Miami Dolphins,Starting lineups require 12 defensive starters,"11 defensive starters (2 DT, 2 DE, 2 LB, 2 CB, 3 S)",Must start 1 additional DT/DE/LB/CB,,
+2026,6,2026-10-16 09:28:26 UTC,Illegal Lineup Warning,warning,AFC,PIT,Pittsburgh Steelers,No inactive players allowed in starting lineup,"Hurts, Jalen PHI QB is inactive (O)",,,
+2026,6,2026-10-16 09:28:26 UTC,Illegal Lineup Warning,warning,AFC,TEN,Tennessee Titans,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,6,2026-10-16 09:28:26 UTC,Roster Cap Violation,violation,AFC,HOU,Houston Texans,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,6,2026-10-16 09:28:26 UTC,Roster Cap Violation,violation,AFC,IND,Indianapolis Colts,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,6,2026-10-16 09:28:26 UTC,Roster Cap Violation,violation,NFC,CHI,Chicago Bears,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
