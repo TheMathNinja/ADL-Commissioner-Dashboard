@@ -1,6 +1,6 @@
 franchise,mfl_saladj,saladj_expected,saladj_expected_known,difference,status,adjustment_count,saladj_row_count,known_penalty_rows,missing_penalty_rows,missing_penalty_players,accelerated_rows,acceleration_declaration_players
-ATL,74.25,53.87,53.87,20.38,MISMATCH,19,12,12,0,,1,Tatum Bethune
-BAL,18.61,7.98,7.98,10.63,MISMATCH,9,7,7,0,,0,
+ATL,74.25,55.13,55.13,19.12,MISMATCH,19,13,13,0,,1,Tatum Bethune
+BAL,14.61,3.98,3.98,10.63,MISMATCH,10,8,8,0,,0,
 BUF,5.71,1.25,1.25,4.46,MISMATCH,5,1,1,0,,0,
 CAR,15.93,13.75,13.75,2.18,MISMATCH,7,5,5,0,,0,
 CHI,13.36,3.52,3.52,9.84,MISMATCH,5,3,3,0,,0,
@@ -24,6 +24,6 @@ WAS,-0.29,-5.75,-5.75,5.46,MISMATCH,7,6,6,0,,0,
 ARI,4.68,4.68,4.68,0,MATCH,3,3,3,0,,0,
 GBP,2.18,2.18,2.18,0,MATCH,1,1,1,0,,1,Azeez Ojulari
 HOU,2.57,2.57,2.57,0,MATCH,1,1,1,0,,0,
-LVR,-9.19,-9.19,-9.19,0,MATCH,3,3,3,0,,0,
+LVR,-5.19,-5.19,-5.19,0,MATCH,4,4,4,0,,0,
 NOS,18.49,18.49,18.49,0,MATCH,6,6,6,0,,1,JT Tuimoloau
 SFO,6.5,6.5,6.5,0,MATCH,1,1,1,0,,0,

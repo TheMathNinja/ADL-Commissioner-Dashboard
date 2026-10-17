@@ -1,1 +1,20 @@
-No new SalAdj rows were found.
+SalAdj scraper scheduled: 10/17/2026 5:17 a.m. EDT
+Run type: Scheduled daily refresh
+Run started: 10/17/2026 5:19 a.m. EDT
+Run completed / email prepared: 10/17/2026 5:20 a.m. EDT (runtime: 1m 5s)
+
+SalAdj Curator published 3 new row(s) at 10/17/2026 5:20 a.m. EDT.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_17_ADLSalAdjCurator.csv
+
+Please enter the following new salary adjustments in the Contract Admin sheet.
+
+NFC
+---
+- Dropped 10/16/2026 14:11:18 ET by ATL | Isaiah McDuffie GBP LB: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 18, 2026
+
+AFC
+---
+- Dropped 10/16/2026 16:47:21 ET by BAL | Cash Trade: $-4.00
+- Dropped 10/16/2026 16:47:21 ET by LVR | Cash Trade: $4.00
+
