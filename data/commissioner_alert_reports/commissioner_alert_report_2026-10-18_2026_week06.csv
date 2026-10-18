@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,6,2026-10-18 09:27:47 UTC,Illegal Lineup,violation,NFC,NYG,New York Giants,"Starting lineups require 7 offensive starters, including minimum 1 RB","6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB,,
+2026,6,2026-10-18 09:27:47 UTC,Roster Cap Violation,violation,AFC,IND,Indianapolis Colts,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,3
+2026,6,2026-10-18 09:27:47 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,2
+2026,6,2026-10-18 09:27:47 UTC,In-Season Inactivity Violation,violation,NFC,NYG,New York Giants,GM must submit a legal weekly lineup,"Week 6 lineup was submitted or played illegally: 6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB,,
