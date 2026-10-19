@@ -1,17 +1,1 @@
-SalAdj scraper scheduled: 10/18/2026 5:17 a.m. EDT
-Run type: Scheduled daily refresh
-Run started: 10/18/2026 5:19 a.m. EDT
-Run completed / email prepared: 10/18/2026 5:20 a.m. EDT (runtime: 1m 8s)
-
-SalAdj Curator published 3 new row(s) at 10/18/2026 5:20 a.m. EDT.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_18_ADLSalAdjCurator.csv
-
-Please enter the following new salary adjustments in the Contract Admin sheet.
-
-NFC
----
-- Dropped 10/17/2026 08:13:11 ET by CHI | Cash Trade: $-8.00
-- Dropped 10/17/2026 08:13:11 ET by NYG | Cash Trade: $8.00
-- Dropped 10/17/2026 22:12:11 ET by CAR | Grady Jarrett CHI DT: $2.10 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 19, 2026
-
+No new SalAdj rows were found.
