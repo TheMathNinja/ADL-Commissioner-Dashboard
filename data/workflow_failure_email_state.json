@@ -195,6 +195,11 @@
       "sent_at": "2026-10-15T09:28:48.745820+00:00",
       "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL correction update \u00b7 Week 5 \u00b7",
       "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 5 \u00b7 ba7d0c5f92f17ffe10ee7152a6bd835d08f81662e578efe64e81a323af4e049a"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:39368541679:1": {
+      "sent_at": "2026-10-20T04:15:26.630549+00:00",
+      "subject": "[League automation CANCELLED] FAFL-GM-Dashboard \u2014 Official FAFL weekly update \u00b7 Week 6",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL weekly update \u00b7 Week 6"
     }
   },
   "checked": {
