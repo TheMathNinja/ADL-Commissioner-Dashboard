@@ -22,6 +22,10 @@ on:
         description: Resend an already delivered targeted report
         type: boolean
         default: false
+      force_gotw:
+        description: Resend the current Game of the Week suggestion email
+        type: boolean
+        default: false
 permissions:
   contents: write
   actions: read
@@ -55,6 +59,7 @@ jobs:
           TARGET_PROCESS: ${{ inputs.process }}
           RECIPIENT_OVERRIDE: ${{ inputs.recipient_override }}
           FORCE_RESEND: ${{ inputs.force_resend }}
+          FORCE_GOTW: ${{ inputs.force_gotw }}
         run: |
           args=()
           if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
@@ -62,4 +67,5 @@ jobs:
           if [ -n "$TARGET_PROCESS" ]; then args+=(--process "$TARGET_PROCESS"); fi
           if [ -n "$RECIPIENT_OVERRIDE" ]; then args+=(--recipient-override "$RECIPIENT_OVERRIDE"); fi
           if [ "$FORCE_RESEND" = true ]; then args+=(--force-resend); fi
+          if [ "$FORCE_GOTW" = true ]; then args+=(--force-gotw); fi
           python3 scripts/email_weekly_completion.py "${args[@]}"
