@@ -23,11 +23,14 @@ Sys.setenv(
 source("scripts/send_cap_snapshot_confirmation.R")
 body <- paste(readLines(preview_path, warn = FALSE), collapse = "\n")
 stopifnot(
-  grepl("official Week 3 salary cap snapshot completed successfully", body, fixed = TRUE),
+  grepl("ADL Week 3 Salary Cap Accounting Snapshot", body, fixed = TRUE),
+  grepl("Scope: Official weekly salary cap accounting only.", body, fixed = TRUE),
+  grepl("does not confirm completion of the broader ADL weekly dashboard update", body, fixed = TRUE),
+  grepl("official Week 3 salary cap accounting snapshot was recorded successfully", body, fixed = TRUE),
   grepl("Tuesday, Sep 29, 2026 at 05:49:55 AM ET", body, fixed = TRUE),
   grepl("Contract Admin Cap Rollover tab: updated successfully", body, fixed = TRUE),
   grepl(
-    "View the Week 3 weekly update process here: https://github.com/example/adl/actions/runs/456",
+    "Track the separate Week 3 weekly dashboard update here: https://github.com/example/adl/actions/runs/456",
     body,
     fixed = TRUE
   )

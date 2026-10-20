@@ -11,17 +11,19 @@ format_snapshot_confirmation <- function(metadata) {
   date_text <- paste0(format(taken_et, "%A, %b "), as.integer(format(taken_et, "%d")), format(taken_et, ", %Y at %I:%M:%S %p ET"))
   weekly_update_url <- trimws(Sys.getenv("ADL_WEEKLY_UPDATE_URL", unset = ""))
   lines <- c(
-    paste0("ADL Week ", metadata$week[[1]], " Official Cap Snapshot"),
+    paste0("ADL Week ", metadata$week[[1]], " Salary Cap Accounting Snapshot"),
     "",
-    paste0("The official Week ", metadata$week[[1]], " salary cap snapshot completed successfully."),
+    "Scope: Official weekly salary cap accounting only. This email does not confirm completion of the broader ADL weekly dashboard update.",
+    "",
+    paste0("The official Week ", metadata$week[[1]], " salary cap accounting snapshot was recorded successfully."),
     paste0("Snapshot taken: ", date_text),
     paste0("Contract Admin Cap Rollover tab: ", Sys.getenv("ADL_CAP_SNAPSHOT_SHEET_STATUS", unset = "updated successfully")),
-    paste0("Workflow: ", metadata$workflow_run_url[[1]])
+    paste0("Snapshot workflow: ", metadata$workflow_run_url[[1]])
   )
   if (nzchar(weekly_update_url)) {
     lines <- c(
       lines,
-      paste0("View the Week ", metadata$week[[1]], " weekly update process here: ", weekly_update_url)
+      paste0("Track the separate Week ", metadata$week[[1]], " weekly dashboard update here: ", weekly_update_url)
     )
   }
   paste(lines, collapse = "\n")
@@ -97,7 +99,7 @@ writeLines(body, preview_path)
 
 if (tolower(Sys.getenv("ADL_CAP_SNAPSHOT_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")) {
   recipients <- split_recipients(Sys.getenv("ADL_CAP_SNAPSHOT_EMAIL_TO", unset = ""))
-  subject <- paste0("[ADL Commissioner Alerts] Week ", week, " official cap snapshot complete")
+  subject <- paste0("[ADL Commissioner Alerts] Week ", week, " salary cap accounting snapshot complete")
   send_snapshot_mail(subject, body, recipients)
   message("Sent official cap snapshot confirmation to ", paste(recipients, collapse = ", "))
 } else {
