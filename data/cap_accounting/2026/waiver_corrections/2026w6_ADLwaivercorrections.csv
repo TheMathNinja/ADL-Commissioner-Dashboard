@@ -1,0 +1,3 @@
+SEASON,WEEK,WAIVER_WINDOW_START_ET,WAIVER_WINDOW_END_ET,DATE,CONF,FRAN,FRANCHISE_ID,PLAYER,PLAYER_ID,SALARY,YEARS,CONTRACT,FG,1.XX+,RVSD?,SALARY_SNAPSHOT_TIME_ET,WAIVER_STATUS,NOTES
+2026,6,10/18/2026 05:00 AM EDT,10/19/2026 11:15 PM EDT,10/19/2026 10:23:52,AFC,IND,0026,Ryan Rehkow,16887,1.1,1,2026 ERFA,,,,10/19/2026 05:25 AM EDT,Not rostered in same conference at cap run,Dropped in waiver-correction window; verify whether prior-week cap correction is needed.
+2026,6,10/18/2026 05:00 AM EDT,10/19/2026 11:15 PM EDT,10/18/2026 09:07:56,AFC,JAC,0027,James Pierre,15124,1.1,1,2026 UFA,,,,10/18/2026 05:20 AM EDT,Not rostered in same conference at cap run,Dropped in waiver-correction window; verify whether prior-week cap correction is needed.
