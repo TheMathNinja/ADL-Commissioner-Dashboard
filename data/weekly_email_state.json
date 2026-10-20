@@ -49,8 +49,50 @@
       "subject": "ADL 2026 Week 6: Preliminary scores - updates complete"
     },
     "gotw:2026:7": {
-      "sent_at": "2026-10-20T04:31:01.699799+00:00",
+      "sent_at": "2026-10-20T04:55:38.279882+00:00",
       "subject": "2026 Week 7: ADL & FAFL Game of the Week suggestions"
     }
+  },
+  "gotw_history": {
+    "ADL": [
+      {
+        "season": 2026,
+        "week": 4,
+        "team_a": "Kansas City Chiefs",
+        "team_b": "Indianapolis Colts"
+      },
+      {
+        "season": 2026,
+        "week": 5,
+        "team_a": "Tampa Bay Buccaneers",
+        "team_b": "New Orleans Saints"
+      },
+      {
+        "season": 2026,
+        "week": 6,
+        "team_a": "Miami Dolphins",
+        "team_b": "Houston Texans"
+      }
+    ],
+    "FAFL": [
+      {
+        "season": 2026,
+        "week": 4,
+        "team_a": "Pittsburgh Steelers",
+        "team_b": "Tennessee Titans"
+      },
+      {
+        "season": 2026,
+        "week": 5,
+        "team_a": "Philadelphia Eagles",
+        "team_b": "New York Giants"
+      },
+      {
+        "season": 2026,
+        "week": 6,
+        "team_a": "Jacksonville Jaguars",
+        "team_b": "Denver Broncos"
+      }
+    ]
   }
 }
