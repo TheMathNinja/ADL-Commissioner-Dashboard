@@ -6,4 +6,3 @@ repeated_roster_violation|2026|IND|Roster Cap Violation|Maximum 45 non-suspended
 repeated_roster_violation|2026|CHI|Roster Cap Violation|Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad|2026-10-16,2026-10-17 05:28:07 EDT,2026,NFC,CHI,Chicago Bears,Roster Snapshot Violation,Repeated illegal roster violation for two consecutive days at the early morning snapshot
 repeated_roster_violation|2026|JAC|Roster Cap Violation|Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad|2026-10-17,2026-10-18 05:27:47 EDT,2026,AFC,JAC,Jacksonville Jaguars,Roster Snapshot Violation,Repeated illegal roster violation for two consecutive days at the early morning snapshot
 illegal_lineup|2026|NYG|6,2026-10-18 05:27:47 EDT,2026,NFC,NYG,New York Giants,Illegal Lineup,GM must submit a legal weekly lineup
-illegal_lineup|2026|NYG|7,2026-10-20 05:28:30 EDT,2026,NFC,NYG,New York Giants,Illegal Lineup,GM must submit a legal weekly lineup

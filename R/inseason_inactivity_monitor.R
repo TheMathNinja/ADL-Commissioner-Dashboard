@@ -654,17 +654,27 @@ evaluate_lineup_submission_warnings <- function(season = get_current_season(), w
       details = ""
     )
 }
-evaluate_confirmed_illegal_lineup_inactivity <- function(season = get_current_season()) {
-  reports <- read_all_commissioner_alert_reports(season)
+evaluate_confirmed_illegal_lineup_inactivity <- function(
+  season = get_current_season(),
+  run_time = Sys.time(),
+  reports = NULL
+) {
+  if (is.null(reports)) reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports) || !"week" %in% names(reports)) return(empty_inseason_inactivity_rows())
 
+  current_week <- commissioner_alert_status_week(season = season, checked_at = run_time)
+  if (is.na(current_week)) return(empty_inseason_inactivity_rows())
+
   reports |>
+    mutate(report_week = suppressWarnings(as.integer(.data$week))) |>
     filter(
       .data$alert_type == "Illegal Lineup",
       !is.na(.data$franchise),
-      nzchar(.data$franchise)
+      nzchar(.data$franchise),
+      !is.na(.data$report_week),
+      .data$report_week < .env$current_week
     ) |>
-    group_by(.data$conference, .data$franchise, .data$franchise_name, .data$week) |>
+    group_by(.data$conference, .data$franchise, .data$franchise_name, week = .data$report_week) |>
     summarize(
       observed = paste(unique(.data$observed), collapse = "; "),
       details = paste(unique(.data$details[nzchar(coalesce(.data$details, ""))]), collapse = "; "),
@@ -676,7 +686,7 @@ evaluate_confirmed_illegal_lineup_inactivity <- function(season = get_current_se
       conference,
       franchise,
       franchise_name,
-      week = as.character(.env$week),
+      week = as.character(.data$week),
       violation_category = "Illegal Lineup",
       rule = "GM must submit a legal weekly lineup",
       observed = paste0("Week ", .data$week, " lineup was submitted or played illegally: ", .data$observed),
@@ -760,7 +770,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
       list(
         evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
         evaluate_repeated_roster_violations(season, run_time = run_time),
-        evaluate_confirmed_illegal_lineup_inactivity(season),
+        evaluate_confirmed_illegal_lineup_inactivity(season, run_time = run_time),
         evaluate_lineup_submission_inactivity(season = season, force_live = force_live, run_time = run_time),
         evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
       ),

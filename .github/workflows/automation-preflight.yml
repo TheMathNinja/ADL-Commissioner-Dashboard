@@ -124,6 +124,9 @@ jobs:
       - name: Verify roster-cap streak and inactivity labels
         run: Rscript scripts/test_roster_cap_streaks.R
 
+      - name: Verify illegal-lineup week rollover
+        run: Rscript scripts/test_illegal_lineup_week_rollover.R
+
       - name: Verify cap snapshot confirmation email
         run: Rscript scripts/test_cap_snapshot_confirmation.R
 

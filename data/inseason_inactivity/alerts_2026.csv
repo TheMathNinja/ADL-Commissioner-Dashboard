@@ -1,2 +1,1 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
-illegal_lineup|2026|NYG|7,2026,7,2026-10-20 05:28:30 EDT,In-Season Inactivity Violation,violation,NFC,NYG,New York Giants,Illegal Lineup,GM must submit a legal weekly lineup,"Week 7 lineup was submitted or played illegally: 6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB,inseason
