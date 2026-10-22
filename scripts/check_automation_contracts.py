@@ -90,6 +90,22 @@ def local_python_call_errors(root: Path) -> list[str]:
     return errors
 
 
+def unittest_module_errors(repo: str, root: Path) -> list[str]:
+    errors = []
+    for path in root.glob(".github/workflows/*.yml"):
+        source = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"python(?:3)?\s+-m\s+unittest\s+([^\n]+)", source):
+            command = match.group(1).split("#", 1)[0]
+            modules = re.findall(r"\b(?:tests|scripts)(?:\.[A-Za-z_][A-Za-z0-9_]*)+\b", command)
+            for module in modules:
+                target = root.joinpath(*module.split(".")).with_suffix(".py")
+                if not target.exists():
+                    errors.append(
+                        f"{repo}/{path.relative_to(root)} invokes missing unittest module {module}"
+                    )
+    return errors
+
+
 def function_signatures(path: Path) -> dict[str, tuple]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     signatures = {}
@@ -133,6 +149,7 @@ def main() -> int:
                 continue
             workflows[(repo, path.name)] = workflow_inputs(path)
         errors.extend(local_python_call_errors(root))
+        errors.extend(unittest_module_errors(repo, root))
 
     commissioner = roots.get("ADL-Commissioner-Dashboard")
     if commissioner:
