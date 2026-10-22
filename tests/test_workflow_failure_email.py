@@ -57,6 +57,11 @@ class FailureReports(unittest.TestCase):
         )
         self.assertTrue(m.production(watchdog))
 
+    def test_official_bonus_children_are_reported_but_previews_are_not(self):
+        child=dict(self.run,path='.github/workflows/verify_bonus_mfl.yml',display_title='Synchronize MFL Bonus Games · official · source 123')
+        self.assertTrue(m.production(child))
+        self.assertIsNone(m.production(dict(child,display_title='Synchronize MFL Bonus Games · preview · source 123')))
+
     def test_cancelled_push_and_manual_runs_do_not_send(self):
         for event in ('push', 'workflow_dispatch'):
             with self.subTest(event=event):

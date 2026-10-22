@@ -19,6 +19,7 @@ IMPACT = {
     'refresh_extension_calculator.yml': 'ADL Elo, Bonus Games/MFL entries, Playoffs, Payouts, or EXT may be incomplete. See the failed components below.',
     'refresh.yml': 'FAFL Elo, Bonus Games/MFL entries, Playoffs, or Payouts may be incomplete. See the failed components below.',
     'poll_preliminary_scores.yml': 'The preliminary-score readiness check failed; the weekly refresh may not have been triggered.',
+    'verify_bonus_mfl.yml': 'Due MFL Bonus Games did not pass full standings readback; completion email remains withheld.',
     'poll_score_corrections.yml': 'The correction check failed; corrected scores and due MFL Bonus Games may not have been processed.',
     'refresh_rosters.yml': 'Published roster-dependent tools may be stale.',
     'deploy_dashboard.yml': 'The latest dashboard changes may not be live.',
@@ -38,6 +39,7 @@ BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'c
 PRODUCTION_DISPATCH_NAMES = (
     re.compile(r'^Daily ADL League Maintenance$'),
     re.compile(r'^Dashboard Watchdog$'),
+    re.compile(r'^Synchronize MFL Bonus Games · official · source \d+(?: · attempt \d+)?$'),
     re.compile(r'^Official Week \d+ cap snapshot \(weekly package \d+\)$'),
     re.compile(r'^(?:Preliminary|Corrections) 60206 2026 week \d+'),
     re.compile(r'^Official (?:ADL|FAFL) (?:weekly update · Week \d+|correction update · Week \d+ · .+)$', re.IGNORECASE),
