@@ -1,4 +1,6 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0030|pl=13987|ts=2026-10-20 20:50:35|ty=FREE_AGENT|td=dropped|cm=NA,13987,Robert Spillane,AFC,0030,2026-10-20 20:50:35,2026-10-22 09:00:00,0025,2,2026 UFA
+txn=|fr=0002|pl=13448|ts=2026-10-20 15:49:35|ty=FREE_AGENT|td=dropped|cm=NA,13448,Adam Butler,NFC,0002,2026-10-20 15:49:35,2026-10-22 09:00:00,0003,2,2026 UFA
 txn=|fr=0001|pl=16714|ts=2026-10-15 08:30:21|ty=FREE_AGENT|td=dropped|cm=NA,16714,Jarrian Jones,NFC,0001,2026-10-15 08:30:21,2026-10-16 09:00:00,0005,2,2026 UFA
 txn=|fr=0006|pl=17752|ts=2026-10-14 00:04:07|ty=FREE_AGENT|td=dropped|cm=NA,17752,Dohnte Meyers,NFC,0006,2026-10-14 00:04:07,2026-10-15 09:00:00,0009,2,2026 UFA
 txn=|fr=0004|pl=14247|ts=2026-10-13 17:33:57|ty=FREE_AGENT|td=dropped|cm=NA,14247,Dre Greenlaw,NFC,0004,2026-10-13 17:33:57,2026-10-15 09:00:00,0011,2,2026 UFA
