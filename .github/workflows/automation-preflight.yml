@@ -1,6 +1,14 @@
 name: ADL Automation Preflight
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "scripts/CloudPolling.gs"
+      - "scripts/check_automation_contracts.py"
+  schedule:
+    - cron: "30 8 * * *"
   workflow_dispatch:
     inputs:
       run_live_mfl_checks:
@@ -61,7 +69,40 @@ permissions:
   contents: read
 
 jobs:
+  contracts:
+    name: Verify cross-repository automation contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Commissioner automation
+        uses: actions/checkout@v4
+        with:
+          path: commissioner
+      - name: Check out ADL GM automation
+        uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/ADL-GM-Dashboard
+          path: adl
+      - name: Check out FAFL GM automation
+        uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/FAFL-GM-Dashboard
+          path: fafl
+      - name: Check out Lineup Guardian automation
+        uses: actions/checkout@v4
+        with:
+          repository: TheMathNinja/Chicago-Bears-Lineup-Guardian
+          path: guardian
+      - name: Validate dispatches, signatures, encodings, and scheduler ownership
+        run: |
+          python3 commissioner/scripts/check_automation_contracts.py \
+            --repo ADL-GM-Dashboard=adl \
+            --repo FAFL-GM-Dashboard=fafl \
+            --repo ADL-Commissioner-Dashboard=commissioner \
+            --repo Chicago-Bears-Lineup-Guardian=guardian
+
   preflight:
+    needs: contracts
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       CURRENT_SEASON: "2026"

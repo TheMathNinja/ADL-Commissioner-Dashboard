@@ -38,9 +38,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          repository: TheMathNinja/ADL-GM-Dashboard
-          ref: main
       - name: Test report gating and recipient isolation
         run: python3 -m unittest discover -s tests -p test_weekly_completion_email.py -v
       - name: Verify live publication and email the owner

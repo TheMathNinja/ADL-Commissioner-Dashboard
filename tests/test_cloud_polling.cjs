@@ -1,6 +1,8 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
 const source=fs.readFileSync('scripts/CloudPolling.gs','utf8');
-const context=vm.createContext({});vm.runInContext(source,context);
+const alerts=[];
+const context=vm.createContext({MailApp:{sendEmail:(...args)=>alerts.push(args)}});vm.runInContext(source,context);
+assert.equal(vm.runInContext('CLOUD_SCHEDULER.intervalMinutes',context),5);
 const window=(day,clock,year=2026,month=10)=>vm.runInContext(`cloudPollWindowParts_(${day},'${clock}',${year},${month})`,context);
 assert.equal(window(1,'23:29'),'');
 assert.equal(window(1,'23:30'),'preliminary');
@@ -39,6 +41,25 @@ const dueWithAdvancedCursor=vm.runInContext(`latestDueMinute_({hour:5,minute:17}
 assert.equal(dueWithAdvancedCursor,'2026-10-04T09:17:00.000Z');
 const dueAfterLongOutage=vm.runInContext(`latestDueMinute_({hour:5,minute:17},new Date('2026-10-04T12:00:58Z'),new Date('2026-10-04T11:59:58Z'),function(job,date){return date.getUTCHours()===9&&date.getUTCMinutes()===17;}).toISOString()`,context);
 assert.equal(dueAfterLongOutage,'2026-10-04T09:17:00.000Z');
+vm.runInContext(`
+  cloudWorkflowRuns_=function(){return [1,2,3].map(function(id){return {
+    id:id,status:'completed',conclusion:'failure',head_sha:'abcdef123456'
+  };});};
+  testProps={
+    values:{CLOUD_CIRCUIT_PROBE_ADL_GM_Dashboard_poll_score_corrections_yml_interval:String(new Date('2026-10-22T14:59:00Z').getTime())},
+    getProperty:function(key){return this.values[key]||null;},
+    setProperty:function(key,value){this.values[key]=value;},
+    deleteProperty:function(key){delete this.values[key];}
+  };
+  PropertiesService={getScriptProperties:function(){return testProps;}};
+`,context);
+const circuitOpen=vm.runInContext(`cloudPollingCircuitOpen_(
+  {repo:'ADL-GM-Dashboard',workflow:'poll_score_corrections.yml'},null,testProps,new Date('2026-10-22T15:00:00Z'))`,context);
+assert.equal(circuitOpen,true);
+assert.equal(alerts.length,1);
+const hourlyProbe=vm.runInContext(`cloudPollingCircuitOpen_(
+  {repo:'ADL-GM-Dashboard',workflow:'poll_score_corrections.yml'},null,testProps,new Date('2026-10-22T16:00:00Z'))`,context);
+assert.equal(hourlyProbe,false);
 const receipt=(value,job,process,week)=>vm.runInContext(`cloudRefreshReceiptMatches_(${JSON.stringify(value)},${JSON.stringify(job)},'${process}',${week})`,context);
 assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'preliminary'},{leagueId:'60206'},'preliminary',3));
 assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));

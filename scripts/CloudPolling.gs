@@ -6,7 +6,10 @@ const CLOUD_SCHEDULER = {
   tokenProperty: 'GITHUB_WORKFLOW_TOKEN',
   alertEmail: 'fili.mikey@gmail.com',
   owner: 'TheMathNinja',
+  intervalMinutes: 5,
   maxCatchUpMinutes: 26 * 60,
+  circuitFailureThreshold: 3,
+  circuitProbeMinutes: 60,
   polling: {
     preliminary: [
       {repo: 'ADL-GM-Dashboard', leagueId: '60206', workflow: 'poll_preliminary_scores.yml', inputs: {dry_run: 'false'}},
@@ -136,12 +139,9 @@ function cloudLocalInputs_(job, date) {
 function latestDueMinute_(job, now, lastRun, matcher) {
   const end = Math.floor(now.getTime() / 60000) * 60000;
   const fallbackStart = end - CLOUD_SCHEDULER.maxCatchUpMinutes * 60000;
-  const cursorStart = lastRun ? lastRun.getTime() + 60000 : end - 20 * 60000;
-  // Re-scan at least 35 minutes on every pass. Per-job receipts prevent duplicates,
-  // while this guard keeps one advanced/corrupt shared cursor from skipping a fixed slot.
-  const safetyStart = end - 35 * 60000;
-  const start = Math.max(fallbackStart, Math.min(cursorStart, safetyStart));
-  for (let stamp = end; stamp >= start; stamp -= 60000) {
+  // Search the complete recovery window. Per-job receipts make this idempotent,
+  // while a shared or corrupt cursor can no longer hide a missed fixed slot.
+  for (let stamp = end; stamp >= fallbackStart; stamp -= 60000) {
     const candidate = new Date(stamp);
     if (matcher(job, candidate)) return candidate;
   }
@@ -195,6 +195,46 @@ function cloudRepoJson_(repo, path, token) {
   return JSON.parse(Utilities.newBlob(Utilities.base64Decode(String(item.content).replace(/\s/g, ''))).getDataAsString());
 }
 
+function cloudWorkflowRuns_(job, token, limit) {
+  const response = UrlFetchApp.fetch(
+    'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + job.repo +
+      '/actions/workflows/' + job.workflow + '/runs?event=workflow_dispatch&branch=main&per_page=' + limit,
+    {method: 'get', headers: cloudHeaders_(token), muteHttpExceptions: true}
+  );
+  if (response.getResponseCode() !== 200) {
+    throw new Error(job.repo + '/' + job.workflow + ' run history returned HTTP ' +
+      response.getResponseCode());
+  }
+  return (JSON.parse(response.getContentText()).workflow_runs || []);
+}
+
+function cloudPollingCircuitOpen_(job, token, props, now) {
+  const runs = cloudWorkflowRuns_(job, token, CLOUD_SCHEDULER.circuitFailureThreshold);
+  if (runs.length < CLOUD_SCHEDULER.circuitFailureThreshold) return false;
+  const bad = {failure: true, timed_out: true, startup_failure: true, action_required: true};
+  const sha = runs[0].head_sha;
+  const repeated = runs.every(function(run) {
+    return run.status === 'completed' && bad[run.conclusion] && run.head_sha === sha;
+  });
+  const key = cloudJobKey_(job).replace(/[^A-Za-z0-9_]/g, '_');
+  if (!repeated) {
+    props.deleteProperty('CLOUD_CIRCUIT_PROBE_' + key);
+    props.deleteProperty('CLOUD_SCHEDULER_ALERT_circuit_' + key);
+    return false;
+  }
+
+  const lastProbe = Number(props.getProperty('CLOUD_CIRCUIT_PROBE_' + key) || 0);
+  if (!lastProbe || now.getTime() - lastProbe >= CLOUD_SCHEDULER.circuitProbeMinutes * 60000) {
+    props.setProperty('CLOUD_CIRCUIT_PROBE_' + key, String(now.getTime()));
+    return false;
+  }
+  cloudAlert_('circuit_' + key,
+    job.repo + '/' + job.workflow + ' failed ' + runs.length +
+    ' consecutive times on commit ' + String(sha).slice(0, 8) +
+    '. Automatic retries are limited to one hourly probe until a run succeeds or the code changes.');
+  return true;
+}
+
 function cloudRefreshReceiptMatches_(receipt, job, process, week) {
   return !!receipt && receipt.season === CLOUD_SCHEDULER.season &&
     String(receipt.league_id) === job.leagueId && receipt.week === week &&
@@ -222,7 +262,9 @@ function cloudAlert_(key, message) {
 }
 
 function cloudJobKey_(job) {
-  return job.repo + '/' + job.workflow + '/' + (job.cron || (job.hour + ':' + job.minute) || 'interval');
+  const slot = job.cron ||
+    (Number.isFinite(job.hour) && Number.isFinite(job.minute) ? job.hour + ':' + job.minute : 'interval');
+  return job.repo + '/' + job.workflow + '/' + slot;
 }
 
 function dispatchOnce_(job, token, slot, props, overrideInputs) {
@@ -263,13 +305,15 @@ function runCloudLeagueScheduler() {
       try { dispatchOnce_(job, token, slot, props, overrideInputs); }
       catch (error) { failures.push(cloudJobKey_(job) + ': ' + error.message); }
     };
-    const intervalSlot = new Date(Math.floor(now.getTime() / (15 * 60000)) * 15 * 60000);
+    const intervalMs = CLOUD_SCHEDULER.intervalMinutes * 60000;
+    const intervalSlot = new Date(Math.floor(now.getTime() / intervalMs) * intervalMs);
     CLOUD_SCHEDULER.intervalJobs.forEach(function(job) { attempt(job, intervalSlot); });
     const pollingWindow = cloudPollWindow_(now);
     const targetWeek = cloudTargetWeek_(now);
     if (pollingWindow) CLOUD_SCHEDULER.polling[pollingWindow].forEach(function(job) {
       try {
-        if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props)) attempt(job, intervalSlot);
+        if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props) &&
+            !cloudPollingCircuitOpen_(job, token, props, now)) attempt(job, intervalSlot);
       } catch (error) {
         failures.push(cloudJobKey_(job) + ' receipt check: ' + error.message);
       }
