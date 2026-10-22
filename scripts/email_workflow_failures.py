@@ -2,6 +2,8 @@
 import argparse
 import copy
 from datetime import datetime, timedelta, timezone
+import http.client
+import json
 import os
 import re
 from pathlib import PurePosixPath
@@ -44,16 +46,16 @@ PRODUCTION_DISPATCH_NAMES = (
 
 def api(repo, path):
     error = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             value = mail.get_json(f'https://api.github.com/repos/{repo}/{path}')
             if value is None:
                 raise RuntimeError(f'GitHub resource unavailable: {repo}/{path}')
             return value
-        except (TimeoutError, OSError) as exc:
+        except (TimeoutError, OSError, http.client.IncompleteRead, json.JSONDecodeError) as exc:
             error = exc
-            if attempt < 2:
-                mail.time.sleep(2 ** attempt)
+            if attempt < 4:
+                mail.time.sleep(min(8, 2 ** attempt))
     raise RuntimeError(f'GitHub API remained unavailable for {repo}/{path}') from error
 
 
@@ -74,9 +76,9 @@ def runs(repo):
     start = (datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)).strftime('%Y-%m-%dT%H:%M:%SZ')
     page = 1
     while True:
-        batch = api(repo, f'actions/runs?per_page=50&page={page}&branch=main&created=%3E%3D{start}')['workflow_runs']
+        batch = api(repo, f'actions/runs?per_page=20&page={page}&branch=main&created=%3E%3D{start}')['workflow_runs']
         yield from batch
-        if len(batch) < 50:
+        if len(batch) < 20:
             return
         page += 1
 
