@@ -200,6 +200,11 @@
       "sent_at": "2026-10-20T04:15:26.630549+00:00",
       "subject": "[League automation CANCELLED] FAFL-GM-Dashboard \u2014 Official FAFL weekly update \u00b7 Week 6",
       "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL weekly update \u00b7 Week 6"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:39799124223:1": {
+      "sent_at": "2026-10-22T15:11:47.727796+00:00",
+      "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL correction update \u00b7 Week 6 \u00b7",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 6 \u00b7 14e0ecac9c81b0e4d37459b37c443f5df09623713725e9351f05049c3b4039c7"
     }
   },
   "checked": {
@@ -532,6 +537,7 @@
     "TheMathNinja/ADL-GM-Dashboard:39576058971:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:39754536063:1": "duplicate notification for TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
     "TheMathNinja/ADL-GM-Dashboard:39799391576:1": "duplicate notification for TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
-    "TheMathNinja/ADL-GM-Dashboard:39799749016:1": "duplicate notification for TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance"
+    "TheMathNinja/ADL-GM-Dashboard:39799749016:1": "duplicate notification for TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
+    "TheMathNinja/ADL-GM-Dashboard:39799121827:1": "success"
   }
 }
