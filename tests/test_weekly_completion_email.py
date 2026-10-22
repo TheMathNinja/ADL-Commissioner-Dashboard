@@ -10,11 +10,17 @@ sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
 import email_weekly_completion as m
 
 
+def bonus_receipt(week=3,run_id='123',league='ADL'):
+    due=[w for w in (3,6,9,12) if w<=week]
+    rows=lambda w:[dict(id=f'{i:04}',week=w,W=(1 if i<=15 else 0)*(2 if w==12 else 1),L=(1 if i>=18 else 0)*(2 if w==12 else 1),T=(1 if 16<=i<=17 else 0)*(2 if w==12 else 1)) for i in range(1,33)]
+    return dict(status='success',mode='official',league=league,season=2026,week=week,run_id=run_id,source_sha256='a'*64,verified_at='2026-10-22T18:00:00Z',due_weeks=due,results=[dict(week=w,rows=rows(w)) for w in due])
+
 class CompletionEmailTest(unittest.TestCase):
     def setUp(self):
         self.receipt = dict(payouts_verified=True, season=2026, week=3, league_id='60206', status='success',
                             process='preliminary', run_id='123',
                             triggered_at='2026-09-29T04:30:05+00:00')
+        self.bonus=bonus_receipt()
         self.payout = dict(status='success', run_id='123', through_week=3, season=2026, league='ADL', logos=dict(status='success',run_id='123'))
         self.run = dict(status='completed', conclusion='success', created_at='2026-09-29T04:30:06Z', html_url='https://github.com/example/run/123')
         self.marker = dict(run_id='123', season=2026, week=3)
@@ -28,7 +34,7 @@ class CompletionEmailTest(unittest.TestCase):
             if '/jobs?' in url: return {'jobs': [self.job]}
             if 'weekly-refresh-status' in url: return self.marker
             return self.run
-        with patch.object(m, 'get_json', side_effect=api), patch.object(m, 'document', side_effect=lambda repo, path: self.payout if path.endswith('payouts_sync_metadata.json') else self.baseline), patch.object(m, 'mfl', return_value=self.feed):
+        with patch.object(m, 'get_json', side_effect=api), patch.object(m, 'document', side_effect=lambda repo, path: self.payout if path.endswith('payouts_sync_metadata.json') else self.bonus if path.endswith('bonus_mfl_sync_metadata.json') else self.baseline), patch.object(m, 'mfl', return_value=self.feed):
             return m.published('ADL', self.receipt)
 
     def test_both_leagues_required_for_preliminary(self):
@@ -60,6 +66,12 @@ class CompletionEmailTest(unittest.TestCase):
     def test_verified_correction_receipt_is_authoritative(self):
         self.receipt.update(process='corrections', bonus_mfl_verified=True)
         self.assertIsNotNone(self.verify())
+
+    def test_queued_or_stale_bonus_metadata_blocks_even_if_completion_flag_true(self):
+        self.receipt.update(process='corrections',bonus_mfl_verified=True)
+        for key,value in [('status','queued'),('status','failure'),('run_id','old'),('week',2),('results',[])]:
+            self.bonus=bonus_receipt();self.bonus[key]=value
+            self.assertIsNone(self.verify())
 
     def test_success_and_live_site_pass(self):
         self.assertEqual(self.verify()['finished'], self.job['completed_at'])

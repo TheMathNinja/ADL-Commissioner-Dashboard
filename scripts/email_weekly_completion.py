@@ -19,6 +19,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from verify_bonus_receipt import validate_bonus_receipt
 from weekly_email_support import ET, mfl, priced_rank, snapshot
 
 LEAGUES = {
@@ -187,11 +188,10 @@ def published(league, receipt):
     if not payout or payout.get('status') != 'success' or str(payout.get('run_id')) != run_id or payout.get('through_week') != receipt['week'] or payout.get('season') != receipt['season'] or payout.get('league') != league:
         return None
     if receipt.get('process') == 'corrections':
-        # The completion receipt is written only after the source run verifies its
-        # exact Bonus Games child. The intermediate metadata file can be reset to
-        # "queued" by a later parent commit, so it is not an authoritative veto.
-        if not receipt.get('bonus_mfl_verified'):
-            return None
+        if not receipt.get('bonus_mfl_verified'):return None
+        bonus=document(repo,'data/bonus_mfl_sync_metadata.json')
+        try:validate_bonus_receipt(bonus,league,receipt['season'],receipt['week'],run_id)
+        except (ValueError,TypeError,KeyError):return None
     baseline = document(repo, 'data/processed_player_scores.json')
     if not baseline or baseline.get('season') != receipt['season'] or baseline.get('league_id') != league_id:
         return None
