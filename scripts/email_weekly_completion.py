@@ -187,8 +187,10 @@ def published(league, receipt):
     if not payout or payout.get('status') != 'success' or str(payout.get('run_id')) != run_id or payout.get('through_week') != receipt['week'] or payout.get('season') != receipt['season'] or payout.get('league') != league:
         return None
     if receipt.get('process') == 'corrections':
-        bonus = document(repo, 'data/bonus_mfl_sync_metadata.json')
-        if not receipt.get('bonus_mfl_verified') or not bonus or (bonus.get('status'), bonus.get('mode'), str(bonus.get('run_id')), bonus.get('season'), bonus.get('week'), bonus.get('league')) != ('success', 'official', run_id, receipt['season'], receipt['week'], league):
+        # The completion receipt is written only after the source run verifies its
+        # exact Bonus Games child. The intermediate metadata file can be reset to
+        # "queued" by a later parent commit, so it is not an authoritative veto.
+        if not receipt.get('bonus_mfl_verified'):
             return None
     baseline = document(repo, 'data/processed_player_scores.json')
     if not baseline or baseline.get('season') != receipt['season'] or baseline.get('league_id') != league_id:

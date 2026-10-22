@@ -57,6 +57,10 @@ class CompletionEmailTest(unittest.TestCase):
         self.receipt.update(process='corrections',bonus_mfl_verified=False)
         self.assertIsNone(self.verify())
 
+    def test_verified_correction_receipt_is_authoritative(self):
+        self.receipt.update(process='corrections', bonus_mfl_verified=True)
+        self.assertIsNotNone(self.verify())
+
     def test_success_and_live_site_pass(self):
         self.assertEqual(self.verify()['finished'], self.job['completed_at'])
 
