@@ -972,7 +972,6 @@ AFC,BAL,Baltimore Ravens,16224,"Murphy, Myles CIN DE","Murphy, Myles",CIN,DE,Act
 AFC,BAL,Baltimore Ravens,14158,"Oliver, Ed BUF DT","Oliver, Ed",BUF,DT,Active,Questionable,7.6,1,262.58,2023 iEXT,,oliver
 AFC,BAL,Baltimore Ravens,17074,"Hunter, Travis JAC WR","Hunter, Travis",JAC,WR,Active,,9.05,3,262.58,2025 1.02,,hunter
 AFC,BAL,Baltimore Ravens,15762,"Pickens, George DAL WR","Pickens, George",DAL,WR,Active,,36,3,262.58,2026 mEXT,,pickens
-AFC,BAL,Baltimore Ravens,17555,"Woods, Peter KCC DT","Woods, Peter",KCC,DT,Active,R,1.49,4,262.58,2026 3.02,,woods
 AFC,BAL,Baltimore Ravens,17587,"Moore, Derrick DET DE","Moore, Derrick",DET,DE,Active,R,1.41,4,262.58,2026 3.05,,moore
 AFC,BAL,Baltimore Ravens,17558,"Allen, CJ IND LB","Allen, CJ",IND,LB,Active,R,1.98,4,262.58,2026 2.07,,allen
 AFC,BAL,Baltimore Ravens,11244,"Kelce, Travis KCC TE","Kelce, Travis",KCC,TE,Active,Questionable,5,1,262.58,2026 UFA,,kelce
@@ -995,11 +994,11 @@ AFC,BAL,Baltimore Ravens,12678,"Higbee, Tyler LAR TE","Higbee, Tyler",LAR,TE,Act
 AFC,BAL,Baltimore Ravens,14933,"Blackmon, Julian NOS S","Blackmon, Julian",NOS,S,Active,,1.1,1,262.58,2026 R/F,,blackmon
 AFC,BAL,Baltimore Ravens,12754,"Collins, Maliek CLE DT","Collins, Maliek",CLE,DT,Active,Questionable,1.1,1,262.58,2026 UFA,,collins
 AFC,BAL,Baltimore Ravens,17151,"Turner, Shemar CHI DT","Turner, Shemar",CHI,DT,Active,,1.18,3,262.58,2025 3.22,,turner
-AFC,BAL,Baltimore Ravens,13630,"Sutton, Courtland DEN WR","Sutton, Courtland",DEN,WR,Active,,24.97,3,262.58,2026 oEXT,,sutton
 AFC,BAL,Baltimore Ravens,14833,"Jeudy, Jerry CLE WR","Jeudy, Jerry",CLE,WR,Active,,1.1,1,262.58,2026 UFA,,jeudy
 AFC,BAL,Baltimore Ravens,15852,"Gordon, Kyler CHI CB","Gordon, Kyler",CHI,CB,Active,,1.1,1,262.58,2026 UFA,,gordon
 AFC,BAL,Baltimore Ravens,15727,"Knight, Bam ARI RB","Knight, Bam",ARI,RB,Active,,2,1,262.58,2026 UFA,,knight
 AFC,BAL,Baltimore Ravens,15950,"Watson, Jaylen LAR CB","Watson, Jaylen",LAR,CB,Active,,1.1,1,262.58,2026 UFA,,watson
+AFC,BAL,Baltimore Ravens,15710,"Williams, Kyren LAR RB","Williams, Kyren",LAR,RB,Active,,30.2,1,262.58,2026 UFA,,williams
 AFC,BAL,Baltimore Ravens,16622,"Pearsall, Ricky SFO WR","Pearsall, Ricky",SFO,WR,INJURED_RESERVE,IR,2.71,2,262.58,2024 1.14,,pearsall
 AFC,BAL,Baltimore Ravens,15864,"Wright, Alex CLE DE","Wright, Alex",CLE,DE,INJURED_RESERVE,,3.17,2,262.58,2025 iEXT,,wright
 AFC,BAL,Baltimore Ravens,17107,"Ferguson, Terrance LAR TE","Ferguson, Terrance",LAR,TE,INJURED_RESERVE,IR,1.25,3,262.58,2025 3.15,,ferguson
@@ -1067,7 +1066,6 @@ AFC,CLE,Cleveland Browns,15856,"Taylor, Alontae TEN CB","Taylor, Alontae",TEN,CB
 AFC,CLE,Cleveland Browns,16166,"Tucker, Sean TBB RB","Tucker, Sean",TBB,RB,Active,,3.52,1,255.02,2026 RRFA,,tucker
 AFC,CLE,Cleveland Browns,15863,"Jones, Travis BAL DT","Jones, Travis",BAL,DT,Active,,6,1,255.02,2026 RRFA,,jones
 AFC,CLE,Cleveland Browns,13714,"James, Derwin LAC S","James, Derwin",LAC,S,Active,Questionable,6.04,2,255.02,2025 iEXT,,james
-AFC,CLE,Cleveland Browns,15710,"Williams, Kyren LAR RB","Williams, Kyren",LAR,RB,Active,,30.2,1,255.02,2026 UFA,,williams
 AFC,CLE,Cleveland Browns,16809,"Coker, Jalen CAR WR","Coker, Jalen",CAR,WR,Active,,6.65,2,255.02,2026 UFA,,coker
 AFC,CLE,Cleveland Browns,15822,"Lloyd, Devin CAR LB","Lloyd, Devin",CAR,LB,Active,,8.2,1,255.02,2026 UFA,,lloyd
 AFC,CLE,Cleveland Browns,15380,"Campbell, Tyson CLE CB","Campbell, Tyson",CLE,CB,Active,,5.1,1,255.02,2026 UFA,,campbell
@@ -1096,6 +1094,8 @@ AFC,CLE,Cleveland Browns,14909,"Winfield, Antoine TBB S","Winfield, Antoine",TBB
 AFC,CLE,Cleveland Browns,14979,"Strnad, Justin DEN LB","Strnad, Justin",DEN,LB,Active,,1.1,1,255.02,2026 UFA,,strnad
 AFC,CLE,Cleveland Browns,14860,"Jennings, Jauan MIN WR","Jennings, Jauan",MIN,WR,Active,,1.1,1,255.02,2026 UFA,,jennings
 AFC,CLE,Cleveland Browns,14247,"Greenlaw, Dre SFO LB","Greenlaw, Dre",SFO,LB,Active,,5.47,2,255.02,2025 oEXT,,greenlaw
+AFC,CLE,Cleveland Browns,13630,"Sutton, Courtland DEN WR","Sutton, Courtland",DEN,WR,Active,,24.97,3,255.02,2026 oEXT,,sutton
+AFC,CLE,Cleveland Browns,17555,"Woods, Peter KCC DT","Woods, Peter",KCC,DT,Active,R,1.49,4,255.02,2026 3.02,,woods
 AFC,CLE,Cleveland Browns,16244,"Branch, Brian DET S","Branch, Brian",DET,S,INJURED_RESERVE,IR-PUP,3.7,1,255.02,2023 2.10^,,branch
 AFC,CLE,Cleveland Browns,15351,"Owusu-Koramoah, Jeremiah CLE LB","Owusu-Koramoah, Jeremiah",CLE,LB,INJURED_RESERVE,IR-PUP,2.01,2,255.02,2026 UFA,,owusu-koramoah
 AFC,CLE,Cleveland Browns,17047,"Sampson, Dylan CLE RB","Sampson, Dylan",CLE,RB,INJURED_RESERVE,IR-R,1.61,3,255.02,2025 2.15,,sampson
