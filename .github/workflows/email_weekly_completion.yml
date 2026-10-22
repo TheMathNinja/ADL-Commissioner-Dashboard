@@ -35,7 +35,7 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - name: Test report gating and recipient isolation
@@ -65,4 +65,20 @@ jobs:
           if [ -n "$RECIPIENT_OVERRIDE" ]; then args+=(--recipient-override "$RECIPIENT_OVERRIDE"); fi
           if [ "$FORCE_RESEND" = true ]; then args+=(--force-resend); fi
           if [ "$FORCE_GOTW" = true ]; then args+=(--force-gotw); fi
-          python3 scripts/email_weekly_completion.py "${args[@]}"
+          for attempt in $(seq 1 10); do
+            set +e
+            output="$(python3 scripts/email_weekly_completion.py "${args[@]}" 2>&1)"
+            status=$?
+            set -e
+            printf '%s\n' "$output"
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
+            if ! grep -q 'waiting for successful job, live site, or score corrections' <<<"$output"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 10 ]; then
+              echo "::error::A completed weekly update was still not verifiable on the live site after ten checks."
+              exit 1
+            fi
+            echo "Live publication is still converging; retrying in 60 seconds (attempt $attempt/10)."
+            sleep 60
+          done
