@@ -31,7 +31,8 @@ permissions:
   actions: read
 concurrency:
   group: weekly-completion-email
-  cancel-in-progress: false
+  # A newer verifier sees at least as much publication state as an older one.
+  cancel-in-progress: true
 jobs:
   report:
     runs-on: ubuntu-latest
