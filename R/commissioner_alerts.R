@@ -279,7 +279,7 @@ derive_udfa_price <- function(rosters, season = get_current_season()) {
 }
 
 commissioner_only_alert_types <- function() {
-  c("Salary Adjustments")
+  c("MFL Salary Data Error", "Salary Adjustments")
 }
 
 is_commissioner_only_alert <- function(alerts) {
@@ -311,12 +311,28 @@ evaluate_salary_adjustment_alerts <- function(rosters, season = get_current_seas
   if (as.POSIXct(checked_at, tz = "America/New_York") < udfa_salary_check_start(season)) {
     return(empty_adjustment_alert_rows())
   }
-  udfa_price <- derive_udfa_price(rosters, season = season)
-  if (is.na(udfa_price)) return(empty_adjustment_alert_rows())
+  roster_tbl <- tibble::as_tibble(rosters) |>
+    mutate(prev_salary = suppressWarnings(as.numeric(.data$prev_salary)))
 
-  rosters |>
-    mutate(prev_salary = suppressWarnings(as.numeric(.data$prev_salary))) |>
-    filter(!is.na(.data$prev_salary), .data$prev_salary + 0.0001 < .env$udfa_price) |>
+  salary_data_errors <- roster_tbl |>
+    filter(is.na(.data$prev_salary) | .data$prev_salary <= 0) |>
+    transmute(
+      alert_type = "MFL Salary Data Error",
+      severity = "warning",
+      conference,
+      franchise,
+      franchise_name,
+      rule = "Every rostered player must have a valid non-zero MFL salary",
+      observed = paste0(.data$player, " is showing $0.00 in MFL"),
+      details = "Restore the player's correct MFL salary before the next official cap snapshot.",
+      commissioner_only = TRUE
+    )
+
+  udfa_price <- derive_udfa_price(rosters, season = season)
+  if (is.na(udfa_price)) return(salary_data_errors)
+
+  below_udfa <- roster_tbl |>
+    filter(!is.na(.data$prev_salary), .data$prev_salary > 0, .data$prev_salary + 0.0001 < .env$udfa_price) |>
     transmute(
       alert_type = "Salary Adjustments",
       severity = "warning",
@@ -328,6 +344,8 @@ evaluate_salary_adjustment_alerts <- function(rosters, season = get_current_seas
       details = paste0("Current salary: ", format_millions(.data$prev_salary), "; UDFA salary: ", format_millions(.env$udfa_price), "."),
       commissioner_only = TRUE
     )
+
+  bind_rows(salary_data_errors, below_udfa)
 }
 
 collect_commissioner_named_records <- function(x, names_any = character()) {
@@ -2511,6 +2529,7 @@ evaluate_illegal_lineup_alerts <- function(
 commissioner_alert_sort_order <- function(alert_type, rule) {
   case_when(
     alert_type == "In-Season Inactivity Violation" ~ 0L,
+    alert_type == "MFL Salary Data Error" ~ 1L,
     alert_type == "Salary Adjustments" ~ 1L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 21 total starters") ~ 1L,
     alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning") & startsWith(rule, "Starting lineups require 7 offensive starters") ~ 2L,

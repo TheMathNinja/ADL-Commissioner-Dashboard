@@ -115,6 +115,9 @@ jobs:
       - name: Verify SalAdj email template
         run: Rscript scripts/test_saladj_email.R
 
+      - name: Verify zero-salary MFL data alerts
+        run: Rscript scripts/test_zero_salary_alerts.R
+
       - name: Verify seasonal net cash trade limit
         run: Rscript scripts/test_cash_trade_limits.R
 

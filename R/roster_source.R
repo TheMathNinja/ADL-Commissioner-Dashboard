@@ -163,7 +163,9 @@ normalize_rosters <- function(rosters, franchises = NULL) {
       ext_marker = NA_character_,
       roster_last = tolower(sub(",.*$", "", .data$player_name))
     ) |>
-    filter(!is.na(.data$franchise), !is.na(.data$player), !is.na(.data$prev_salary), !is.na(.data$prev_years)) |>
+    # Preserve rostered players with malformed MFL contract fields. They still
+    # count toward roster limits and must remain visible to data-quality alerts.
+    filter(!is.na(.data$franchise), !is.na(.data$player)) |>
     select(
       conference, franchise, franchise_name, player_id, player, player_name,
       player_team, player_pos, roster_status, player_status, prev_salary, prev_years, franchise_salary_cap,
