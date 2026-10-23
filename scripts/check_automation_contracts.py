@@ -232,7 +232,7 @@ def main() -> int:
 
         chi_sync = (adl / ".github/workflows/sync_chi_team_tools.yml").read_text(encoding="utf-8")
         if "Check whether forecast inputs changed" not in chi_sync or chi_sync.count(
-            "if: steps.forecast.outputs.changed == 'true'"
+            "steps.forecast.outputs.changed == 'true' && steps.forecast-cache.outputs.cache-hit != 'true'"
         ) < 2:
             errors.append("CHI sync must skip scientific dependency setup when forecast inputs are unchanged")
 
