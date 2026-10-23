@@ -28,7 +28,7 @@ runs:
         cat("Using preinstalled R", as.character(version), "\n")
 
     - name: Restore shared R package library
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.R_LIBS_USER }}
         key: ${{ runner.os }}-r-4.5.1-adl-lib-v1-${{ hashFiles('DESCRIPTION') }}

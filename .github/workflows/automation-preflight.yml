@@ -74,21 +74,21 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out Commissioner automation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: commissioner
       - name: Check out ADL GM automation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheMathNinja/ADL-GM-Dashboard
           path: adl
       - name: Check out FAFL GM automation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheMathNinja/FAFL-GM-Dashboard
           path: fafl
       - name: Check out Lineup Guardian automation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheMathNinja/Chicago-Bears-Lineup-Guardian
           path: guardian
@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create cache directories
         run: |
@@ -202,7 +202,7 @@ jobs:
 
       - name: Upload SalAdj reconciliation report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: saladj-reconciliation
           path: |

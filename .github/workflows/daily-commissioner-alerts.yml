@@ -80,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheMathNinja/ADL-Commissioner-Dashboard
           token: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN || github.token }}
@@ -92,7 +92,7 @@ jobs:
           mkdir -p data
 
       - name: Restore raw league data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.ADL_RAW_LEAGUE_DATA_DIR }}
           key: ${{ runner.os }}-commissioner-raw-league-data-${{ env.CURRENT_SEASON }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R') }}
@@ -152,7 +152,7 @@ jobs:
       - name: Upload alert results
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: commissioner-alert-results
           path: |

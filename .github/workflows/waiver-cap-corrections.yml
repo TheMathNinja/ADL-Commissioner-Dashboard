@@ -69,7 +69,7 @@ jobs:
       ADL_WAIVER_CORRECTION_WRITE_SHEET: ${{ inputs.write_sheet == true }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheMathNinja/ADL-Commissioner-Dashboard
           token: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN || github.token }}

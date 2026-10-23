@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create cache directories
         run: |
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload test outboxes
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: commissioner-alert-email-test-outboxes
           path: data/commissioner_alerts/

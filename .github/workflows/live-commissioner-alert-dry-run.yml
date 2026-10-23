@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create cache directories
         run: |
@@ -65,7 +65,7 @@ jobs:
           mkdir -p data
 
       - name: Restore raw league data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.ADL_RAW_LEAGUE_DATA_DIR }}
           key: ${{ runner.os }}-commissioner-raw-league-data-${{ env.CURRENT_SEASON }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R') }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload live dry-run outboxes
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: live-commissioner-alert-dry-run-outboxes
           path: data/commissioner_alerts/

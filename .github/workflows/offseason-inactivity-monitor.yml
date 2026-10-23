@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create cache directories
         run: |
@@ -72,7 +72,7 @@ jobs:
           mkdir -p data/source
 
       - name: Restore raw league data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.ADL_RAW_LEAGUE_DATA_DIR }}
           key: ${{ runner.os }}-commissioner-raw-league-data-${{ env.CURRENT_SEASON }}-${{ hashFiles('scripts/**/*.R', 'R/**/*.R') }}
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload inactivity results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: offseason-inactivity-results
           path: data/offseason_inactivity/

@@ -32,7 +32,7 @@ jobs:
       CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
       - name: Apply and verify Google Sheet corrections

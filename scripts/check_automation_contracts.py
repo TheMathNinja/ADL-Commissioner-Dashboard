@@ -147,11 +147,21 @@ def main() -> int:
             except UnicodeDecodeError as exc:
                 errors.append(f"{repo}/{path.relative_to(root)} is not UTF-8: {exc}")
                 continue
+            source = path.read_text(encoding="utf-8")
             workflows[(repo, path.name)] = workflow_inputs(path)
-            if "runs-on: ubuntu-latest" in path.read_text(encoding="utf-8"):
+            if "runs-on: ubuntu-latest" in source:
                 errors.append(
                     f"{repo}/{path.relative_to(root)} uses moving ubuntu-latest instead of pinned ubuntu-24.04"
                 )
+            for obsolete_action in (
+                "actions/checkout@v4",
+                "actions/cache@v4",
+                "actions/upload-artifact@v4",
+            ):
+                if obsolete_action in source:
+                    errors.append(
+                        f"{repo}/{path.relative_to(root)} uses obsolete {obsolete_action}"
+                    )
         errors.extend(local_python_call_errors(root))
         errors.extend(unittest_module_errors(repo, root))
 
@@ -162,6 +172,7 @@ def main() -> int:
         required_r_setup = {
             "pinned R package": "r-4.5.1_1_amd64.deb",
             "minimal R install": "--no-install-recommends",
+            "current cache action": "actions/cache@v5",
         }
         for label, marker in required_r_setup.items():
             if marker not in r_setup_source:

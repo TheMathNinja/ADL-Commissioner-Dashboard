@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout dashboard repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload poll page probe
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: mfl-poll-page-probe
           path: data/poll_page_probe/

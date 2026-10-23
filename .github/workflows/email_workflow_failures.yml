@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Test failure gating and owner-only delivery
         run: python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
       - name: Report failed league dependencies independently of publication
