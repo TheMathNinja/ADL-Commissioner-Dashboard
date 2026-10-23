@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       run_live_mfl_checks:
-        description: Run all live MFL checks unless individual live-check inputs below are set.
+        description: Master switch for live MFL checks; individual switches below select which checks run.
         required: true
         default: "true"
         type: choice
