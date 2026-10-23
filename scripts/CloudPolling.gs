@@ -205,6 +205,17 @@ function cloudWorkflowRuns_(job, token, limit) {
   return (JSON.parse(response.getContentText()).workflow_runs || []);
 }
 
+function cloudWorkflowInFlightFromRuns_(runs) {
+  return runs.some(function(run) {
+    return run.status === 'queued' || run.status === 'in_progress' || run.status === 'waiting' ||
+      run.status === 'pending' || run.status === 'requested';
+  });
+}
+
+function cloudWorkflowInFlight_(job, token) {
+  return cloudWorkflowInFlightFromRuns_(cloudWorkflowRuns_(job, token, 10));
+}
+
 function cloudPollingCircuitOpen_(job, token, props, now) {
   const runs = cloudWorkflowRuns_(job, token, CLOUD_SCHEDULER.circuitFailureThreshold);
   if (runs.length < CLOUD_SCHEDULER.circuitFailureThreshold) return false;
@@ -310,7 +321,8 @@ function runCloudLeagueScheduler() {
     if (pollingWindow) CLOUD_SCHEDULER.polling[pollingWindow].forEach(function(job) {
       try {
         if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props) &&
-            !cloudPollingCircuitOpen_(job, token, props, now)) attempt(job, intervalSlot);
+            !cloudPollingCircuitOpen_(job, token, props, now) &&
+            !cloudWorkflowInFlight_(job, token)) attempt(job, intervalSlot);
       } catch (error) {
         failures.push(cloudJobKey_(job) + ' receipt check: ' + error.message);
       }

@@ -160,6 +160,7 @@ def main() -> int:
             "6:57 a.m. watchdog": "hour: 6, minute: 57",
             "bounded dispatch retries": "for (let attempt = 0; attempt < 4; attempt++)",
             "polling circuit breaker": "cloudPollingCircuitOpen_",
+            "in-flight polling suppression": "cloudWorkflowInFlight_",
             "complete fixed-slot recovery scan": "Search the complete recovery window",
         }
         for label, marker in expectations.items():
@@ -210,6 +211,30 @@ def main() -> int:
             for name in sorted(left.keys() & right.keys()):
                 if left[name] != right[name]:
                     errors.append(f"ADL/FAFL signature drift in {filename}:{name}")
+
+        self_trigger_guards = {
+            adl / ".github/workflows/rebuild_playoff_model.yml": (
+                "data/adl_scoring_model.json",
+                "data/player_strength/**",
+            ),
+            fafl / ".github/workflows/rebuild_bonus_games.yml": (
+                "data/fafl_scoring_model.json",
+                "data/forward_bye_exposure.csv",
+            ),
+        }
+        for path, generated_outputs in self_trigger_guards.items():
+            source = path.read_text(encoding="utf-8")
+            for output in generated_outputs:
+                if re.search(r"^\s*-\s*['\"]?" + re.escape(output) + r"['\"]?\s*$", source, re.MULTILINE):
+                    errors.append(
+                        f"{path.relative_to(path.parents[2])} watches generated output {output} and can trigger itself"
+                    )
+
+        chi_sync = (adl / ".github/workflows/sync_chi_team_tools.yml").read_text(encoding="utf-8")
+        if "Check whether forecast inputs changed" not in chi_sync or chi_sync.count(
+            "if: steps.forecast.outputs.changed == 'true'"
+        ) < 2:
+            errors.append("CHI sync must skip scientific dependency setup when forecast inputs are unchanged")
 
     if errors:
         print("Automation contract audit failed:")

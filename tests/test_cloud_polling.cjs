@@ -60,6 +60,10 @@ assert.equal(alerts.length,1);
 const hourlyProbe=vm.runInContext(`cloudPollingCircuitOpen_(
   {repo:'ADL-GM-Dashboard',workflow:'poll_score_corrections.yml'},null,testProps,new Date('2026-10-22T16:00:00Z'))`,context);
 assert.equal(hourlyProbe,false);
+const inFlight=(runs)=>vm.runInContext(`cloudWorkflowInFlightFromRuns_(${JSON.stringify(runs)})`,context);
+assert(inFlight([{status:'completed'},{status:'queued'}]));
+assert(inFlight([{status:'in_progress'}]));
+assert(!inFlight([{status:'completed',conclusion:'success'},{status:'completed',conclusion:'failure'}]));
 const receipt=(value,job,process,week)=>vm.runInContext(`cloudRefreshReceiptMatches_(${JSON.stringify(value)},${JSON.stringify(job)},'${process}',${week})`,context);
 assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'preliminary'},{leagueId:'60206'},'preliminary',3));
 assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));
