@@ -210,6 +210,11 @@
       "sent_at": "2026-10-22T21:01:10.775500+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL correction update \u00b7 Week 6 \u00b7",
       "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 6 \u00b7 14e0ecac9c81b0e4d37459b37c443f5df09623713725e9351f05049c3b4039c7"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:39943539223:1": {
+      "sent_at": "2026-10-23T11:07:13.056124+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Dashboard Watchdog",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog"
     }
   },
   "checked": {
