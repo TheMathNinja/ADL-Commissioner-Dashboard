@@ -1,4 +1,7 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0002|pl=17624|ts=2026-10-22 01:43:00|ty=FREE_AGENT|td=dropped|cm=NA,17624,Will Lee,NFC,0002,2026-10-22 01:43:00,2026-10-23 09:00:00,0009,2,2026 UFA
+txn=|fr=0021|pl=17333|ts=2026-10-21 20:17:45|ty=FREE_AGENT|td=dropped|cm=NA,17333,Darius Cooper,AFC,0021,2026-10-21 20:17:45,2026-10-23 09:00:00,0029,1.1,2026 UFA
+txn=|fr=0002|pl=13281|ts=2026-10-21 10:25:37|ty=FREE_AGENT|td=dropped|cm=NA,13281,Rasul Douglas,NFC,0002,2026-10-21 10:25:37,2026-10-23 09:00:00,0003,1.5,2026 UFA
 txn=|fr=0030|pl=13987|ts=2026-10-20 20:50:35|ty=FREE_AGENT|td=dropped|cm=NA,13987,Robert Spillane,AFC,0030,2026-10-20 20:50:35,2026-10-22 09:00:00,0025,2,2026 UFA
 txn=|fr=0002|pl=13448|ts=2026-10-20 15:49:35|ty=FREE_AGENT|td=dropped|cm=NA,13448,Adam Butler,NFC,0002,2026-10-20 15:49:35,2026-10-22 09:00:00,0003,2,2026 UFA
 txn=|fr=0001|pl=16714|ts=2026-10-15 08:30:21|ty=FREE_AGENT|td=dropped|cm=NA,16714,Jarrian Jones,NFC,0001,2026-10-15 08:30:21,2026-10-16 09:00:00,0005,2,2026 UFA

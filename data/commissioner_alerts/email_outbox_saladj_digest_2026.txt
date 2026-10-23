@@ -1,1 +1,46 @@
-No new SalAdj rows were found.
+SalAdj scraper scheduled: 10/23/2026 5:17 a.m. EDT
+Run type: Scheduled daily refresh
+Run started: 10/23/2026 5:19 a.m. EDT
+Run completed / email prepared: 10/23/2026 5:40 a.m. EDT (runtime: 21m 7s)
+
+SalAdj Curator published 18 new row(s) at 10/23/2026 5:40 a.m. EDT.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_23_ADLSalAdjCurator.csv
+
+Please enter the following new salary adjustments in the Contract Admin sheet.
+
+NFC
+---
+- Dropped 10/20/2026 07:22:30 ET by MIN | Davante Adams LAR WR: $26.10 / 1 yr / 2026 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/20/2026 10:17:27 ET by NYG | Camryn Bynum IND S: $6.27 / 1 yr / 2025 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/20/2026 10:46:12 ET by NYG | Courtland Sutton DEN WR: $24.97 / 3 yr / 2026 oEXT
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/21/2026 08:12:43 ET by NYG | Cash Trade: $2.00
+- Dropped 10/21/2026 08:12:43 ET by PHI | Cash Trade: $-2.00
+- Dropped 10/21/2026 09:53:09 ET by WAS | Christian Izien DET S: $2.50 / 1 yr / 2026 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/21/2026 14:08:49 ET by NYG | Dexter Lawrence CIN DT: $15.84 / 1 yr / 2023 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK; SALARY FROM TRADE SOURCE SNAPSHOT: PHI -> NYG
+- Dropped 10/22/2026 20:00:14 ET by NYG | Deebo Samuel SFO WR: $15.49 / 1 yr / 2025 ORFA2
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 24, 2026
+
+AFC
+---
+- Dropped 10/21/2026 13:11:31 ET by KCC | TJ Hockenson MIN TE: $18.50 / 2 yr / 2025 oEXT
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK; SALARY FROM TRADE SOURCE SNAPSHOT: DEN -> KCC
+- Dropped 10/21/2026 13:22:02 ET by KCC | Cash Trade: $-1.70
+- Dropped 10/21/2026 13:22:02 ET by LVR | Cash Trade: $1.70
+- Dropped 10/21/2026 13:22:46 ET by LVR | Cameron Dicker LAC PK: $2.79 / 3 yr / 2026 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/21/2026 13:25:02 ET by KCC | Kyle Dugger CIN S: $7.08 / 1 yr / 2024 UFA
+  Notes: SALARY FROM TRADE SOURCE SNAPSHOT: LVR -> KCC
+- Dropped 10/21/2026 14:09:11 ET by LVR | Jameis Winston NYG QB: $3.20 / 1 yr / 2026 UFA
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+- Dropped 10/21/2026 16:09:34 ET by BAL | Cash Trade: $3.00
+- Dropped 10/21/2026 16:09:34 ET by NYJ | Cash Trade: $-3.00
+- Dropped 10/22/2026 14:55:39 ET by CLE | Courtland Sutton DEN WR: $24.97 / 3 yr / 2026 oEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 24, 2026
+- Dropped 10/22/2026 14:55:57 ET by KCC | Kyle Dugger CIN S: $7.08 / 1 yr / 2024 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 24, 2026
+
