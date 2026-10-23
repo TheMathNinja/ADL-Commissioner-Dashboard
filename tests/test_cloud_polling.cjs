@@ -65,11 +65,12 @@ assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'p
 assert(!receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:false},{leagueId:'60206'},'corrections',3));
 assert(receipt({season:2026,league_id:'60206',week:3,status:'success',process:'corrections',bonus_mfl_verified:true},{leagueId:'60206'},'corrections',3));
 const jobs=vm.runInContext('allCloudJobs_().map(j=>j.repo+"/"+j.workflow)',context);
-assert.equal(jobs.length,10);
+assert.equal(jobs.length,9);
 ['ADL-GM-Dashboard/poll_preliminary_scores.yml','FAFL-GM-Dashboard/poll_score_corrections.yml',
  'ADL-GM-Dashboard/daily_adl_league_maintenance.yml',
  'ADL-Commissioner-Dashboard/offseason-inactivity-monitor.yml','ADL-Commissioner-Dashboard/lineup-designation-snapshots.yml',
  'ADL-Commissioner-Dashboard/dashboard_watchdog.yml'].forEach(job=>assert(jobs.includes(job),job));
+assert(!jobs.includes('ADL-Commissioner-Dashboard/email_workflow_failures.yml'));
 const watchdog=vm.runInContext('CLOUD_SCHEDULER.localJobs.find(j=>j.workflow==="dashboard_watchdog.yml")',context);
 assert.equal(watchdog.hour,6);
 assert.equal(watchdog.minute,57);

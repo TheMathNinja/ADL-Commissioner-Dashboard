@@ -6,20 +6,14 @@ on:
         description: Preview failure reports without sending
         type: boolean
         default: true
-  workflow_run:
-    workflows: [daily-commissioner-alerts, Dashboard Watchdog, lineup-designation-snapshots, offseason-inactivity-monitor, Update Dashboard, Waiver Claim Cap Corrections, Weekly Salary Cap Accounting, Email weekly refresh completion]
-    types: [completed]
 permissions:
-  contents: write
+  contents: read
   actions: read
 concurrency:
   group: league-failure-emails
   cancel-in-progress: false
 jobs:
   report:
-    # GitHub already notifies the owner about the original cancelled run.
-    # Do not create a second workflow whose only purpose is reporting it.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

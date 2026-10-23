@@ -21,10 +21,7 @@ const CLOUD_SCHEDULER = {
     ]
   },
   intervalJobs: [],
-  // One hourly safety pass supplements immediate event-driven failure reports.
-  cronJobs: [
-    {repo: 'ADL-Commissioner-Dashboard', workflow: 'email_workflow_failures.yml', cron: '7 * * * *', inputs: {dry_run: 'false'}}
-  ],
+  cronJobs: [],
   // Fixed local times stay stable across daylight-saving changes.
   localJobs: [
     {repo: 'ADL-GM-Dashboard', workflow: 'daily_adl_league_maintenance.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {send_email: 'true'}},
