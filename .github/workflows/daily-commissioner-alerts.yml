@@ -53,7 +53,7 @@ concurrency:
 
 jobs:
   daily-commissioner-alerts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data

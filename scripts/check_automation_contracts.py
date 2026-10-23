@@ -148,6 +148,10 @@ def main() -> int:
                 errors.append(f"{repo}/{path.relative_to(root)} is not UTF-8: {exc}")
                 continue
             workflows[(repo, path.name)] = workflow_inputs(path)
+            if "runs-on: ubuntu-latest" in path.read_text(encoding="utf-8"):
+                errors.append(
+                    f"{repo}/{path.relative_to(root)} uses moving ubuntu-latest instead of pinned ubuntu-24.04"
+                )
         errors.extend(local_python_call_errors(root))
         errors.extend(unittest_module_errors(repo, root))
 

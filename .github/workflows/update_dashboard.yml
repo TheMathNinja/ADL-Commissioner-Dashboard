@@ -55,7 +55,7 @@ concurrency:
 
 jobs:
   build-dashboard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     env:
       RAW_CACHE_DIR: cache/raw_league_data

@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   lineup-designation-snapshots:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
       CURRENT_SEASON: 2026

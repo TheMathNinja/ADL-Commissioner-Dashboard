@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   apply:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       R_LIBS_USER: ${{ github.workspace }}/_lib
       CURRENT_SEASON: "2026"

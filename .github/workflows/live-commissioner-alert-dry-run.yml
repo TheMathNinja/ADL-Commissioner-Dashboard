@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   live-commissioner-alert-dry-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data

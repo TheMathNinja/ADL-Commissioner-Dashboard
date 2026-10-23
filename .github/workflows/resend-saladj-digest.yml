@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   resend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
