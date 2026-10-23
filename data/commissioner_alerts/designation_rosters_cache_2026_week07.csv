@@ -110,7 +110,6 @@ NFC,PHI,Philadelphia Eagles,14412,"Singleton, Alex DEN LB","Singleton, Alex",DEN
 NFC,PHI,Philadelphia Eagles,14717,"McLaughlin, Chase TBB PK","McLaughlin, Chase",TBB,PK,Active,,2,1,249.48,2026 UFA,,mclaughlin
 NFC,PHI,Philadelphia Eagles,12611,"Goff, Jared DET QB","Goff, Jared",DET,QB,Active,,20.57,2,249.48,2024 UFA,,goff
 NFC,PHI,Philadelphia Eagles,16342,"Douglas, Demario NEP WR","Douglas, Demario",NEP,WR,Active,,2.01,1,249.48,2026 UFA,,douglas
-NFC,PHI,Philadelphia Eagles,15445,"Lenoir, Deommodore SFO CB","Lenoir, Deommodore",SFO,CB,Active,,1.1,1,249.48,2026 UFA,,lenoir
 NFC,PHI,Philadelphia Eagles,14997,"Rodgers, Isaiah MIN CB","Rodgers, Isaiah",MIN,CB,Active,,1.1,1,249.48,2026 UFA,,rodgers
 NFC,PHI,Philadelphia Eagles,14985,"Mann, Braden PHI PN","Mann, Braden",PHI,PN,Active,,1.1,1,249.48,2026 UFA,,mann
 NFC,PHI,Philadelphia Eagles,14302,"Scott, Nick CAR S","Scott, Nick",CAR,S,Active,,1.1,1,249.48,2026 UFA,,scott
@@ -132,6 +131,7 @@ NFC,PHI,Philadelphia Eagles,15290,"Collins, Nico HOU WR","Collins, Nico",HOU,WR,
 NFC,PHI,Philadelphia Eagles,15849,"McCreary, Roger DET CB","McCreary, Roger",DET,CB,Active,,1.1,1,249.48,2026 UFA,,mccreary
 NFC,PHI,Philadelphia Eagles,14153,"Allen, Zach DEN DT","Allen, Zach",DEN,DT,Active,,16.16,1,249.48,2025 oEXT,,allen
 NFC,PHI,Philadelphia Eagles,13448,"Butler, Adam LVR DT","Butler, Adam",LVR,DT,Active,,2,1,249.48,2026 UFA,,butler
+NFC,PHI,Philadelphia Eagles,13281,"Douglas, Rasul WAS CB","Douglas, Rasul",WAS,CB,Active,,1.5,1,249.48,2026 UFA,,douglas
 NFC,PHI,Philadelphia Eagles,17083,"Higgins, Jayden HOU WR","Higgins, Jayden",HOU,WR,INJURED_RESERVE,IR,3.19,3,249.48,2025 1.12,,higgins
 NFC,PHI,Philadelphia Eagles,16184,"Reed, Jayden GBP WR","Reed, Jayden",GBP,WR,INJURED_RESERVE,IR,1.75,1,249.48,2023 2.13,,reed
 NFC,PHI,Philadelphia Eagles,16629,"Wilson, Roman PIT WR","Wilson, Roman",PIT,WR,INJURED_RESERVE,IR,1.81,2,249.48,2024 2.09,,wilson
@@ -413,6 +413,7 @@ NFC,ATL,Atlanta Falcons,17527,"Cameron, Josh JAC WR","Cameron, Josh",JAC,WR,Acti
 NFC,ATL,Atlanta Falcons,17592,"Igbinosun, Davison BUF CB","Igbinosun, Davison",BUF,CB,Active,R,2,1,264.87,2026 UFA,,igbinosun
 NFC,ATL,Atlanta Falcons,16300,"McGuire, Isaiah CLE DE","McGuire, Isaiah",CLE,DE,Active,,1.1,1,264.87,2026 UFA,,mcguire
 NFC,ATL,Atlanta Falcons,17180,"Walker, David TBB DE","Walker, David",TBB,DE,Active,,2,1,264.87,2026 UFA,,walker
+NFC,ATL,Atlanta Falcons,17624,"Lee, Will CAR CB","Lee, Will",CAR,CB,Active,R,2,1,264.87,2026 UFA,,lee
 NFC,ATL,Atlanta Falcons,17122,"Walker, Jalon ATL DE","Walker, Jalon",ATL,DE,INJURED_RESERVE,IR,1.72,3,264.87,2025 2.12,,walker
 NFC,ATL,Atlanta Falcons,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,INJURED_RESERVE,IR,1.19,3,264.87,2025 3.21,,bryant
 NFC,ATL,Atlanta Falcons,17108,"Arroyo, Elijah SEA TE","Arroyo, Elijah",SEA,TE,INJURED_RESERVE,IR,1.38,3,264.87,2025 3.08,,arroyo
@@ -459,11 +460,11 @@ NFC,CAR,Carolina Panthers,16344,"Stills, Dante ARI DT","Stills, Dante",ARI,DT,Ac
 NFC,CAR,Carolina Panthers,16419,"Szmyt, Andre CLE PK","Szmyt, Andre",CLE,PK,Active,,2,1,262.99,2026 UFA,,szmyt
 NFC,CAR,Carolina Panthers,13113,"Watson, Deshaun CLE QB","Watson, Deshaun",CLE,QB,Active,,1.1,1,262.99,2026 R/F,,watson
 NFC,CAR,Carolina Panthers,15852,"Gordon, Kyler CHI CB","Gordon, Kyler",CHI,CB,Active,,1.1,1,262.99,2026 R/F,,gordon
-NFC,CAR,Carolina Panthers,14073,"Jacobs, Josh GBP RB","Jacobs, Josh",GBP,RB,Active,,21.2,1,262.99,2026 mEXT,,jacobs
+NFC,CAR,Carolina Panthers,16178,"Mitchell, Keaton LAC RB","Mitchell, Keaton",LAC,RB,Active,,6.05,1,262.99,2024 RRFA,,mitchell
 NFC,CAR,Carolina Panthers,13198,"Garrett, Myles LAR DE","Garrett, Myles",LAR,DE,INJURED_RESERVE,IR,19.6,1,262.99,2024 UFA,,garrett
 NFC,CAR,Carolina Panthers,15768,"Pierce, Alec IND WR","Pierce, Alec",IND,WR,INJURED_RESERVE,IR,20.65,3,262.99,2026 oEXT,,pierce
 NFC,CAR,Carolina Panthers,16639,"Legette, Xavier CAR WR","Legette, Xavier",CAR,WR,INJURED_RESERVE,IR,2.28,2,262.99,2024 2.02,,legette
-NFC,CAR,Carolina Panthers,16178,"Mitchell, Keaton LAC RB","Mitchell, Keaton",LAC,RB,Taxi,,6.05,1,262.99,2024 RRFA,,mitchell
+NFC,CAR,Carolina Panthers,14073,"Jacobs, Josh GBP RB","Jacobs, Josh",GBP,RB,Taxi,,21.2,1,262.99,2026 mEXT,,jacobs
 NFC,NOS,New Orleans Saints,14835,"Higgins, Tee CIN WR","Higgins, Tee",CIN,WR,Active,,19.09,2,265.19,2023 iEXT,,higgins
 NFC,NOS,New Orleans Saints,15001,"Curl, Kamren LAR S","Curl, Kamren",LAR,S,Active,,2.88,2,265.19,2024 oEXT,,curl
 NFC,NOS,New Orleans Saints,15751,"London, Drake ATL WR","London, Drake",ATL,WR,Active,,19.15,4,265.19,2025 iEXT,,london
@@ -1141,7 +1142,6 @@ AFC,PIT,Pittsburgh Steelers,13303,"Elliott, Jake PHI PK","Elliott, Jake",PHI,PK,
 AFC,PIT,Pittsburgh Steelers,16870,"Speights, Omar LAR LB","Speights, Omar",LAR,LB,Active,,1.1,1,259.67,2026 UFA,,speights
 AFC,PIT,Pittsburgh Steelers,16432,"Wilson, Emanuel SEA RB","Wilson, Emanuel",SEA,RB,Active,,2.1,1,259.67,2026 UFA,,wilson
 AFC,PIT,Pittsburgh Steelers,17113,"Williams, Mykel SFO DE","Williams, Mykel",SFO,DE,Active,Questionable,1.97,3,259.67,2025 2.07,,williams
-AFC,PIT,Pittsburgh Steelers,14789,"Huntley, Tyler BAL QB","Huntley, Tyler",BAL,QB,Active,,2.1,1,259.67,2026 UFA,,huntley
 AFC,PIT,Pittsburgh Steelers,11383,"Martin, Sam CAR PN","Martin, Sam",CAR,PN,Active,,1.1,1,259.67,2026 UFA,,martin
 AFC,PIT,Pittsburgh Steelers,17509,"Brazzell II, Chris CAR WR","Brazzell II, Chris",CAR,WR,INJURED_RESERVE,IR,1.3,4,259.67,2026 3.10,,brazzell ii
 AFC,PIT,Pittsburgh Steelers,17122,"Walker, Jalon ATL DE","Walker, Jalon",ATL,DE,INJURED_RESERVE,IR,1.76,3,259.67,2025 2.11,,walker
@@ -1394,12 +1394,11 @@ AFC,DEN,Denver Broncos,17592,"Igbinosun, Davison BUF CB","Igbinosun, Davison",BU
 AFC,DEN,Denver Broncos,15889,"Okonkwo, Chigoziem WAS TE","Okonkwo, Chigoziem",WAS,TE,Active,,1.1,1,261.42,2026 UFA,,okonkwo
 AFC,DEN,Denver Broncos,15702,"McKee, Tanner PHI QB","McKee, Tanner",PHI,QB,Active,,2,1,261.42,2026 UFA,,mckee
 AFC,DEN,Denver Broncos,17096,"Williams, Savion GBP WR","Williams, Savion",GBP,WR,Active,Questionable,1.03,3,261.42,2025 5.12,,williams
-AFC,DEN,Denver Broncos,15589,"White, Cody LVR WR","White, Cody",LVR,WR,Active,,1.1,1,261.42,2026 UFA,,white
-AFC,DEN,Denver Broncos,13189,"Engram, Evan DEN TE","Engram, Evan",DEN,TE,Active,,1.1,1,261.42,2026 UFA,,engram
 AFC,DEN,Denver Broncos,16174,"Rodriguez, Chris JAC RB","Rodriguez, Chris",JAC,RB,Active,,5,1,261.42,2026 UFA,,rodriguez
 AFC,DEN,Denver Broncos,16787,"Laulu, Jonah LVR DT","Laulu, Jonah",LVR,DT,Active,,2.47,2,261.42,2026 UFA,,laulu
 AFC,DEN,Denver Broncos,14086,"Hill, Justice BAL RB","Hill, Justice",BAL,RB,Active,,1.1,1,261.42,2026 UFA,,hill
 AFC,DEN,Denver Broncos,17274,"Kiner, Corey NEP RB","Kiner, Corey",NEP,RB,Active,,1.1,1,261.42,2026 UFA,,kiner
+AFC,DEN,Denver Broncos,17333,"Cooper, Darius PHI WR","Cooper, Darius",PHI,WR,Active,,1.1,1,261.42,2026 UFA,,cooper
 AFC,DEN,Denver Broncos,17612,"Proctor, Kaleb ARI DT","Proctor, Kaleb",ARI,DT,INJURED_RESERVE,IR,0.94,3,261.42,2026 UDFA,,proctor
 AFC,DEN,Denver Broncos,17596,"Crawford, Keyron LVR DE","Crawford, Keyron",LVR,DE,INJURED_RESERVE,IR,0.94,3,261.42,2026 UDFA,,crawford
 AFC,DEN,Denver Broncos,16628,"McMillan, Jalen TBB WR","McMillan, Jalen",TBB,WR,INJURED_RESERVE,IR,1.19,2,261.42,2024 4.05,,mcmillan
@@ -1407,6 +1406,7 @@ AFC,DEN,Denver Broncos,15253,"Etienne, Travis NOS RB","Etienne, Travis",NOS,RB,I
 AFC,DEN,Denver Broncos,16639,"Legette, Xavier CAR WR","Legette, Xavier",CAR,WR,INJURED_RESERVE,IR,1.1,1,261.42,2026 UFA,,legette
 AFC,DEN,Denver Broncos,17082,"Bryant, Pat DEN WR","Bryant, Pat",DEN,WR,INJURED_RESERVE,IR,1.09,3,261.42,2025 4.12,,bryant
 AFC,DEN,Denver Broncos,17256,"Croskey-Merritt, Jacory WAS RB","Croskey-Merritt, Jacory",WAS,RB,INJURED_RESERVE,IR,0.99,2,261.42,2025 UDFA,,croskey-merritt
+AFC,DEN,Denver Broncos,13189,"Engram, Evan DEN TE","Engram, Evan",DEN,TE,Taxi,,1.1,1,261.42,2026 UFA,,engram
 AFC,KCC,Kansas City Chiefs,14836,"Jefferson, Justin MIN WR","Jefferson, Justin",MIN,WR,Active,,43.12,3,254.86,2024 iEXT,,jefferson
 AFC,KCC,Kansas City Chiefs,16616,"Odunze, Rome CHI WR","Odunze, Rome",CHI,WR,Active,,5.43,2,254.86,2024 1.05,,odunze
 AFC,KCC,Kansas City Chiefs,15835,"Brisker, Jaquan PIT S","Brisker, Jaquan",PIT,S,Active,,4.47,2,254.86,2025 iEXT,,brisker
