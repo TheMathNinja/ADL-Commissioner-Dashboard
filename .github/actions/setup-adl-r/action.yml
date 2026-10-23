@@ -4,12 +4,19 @@ description: Install a pinned R runtime and restore the shared ADL package libra
 runs:
   using: composite
   steps:
-    - name: Set up R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: "4.5.1"
-        install-r: false
-        use-public-rspm: true
+    - name: Install pinned R runtime
+      shell: bash
+      run: |
+        set -euo pipefail
+        r_bin="/opt/R/4.5.1/bin/Rscript"
+        if [[ ! -x "$r_bin" ]]; then
+          curl --fail --location --retry 4 --retry-all-errors \
+            --output /tmp/r-4.5.1.deb \
+            https://cdn.rstudio.com/r/ubuntu-2404/pkgs/r-4.5.1_1_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends /tmp/r-4.5.1.deb
+        fi
+        echo "/opt/R/4.5.1/bin" >> "$GITHUB_PATH"
 
     - name: Verify runner R version
       shell: Rscript {0}

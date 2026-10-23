@@ -159,8 +159,13 @@ def main() -> int:
     if commissioner:
         r_setup = commissioner / ".github" / "actions" / "setup-adl-r" / "action.yml"
         r_setup_source = r_setup.read_text(encoding="utf-8")
-        if "install-r: false" not in r_setup_source:
-            errors.append("Shared ADL R setup must reuse the pinned runner's preinstalled R")
+        required_r_setup = {
+            "pinned R package": "r-4.5.1_1_amd64.deb",
+            "minimal R install": "--no-install-recommends",
+        }
+        for label, marker in required_r_setup.items():
+            if marker not in r_setup_source:
+                errors.append(f"Shared ADL R setup is missing {label}")
 
         scheduler = commissioner / "scripts" / "CloudPolling.gs"
         source = scheduler.read_text(encoding="utf-8")
