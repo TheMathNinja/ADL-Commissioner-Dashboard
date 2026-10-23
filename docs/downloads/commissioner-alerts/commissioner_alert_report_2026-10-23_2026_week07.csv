@@ -1,0 +1,4 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,7,2026-10-23 09:43:07 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,"Starting lineups require 7 offensive starters, including minimum 1 RB","6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB,,
+2026,7,2026-10-23 09:43:07 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,Starting lineups require 7 offensive starters,"6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB/WR/TE,,
+2026,7,2026-10-23 09:43:07 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,2
