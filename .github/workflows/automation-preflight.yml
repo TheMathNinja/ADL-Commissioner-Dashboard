@@ -180,16 +180,28 @@ jobs:
         run: |
           Rscript scripts/run_commissioner_alerts.R --mode=check --season=${CURRENT_SEASON} --force-live
 
+      - name: Respect MFL rate limit before salary cap smoke check
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_salary_cap == 'true' && github.event.inputs.run_commissioner_alerts == 'true' }}
+        run: sleep 75
+
       - name: Run salary cap accounting smoke check
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_salary_cap == 'true' }}
         run: |
           Rscript scripts/run_cap_accounting.R
+
+      - name: Respect MFL rate limit before SalAdj Curator smoke check
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_curator == 'true' && (github.event.inputs.run_commissioner_alerts == 'true' || github.event.inputs.run_salary_cap == 'true') }}
+        run: sleep 75
 
       - name: Run SalAdj Curator no-email smoke check
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_curator == 'true' }}
         run: |
           Rscript scripts/audit_recent_mfl_transactions.R
           Rscript scripts/run_saladjcurator.R
+
+      - name: Respect MFL rate limit before salary-adjustment reconciliation
+        if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_reconciliation == 'true' && (github.event.inputs.run_commissioner_alerts == 'true' || github.event.inputs.run_salary_cap == 'true' || github.event.inputs.run_saladj_curator == 'true') }}
+        run: sleep 75
 
       - name: Reconcile MFL salary adjustments against SalAdj Curator
         if: ${{ github.event.inputs.run_live_mfl_checks == 'true' && github.event.inputs.run_saladj_reconciliation == 'true' }}
