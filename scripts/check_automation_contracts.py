@@ -157,6 +157,11 @@ def main() -> int:
 
     commissioner = roots.get("ADL-Commissioner-Dashboard")
     if commissioner:
+        r_setup = commissioner / ".github" / "actions" / "setup-adl-r" / "action.yml"
+        r_setup_source = r_setup.read_text(encoding="utf-8")
+        if "install-r: false" not in r_setup_source:
+            errors.append("Shared ADL R setup must reuse the pinned runner's preinstalled R")
+
         scheduler = commissioner / "scripts" / "CloudPolling.gs"
         source = scheduler.read_text(encoding="utf-8")
         expectations = {
