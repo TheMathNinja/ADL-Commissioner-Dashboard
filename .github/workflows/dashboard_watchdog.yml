@@ -95,11 +95,15 @@ jobs:
                   "https://api.github.com/repos/TheMathNinja/ADL-Commissioner-Dashboard/"
                   f"actions/workflows/{workflow}/runs?per_page=50"
               ).get("workflow_runs", [])
-              expected_title = f"Daily maintenance {run['id']} - {title_suffix}"
+              expected_titles = {
+                  f"Daily maintenance {run['id']} - {title_suffix}",
+                  f"Daily maintenance recovery-{run['id']} - {title_suffix}",
+              }
               recoveries = [
                   candidate for candidate in recovery_runs
-                  if candidate.get("display_title") == expected_title
+                  if candidate.get("display_title") in expected_titles
                   and candidate.get("conclusion") == "success"
+                  and candidate.get("created_at", "") >= run.get("created_at", "")
               ]
               if recoveries:
                   recovery = max(recoveries, key=lambda candidate: candidate["created_at"])
