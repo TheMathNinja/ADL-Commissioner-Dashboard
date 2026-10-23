@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "global_lock": false,
+  "receipts": [
+    {
+      "url": "https://api.myfantasyleague.com/2026/export?TYPE=league&L=60206&JSON=1",
+      "status": 200,
+      "captured_at": 1792773371.6587,
+      "md5": "775b3807e5fb1492ac323b034136b21a"
+    },
+    {
+      "url": "https://www46.myfantasyleague.com/2026/locked_players?L=60206",
+      "status": 200,
+      "captured_at": 1792773371.7858,
+      "md5": "fab1c43ebf15ac4b18b41e4c477ef6ec"
+    }
+  ],
+  "policy": "20260916-mfl-drop-event-check-v1",
+  "season": 2026,
+  "league_id": "60206",
+  "checked_at": 1792773371.9315,
+  "directory": "data/waiver_snapshots/saladj_waivers_2026_20261023T163611_c924b0d01be"
+}
