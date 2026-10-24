@@ -1,0 +1,3 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,7,2026-10-24 09:25:23 UTC,Illegal Lineup,violation,NFC,CAR,Carolina Panthers,"Starting lineups require 7 offensive starters, including minimum 1 RB","6 offensive starters (1 QB, 5 RB/WR/TE)",Must start 1 additional RB,,
+2026,7,2026-10-24 09:25:23 UTC,Illegal Lineup,violation,NFC,DET,Detroit Lions,"Starting lineups require 12 defensive starters, including minimum 2 DT and 2 S","10 defensive starters (1 DT, 1 S)",Must start 1 additional DT and 1 additional S,,
