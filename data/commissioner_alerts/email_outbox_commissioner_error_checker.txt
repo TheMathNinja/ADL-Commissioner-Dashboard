@@ -1,17 +1,16 @@
-The Commissioner Error Checker found salary adjustments awaiting MFL entry before the next official cap snapshot.
+The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin displayed total: PHI | $6.76
-MFL roster-page total: PHI | $3.38
-Pending Contract Admin rows: F. Luvu ($3.38; NFC Sal Adj row 111)
-Explanation: The $3.38 difference is fully explained by rows whose ENTD? field is not marked.
-Required: Enter the pending PHI adjustment(s) in MFL before the next official cap snapshot: F. Luvu ($3.38; NFC Sal Adj row 111). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
+Error Type: Incorrect control flag in NFC Sal Adj tab (Contract Admin Sheet)
+Erroneous Sal Adj tab entry: NYG | Courtland Sutton (ACC) | Calculated penalty: $29.96
+Expected Sal Adj tab entry: NYG | Courtland Sutton (ACC) | Calculated penalty: $14.98
+Original transaction/drop: Oct 20, 2026 at 10:46:12 AM ET
+Required: Remove the unexpected ACC mark in Contract Admin and let its penalty formula recalculate.
 
-Status: Pending MFL entries from AFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin displayed total: DEN | $38.89
-MFL roster-page total: DEN | $37.51
-Pending Contract Admin rows: T. Dodson ($1.38; AFC Sal Adj row 107)
-Explanation: The $1.38 difference is fully explained by rows whose ENTD? field is not marked.
-Required: Enter the pending DEN adjustment(s) in MFL before the next official cap snapshot: T. Dodson ($1.38; AFC Sal Adj row 107). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
+Error Type: Incorrect amount in MFL salary adjustments
+Erroneous MFL salary adjustments entry: NYG | C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated | Penalty/adjustment: $29.96
+Expected MFL salary-adjustment entry: NYG | Courtland Sutton | Penalty/adjustment: $14.98
+Original transaction/drop: Oct 20, 2026 at 10:46:12 AM ET
+MFL salary-adjustment entry date: Oct 23, 2026 at 11:59:06 AM ET
+Required: Change the MFL entry to $14.98.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
