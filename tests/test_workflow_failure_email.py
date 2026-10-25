@@ -57,6 +57,13 @@ class FailureReports(unittest.TestCase):
         )
         self.assertTrue(m.production(watchdog))
 
+    def test_workflow_can_persist_reported_incident_state(self):
+        workflow = (Path(__file__).parents[1] / '.github' / 'workflows' /
+                    'email_workflow_failures.yml').read_text(encoding='utf-8')
+        permissions = workflow.split('permissions:', 1)[1].split('concurrency:', 1)[0]
+        self.assertIn('contents: write', permissions)
+        self.assertIn('actions: read', permissions)
+
     def test_official_bonus_children_are_reported_but_previews_are_not(self):
         child=dict(self.run,path='.github/workflows/verify_bonus_mfl.yml',display_title='Synchronize MFL Bonus Games · official · source 123')
         self.assertTrue(m.production(child))

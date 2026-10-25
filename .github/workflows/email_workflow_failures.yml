@@ -7,7 +7,8 @@ on:
         type: boolean
         default: true
 permissions:
-  contents: read
+  # The reporter records sent incidents in data/workflow_failure_email_state.json.
+  contents: write
   actions: read
 concurrency:
   group: league-failure-emails
