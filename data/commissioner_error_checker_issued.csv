@@ -282,3 +282,4 @@ Contract Admin 2026 ADJ totals -> MFL roster page|PENDING_MFL_ENTRY|PHI|PHI|2026
 Contract Admin 2026 ADJ totals -> MFL roster page|PENDING_MFL_ENTRY|DEN|DEN|2026 ADJ total|37.51|38.89,2026-10-12 05:21:26 EDT
 SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NYG|NYG|Courtland Sutton (ACC)|14.98|29.96,2026-10-24 05:21:00 EDT
 WRONG_AMOUNT|NYG|NYG|Courtland Sutton|14.98|29.96,2026-10-24 05:21:00 EDT
+SalAdj Curator -> Contract Admin Sal Adj|WRONG_AMOUNT|CHI|CHI|Terry McLaurin|22.80|NA,2026-10-25 05:26:03 EDT

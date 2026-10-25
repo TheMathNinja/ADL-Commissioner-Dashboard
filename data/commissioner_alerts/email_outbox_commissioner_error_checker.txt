@@ -1,16 +1,8 @@
 The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Error Type: Incorrect control flag in NFC Sal Adj tab (Contract Admin Sheet)
-Erroneous Sal Adj tab entry: NYG | Courtland Sutton (ACC) | Calculated penalty: $29.96
-Expected Sal Adj tab entry: NYG | Courtland Sutton (ACC) | Calculated penalty: $14.98
-Original transaction/drop: Oct 20, 2026 at 10:46:12 AM ET
-Required: Remove the unexpected ACC mark in Contract Admin and let its penalty formula recalculate.
-
-Error Type: Incorrect amount in MFL salary adjustments
-Erroneous MFL salary adjustments entry: NYG | C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated | Penalty/adjustment: $29.96
-Expected MFL salary-adjustment entry: NYG | Courtland Sutton | Penalty/adjustment: $14.98
-Original transaction/drop: Oct 20, 2026 at 10:46:12 AM ET
-MFL salary-adjustment entry date: Oct 23, 2026 at 11:59:06 AM ET
-Required: Change the MFL entry to $14.98.
+Error Type: Incorrect amount in NFC Sal Adj tab (Contract Admin Sheet)
+Expected Sal Adj tab entry: CHI | Terry McLaurin | Contract: $22.80 / 2 yr / 2026 B/R
+Original transaction/drop: Oct 24, 2026 at 11:30:11 PM ET
+Required: Change the Contract Admin entry to $22.80.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
