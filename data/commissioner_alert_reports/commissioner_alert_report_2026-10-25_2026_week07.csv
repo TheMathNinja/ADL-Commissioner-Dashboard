@@ -1,0 +1,10 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,AFC,CIN,Cincinnati Bengals,No inactive players allowed in starting lineup,"Evans, Mike SFO WR is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,AFC,CIN,Cincinnati Bengals,No inactive players allowed in starting lineup,"Wicks, Dontayvion PHI WR is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,AFC,CIN,Cincinnati Bengals,No inactive players allowed in starting lineup,"Blankenship, Reed HOU S is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,No inactive players allowed in starting lineup,"Holland, Jevon NYG S is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Wingard, Andrew ARI S is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,No inactive players allowed in starting lineup,"Jackson, Lamar BAL QB is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,No inactive players allowed in starting lineup,"Thomas, Drake SEA LB is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,No inactive players allowed in starting lineup,"Newsome, Greg NYG CB is inactive (O)",,,
+2026,7,2026-10-25 09:30:05 UTC,Roster Warning,warning,NFC,DAL,Dallas Cowboys,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Collins, Alfred SFO DT from Active to Injured Reserve to be fully compliant.",,
