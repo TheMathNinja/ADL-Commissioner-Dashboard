@@ -203,6 +203,14 @@ def main() -> int:
             if not (commissioner / "scripts" / owned).exists():
                 errors.append(f"Commissioner-owned script is missing: scripts/{owned}")
 
+        watchdog = commissioner / ".github" / "workflows" / "dashboard_watchdog.yml"
+        watchdog_source = watchdog.read_text(encoding="utf-8")
+        current_roster_job = "Refresh rosters, EXT and Salary Cap Manager / refresh"
+        if current_roster_job not in watchdog_source:
+            errors.append("Dashboard watchdog does not require the current roster/EXT/cap-manager job")
+        if "Refresh rosters and Extension Calculator / refresh" in watchdog_source:
+            errors.append("Dashboard watchdog still requires the retired roster/Extension job name")
+
     for repo, root in roots.items():
         if repo != "ADL-Commissioner-Dashboard" and (root / "scripts" / "CloudPolling.gs").exists():
             errors.append(f"{repo} contains a second CloudPolling.gs; scheduler ownership must remain singular")

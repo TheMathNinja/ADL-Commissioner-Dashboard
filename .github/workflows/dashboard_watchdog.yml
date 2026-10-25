@@ -69,7 +69,7 @@ jobs:
           required_jobs = (
               "Refresh SalAdj and Commissioner data",
               "Apply waiver cap corrections",
-              "Refresh rosters and Extension Calculator / refresh",
+              "Refresh rosters, EXT and Salary Cap Manager / refresh",
               "Run Commissioner alerts",
           )
           missing = [name for name in required_jobs if name not in jobs_by_name]
