@@ -100,6 +100,27 @@ jobs:
             --repo ADL-Commissioner-Dashboard=commissioner \
             --repo Chicago-Bears-Lineup-Guardian=guardian
 
+  guardian-audit:
+    name: Audit Guardian behavior and both MFL memberships (read-only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
+      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
+      LIVE_LINEUP_WRITES: "false"
+      RUN_MODE: monitor
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: TheMathNinja/Chicago-Bears-Lineup-Guardian
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Test Guardian timing, statuses, optimization, Taxi, and locked starters
+        run: npm test
+      - name: Verify live MFL login, ADL and FAFL ownership, and current inputs without writes
+        run: npm run check
+
   preflight:
     needs: contracts
     if: github.event_name == 'workflow_dispatch'
