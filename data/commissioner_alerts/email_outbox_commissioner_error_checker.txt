@@ -1,8 +1,13 @@
-The Commissioner Error Checker found salary-adjustment discrepancies.
+The Commissioner Error Checker found an incomplete salary-adjustment entry.
 
-Error Type: Incorrect amount in NFC Sal Adj tab (Contract Admin Sheet)
-Expected Sal Adj tab entry: CHI | Terry McLaurin | Contract: $22.80 / 2 yr / 2026 B/R
+Error Type: Missing or unreadable contract salary in NFC Sal Adj tab (Contract Admin Sheet)
+
+Entry: CHI | T. McLaurin
+Contract salary: blank or unreadable; expected $22.80
+Expected contract: $22.80 / 2 yr / 2026 B/R
+
 Original transaction/drop: Oct 24, 2026 at 11:30:11 PM ET
-Required: Change the Contract Admin entry to $22.80.
+
+Required: Check the existing Terry McLaurin row and enter or correct its contract salary.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
