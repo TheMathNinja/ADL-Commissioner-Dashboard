@@ -204,21 +204,31 @@ salary_year_pattern <- function(years, salary) {
   paste0("\\b", as.integer(years), "\\s*(YR|YRS|YEAR|YEARS|/|-)[A-Z ]*\\b", salary_value, "\\b")
 }
 
-acceleration_matches_player <- function(player, salary, years, body, surname_unique = FALSE) {
+player_first_name <- function(player) {
+  parts <- strsplit(as.character(player), ",", fixed = TRUE)[[1]]
+  given <- if (length(parts) > 1L) parts[[2]] else parts[[1]]
+  strsplit(trimws(given), "\\s+")[[1]][[1]]
+}
+
+acceleration_matches_player <- function(player, salary, years, body, surname_unique = FALSE, first_name_unique = FALSE) {
   body_norm <- normalize_player_token(body)
   if (!nzchar(body_norm)) return(FALSE)
 
   last <- normalize_player_token(player_last_name(player))
+  first <- normalize_player_token(player_first_name(player))
   first_initial <- normalize_player_token(player_first_initial(player))
-  if (!nzchar(last) || !grepl(paste0("\\b", last, "\\b"), body_norm)) return(FALSE)
+  has_last <- nzchar(last) && grepl(paste0("\\b", last, "\\b"), body_norm)
+  has_first <- nzchar(first) && grepl(paste0("\\b", first, "\\b"), body_norm)
+  if (has_first && isTRUE(first_name_unique)) return(TRUE)
+  if (!has_last) return(FALSE)
 
   contract_pattern <- salary_year_pattern(years, salary)
   has_contract <- !is.na(contract_pattern) &&
     grepl(contract_pattern, body_norm, ignore.case = TRUE, perl = TRUE)
   has_first_initial <- nzchar(first_initial) &&
-    grepl(paste0("\\b", first_initial, "[A-Z]*\\b"), body_norm, perl = TRUE)
+    grepl(paste0("\\b", first_initial, "\\s+", last, "\\b|\\b", last, "\\s+", first_initial, "\\b"), body_norm, perl = TRUE)
 
-  has_contract || has_first_initial || isTRUE(surname_unique)
+  has_contract || has_first_initial || has_first || isTRUE(surname_unique)
 }
 
 fetch_saladj_accelerations <- function(season = get_current_season(), franchises = NULL) {
@@ -277,7 +287,7 @@ parse_acceleration_posts <- function(doc, franchises) {
     distinct()
 }
 
-row_has_acceleration_declaration <- function(franchise, player, salary, years, accelerations, surname_unique = FALSE) {
+row_has_acceleration_declaration <- function(franchise, player, salary, years, accelerations, surname_unique = FALSE, first_name_unique = FALSE) {
   if (is.null(accelerations) || !nrow(accelerations)) return(FALSE)
   candidates <- accelerations |> filter(.data$franchise == .env$franchise)
   if (!nrow(candidates)) return(FALSE)
@@ -288,7 +298,8 @@ row_has_acceleration_declaration <- function(franchise, player, salary, years, a
     player = player,
     salary = salary,
     years = years,
-    surname_unique = surname_unique
+    surname_unique = surname_unique,
+    first_name_unique = first_name_unique
   ))
 }
 
@@ -323,6 +334,12 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
   rvsd_col <- get_col("RVSD?")
   acc_col <- get_col("ACC")
   last_names <- vapply(player_col, function(player) normalize_player_token(player_last_name(player)), character(1))
+  first_names <- vapply(player_col, function(player) normalize_player_token(player_first_name(player)), character(1))
+  first_name_unique <- vapply(seq_along(player_col), function(i) {
+    same_franchise <- toupper(trimws(saladj$FRAN)) == toupper(trimws(saladj$FRAN[[i]]))
+    identities <- unique(normalize_player_token(player_col[same_franchise & first_names == first_names[[i]]]))
+    nzchar(first_names[[i]]) && length(identities) == 1L
+  }, logical(1))
   surname_unique <- vapply(seq_along(player_col), function(i) {
     same_franchise <- toupper(trimws(saladj$FRAN)) == toupper(trimws(saladj$FRAN[[i]]))
     identities <- unique(normalize_player_token(player_col[same_franchise & last_names == last_names[[i]]]))
@@ -358,6 +375,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         salary = .data$salary_amount,
         years = .data$years_amount,
         surname_unique = .env$surname_unique,
+        first_name_unique = .env$first_name_unique,
         MoreArgs = list(accelerations = .env$accelerations)
       ),
       is_accelerated = .data$is_accelerated_csv | .data$is_accelerated_declared,
@@ -1616,6 +1634,14 @@ render_output <- arg_value(
 
 if (arg_flag("self-test-name-matching")) {
   declaration_test <- tibble(franchise = "NYG", declared_at = "Oct 21, 2026", body = "if still possible, please apply to sutton")
+  stopifnot(
+    acceleration_matches_player("Bo Nix", 3, 2, "Accelerate Bo", first_name_unique = TRUE),
+    acceleration_matches_player("Nix, Bo", 3, 2, "Accelerate Nix", surname_unique = TRUE),
+    !acceleration_matches_player("Bo Nix", 3, 2, "Accelerate Bo"),
+    !acceleration_matches_player("Bo Nix", 3, 2, "please apply to Nix"),
+    acceleration_matches_player("Bo Nix", 3, 2, "B. Nix please"),
+    !acceleration_matches_player("Bo Nix", 3, 2, "Accelerate Nixon", surname_unique = TRUE)
+  )
   stopifnot(
     row_has_acceleration_declaration("NYG", "Courtland Sutton", 24.97, 3, declaration_test, surname_unique = TRUE),
     !row_has_acceleration_declaration("NYG", "Courtland Sutton", 24.97, 3, declaration_test, surname_unique = FALSE),
