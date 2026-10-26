@@ -1380,7 +1380,18 @@ format_checker_finding <- function(row) {
         !is.na(row$mfl_entered_at) && nzchar(row$mfl_entered_at)) {
       paste0("MFL salary-adjustment entry date: ", row$mfl_entered_at)
     } else NULL,
-    paste0("Required: ", required_action),
+    if (nzchar(checker_row_value(row, "related_mfl_description"))) {
+      paste0("Affected MFL entry: ", row$actual_franchise, " | ", row$related_mfl_description,
+             " | Penalty/adjustment: $", sprintf("%.2f", row$actual_amount))
+    } else NULL,
+    if (nzchar(checker_row_value(row, "related_mfl_entered_at"))) {
+      paste0("MFL salary-adjustment entry date: ", row$related_mfl_entered_at)
+    } else NULL,
+    paste0("Required: ", required_action,
+           if (nzchar(checker_row_value(row, "related_mfl_action"))) {
+             paste0(" Also correct the existing MFL entry: ", row$related_mfl_action,
+                    " Removing the Sheet flag does not automatically update MFL.")
+           } else ""),
     ""
   )
 }
@@ -1391,6 +1402,7 @@ season_from_total_player <- function(player) {
 }
 
 build_checker_email_body <- function(error_report) {
+  error_report <- group_control_flag_consequences(error_report)
   lines <- unlist(lapply(seq_len(nrow(error_report)), function(i) {
     format_checker_finding(error_report[i, ])
   }))
@@ -1412,6 +1424,35 @@ build_checker_email_body <- function(error_report) {
     lines,
     "This checker is read-only. No Contract Admin or MFL entries were changed automatically."
   ), collapse = "\n")
+}
+
+group_control_flag_consequences <- function(report, tolerance = 0.01) {
+  if (!nrow(report)) return(report)
+  report$related_mfl_description <- ""
+  report$related_mfl_entered_at <- ""
+  report$related_mfl_action <- ""
+  consumed <- integer()
+  for (i in which(report$issue %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE"))) {
+    player <- sub(" \\([^()]+\\)$", "", report$player[[i]])
+    candidates <- which(
+      report$issue == "WRONG_AMOUNT" & report$actual_system == "MFL" &
+        report$expected_franchise == report$expected_franchise[[i]] &
+        report$actual_franchise == report$actual_franchise[[i]] &
+        report$player == player &
+        nzchar(report$transaction_date[[i]]) &
+        report$transaction_date == report$transaction_date[[i]] &
+        abs(report$expected_amount - report$expected_amount[[i]]) <= tolerance &
+        abs(report$actual_amount - report$actual_amount[[i]]) <= tolerance
+    )
+    candidates <- setdiff(candidates, consumed)
+    if (length(candidates) != 1L) next
+    j <- candidates[[1]]
+    report$related_mfl_description[[i]] <- report$mfl_description[[j]]
+    report$related_mfl_entered_at[[i]] <- report$mfl_entered_at[[j]]
+    report$related_mfl_action[[i]] <- report$action[[j]]
+    consumed <- c(consumed, j)
+  }
+  report[setdiff(seq_len(nrow(report)), consumed), , drop = FALSE]
 }
 
 audit_cap_rollover_sheet <- function(season, tolerance = 0.01) {
@@ -1499,6 +1540,32 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  control_pair <- tibble(
+    issue = c("WRONG_CONTROL_FLAG", "WRONG_AMOUNT"),
+    expected_franchise = "NYG", actual_franchise = "NYG",
+    player = c("Courtland Sutton (ACC)", "Courtland Sutton"),
+    expected_amount = 14.98, actual_amount = 29.96,
+    transaction_date = "Oct 20, 2026 at 10:46:12 AM ET",
+    mfl_entered_at = c("", "Oct 23, 2026 at 11:59:06 AM ET"),
+    mfl_description = c("ACC flag is unexpected", "C. Sutton - accelerated"),
+    actual_system = c("Contract Admin", "MFL"),
+    stage = c("Curator controls -> Contract Admin", "Contract Admin -> MFL"),
+    action = c("Remove the unexpected ACC mark.", "Change the MFL entry to $14.98.")
+  )
+  grouped_pair <- group_control_flag_consequences(control_pair)
+  grouped_body <- build_checker_email_body(control_pair)
+  stopifnot(
+    nrow(grouped_pair) == 1L,
+    grepl("MFL salary-adjustment entry date: Oct 23, 2026 at 11:59:06 AM ET", grouped_body, fixed = TRUE),
+    grepl("Change the MFL entry to $14.98.", grouped_body, fixed = TRUE),
+    !grepl("Error Type: Incorrect amount in MFL", grouped_body, fixed = TRUE)
+  )
+  separate_drop <- control_pair
+  separate_drop$transaction_date[[2]] <- "Oct 21, 2026 at 10:46:12 AM ET"
+  stopifnot(nrow(group_control_flag_consequences(separate_drop)) == 2L)
+  separate_amount <- control_pair
+  separate_amount$actual_amount[[2]] <- 30
+  stopifnot(nrow(group_control_flag_consequences(separate_amount)) == 2L)
   stopifnot(
     description_matches_expected("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koramoah", FALSE),
     description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koromoah", FALSE),
