@@ -119,6 +119,16 @@ normalize_label <- function(x) {
     trimws()
 }
 
+derive_future_saladj_penalty <- function(salary, years, is_pre_july_1, is_trade_or_ib,
+                                        is_fg, is_suspended, is_jt, is_accelerated, plus_amount) {
+  if (is.na(salary) || is.na(years) || years < 1 || years != as.integer(years)) return(NA_real_)
+  if (is_accelerated || (is_pre_july_1 && !is_jt) || is_trade_or_ib) return(0)
+  future <- if (is_fg) {
+    salary * sum(1.1 ^ seq_len(as.integer(years) - 1L)) + plus_amount
+  } else 0.3 * salary * (years - 1)
+  round(future * if (is_suspended) 0.5 else 1, 2)
+}
+
 normalize_player_token <- function(x) {
   x |>
     as.character() |>
@@ -380,6 +390,14 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         amount = round(.data$expected_amount_known, 2),
         salary_amount,
         years_amount,
+        penalty_season = season,
+        expected_future_amount = mapply(
+          derive_future_saladj_penalty,
+          salary = .data$salary_amount, years = .data$years_amount,
+          is_pre_july_1 = .data$is_pre_july_1, is_trade_or_ib = .data$is_trade_or_ib,
+          is_fg = .data$is_fg, is_suspended = .data$is_suspended, is_jt = .data$is_jt,
+          is_accelerated = .data$is_accelerated, plus_amount = .data$plus_amount
+        ),
         row_date,
         is_cash_trade,
         is_br,
@@ -768,7 +786,7 @@ contract_admin_saladj_entries <- function(season) {
     headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
     required <- c(
       "DATE", "FRAN", "PLAYER", "SALARY", "B/R", "TR/IB", "FG", "(S)",
-      "JT", "ACC", "1.XX+", penalty_col, "RVSD?", "ENTD?"
+      "JT", "ACC", "1.XX+", penalty_col, paste0(season + 1L, " PEN"), "RVSD?", "ENTD?"
     )
     missing <- setdiff(required, headers)
     if (length(missing)) {
@@ -783,6 +801,7 @@ contract_admin_saladj_entries <- function(season) {
       player = trimws(as.character(values[[column_index[["PLAYER"]]]])),
       input_salary = parse_amount(values[[column_index[["SALARY"]]]]),
       penalty_amount = parse_amount(values[[column_index[[penalty_col]]]]),
+      future_penalty_amount = parse_amount(values[[column_index[[paste0(season + 1L, " PEN")]]]]),
       entered_at = as.character(values[[column_index[["DATE"]]]]),
       description = trimws(as.character(values[[column_index[["PLAYER"]]]])),
       is_br = is_marked(values[[column_index[["B/R"]]]]),
@@ -1074,6 +1093,12 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         player = paste0(expected$player, " (", label, ")"),
         expected_amount = expected$amount,
         actual_amount = actual$penalty_amount,
+        penalty_season = expected$penalty_season,
+        expected_future_amount = expected$expected_future_amount,
+        actual_future_amount = actual$future_penalty_amount,
+        control_label = label,
+        expected_control = if (isTRUE(expected[[field]])) "checked" else "unchecked",
+        actual_control = if (isTRUE(actual[[field]])) "checked" else "unchecked",
         mfl_description = paste0(
           "Contract Admin ", label, " flag is ", direction,
           "; this caused the sheet formula to calculate $",
@@ -1220,10 +1245,42 @@ checker_row_value <- function(row, name, default = "") {
 
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
+  penalty_season <- checker_row_value(row, "penalty_season", as.character(get_current_season()))
+  if (as.character(row$issue) == "WRONG_CONTROL_FLAG" &&
+      nzchar(checker_row_value(row, "control_label"))) {
+    next_season <- as.integer(penalty_season) + 1L
+    show_amount <- function(value) {
+      value <- suppressWarnings(as.numeric(value))
+      if (!length(value) || is.na(value)) "not available" else paste0("$", sprintf("%.2f", value))
+    }
+    year_line <- function(year, actual, expected) {
+      actual <- suppressWarnings(as.numeric(actual))
+      expected <- suppressWarnings(as.numeric(expected))
+      status <- if (is.na(actual) || is.na(expected)) "not verified" else if (abs(actual - expected) <= 0.01) "correct" else "incorrect"
+      paste0(year, " Sheet penalty - ", status, ": ", show_amount(actual), "; expected ", show_amount(expected))
+    }
+    return(c(
+      paste0("Error Type: Incorrect ", row$control_label, " setting in ", list_label),
+      paste0("Entry: ", row$expected_franchise, " | ", sub(" \\([^()]+\\)$", "", row$player)),
+      paste0(row$control_label, " setting: ", row$actual_control, "; expected ", row$expected_control),
+      year_line(penalty_season, row$actual_amount, row$expected_amount),
+      year_line(next_season, checker_row_value(row, "actual_future_amount", NA_character_),
+                checker_row_value(row, "expected_future_amount", NA_character_)),
+      if (nzchar(checker_row_value(row, "transaction_date"))) paste0("Original transaction/drop: ", row$transaction_date),
+      if (nzchar(checker_row_value(row, "related_mfl_description"))) paste0(
+        "Affected ", penalty_season, " MFL entry: ", row$actual_franchise, " | ", row$related_mfl_description,
+        " | Penalty: ", show_amount(row$actual_amount), "; expected ", show_amount(row$expected_amount)),
+      if (nzchar(checker_row_value(row, "related_mfl_entered_at"))) paste0("MFL salary-adjustment entry date: ", row$related_mfl_entered_at),
+      paste0("Required: ", row$action, " Verify both ", penalty_season, " and ", next_season, " PEN cells after recalculation.",
+             if (nzchar(checker_row_value(row, "related_mfl_action"))) paste0(" Also correct the ", penalty_season,
+               " MFL entry to ", show_amount(row$expected_amount), ". Sheet changes do not automatically update MFL.") else ""),
+      ""
+    ))
+  }
   is_total_issue <- as.character(row$issue) %in% c("SALADJ_TOTAL_MISMATCH", "PENDING_MFL_ENTRY")
   is_control_issue <- as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE")
   amount_prefix <- if (is_control_issue) {
-    "Calculated penalty"
+    paste0(penalty_season, " calculated penalty")
   } else if (is_total_issue) {
     "Total"
   } else if (grepl(" Sal Adj tab ", list_label, fixed = TRUE)) {
@@ -1566,6 +1623,20 @@ if (arg_flag("self-test-name-matching")) {
   separate_amount <- control_pair
   separate_amount$actual_amount[[2]] <- 30
   stopifnot(nrow(group_control_flag_consequences(separate_amount)) == 2L)
+  control_pair$penalty_season <- 2026L
+  control_pair$control_label <- c("ACC", NA_character_)
+  control_pair$actual_control <- c("checked", NA_character_)
+  control_pair$expected_control <- c("unchecked", NA_character_)
+  control_pair$actual_future_amount <- c(0, NA_real_)
+  control_pair$expected_future_amount <- c(14.98, NA_real_)
+  year_body <- build_checker_email_body(control_pair)
+  stopifnot(
+    derive_future_saladj_penalty(24.97, 3, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 0) == 14.98,
+    derive_future_saladj_penalty(24.97, 3, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, 0) == 0,
+    grepl("2026 Sheet penalty - incorrect: $29.96; expected $14.98", year_body, fixed = TRUE),
+    grepl("2027 Sheet penalty - incorrect: $0.00; expected $14.98", year_body, fixed = TRUE),
+    grepl("ACC setting: checked; expected unchecked", year_body, fixed = TRUE)
+  )
   stopifnot(
     description_matches_expected("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koramoah", FALSE),
     description_suspected_name_match("J. Owusu-Koramoah - B/R - 4/24/25", "J. Owusu-Koromoah", FALSE),
