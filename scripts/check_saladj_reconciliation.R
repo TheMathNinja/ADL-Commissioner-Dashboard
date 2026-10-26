@@ -1256,24 +1256,31 @@ format_checker_finding <- function(row) {
     year_line <- function(year, actual, expected) {
       actual <- suppressWarnings(as.numeric(actual))
       expected <- suppressWarnings(as.numeric(expected))
-      status <- if (is.na(actual) || is.na(expected)) "not verified" else if (abs(actual - expected) <= 0.01) "correct" else "incorrect"
-      paste0(year, " Sheet penalty - ", status, ": ", show_amount(actual), "; expected ", show_amount(expected))
+      paste0(year, " Sheet penalty: ", show_amount(actual), "; expected ", show_amount(expected))
     }
     return(c(
       paste0("Error Type: Incorrect ", row$control_label, " setting in ", list_label),
       paste0("Entry: ", row$expected_franchise, " | ", sub(" \\([^()]+\\)$", "", row$player)),
       paste0(row$control_label, " setting: ", row$actual_control, "; expected ", row$expected_control),
+      "",
       year_line(penalty_season, row$actual_amount, row$expected_amount),
       year_line(next_season, checker_row_value(row, "actual_future_amount", NA_character_),
                 checker_row_value(row, "expected_future_amount", NA_character_)),
-      if (nzchar(checker_row_value(row, "transaction_date"))) paste0("Original transaction/drop: ", row$transaction_date),
+      "",
       if (nzchar(checker_row_value(row, "related_mfl_description"))) paste0(
-        "Affected ", penalty_season, " MFL entry: ", row$actual_franchise, " | ", row$related_mfl_description,
-        " | Penalty: ", show_amount(row$actual_amount), "; expected ", show_amount(row$expected_amount)),
+        "Affected ", penalty_season, " MFL entry: ", row$actual_franchise, " | ", row$related_mfl_description),
+      if (nzchar(checker_row_value(row, "related_mfl_description"))) paste0(
+        "MFL penalty: ", show_amount(row$actual_amount), "; expected ", show_amount(row$expected_amount)),
+      "",
+      if (nzchar(checker_row_value(row, "transaction_date"))) paste0("Original transaction/drop: ", row$transaction_date),
       if (nzchar(checker_row_value(row, "related_mfl_entered_at"))) paste0("MFL salary-adjustment entry date: ", row$related_mfl_entered_at),
-      paste0("Required: ", row$action, " Verify both ", penalty_season, " and ", next_season, " PEN cells after recalculation.",
-             if (nzchar(checker_row_value(row, "related_mfl_action"))) paste0(" Also correct the ", penalty_season,
-               " MFL entry to ", show_amount(row$expected_amount), ". Sheet changes do not automatically update MFL.") else ""),
+      "",
+      paste0("Required: ", if (row$expected_control == "unchecked") {
+        paste0("Remove the ", row$control_label, " mark in Contract Admin and let both penalty cells recalculate.")
+      } else paste0("Mark ", row$control_label, " in Contract Admin and let both penalty cells recalculate."),
+        if (nzchar(checker_row_value(row, "related_mfl_action"))) {
+          " Separately correct the MFL adjustment; Sheet changes do not automatically update MFL."
+        } else ""),
       ""
     ))
   }
@@ -1633,8 +1640,8 @@ if (arg_flag("self-test-name-matching")) {
   stopifnot(
     derive_future_saladj_penalty(24.97, 3, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 0) == 14.98,
     derive_future_saladj_penalty(24.97, 3, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, 0) == 0,
-    grepl("2026 Sheet penalty - incorrect: $29.96; expected $14.98", year_body, fixed = TRUE),
-    grepl("2027 Sheet penalty - incorrect: $0.00; expected $14.98", year_body, fixed = TRUE),
+    grepl("2026 Sheet penalty: $29.96; expected $14.98", year_body, fixed = TRUE),
+    grepl("2027 Sheet penalty: $0.00; expected $14.98", year_body, fixed = TRUE),
     grepl("ACC setting: checked; expected unchecked", year_body, fixed = TRUE)
   )
   stopifnot(
