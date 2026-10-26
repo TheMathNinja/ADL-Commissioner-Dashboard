@@ -1225,6 +1225,8 @@ label_stage_findings <- function(findings, stage, actual_system) {
     mutate(
       stage = stage,
       actual_system = actual_system,
+      issue = if_else(actual_system == "Contract Admin" & .data$issue == "WRONG_AMOUNT" &
+                        is.na(.data$actual_amount), "INCOMPLETE_CONTRACT_SALARY", .data$issue),
       action = gsub("MFL adjustment", paste0(actual_system, " entry"), .data$action, fixed = TRUE)
     )
 }
@@ -1274,6 +1276,27 @@ checker_row_value <- function(row, name, default = "") {
 
 format_checker_finding <- function(row) {
   list_label <- checker_list_label(row)
+  if (as.character(row$actual_system) == "Contract Admin" &&
+      as.character(row$issue) %in% c("INCOMPLETE_CONTRACT_SALARY", "WRONG_AMOUNT") &&
+      is.na(row$actual_amount)) {
+    contract <- paste(c(
+      paste0("$", sprintf("%.2f", row$expected_amount)),
+      if (nzchar(checker_row_value(row, "expected_years"))) paste0(row$expected_years, " yr"),
+      checker_row_value(row, "expected_contract")
+    )[nzchar(c(
+      paste0("$", sprintf("%.2f", row$expected_amount)),
+      if (nzchar(checker_row_value(row, "expected_years"))) paste0(row$expected_years, " yr"),
+      checker_row_value(row, "expected_contract")
+    ))], collapse = " / ")
+    return(c(
+      paste0("Error Type: Missing or unreadable contract salary in ", list_label), "",
+      paste0("Entry: ", row$expected_franchise, " | ", checker_row_value(row, "mfl_description", row$player)),
+      paste0("Contract salary: blank or unreadable; expected $", sprintf("%.2f", row$expected_amount)),
+      paste0("Expected contract: ", contract), "",
+      if (nzchar(checker_row_value(row, "transaction_date"))) paste0("Original transaction/drop: ", row$transaction_date), "",
+      paste0("Required: Check the existing ", row$player, " row and enter or correct its contract salary."), ""
+    ))
+  }
   penalty_season <- checker_row_value(row, "penalty_season", as.character(get_current_season()))
   if (as.character(row$issue) == "WRONG_CONTROL_FLAG" &&
       nzchar(checker_row_value(row, "control_label"))) {
@@ -1506,6 +1529,8 @@ build_checker_email_body <- function(error_report) {
       "The Commissioner Error Checker found salary adjustments awaiting MFL entry ",
       "before the next official cap snapshot."
     )
+  } else if (nrow(error_report) > 0L && all(error_report$issue == "INCOMPLETE_CONTRACT_SALARY")) {
+    "The Commissioner Error Checker found an incomplete salary-adjustment entry."
   } else if (has_pending) {
     "The Commissioner Error Checker found salary-adjustment items requiring review."
   } else {
@@ -1633,6 +1658,20 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  incomplete_salary_test <- tibble(
+    issue = "WRONG_AMOUNT", expected_franchise = "CHI", actual_franchise = "CHI",
+    player = "Terry McLaurin", expected_amount = 22.8, actual_amount = NA_real_,
+    mfl_description = "T. McLaurin", transaction_date = "Oct 24, 2026 at 11:30:11 PM ET",
+    action = "Change the MFL adjustment to $22.80.", expected_years = 2, expected_contract = "2026 B/R"
+  ) |> label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin")
+  incomplete_body <- build_checker_email_body(incomplete_salary_test)
+  stopifnot(
+    incomplete_salary_test$issue == "INCOMPLETE_CONTRACT_SALARY",
+    grepl("Contract salary: blank or unreadable; expected $22.80", incomplete_body, fixed = TRUE),
+    grepl("Expected contract: $22.80 / 2 yr / 2026 B/R", incomplete_body, fixed = TRUE),
+    grepl("Required: Check the existing Terry McLaurin row and enter or correct its contract salary.", incomplete_body, fixed = TRUE),
+    !grepl("Verify the years|duplicate|does not establish|not the cap penalty", incomplete_body)
+  )
   declaration_test <- tibble(franchise = "NYG", declared_at = "Oct 21, 2026", body = "if still possible, please apply to sutton")
   stopifnot(
     acceleration_matches_player("Bo Nix", 3, 2, "Accelerate Bo", first_name_unique = TRUE),
