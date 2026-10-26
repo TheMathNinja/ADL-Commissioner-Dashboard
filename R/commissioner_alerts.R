@@ -856,7 +856,8 @@ current_cap_accounting_expenditure <- function(rosters, season = get_current_sea
     mutate(
       roster_status_calc = toupper(normalize_alert_status(.data$roster_status)),
       salary_num = suppressWarnings(as.numeric(.data$prev_salary)),
-      is_taxi_suspended = .data$roster_status_calc == "TAXI" & toupper(as.character(.data$roster_status)) == "SUSPENDED"
+      is_taxi_suspended = .data$roster_status_calc == "TAXI" &
+        grepl("^(S|SUSP|SUSPENDED|H|HOLDOUT)$",gsub("[()]", "",toupper(trimws(coalesce(as.character(.data$player_status), "")))))
     )
 
   current <- roster_tbl |>

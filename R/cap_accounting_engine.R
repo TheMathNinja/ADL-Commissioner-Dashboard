@@ -543,6 +543,15 @@ cap_is_suspended_status <- function(x) {
   status %in% c("S", "SUSP", "SUSPENDED") | stringr::str_detect(status, "SUSP")
 }
 
+# III-D: only taxi players tagged Suspended or Holdout are exempt from
+# paid slots, salary, contract years and the ordinary active/taxi limit.
+cap_is_holdout_status <- function(x) {
+  status <- toupper(stringr::str_replace_all(stringr::str_squish(dplyr::coalesce(as.character(x), "")), "[()]", ""))
+  status %in% c("H", "HOLDOUT") | stringr::str_detect(status, "HOLDOUT")
+}
+
+cap_is_taxi_exempt_status <- function(x) cap_is_suspended_status(x) | cap_is_holdout_status(x)
+
 get_mfl_salary_adjustments <- function(conn) {
   salary_adj_raw <- ffscrapr::mfl_getendpoint(conn, endpoint = "salaryAdjustments")
   adj_list <- salary_adj_raw$content$salaryAdjustments$salaryAdjustment
@@ -595,6 +604,40 @@ latest_prior_summary_rds <- function(summary_dir, current_season, snapshot_week)
   if (length(prior_idx) == 0) return(NULL)
 
   rds_files[prior_idx][which.max(week_nums[prior_idx])]
+}
+
+cap_summarise_roster <- function(snapshot, franchise_lookup, vet_min) {
+  summary_base <- snapshot %>%
+    dplyr::left_join(franchise_lookup, by = "franchise_id") %>%
+    dplyr::mutate(
+      roster_status_calc = dplyr::if_else(.data$roster_status == "ROSTER", "ACTIVE_ROSTER", as.character(.data$roster_status)),
+      inj = as.character(.data$inj),
+      contract_years_num = suppressWarnings(as.numeric(.data$contract_years)),
+      salary_num = suppressWarnings(as.numeric(.data$salary)),
+      is_active = .data$roster_status_calc == "ACTIVE_ROSTER",
+      is_ir = .data$roster_status_calc == "INJURED_RESERVE",
+      is_exempt_status = cap_is_taxi_exempt_status(.data$inj),
+      is_taxi_non_exempt = .data$roster_status_calc == "TAXI_SQUAD" & !.data$is_exempt_status,
+      is_taxi_exempt = .data$roster_status_calc == "TAXI_SQUAD" & .data$is_exempt_status
+    )
+
+  summary_base %>%
+    dplyr::group_by(.data$franchise_id, .data$FRANCHISE) %>%
+    dplyr::summarise(
+      A = sum(.data$is_active, na.rm = TRUE),
+      IR = sum(.data$is_ir, na.rm = TRUE),
+      S = sum(.data$is_exempt_status, na.rm = TRUE),
+      TE = sum(.data$is_taxi_non_exempt, na.rm = TRUE),
+      Yrs = sum(.data$contract_years_num, na.rm = TRUE) -
+        sum(dplyr::if_else(.data$is_ir, .data$contract_years_num, 0), na.rm = TRUE) -
+        sum(dplyr::if_else(.data$is_taxi_exempt, .data$contract_years_num, 0), na.rm = TRUE),
+      Paid = dplyr::n() - sum(.data$is_taxi_exempt, na.rm = TRUE),
+      `Vac$` = pmax(0, vet_min * (45 - (dplyr::n() - sum(.data$is_taxi_exempt, na.rm = TRUE)))),
+      RostSal = sum(.data$salary_num, na.rm = TRUE) -
+        sum(dplyr::if_else(.data$is_taxi_exempt, .data$salary_num, 0), na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    dplyr::mutate(`Ill?` = dplyr::if_else(.data$A < 40 | .data$A + .data$TE > 45 | .data$Yrs > 120, "Y", ""))
 }
 
 build_cap_accounting_snapshot <- function(
@@ -727,37 +770,7 @@ build_cap_accounting_snapshot <- function(
     }
   }
 
-  summary_base <- snapshot_sorted %>%
-    dplyr::left_join(franchise_lookup, by = "franchise_id") %>%
-    dplyr::mutate(
-      roster_status_calc = dplyr::if_else(.data$roster_status == "ROSTER", "ACTIVE_ROSTER", as.character(.data$roster_status)),
-      inj = as.character(.data$inj),
-      contract_years_num = suppressWarnings(as.numeric(.data$contract_years)),
-      salary_num = suppressWarnings(as.numeric(.data$salary)),
-      is_active = .data$roster_status_calc == "ACTIVE_ROSTER",
-      is_ir = .data$roster_status_calc == "INJURED_RESERVE",
-      is_suspended = cap_is_suspended_status(.data$inj),
-      is_taxi_non_suspended = .data$roster_status_calc == "TAXI_SQUAD" & !.data$is_suspended,
-      is_taxi_suspended = .data$roster_status_calc == "TAXI_SQUAD" & .data$is_suspended
-    )
-
-  current_week_summary <- summary_base %>%
-    dplyr::group_by(.data$franchise_id, .data$FRANCHISE) %>%
-    dplyr::summarise(
-      A = sum(.data$is_active, na.rm = TRUE),
-      IR = sum(.data$is_ir, na.rm = TRUE),
-      S = sum(.data$is_suspended, na.rm = TRUE),
-      TE = sum(.data$is_taxi_non_suspended, na.rm = TRUE),
-      Yrs = sum(.data$contract_years_num, na.rm = TRUE) -
-        sum(dplyr::if_else(.data$is_ir, .data$contract_years_num, 0), na.rm = TRUE) -
-        sum(dplyr::if_else(.data$is_taxi_suspended, .data$contract_years_num, 0), na.rm = TRUE),
-      Paid = dplyr::n() - sum(.data$is_taxi_suspended, na.rm = TRUE),
-      `Vac$` = pmax(0, vet_min * (45 - (dplyr::n() - sum(.data$is_taxi_suspended, na.rm = TRUE)))),
-      RostSal = sum(.data$salary_num, na.rm = TRUE) -
-        sum(dplyr::if_else(.data$is_taxi_suspended, .data$salary_num, 0), na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    dplyr::mutate(`Ill?` = dplyr::if_else(.data$A < 40 | .data$A + .data$TE > 45 | .data$Yrs > 120, "Y", "")) %>%
+  current_week_summary <- cap_summarise_roster(snapshot_sorted, franchise_lookup, vet_min) %>%
     dplyr::left_join(sal_adj_summary, by = "franchise_id") %>%
     dplyr::mutate(
       Adj = dplyr::coalesce(.data$Adj, 0),

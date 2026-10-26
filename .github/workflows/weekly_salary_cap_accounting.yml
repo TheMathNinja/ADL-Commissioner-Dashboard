@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: false
+      repair_all_recorded_weeks:
+        description: "In repair mode, rewrite all stored weekly summaries into Contract Admin without recapturing or emailing."
+        required: false
+        type: boolean
+        default: false
       authorize_official_snapshot:
         description: "Authorize creation of a new immutable weekly snapshot."
         required: false
@@ -104,6 +109,10 @@ jobs:
         if: steps.localtime.outputs.should_run == 'true'
         uses: ./.github/actions/setup-adl-r
 
+      - name: Verify taxi exemptions and stored summaries
+        if: steps.localtime.outputs.should_run == 'true'
+        run: Rscript scripts/test_taxi_exemptions.R
+
       - name: Run salary cap accounting
         if: steps.localtime.outputs.capture_needed == 'true'
         env:
@@ -162,12 +171,20 @@ jobs:
           CONTRACT_ADMIN_CAP_ROLLOVER_TAB: Cap Rollover
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
-          for attempt in 1 2 3; do
-            Rscript scripts/push_cap_rollover_to_google_sheet.R && exit 0
-            echo "Cap Rollover writeback attempt ${attempt} failed."
-            sleep $((attempt * 15))
+          weeks="$SNAPSHOT_WEEK"
+          if [ "${{ inputs.repair_all_recorded_weeks }}" = "true" ]; then
+            test "${{ inputs.repair_existing_week }}" = "true" || { echo "All-week writeback requires repair mode."; exit 1; }
+            weeks=$(find "data/cap_accounting/${CURRENT_SEASON}/snapshots" -name "${CURRENT_SEASON}w*_ADLsalarycapsnapshot.csv" -printf '%f\n' | sed -E 's/.*w([0-9]+)_.*/\1/' | sort -n)
+          fi
+          for week in $weeks; do
+            written=false
+            for attempt in 1 2 3; do
+              SNAPSHOT_WEEK="$week" Rscript scripts/push_cap_rollover_to_google_sheet.R && { written=true; break; }
+              echo "Cap Rollover writeback attempt ${attempt} failed."
+              sleep $((attempt * 15))
+            done
+            test "$written" = "true" || exit 1
           done
-          exit 1
 
       - name: Skip Contract Admin writeback when Google credentials are missing
         if: steps.localtime.outputs.should_run == 'true' && env.GOOGLE_SERVICE_ACCOUNT_JSON_PRESENT != 'true'
