@@ -125,6 +125,18 @@ def function_signatures(path: Path) -> dict[str, tuple]:
     return signatures
 
 
+def guardian_collision_errors(sources: dict[str, str]) -> list[str]:
+    errors = []
+    for workflow, source in sources.items():
+        block = re.search(r"^concurrency:\s*\n((?:[ \t]+[^\n]*\n|\n)+)", source, re.MULTILINE)
+        settings = block.group(1) if block else ""
+        if not re.search(r"^  group: lineup-guardian-writes\s*$", settings, re.MULTILINE):
+            errors.append(f"Lineup Guardian {workflow} must share the lineup-guardian-writes concurrency group")
+        if not re.search(r"^  cancel-in-progress: false\s*$", settings, re.MULTILINE):
+            errors.append(f"Lineup Guardian {workflow} must not cancel an in-progress roster/lineup write")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", action="append", required=True, metavar="NAME=PATH")
@@ -230,10 +242,10 @@ def main() -> int:
 
     guardian = roots.get("Chicago-Bears-Lineup-Guardian")
     if guardian:
-        for workflow in ("guardian.yml", "initial-lineup.yml"):
-            source = (guardian / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
-            if "Suppress overlapping native backup run" not in source or "--event workflow_dispatch" not in source:
-                errors.append(f"Lineup Guardian {workflow} lacks cloud/native scheduler collision suppression")
+        errors.extend(guardian_collision_errors({
+            workflow: (guardian / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+            for workflow in ("guardian.yml", "initial-lineup.yml")
+        }))
 
     adl = roots.get("ADL-GM-Dashboard")
     fafl = roots.get("FAFL-GM-Dashboard")
