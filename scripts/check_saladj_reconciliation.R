@@ -204,7 +204,7 @@ salary_year_pattern <- function(years, salary) {
   paste0("\\b", as.integer(years), "\\s*(YR|YRS|YEAR|YEARS|/|-)[A-Z ]*\\b", salary_value, "\\b")
 }
 
-acceleration_matches_player <- function(player, salary, years, body) {
+acceleration_matches_player <- function(player, salary, years, body, surname_unique = FALSE) {
   body_norm <- normalize_player_token(body)
   if (!nzchar(body_norm)) return(FALSE)
 
@@ -218,15 +218,14 @@ acceleration_matches_player <- function(player, salary, years, body) {
   has_first_initial <- nzchar(first_initial) &&
     grepl(paste0("\\b", first_initial, "[A-Z]*\\b"), body_norm, perl = TRUE)
 
-  has_contract || has_first_initial || nchar(last) >= 7
+  has_contract || has_first_initial || isTRUE(surname_unique)
 }
 
 fetch_saladj_accelerations <- function(season = get_current_season(), franchises = NULL) {
   if (!requireNamespace("httr", quietly = TRUE) ||
       !requireNamespace("rvest", quietly = TRUE) ||
       !requireNamespace("xml2", quietly = TRUE)) {
-    warning("Packages httr, rvest, and xml2 are required to fetch SalAdj acceleration declarations.", call. = FALSE)
-    return(tibble(franchise = character(), declared_at = character(), body = character()))
+    stop("Cannot verify accelerations: packages httr, rvest, and xml2 are required.", call. = FALSE)
   }
 
   league_id <- get_env_or_default("ADL_LEAGUE_ID", "60206")
@@ -248,14 +247,17 @@ fetch_saladj_accelerations <- function(season = get_current_season(), franchises
     httr::timeout(as.numeric(get_env_or_default("ADL_MFL_SALADJ_ACCELERATION_TIMEOUT_SECONDS", "30")))
   )
   if (httr::http_error(response)) {
-    warning("MFL SalAdj acceleration thread request failed with HTTP ", httr::status_code(response), ".", call. = FALSE)
-    return(tibble(franchise = character(), declared_at = character(), body = character()))
+    stop("Cannot verify accelerations: MFL thread returned HTTP ", httr::status_code(response), ".", call. = FALSE)
   }
 
   doc <- xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8"))
+  parse_acceleration_posts(doc, franchises)
+}
+
+parse_acceleration_posts <- function(doc, franchises) {
   post_nodes <- rvest::html_elements(doc, ".frm.pst")
   if (!length(post_nodes)) {
-    return(tibble(franchise = character(), declared_at = character(), body = character()))
+    stop("Cannot verify accelerations: no message-board posts were parsed.", call. = FALSE)
   }
 
   posts <- lapply(post_nodes, function(node) {
@@ -271,11 +273,11 @@ fetch_saladj_accelerations <- function(season = get_current_season(), franchises
   })
 
   dplyr::bind_rows(posts) |>
-    filter(nzchar(.data$franchise), nzchar(trimws(.data$body))) |>
+    filter(!is.na(.data$franchise), nzchar(.data$franchise), nzchar(trimws(.data$body))) |>
     distinct()
 }
 
-row_has_acceleration_declaration <- function(franchise, player, salary, years, accelerations) {
+row_has_acceleration_declaration <- function(franchise, player, salary, years, accelerations, surname_unique = FALSE) {
   if (is.null(accelerations) || !nrow(accelerations)) return(FALSE)
   candidates <- accelerations |> filter(.data$franchise == .env$franchise)
   if (!nrow(candidates)) return(FALSE)
@@ -285,7 +287,8 @@ row_has_acceleration_declaration <- function(franchise, player, salary, years, a
     logical(1),
     player = player,
     salary = salary,
-    years = years
+    years = years,
+    surname_unique = surname_unique
   ))
 }
 
@@ -319,6 +322,12 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
   plus_col <- get_col("1.XX+")
   rvsd_col <- get_col("RVSD?")
   acc_col <- get_col("ACC")
+  last_names <- vapply(player_col, function(player) normalize_player_token(player_last_name(player)), character(1))
+  surname_unique <- vapply(seq_along(player_col), function(i) {
+    same_franchise <- toupper(trimws(saladj$FRAN)) == toupper(trimws(saladj$FRAN[[i]]))
+    identities <- unique(normalize_player_token(player_col[same_franchise & last_names == last_names[[i]]]))
+    nzchar(last_names[[i]]) && length(identities) == 1L
+  }, logical(1))
 
   if (is.null(accelerations)) {
     accelerations <- fetch_saladj_accelerations(season)
@@ -348,6 +357,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         player = .data$player,
         salary = .data$salary_amount,
         years = .data$years_amount,
+        surname_unique = .env$surname_unique,
         MoreArgs = list(accelerations = .env$accelerations)
       ),
       is_accelerated = .data$is_accelerated_csv | .data$is_accelerated_declared,
@@ -360,7 +370,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
       current_penalty_amount = if (current_pen_col %in% names(saladj)) parse_amount(.data[[current_pen_col]]) else NA_real_,
       is_cash_trade = toupper(trimws(.data$player)) == "CASH TRADE",
       expected_amount_known = case_when(
-        !is.na(.data$current_penalty_amount) ~ .data$current_penalty_amount,
+        !is.na(.data$current_penalty_amount) & !.data$is_accelerated_declared ~ .data$current_penalty_amount,
         .data$is_cash_trade ~ .data$salary_amount,
         TRUE ~ mapply(
           derive_saladj_penalty_amount,
@@ -406,6 +416,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         is_suspended,
         is_jt,
         is_accelerated,
+        is_accelerated_declared,
         plus_raw,
         plus_amount
       ))
@@ -1604,6 +1615,35 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  declaration_test <- tibble(franchise = "NYG", declared_at = "Oct 21, 2026", body = "if still possible, please apply to sutton")
+  stopifnot(
+    row_has_acceleration_declaration("NYG", "Courtland Sutton", 24.97, 3, declaration_test, surname_unique = TRUE),
+    !row_has_acceleration_declaration("NYG", "Courtland Sutton", 24.97, 3, declaration_test, surname_unique = FALSE),
+    !row_has_acceleration_declaration("CLE", "Courtland Sutton", 24.97, 3, declaration_test, surname_unique = TRUE),
+    !acceleration_matches_player("Courtland Sutton", 24.97, 3, "apply to another player", surname_unique = TRUE)
+  )
+  if (arg_flag("self-test-live-accelerations")) {
+    response <- httr::GET("https://www46.myfantasyleague.com/2026/mb/topic_show.pl?bid=202660206&tid=6728505", httr::timeout(30))
+    httr::stop_for_status(response)
+    franchise_test <- tibble(franchise = "NYG", label_abbrev = "NYG", label_name = "NEW YORK GIANTS")
+    declaration_test <- parse_acceleration_posts(xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8")), franchise_test)
+    stopifnot(any(grepl("apply to sutton", declaration_test$body, fixed = TRUE)))
+    print(declaration_test)
+  }
+  expected_acc_test <- saladj_expected_by_franchise("data/SalAdjCurator_latest.csv", season = 2026L,
+                                                 accelerations = declaration_test, return_entries = TRUE)
+  sutton_test <- expected_acc_test |> filter(.data$franchise == "NYG", .data$player == "Courtland Sutton")
+  stopifnot(nrow(sutton_test) == 1L, sutton_test$is_accelerated_declared, sutton_test$is_accelerated,
+            sutton_test$amount == 29.96, sutton_test$expected_future_amount == 0)
+  sutton_sheet_test <- sutton_test |>
+    mutate(description = "C. Sutton", input_salary = 24.97, penalty_amount = 29.96,
+           future_penalty_amount = 0, entered_at = "10/20/2026")
+  stopifnot(nrow(audit_contract_admin_control_fields(sutton_test, sutton_sheet_test)) == 0L)
+  sutton_mfl_test <- tibble(actual_id = 1L, franchise = "NYG", amount = 29.96,
+                           description = "C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated",
+                           entered_at = "Oct 23, 2026 at 11:59:06 AM ET")
+  stopifnot(nrow(build_commissioner_error_report(sutton_test, sutton_mfl_test)) == 0L)
+  message("Sutton declaration regression passed: expected 2026 PEN $29.96; 2027 PEN $0.00; ACC checked.")
   control_pair <- tibble(
     issue = c("WRONG_CONTROL_FLAG", "WRONG_AMOUNT"),
     expected_franchise = "NYG", actual_franchise = "NYG",
