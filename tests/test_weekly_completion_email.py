@@ -280,6 +280,32 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertIn('Features: NFC 1 | AFC 2',lines)
         self.assertIn('Teams: NOS 1, TBB 1, MIA 1, HOU 1, IND 1, KCC 1',lines)
 
+    def test_homepage_timeout_is_retried_with_bounded_reads(self):
+        response=MagicMock()
+        response.__enter__.return_value.read.return_value=b'<img alt="ADL Game of the Week, Week 7: San Francisco 49ers at Philadelphia Eagles &mdash; Game">'
+        with patch.object(m.urllib.request,'urlopen',side_effect=[TimeoutError('slow MFL'),response]) as fetch, patch.object(m.time,'sleep'):
+            self.assertEqual(m.published_gotw('ADL',2026)['week'],7)
+        self.assertEqual(fetch.call_count,2)
+        self.assertTrue(all(call.kwargs['timeout']==15 for call in fetch.call_args_list))
+
+    def test_complete_archive_does_not_depend_on_homepage(self):
+        state={'gotw_history':copy.deepcopy(m.GOTW_SEED)}
+        for league in m.LEAGUES:
+            state['gotw_history'][league].append(dict(season=2026,week=7,team_a='San Francisco 49ers',team_b='Philadelphia Eagles'))
+        with patch.object(m,'published_gotw',side_effect=TimeoutError('MFL unavailable')) as fetch:
+            history=m.gotw_history(state,2026,7)
+        fetch.assert_not_called()
+        self.assertEqual(history['ADL'][-1]['week'],7)
+
+    def test_failed_history_fetch_preserves_known_rows_and_labels_gap(self):
+        state={'gotw_history':copy.deepcopy(m.GOTW_SEED)}
+        with patch.object(m,'published_gotw',side_effect=TimeoutError('MFL unavailable')):
+            history=m.gotw_history(state,2026,7)
+        self.assertEqual([r['week'] for r in history['ADL']],[4,5,6])
+        lines='\n'.join(m.gotw_history_lines('ADL',history['ADL'],7))
+        self.assertIn('Archive incomplete: MFL selection unverified for Week 7.',lines)
+        self.assertIn('verified selections only',lines)
+
     def test_history_is_deduplicated_by_league_and_week(self):
         state={'sent':{},'gotw_history':{'ADL':[dict(season=2026,week=6,team_a='Old',team_b='Value')]}}
         with patch.object(m,'published_gotw',side_effect=lambda league,season: None):

@@ -298,8 +298,15 @@ def published_gotw(league, season):
     league_id = LEAGUES[league][1]
     url = f'https://www46.myfantasyleague.com/{season}/home/{league_id}'
     req = urllib.request.Request(url, headers={'User-Agent': 'Analytics-Fantasy-Labs-GoTW-history'})
-    with urllib.request.urlopen(req, timeout=45) as response:
-        html = response.read().decode('utf-8', errors='replace')
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                html = response.read().decode('utf-8', errors='replace')
+            break
+        except (OSError, urllib.error.URLError):
+            if attempt == 1:
+                raise
+            time.sleep(1)
     match = re.search(
         rf'{league} Game of the Week, Week (\d+):\s*([^<"]+?)\s+(?:at|vs\.?)\s+(.+?)(?:\s+[\u2014-]|&mdash;|["<])',
         html, re.IGNORECASE)
@@ -314,24 +321,34 @@ def gotw_history(state, season, through_week):
     for league in LEAGUES:
         rows = list(stored.get(league, []))
         rows.extend(GOTW_SEED.get(league, []))
-        try:
-            current = published_gotw(league, season)
-            if current and current['week'] <= through_week:
-                rows.append(current)
-        except (OSError, urllib.error.URLError) as exc:
-            print(f'{league} Game of the Week: homepage history check unavailable: {exc}')
+        known = {int(r['week']) for r in rows if int(r['season']) == season}
+        first_week = min(int(r['week']) for r in GOTW_SEED[league])
+        # Completed selections are durable history, not a live homepage dependency.
+        if set(range(first_week, through_week + 1)) - known:
+            try:
+                current = published_gotw(league, season)
+                if current and current['week'] <= through_week:
+                    rows.append(current)
+            except (OSError, urllib.error.URLError) as exc:
+                print(f'{league} Game of the Week: homepage history check unavailable: {exc}')
         deduped = {(int(r['season']), int(r['week'])): r for r in rows
                    if int(r['season']) == season and int(r['week']) <= through_week}
         stored[league] = [deduped[key] for key in sorted(deduped)]
     return stored
 
 
-def gotw_history_lines(league, rows):
+def gotw_history_lines(league, rows, through_week=None):
     abbreviations = franchise_abbreviations()
     appearances = {}
     conference = {'NFC': 0, 'AFC': 0}
     season = rows[0]['season'] if rows else datetime.now(ET).year
     lines = [f'{season} {league} Game of the Week Archive', '---------------------------------------']
+    if through_week is not None:
+        first_week = min(int(r['week']) for r in GOTW_SEED[league])
+        missing = sorted(set(range(first_week, through_week + 1)) - {int(r['week']) for r in rows})
+        if missing:
+            lines += ['Archive incomplete: MFL selection unverified for ' + ', '.join(f'Week {w}' for w in missing) + '.',
+                      'Feature counts below include verified selections only.', '']
     for row in rows:
         a = abbreviations.get(row['team_a'], row['team_a'])
         b = abbreviations.get(row['team_b'], row['team_b'])
@@ -356,7 +373,7 @@ def gotw_message(season, target_week, candidates, history=None):
     for league in ('ADL', 'FAFL'):
         lines += [league, '---']
         if history is not None:
-            lines += gotw_history_lines(league, history.get(league, []))
+            lines += gotw_history_lines(league, history.get(league, []), target_week - 1)
         for rank, r in enumerate(candidates[league], 1):
             lines += [
                 f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f}) vs. '

@@ -104,6 +104,12 @@
         "week": 6,
         "team_a": "Miami Dolphins",
         "team_b": "Houston Texans"
+      },
+      {
+        "season": 2026,
+        "week": 7,
+        "team_a": "San Francisco 49ers",
+        "team_b": "Philadelphia Eagles"
       }
     ],
     "FAFL": [
