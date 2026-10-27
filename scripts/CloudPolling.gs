@@ -42,7 +42,7 @@ function cloudPollWindowParts_(day, clock, year, month) {
   const inSeason = year === CLOUD_SCHEDULER.season && month >= 9 ||
     year === CLOUD_SCHEDULER.season + 1 && month === 1;
   if (!inSeason) return '';
-  if (day === 1 && clock >= '23:30' || day === 2) return 'preliminary';
+  if (day === 1 && clock >= '23:15' || day === 2) return 'preliminary';
   if (day === 4 && clock >= '03:45') return 'corrections';
   return '';
 }

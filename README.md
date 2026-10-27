@@ -191,3 +191,11 @@ Additional GitHub Actions secrets needed for commissioner alert emails:
 - ADL_ALERT_DIGEST_EXTRA_EMAILS, optional
 - ADL_ALERT_NFC_CC, optional
 - ADL_ALERT_AFC_CC, optional
+# Weekly Readiness Polling
+
+The live Apps Script scheduler begins weekly readiness checks for both ADL and
+FAFL on Monday at 11:15 p.m. America/New_York, on a five-minute cadence, continuing
+into Tuesday until publication is verified. Both leagues' score_readiness.py
+time gates must match CloudPolling.gs. Readiness still depends on MFL data, not
+the clock; moving the polling start does not authorize an early cap snapshot.
+
