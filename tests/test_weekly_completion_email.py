@@ -318,6 +318,14 @@ class CompletionEmailTest(unittest.TestCase):
         fetch.assert_not_called()
         self.assertEqual(history['ADL'][-1]['week'],7)
 
+    def test_upcoming_published_selection_is_preserved_but_not_shown_as_history(self):
+        state={'gotw_history':copy.deepcopy(m.GOTW_SEED)}
+        state['gotw_history']['ADL'].append(dict(season=2026,week=8,team_a='Buffalo Bills',team_b='Miami Dolphins'))
+        with patch.object(m,'published_gotw',return_value=None):
+            history=m.gotw_history(state,2026,6)
+        self.assertEqual(history['ADL'][-1]['week'],6)
+        self.assertEqual(state['gotw_history']['ADL'][-1]['week'],8)
+
     def test_failed_history_fetch_preserves_known_rows_and_labels_gap(self):
         state={'gotw_history':copy.deepcopy(m.GOTW_SEED)}
         with patch.object(m,'published_gotw',side_effect=TimeoutError('MFL unavailable')):

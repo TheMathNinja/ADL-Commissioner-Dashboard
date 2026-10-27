@@ -325,6 +325,7 @@ def published_gotw(league, season):
 
 def gotw_history(state, season, through_week):
     stored = state.setdefault('gotw_history', {})
+    visible = {}
     for league in LEAGUES:
         rows = list(stored.get(league, []))
         rows.extend(GOTW_SEED.get(league, []))
@@ -339,9 +340,10 @@ def gotw_history(state, season, through_week):
             except (OSError, urllib.error.URLError) as exc:
                 print(f'{league} Game of the Week: homepage history check unavailable: {exc}')
         deduped = {(int(r['season']), int(r['week'])): r for r in rows
-                   if int(r['season']) == season and int(r['week']) <= through_week}
+                   if int(r['season']) == season}
         stored[league] = [deduped[key] for key in sorted(deduped)]
-    return stored
+        visible[league] = [row for row in stored[league] if int(row['week']) <= through_week]
+    return visible
 
 
 def gotw_history_lines(league, rows, through_week=None):
