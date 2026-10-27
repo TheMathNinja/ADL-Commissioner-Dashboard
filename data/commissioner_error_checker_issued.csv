@@ -284,3 +284,6 @@ SalAdj Curator controls -> Contract Admin formula|WRONG_CONTROL_FLAG|NYG|NYG|Cou
 WRONG_AMOUNT|NYG|NYG|Courtland Sutton|14.98|29.96,2026-10-24 05:21:00 EDT
 SalAdj Curator -> Contract Admin Sal Adj|WRONG_AMOUNT|CHI|CHI|Terry McLaurin|22.80|NA,2026-10-25 05:26:03 EDT
 SalAdj Curator -> Contract Admin Sal Adj|INCOMPLETE_CONTRACT_SALARY|CHI|CHI|Terry McLaurin|22.80|NA,2026-10-26 05:26:36 EDT
+SalAdj Curator -> Contract Admin Sal Adj|MISSING_ENTRY|KCC|NA|Cash Trade|-1.70|NA,2026-10-27 05:25:51 EDT
+SalAdj Curator -> Contract Admin Sal Adj|MISSING_ENTRY|KCC|NA|Kyle Dugger|7.08|NA,2026-10-27 05:25:51 EDT
+SalAdj Curator -> Contract Admin Sal Adj|MISSING_ENTRY|LVR|NA|Cash Trade|1.70|NA,2026-10-27 05:25:51 EDT

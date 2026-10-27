@@ -1,13 +1,18 @@
-The Commissioner Error Checker found an incomplete salary-adjustment entry.
+The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Error Type: Missing or unreadable contract salary in NFC Sal Adj tab (Contract Admin Sheet)
+Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)
+Expected Sal Adj tab entry: KCC | Cash Trade | Contract: $-1.70
+Original transaction/drop: Oct 21, 2026 at 1:22:02 PM ET
+Required: Add KCC's Cash Trade drop ($-1.70) to the AFC Sal Adj tab.
 
-Entry: CHI | T. McLaurin
-Contract salary: blank or unreadable; expected $22.80
-Expected contract: $22.80 / 2 yr / 2026 B/R
+Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)
+Expected Sal Adj tab entry: KCC | Kyle Dugger | Contract: $7.08 / 1 yr / 2024 UFA
+Original transaction/drop: Oct 22, 2026 at 2:55:57 PM ET
+Required: Add KCC's Kyle Dugger drop ($7.08 / 1 yr / 2024 UFA) to the AFC Sal Adj tab.
 
-Original transaction/drop: Oct 24, 2026 at 11:30:11 PM ET
-
-Required: Check the existing Terry McLaurin row and enter or correct its contract salary.
+Error Type: Missing entry in AFC Sal Adj tab (Contract Admin Sheet)
+Expected Sal Adj tab entry: LVR | Cash Trade | Contract: $1.70
+Original transaction/drop: Oct 21, 2026 at 1:22:02 PM ET
+Required: Add LVR's Cash Trade drop ($1.70) to the AFC Sal Adj tab.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
