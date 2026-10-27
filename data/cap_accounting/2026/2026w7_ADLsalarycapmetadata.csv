@@ -1,0 +1,2 @@
+season,week,snapshot_taken_at_utc,snapshot_taken_at_et,completed_at_utc,workflow_run_url
+2026,7,2026-10-27 04:07:27,2026-10-27 00:07:27 EDT,2026-10-27 04:07:32,https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/40447914881
