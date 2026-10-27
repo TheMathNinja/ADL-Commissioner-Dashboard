@@ -226,7 +226,10 @@ class CompletionEmailTest(unittest.TestCase):
             swing.append(dict(season='2026',through_week='4',target_week='5',
                 team_a_id=f'{a+1:04}',team_a=f'Team {a+1}',team_b_id=f'{b+1:04}',team_b=f'Team {b+1}',
                 team_a_playoff_if_win='70',team_a_playoff_if_loss='50',team_b_playoff_if_win='60',team_b_playoff_if_loss='50',
-                team_a_swing=str(20-game/2),team_b_swing='10',combined_swing=str(30-game/2)))
+                team_a_swing=str(20-game/2),team_b_swing='10',combined_swing=str(30-game/2),
+                team_a_seed_if_win='1.8',team_a_seed_if_loss='4.2',team_b_seed_if_win='3',team_b_seed_if_loss='4',
+                team_a_seed_swing='2.4',team_b_seed_swing='1',combined_seed_swing='3.4',
+                team_a_draft_if_win='12',team_a_draft_if_loss='10',team_b_draft_if_win='10',team_b_draft_if_loss='9',combined_draft_swing='3'))
         week,candidates=m.gotw_candidates('ADL',swing,elo,dict(franchise=franchises))
         self.assertEqual(week,5)
         self.assertEqual(candidates[0]['team_a'],'Team 1')
@@ -236,7 +239,22 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertIn('Week 5',subject)
         self.assertIn('Playoff Percentage Points Up For Grabs: 30.0 (#1 of 16)',body)
         self.assertIn('Team 1 (3-1-0 | #1 Elo: 1600) vs. Team 2 (3-1-0 | #2 Elo: 1599)',body)
-        self.assertIn('Matchup ranking weights: 50% playoff percentage-point swing, 30% average Elo, and 20% Elo closeness.',body)
+        self.assertIn('30% playoff percentage-point swing, 20% average seed swing, 30% average Elo, and 20% Elo closeness.',body)
+        self.assertIn('Combined Average Seed Swing: 3.40 positions',body)
+        self.assertIn('average seed 1.80 with win / 4.20 with loss (2.40-position swing)',body)
+        self.assertIn('Seed averages count missed playoffs as seed 8.',body)
+        expected=.3*(17-candidates[0]['impact_rank'])+.2*(17-candidates[0]['seed_rank'])+.2*(17-candidates[0]['draft_rank'])+.2*(17-candidates[0]['combined_rank'])+.1*(17-candidates[0]['difference_rank'])
+        self.assertAlmostEqual(candidates[0]['selection_score'],expected)
+        self.assertIn('Combined Projected Draft-Order Swing: 3.00 slots',body)
+        _,fafl=m.gotw_candidates('FAFL',swing,elo,dict(franchise=franchises))
+        self.assertNotIn('draft_rank',fafl[0])
+        self.assertAlmostEqual(fafl[0]['selection_score'],.3*(17-fafl[0]['impact_rank'])+.2*(17-fafl[0]['seed_rank'])+.3*(17-fafl[0]['combined_rank'])+.2*(17-fafl[0]['difference_rank']))
+        changed=copy.deepcopy(swing)
+        for row in changed:row['combined_swing']='30'
+        changed[-1]['combined_seed_swing']='6.5'
+        equal_elo=[dict(row,elo='1500') for row in elo]
+        _,reranked=m.gotw_candidates('ADL',changed,equal_elo,dict(franchise=franchises))
+        self.assertEqual(reranked[0]['team_a'],'Team 31')
         self.assertIn('Average Elo: 1600 (#1 of 16)',body)
         self.assertNotIn('Combined Elo:',body)
         self.assertNotIn('Blurb:',body)
@@ -259,7 +277,10 @@ class CompletionEmailTest(unittest.TestCase):
             swing.append(dict(season='2026',through_week='6',target_week='7',
                 team_a_id=f'{a+1:04}',team_a=f'Team {a+1}',team_b_id=f'{b+1:04}',team_b=f'Team {b+1}',
                 team_a_playoff_if_win='70',team_a_playoff_if_loss='50',team_b_playoff_if_win='60',team_b_playoff_if_loss='50',
-                team_a_swing='20',team_b_swing='10',combined_swing='30'))
+                team_a_swing='20',team_b_swing='10',combined_swing='30',
+                team_a_seed_if_win='2',team_a_seed_if_loss='3',team_b_seed_if_win='3',team_b_seed_if_loss='4',
+                team_a_seed_swing='1',team_b_seed_swing='1',combined_seed_swing='2',
+                team_a_draft_if_win='12',team_a_draft_if_loss='10',team_b_draft_if_win='10',team_b_draft_if_loss='9',combined_draft_swing='3'))
         week,candidates=m.gotw_candidates('ADL',swing,elo,dict(franchise=franchises),bonus)
         self.assertEqual(week,7)
         self.assertEqual(candidates[0]['a_record'],'4-3-0*')

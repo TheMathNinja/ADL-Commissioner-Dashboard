@@ -276,11 +276,18 @@ def gotw_candidates(league, swing, elo, standings, bonus_games=None):
     combined = [r['combined_elo'] for r in enriched]
     differences = [r['elo_difference'] for r in enriched]
     impacts = [float(r['combined_swing']) for r in enriched]
+    seed_impacts = [float(r['combined_seed_swing']) for r in enriched]
+    draft_impacts = [float(r['combined_draft_swing']) for r in enriched] if league == 'ADL' else []
     for row in enriched:
         row['combined_rank'] = competition_rank(combined, row['combined_elo'], reverse=True)
         row['difference_rank'] = competition_rank(differences, row['elo_difference'])
         row['impact_rank'] = competition_rank(impacts, row['combined_swing'], reverse=True)
-        row['selection_score'] = .5*(17-row['impact_rank']) + .3*(17-row['combined_rank']) + .2*(17-row['difference_rank'])
+        row['seed_rank'] = competition_rank(seed_impacts, row['combined_seed_swing'], reverse=True)
+        if league == 'ADL':
+            row['draft_rank'] = competition_rank(draft_impacts,row['combined_draft_swing'],reverse=True)
+            row['selection_score'] = .3*(17-row['impact_rank']) + .2*(17-row['seed_rank']) + .2*(17-row['draft_rank']) + .2*(17-row['combined_rank']) + .1*(17-row['difference_rank'])
+        else:
+            row['selection_score'] = .3*(17-row['impact_rank']) + .2*(17-row['seed_rank']) + .3*(17-row['combined_rank']) + .2*(17-row['difference_rank'])
     return target, sorted(enriched, key=lambda r:(-r['selection_score'], r['impact_rank'], r['difference_rank']))[:4]
 
 
@@ -367,7 +374,9 @@ def gotw_history_lines(league, rows, through_week=None):
 def gotw_message(season, target_week, candidates, history=None):
     subject = f'{season} Week {target_week}: ADL & FAFL Game of the Week suggestions'
     lines = [subject, '',
-             'Matchup ranking weights: 50% playoff percentage-point swing, 30% average Elo, and 20% Elo closeness.', '']
+             'ADL weights: 30% playoff percentage-point swing, 20% average seed swing, 20% projected draft-order swing, 20% average Elo, and 10% Elo closeness.',
+             'FAFL weights: 30% playoff percentage-point swing, 20% average seed swing, 30% average Elo, and 20% Elo closeness.',
+             'Seed averages count missed playoffs as seed 8.', '']
     if target_week in (4, 7, 10, 13):
         lines += [f'* Records include unofficial Q{(target_week - 1)//3} Bonus Game results.', '']
     for league in ('ADL', 'FAFL'):
@@ -381,10 +390,19 @@ def gotw_message(season, target_week, candidates, history=None):
                 f'Playoff Percentage Points Up For Grabs: {float(r["combined_swing"]):.1f} (#{r["impact_rank"]} of 16)',
                 f'{r["team_a"]}: {float(r["team_a_playoff_if_win"]):.1f}% with win / {float(r["team_a_playoff_if_loss"]):.1f}% with loss ({float(r["team_a_swing"]):.1f}-point swing)',
                 f'{r["team_b"]}: {float(r["team_b_playoff_if_win"]):.1f}% with win / {float(r["team_b_playoff_if_loss"]):.1f}% with loss ({float(r["team_b_swing"]):.1f}-point swing)',
+                f'Combined Average Seed Swing: {float(r["combined_seed_swing"]):.2f} positions (#{r["seed_rank"]} of 16)',
+                f'{r["team_a"]}: average seed {float(r["team_a_seed_if_win"]):.2f} with win / {float(r["team_a_seed_if_loss"]):.2f} with loss ({float(r["team_a_seed_swing"]):.2f}-position swing)',
+                f'{r["team_b"]}: average seed {float(r["team_b_seed_if_win"]):.2f} with win / {float(r["team_b_seed_if_loss"]):.2f} with loss ({float(r["team_b_seed_swing"]):.2f}-position swing)',
                 f'Average Elo: {r["combined_elo"]/2:.0f} (#{r["combined_rank"]} of 16); Elo Difference: {r["elo_difference"]:.1f} (#{r["difference_rank"]} closest of 16)',
-                f'Rationale: A high-leverage Week {target_week} matchup pairing playoff impact with proven team strength and competitiveness.',
                 ''
             ]
+            if league == 'ADL':
+                lines[-1:-1] = [
+                    f'Combined Projected Draft-Order Swing: {float(r["combined_draft_swing"]):.2f} slots (#{r["draft_rank"]} of 16)',
+                    f'{r["team_a"]}: projected draft slot {float(r["team_a_draft_if_win"]):.2f} with win / {float(r["team_a_draft_if_loss"]):.2f} with loss',
+                    f'{r["team_b"]}: projected draft slot {float(r["team_b_draft_if_win"]):.2f} with win / {float(r["team_b_draft_if_loss"]):.2f} with loss']
+        if league == 'ADL':
+            lines += ['ADL draft slots are conference-specific projections: non-playoff teams by potential points; playoff-team order is provisional until postseason results. Pick ownership is not included.', '']
     return subject, '\n'.join(lines)
 
 
