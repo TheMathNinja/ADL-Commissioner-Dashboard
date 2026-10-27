@@ -75,6 +75,10 @@
     "preliminary:FAFL-40446802531": {
       "sent_at": "2026-10-27T04:07:04.012735+00:00",
       "subject": "FAFL 2026 Week 7: Weekly publication package complete"
+    },
+    "gotw:2026:8": {
+      "sent_at": "2026-10-27T07:23:18.017553+00:00",
+      "subject": "2026 Week 8: ADL & FAFL Game of the Week suggestions"
     }
   },
   "gotw_history": {
@@ -116,6 +120,12 @@
         "week": 6,
         "team_a": "Jacksonville Jaguars",
         "team_b": "Denver Broncos"
+      },
+      {
+        "season": 2026,
+        "week": 7,
+        "team_a": "Philadelphia Eagles",
+        "team_b": "New Orleans Saints"
       }
     ]
   }
