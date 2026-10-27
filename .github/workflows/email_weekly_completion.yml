@@ -42,6 +42,7 @@ jobs:
       - name: Test report gating and recipient isolation
         run: |
           python3 -m unittest discover -s tests -p test_weekly_completion_email.py -v
+          python3 -m unittest discover -s tests -p test_gotw_blurbs.py -v
           python3 -m unittest discover -s tests -p test_bonus_receipt.py -v
       - name: Verify live publication and email the owner
         env:

@@ -21,6 +21,7 @@ import urllib.request
 
 from verify_bonus_receipt import validate_bonus_receipt
 from weekly_email_support import ET, mfl, priced_rank, snapshot
+from gotw_blurbs import fetch_context, make_blurb
 
 LEAGUES = {
     'ADL': ('TheMathNinja/ADL-GM-Dashboard', '60206', 'refresh_extension_calculator.yml'),
@@ -389,6 +390,7 @@ def gotw_message(season, target_week, candidates, history=None):
             lines += [
                 f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f}) vs. '
                 f'{r["team_b"]} ({r["b_record"]} | #{r["b_elo_rank"]} Elo: {r["b_elo"]:.0f})',
+                'Blurb: ' + (r.get('blurb') or make_blurb(league, r)['text']),
                 f'Playoff Percentage Points Up For Grabs: {float(r["combined_swing"]):.1f} (#{r["impact_rank"]} of 16)',
                 f'{r["team_a"]}: {float(r["team_a_playoff_if_win"]):.1f}% with win / {float(r["team_a_playoff_if_loss"]):.1f}% with loss ({float(r["team_a_swing"]):.1f}-point swing)',
                 f'{r["team_b"]}: {float(r["team_b_playoff_if_win"]):.1f}% with win / {float(r["team_b_playoff_if_loss"]):.1f}% with loss ({float(r["team_b_swing"]):.1f}-point swing)',
@@ -410,7 +412,7 @@ def gotw_message(season, target_week, candidates, history=None):
 
 def maybe_send_gotw(state, dry_run=False, force=False):
     started = time.perf_counter()
-    candidates = {}; season = target = None; inputs = {}
+    candidates = {}; season = target = None; inputs = {}; standings_inputs = {}
     for league, (repo, league_id, _) in LEAGUES.items():
         swing = csv_document(repo, 'data/playoff_swing.csv')
         through = int(swing[0]['through_week']) if swing else -1
@@ -442,6 +444,7 @@ def maybe_send_gotw(state, dry_run=False, force=False):
         swing, elo, bonus_games = inputs[league]
         league_season = int(swing[0]['season']); through = int(swing[0]['through_week'])
         standings = mfl('leagueStandings', league_season, league_id, through)
+        standings_inputs[league] = standings
         league_target, candidates[league] = gotw_candidates(league, swing, elo, standings, bonus_games)
         if season is None: season, target = league_season, league_target
         elif (season, target) != (league_season, league_target):
@@ -449,6 +452,15 @@ def maybe_send_gotw(state, dry_run=False, force=False):
     key = f'gotw:{season}:{target}'
     if key in state['sent'] and not force:
         print('Game of the Week: suggestions already sent'); return False
+    for league, (_, league_id, _) in LEAGUES.items():
+        context = fetch_context(season, league_id)
+        context['standings'] = standings_inputs[league]
+        used_kinds = []
+        for candidate in candidates[league]:
+            story = make_blurb(league, candidate, context, used_kinds)
+            used_kinds.append(story['kind'])
+            candidate['blurb'] = story['text']
+            print(f'{league} GoTW blurb evidence: ' + json.dumps(story, sort_keys=True))
     prepared = time.perf_counter()
     history = gotw_history(state, season, target - 1)
     subject, body = gotw_message(season, target, candidates, history)
