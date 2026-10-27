@@ -110,6 +110,15 @@
         "week": 7,
         "team_a": "San Francisco 49ers",
         "team_b": "Philadelphia Eagles"
+      },
+      {
+        "season": 2026,
+        "week": 8,
+        "team_a": "Buffalo Bills",
+        "team_b": "Miami Dolphins",
+        "blurb": "Buffalo seeks Week 1 vengeance in the ADL's most heavyweight divisional battle",
+        "banner_drive_id": "1TTpUTkyoT2X-QQt9wfIiXkYfOBBl1XhO",
+        "publication_verified": true
       }
     ],
     "FAFL": [
@@ -136,6 +145,15 @@
         "week": 7,
         "team_a": "Philadelphia Eagles",
         "team_b": "New Orleans Saints"
+      },
+      {
+        "season": 2026,
+        "week": 8,
+        "team_a": "Seattle Seahawks",
+        "team_b": "Arizona Cardinals",
+        "blurb": "The NFC West is up for grabs and these two are fighting for their playoff lives",
+        "banner_drive_id": "1TexU-5-GuW4D6DHzco6KLLhCFF1bOmAZ",
+        "publication_verified": true
       }
     ]
   }
