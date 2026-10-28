@@ -1,7 +1,7 @@
 # run_saladjcurator.R
 # -------------------
 # Runs the SalAdjCurator automation and writes dashboard outputs.
-# A dated archive CSV is created only when the actionable output changes.
+# Publish changed output and a dated archive for each scheduled daily digest run.
 
 library(readr)
 library(tibble)
@@ -10,6 +10,8 @@ source("R/config_helpers.R")
 source("R/saladj_engine.R")
 source("R/commissioner_alerts.R")
 source("R/saladj_email.R")
+source("R/saladj_contract_admin.R")
+source("R/saladj_notification_policy.R")
 
 current_season <- get_current_season()
 
@@ -104,6 +106,13 @@ saladj_email_subject <- function() {
 }
 
 send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_audit = list(), season = get_current_season(), all_rows = new_rows) {
+  candidate_count <- nrow(new_rows)
+  if (nrow(new_rows)) {
+    sheet_entries <- contract_admin_saladj_entries(season)
+    status <- saladj_contract_admin_status(new_rows, sheet_entries, season)
+    message(sum(status != "missing"), " new Curator row(s) already recorded in Contract Admin; omitted from entry digest.")
+    new_rows <- new_rows[status == "missing", , drop = FALSE]
+  }
   touched_cash_franchises <- new_rows |>
     dplyr::filter(toupper(trimws(as.character(.data$PLAYER))) == "CASH TRADE") |>
     dplyr::pull(.data$FRAN) |>
@@ -121,7 +130,7 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_
   outbox_path <- write_commissioner_alert_outbox(body, season = season, name = "email_outbox_saladj_digest")
 
   if (!nrow(new_rows)) {
-    return(tibble::tibble(sent = FALSE, reason = "no_new_rows", outbox_path = outbox_path, recipients = ""))
+    return(tibble::tibble(sent = FALSE, reason = if (candidate_count) "already_recorded_in_contract_admin" else "no_new_rows", outbox_path = outbox_path, recipients = ""))
   }
 
   recipients <- resolve_commissioner_alert_recipients(season = season)
@@ -240,7 +249,9 @@ saladj_rows <- build_saladj_curator(
 output_changed <- !same_df_output(saladj_rows, prior_latest_df)
 email_rows <- new_saladj_rows(saladj_rows, prior_emailed_df)
 archive_missing <- is.na(prior_archive_file) || !file.exists(prior_archive_file)
-should_publish_archive <- output_changed || !file.exists(latest_csv) || archive_missing
+send_email <- tolower(Sys.getenv("ADL_SALADJ_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")
+should_publish_archive <- output_changed || !file.exists(latest_csv) || archive_missing ||
+  (send_email && !file.exists(archive_file))
 
 if (should_publish_archive) {
   readr::write_csv(saladj_rows, latest_csv, na = "")
@@ -280,8 +291,7 @@ run_meta <- tibble::tibble(
 
 readr::write_csv(run_meta, metadata_file)
 
-send_email <- tolower(Sys.getenv("ADL_SALADJ_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")
-if (send_email && should_publish_archive) {
+if (send_email) {
   email_prepared_at <- Sys.time()
   run_audit$completed_display <- format_run_time(email_prepared_at)
   if (!is.na(workflow_started_at)) {
@@ -299,10 +309,11 @@ if (send_email && should_publish_archive) {
   readr::write_csv(email_status, file.path("data", "saladj_email_status.csv"), na = "")
   message("SalAdj email status: ", email_status$reason[[1]])
   message("SalAdj email outbox: ", email_status$outbox_path[[1]])
-  if (!isTRUE(email_status$sent[[1]]) && !identical(email_status$reason[[1]], "no_new_rows")) {
+  quiet_success <- email_status$reason[[1]] %in% c("no_new_rows", "already_recorded_in_contract_admin")
+  if (!isTRUE(email_status$sent[[1]]) && !quiet_success) {
     stop("SalAdj email was requested but not sent: ", email_status$reason[[1]], call. = FALSE)
   }
-  if (isTRUE(email_status$sent[[1]]) || identical(email_status$reason[[1]], "no_new_rows")) {
+  if (isTRUE(email_status$sent[[1]]) || quiet_success) {
     readr::write_csv(saladj_rows, last_emailed_csv, na = "")
   }
 }

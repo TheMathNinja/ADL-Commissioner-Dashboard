@@ -159,6 +159,13 @@ jobs:
         if: steps.localtime.outputs.should_run == 'true'
         uses: ./.github/actions/setup-adl-r
 
+      - name: Verify salary-adjustment notification rules before live processing
+        if: steps.localtime.outputs.should_run == 'true'
+        run: |
+          Rscript scripts/test_saladj_notification_policy.R
+          Rscript scripts/test_saladj_email.R
+          Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching
+
       - name: Run SalAdjCurator script
         if: steps.localtime.outputs.should_run == 'true'
         env:
