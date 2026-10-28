@@ -5,6 +5,8 @@ library(tibble)
 source("R/config_helpers.R")
 source("R/commissioner_alerts.R")
 source("R/saladj_email.R")
+source("R/saladj_contract_admin.R")
+source("R/saladj_notification_policy.R")
 
 arg_value <- function(name, default = "") {
   prefix <- paste0("--", name, "=")
@@ -49,7 +51,14 @@ if (length(missing_cols)) {
 }
 
 new_rows <- anti_join(current, prior[, identity_cols, drop = FALSE], by = identity_cols)
-if (!nrow(new_rows)) stop("No new SalAdj rows were found for this archive.", call. = FALSE)
+if (nrow(new_rows)) {
+  entry_status <- saladj_contract_admin_status(new_rows, contract_admin_saladj_entries(get_current_season()))
+  new_rows <- new_rows[entry_status == "missing", , drop = FALSE]
+}
+if (!nrow(new_rows)) {
+  message("No unrecorded new SalAdj rows remain for this archive; no email sent.")
+  quit(save = "no", status = 0L)
+}
 
 metadata_path <- sub("\\.csv$", "_metadata.csv", archive_path)
 published_display <- format(report_date, "%m/%d/%Y")

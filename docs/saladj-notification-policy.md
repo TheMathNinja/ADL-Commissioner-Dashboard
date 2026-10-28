@@ -27,6 +27,10 @@ Archive publication and email eligibility are separate: a push can publish data
 without consuming the next daily digest, and a failed email can retry even when
 the CSV is unchanged.
 
+Manual SalAdj resends also recheck Contract Admin before mailing; an archive with
+no remaining unrecorded new entries sends nothing. Explicit frozen checker
+report copies remain historical reports, not fresh scheduled alerts.
+
 Run `Rscript scripts/test_saladj_notification_policy.R`,
 `Rscript scripts/test_saladj_email.R`, and
 `Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching` before

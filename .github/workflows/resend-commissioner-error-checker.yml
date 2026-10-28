@@ -57,7 +57,8 @@ jobs:
           if [ ! -f data/commissioner_alerts/email_outbox_commissioner_error_checker.txt ]; then
             mkdir -p data/commissioner_alerts
             printf '%s\n' \
-              'The Commissioner Error Checker found no current salary-adjustment discrepancies.' \
+              'The Commissioner Error Checker found no entry errors eligible for email at this time.' \
+              'Missing Contract Admin entries are handled by the SalAdj digest; pending MFL reminders are reserved for Monday morning.' \
               '' \
               'This was a fresh live check of SalAdj Curator, Contract Admin, MFL salary adjustments, and official Cap Rollover records.' \
               > data/commissioner_alerts/email_outbox_commissioner_error_checker.txt
