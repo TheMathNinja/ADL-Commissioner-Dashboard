@@ -1,1 +1,19 @@
-No new SalAdj rows were found.
+SalAdj scraper scheduled: 10/28/2026 5:17 a.m. EDT
+Run type: Scheduled daily refresh
+Run started: 10/28/2026 5:24 a.m. EDT
+Run completed / email prepared: 10/28/2026 5:25 a.m. EDT (runtime: 0m 57s)
+
+SalAdj Curator published 3 new row(s) at 10/28/2026 5:25 a.m. EDT.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_10_28_ADLSalAdjCurator.csv
+
+Please enter the following new salary adjustments in the Contract Admin sheet.
+
+NFC
+---
+- Dropped 10/27/2026 10:26:49 ET by NYG | Jaylen Wright MIA RB: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 29, 2026; SALARY FROM TRADE SOURCE SNAPSHOT: DAL -> NYG
+- Dropped 10/27/2026 10:27:04 ET by NYG | Robert Spillane NEP LB: $3.24 / 3 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 29, 2026; SALARY FROM TRADE SOURCE SNAPSHOT: DAL -> NYG
+- Dropped 10/27/2026 15:33:32 ET by PHI | Will McDonald NYJ DE: $3.70 / 1 yr / 2023 3.18^
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Oct 29, 2026
+
