@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,8,2026-10-29 09:24:21 UTC,Roster Cap Violation,violation,AFC,HOU,Houston Texans,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,8,2026-10-29 09:24:21 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,48 non-suspended/non-holdout Active + Taxi players,3 above maximum (44 Active + 4 Taxi),,1
+2026,8,2026-10-29 09:24:21 UTC,Roster Cap Violation,violation,NFC,SFO,San Francisco 49ers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,8,2026-10-29 09:24:21 UTC,Roster Cap Violation,violation,NFC,TBB,Tampa Bay Buccaneers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,47 non-suspended/non-holdout Active + Taxi players,2 above maximum (45 Active + 2 Taxi),,1
