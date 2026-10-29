@@ -177,7 +177,13 @@ def published(league, receipt):
     run_id = str(receipt['run_id'])
     api = f'https://api.github.com/repos/{repo}'
     run = get_json(f'{api}/actions/runs/{run_id}')
-    if not run or run['status'] != 'completed' or run['conclusion'] != 'success':
+    if not run:
+        return None
+    # Independent live-watch/personal-tool jobs are outside this report's scope.
+    # Require the authoritative publisher, not the aggregate workflow conclusion.
+    jobs = get_json(f'{api}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
+    publishers = [j for j in jobs if j.get('name') == 'refresh']
+    if len(publishers) != 1 or publishers[0]['status'] != 'completed' or publishers[0]['conclusion'] != 'success':
         return None
     site = f'https://themathninja.github.io/{repo.split("/")[1]}/'
     marker = get_json(site + 'weekly-refresh-status.json?run=' + run_id)
@@ -201,11 +207,8 @@ def published(league, receipt):
                     receipt['season'], league_id, receipt['week'])
     if not processed or processed['digest'] != live['digest']:
         return None
-    jobs = get_json(f'{api}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
-    if not jobs or any(j['status'] != 'completed' or j['conclusion'] not in ('success', 'skipped') for j in jobs):
-        return None
-    started = min(j['started_at'] for j in jobs if j.get('started_at'))
-    finished = max(j['completed_at'] for j in jobs if j.get('completed_at'))
+    started = publishers[0]['started_at']
+    finished = publishers[0]['completed_at']
     return dict(league=league, receipt=receipt, started=started, finished=finished,
                 created=run['created_at'], url=run['html_url'], site=site,
                 verified=datetime.now(timezone.utc).isoformat(),

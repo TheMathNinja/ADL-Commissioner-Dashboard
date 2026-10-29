@@ -24,14 +24,15 @@ class CompletionEmailTest(unittest.TestCase):
         self.payout = dict(status='success', run_id='123', through_week=3, season=2026, league='ADL', logos=dict(status='success',run_id='123'))
         self.run = dict(status='completed', conclusion='success', created_at='2026-09-29T04:30:06Z', html_url='https://github.com/example/run/123')
         self.marker = dict(run_id='123', season=2026, week=3)
-        self.job = dict(status='completed', conclusion='success', started_at='2026-09-29T04:31:00Z', completed_at='2026-09-29T04:40:00Z')
+        self.job = dict(name='refresh', status='completed', conclusion='success', started_at='2026-09-29T04:31:00Z', completed_at='2026-09-29T04:40:00Z')
+        self.other_jobs = []
         self.feed = dict(week='3', playerScore=[dict(id='1', score='4')])
         self.baseline = dict(season=2026, league_id='60206', weeks={'3': m.snapshot(self.feed, 2026, '60206', 3)})
 
     def verify(self, active=False):
         def api(url):
             if '/workflows/' in url: return {'workflow_runs': [dict(status='in_progress')] if active else []}
-            if '/jobs?' in url: return {'jobs': [self.job]}
+            if '/jobs?' in url: return {'jobs': [self.job] + self.other_jobs}
             if 'weekly-refresh-status' in url: return self.marker
             return self.run
         with patch.object(m, 'get_json', side_effect=api), patch.object(m, 'document', side_effect=lambda repo, path: self.payout if path.endswith('payouts_sync_metadata.json') else self.bonus if path.endswith('bonus_mfl_sync_metadata.json') else self.baseline), patch.object(m, 'mfl', return_value=self.feed):
@@ -78,8 +79,25 @@ class CompletionEmailTest(unittest.TestCase):
 
     def test_unrelated_running_workflow_does_not_hold_completed_run(self):
         self.assertIsNotNone(self.verify(active=True))
-        self.run['conclusion'] = 'failure'
+        self.job['conclusion'] = 'failure'
         self.assertIsNone(self.verify())
+
+    def test_independent_rollover_failure_does_not_hide_verified_publication(self):
+        self.run['conclusion'] = 'failure'
+        self.other_jobs = [dict(name='Roll Live Bonus Game Watch to the upcoming week / watch',
+                               status='completed', conclusion='failure')]
+        self.assertEqual(self.verify()['finished'], self.job['completed_at'])
+        self.run.update(status='in_progress', conclusion=None)
+        self.other_jobs[0].update(status='in_progress', conclusion=None)
+        self.assertIsNotNone(self.verify())
+
+    def test_missing_skipped_or_unfinished_publication_never_sends(self):
+        for change in [dict(name='other'), dict(status='in_progress'), dict(conclusion='skipped'), dict(conclusion='cancelled')]:
+            with self.subTest(change=change):
+                original = dict(self.job)
+                self.job.update(change)
+                self.assertIsNone(self.verify())
+                self.job = original
 
     def test_old_or_missing_deployment_holds(self):
         self.marker['run_id'] = '122'
