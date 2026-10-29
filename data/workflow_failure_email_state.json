@@ -220,6 +220,11 @@
       "sent_at": "2026-10-29T08:05:27.208351+00:00",
       "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL correction update \u00b7 Week 7 \u00b7",
       "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 7 \u00b7 04d7caec6b7ca784c606557dfdeeb0f34e35c38939b96c5c12f24d755af34309"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:40837945778:1": {
+      "sent_at": "2026-10-29T08:05:49.512398+00:00",
+      "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL correction update \u00b7 Week 7 \u00b7",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 7 \u00b7 04d7caec6b7ca784c606557dfdeeb0f34e35c38939b96c5c12f24d755af34309"
     }
   },
   "checked": {
