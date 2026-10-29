@@ -277,9 +277,11 @@ def main() -> int:
 
         chi_sync = (adl / ".github/workflows/sync_chi_team_tools.yml").read_text(encoding="utf-8")
         if "Check whether forecast inputs changed" not in chi_sync or chi_sync.count(
-            "steps.forecast.outputs.changed == 'true' && steps.forecast-cache.outputs.cache-hit != 'true'"
+            "steps.forecast.outputs.changed == 'true'"
         ) < 2:
             errors.append("CHI sync must skip scientific dependency setup when forecast inputs are unchanged")
+        if 'forecast-cache.outputs.cache-hit' in chi_sync:
+            errors.append('CHI model publication must not be vetoed by a local cache after the live Site requires an update')
 
     if errors:
         print("Automation contract audit failed:")

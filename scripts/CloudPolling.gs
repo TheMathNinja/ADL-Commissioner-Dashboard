@@ -94,12 +94,10 @@ function localJobMatchesParts_(job, year, month, day, hour, minute) {
 }
 
 function localJobMatchesDate_(job, date) {
-  return localJobMatchesParts_(job,
-    Number(Utilities.formatDate(date, job.timezone, 'yyyy')),
-    Number(Utilities.formatDate(date, job.timezone, 'M')),
-    Number(Utilities.formatDate(date, job.timezone, 'd')),
-    Number(Utilities.formatDate(date, job.timezone, 'H')),
-    Number(Utilities.formatDate(date, job.timezone, 'm')));
+  const cache = localJobMatchesDate_.cache || (localJobMatchesDate_.cache = Object.create(null));
+  const key = job.timezone + '/' + date.getTime();
+  const parts = cache[key] || (cache[key] = Utilities.formatDate(date, job.timezone, 'yyyy,M,d,H,m').split(',').map(Number));
+  return localJobMatchesParts_(job, parts[0], parts[1], parts[2], parts[3], parts[4]);
 }
 
 function cloudTargetWeekParts_(season, year, month, day) {
@@ -253,11 +251,53 @@ function cloudRefreshReceiptMatches_(receipt, job, process, week) {
 function cloudRefreshComplete_(job, process, week, token, props) {
   if (!week) return false;
   const key = 'CLOUD_REFRESH_COMPLETE_' + process + '_' + job.repo.replace(/[^A-Za-z0-9_]/g, '_') + '_' + week;
-  if (props.getProperty(key) === 'true') return true;
+  if (process !== 'corrections' && props.getProperty(key) === 'true') return true;
   const receipt = cloudRepoJson_(job.repo, 'data/refresh_receipts/' + process + '.json', token);
-  const complete = cloudRefreshReceiptMatches_(receipt, job, process, week);
+  let complete = cloudRefreshReceiptMatches_(receipt, job, process, week);
+  if (complete && process === 'corrections') {
+    const baseline = cloudRepoJson_(job.repo, 'data/processed_player_scores.json', token);
+    const expected = baseline && baseline.season === CLOUD_SCHEDULER.season &&
+      String(baseline.league_id) === job.leagueId && baseline.weeks && baseline.weeks[String(week)];
+    try { complete = !!expected && expected.digest === cloudPlayerScoreDigest_(job, week); }
+    catch (error) {
+      console.warn('Direct MFL freshness probe unavailable; the independent GitHub correction checker will verify scores: ' + error.message);
+      complete = false;
+    }
+  }
   if (complete) props.setProperty(key, 'true');
   return complete;
+}
+
+function cloudPlayerScoreDigest_(job, week) {
+  const response = UrlFetchApp.fetch('https://api.myfantasyleague.com/' + CLOUD_SCHEDULER.season +
+    '/export?TYPE=playerScores&L=' + job.leagueId + '&W=' + week + '&JSON=1', {muteHttpExceptions:true});
+  if (response.getResponseCode() !== 200) throw new Error('MFL correction freshness check returned HTTP ' + response.getResponseCode());
+  const feed = JSON.parse(response.getContentText()).playerScores;
+  if (Number(feed && feed.week) !== week) throw new Error('MFL correction freshness check returned the wrong week');
+  const rows = Array.isArray(feed.playerScore) ? feed.playerScore : [feed.playerScore];
+  const scores = Object.create(null);
+  rows.forEach(function(row) {
+    if (!row || !row.id || row.score === '' || row.score == null || !Number.isFinite(Number(row.score)) || scores[String(row.id)] !== undefined) throw new Error('Invalid or duplicate MFL player score');
+    scores[String(row.id)] = String(Number(row.score));
+  });
+  if (!Object.keys(scores).length) throw new Error('MFL player-score feed is empty');
+  const canonical = '{' + Object.keys(scores).sort().map(function(id) { return JSON.stringify(id) + ':' + JSON.stringify(scores[id]); }).join(',') + '}';
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, canonical, Utilities.Charset.UTF_8)
+    .map(function(value) { return ('0' + ((value + 256) % 256).toString(16)).slice(-2); }).join('');
+}
+
+function auditCloudSchedulerReadOnly() {
+  const start = Date.now(), now = new Date(), props = PropertiesService.getScriptProperties();
+  const token = props.getProperty(CLOUD_SCHEDULER.tokenProperty);
+  if (!token) throw new Error('Scheduler token is not configured');
+  const readOnlyProps = {getProperty:function(key) { return props.getProperty(key); }, setProperty:function() {}};
+  localJobMatchesDate_.cache = Object.create(null);
+  const week = cloudTargetWeek_(now);
+  const checks = CLOUD_SCHEDULER.polling.corrections.map(function(job) {
+    return {repo:job.repo, week:week, current:cloudRefreshComplete_(job, 'corrections', week, token, readOnlyProps)};
+  });
+  CLOUD_SCHEDULER.localJobs.forEach(function(job) { latestDueMinute_(job, now, null, localJobMatchesDate_); });
+  console.log(JSON.stringify({event:'read_only_scheduler_audit', checks:checks, timezoneConversions:Object.keys(localJobMatchesDate_.cache).length, elapsedMs:Date.now()-start}));
 }
 
 function cloudAlert_(key, message) {
@@ -296,11 +336,22 @@ function dispatchOnce_(job, token, slot, props, overrideInputs) {
 }
 
 function runCloudLeagueScheduler() {
+  localJobMatchesDate_.cache = Object.create(null);
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) return;
+  const props = PropertiesService.getScriptProperties();
+  const leaseKey = 'CLOUD_SCHEDULER_EXECUTION_LEASE';
+  const owner = String(Date.now()) + '/' + String(Math.random());
+  try {
+    let lease;
+    try { lease = JSON.parse(props.getProperty(leaseKey) || '{}'); } catch (error) { lease = {}; }
+    if (Number(lease.until) > Date.now()) return;
+    props.setProperty(leaseKey, JSON.stringify({owner:owner, until:Date.now()+8*60000}));
+  } finally {
+    lock.releaseLock();
+  }
   try {
     const now = new Date();
-    const props = PropertiesService.getScriptProperties();
     const token = props.getProperty(CLOUD_SCHEDULER.tokenProperty);
     if (!token) {
       cloudAlert_('credential', 'Missing Apps Script property ' + CLOUD_SCHEDULER.tokenProperty + '.');
@@ -340,7 +391,8 @@ function runCloudLeagueScheduler() {
     props.setProperty('CLOUD_SCHEDULER_LAST_RUN', String(now.getTime()));
     if (failures.length) throw new Error(failures.join('\n'));
   } finally {
-    lock.releaseLock();
+    const lease = JSON.parse(props.getProperty(leaseKey) || '{}');
+    if (lease.owner === owner) props.deleteProperty(leaseKey);
   }
 }
 
