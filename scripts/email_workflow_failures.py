@@ -20,7 +20,7 @@ IMPACT = {
     'refresh.yml': 'FAFL Elo, Bonus Games/MFL entries, Playoffs, or Payouts may be incomplete. See the failed components below.',
     'poll_preliminary_scores.yml': 'The preliminary-score readiness check failed; the weekly refresh may not have been triggered.',
     'verify_bonus_mfl.yml': 'Due MFL Bonus Games did not pass full standings readback; completion email remains withheld.',
-    'poll_score_corrections.yml': 'The correction check failed; corrected scores and due MFL Bonus Games may not have been processed.',
+    'poll_score_corrections.yml': 'The correction freshness check failed. This does not establish that an earlier Thursday publication failed or was undone; this run could not check for newer changes.',
     'refresh_rosters.yml': 'Published roster-dependent tools may be stale.',
     'deploy_dashboard.yml': 'The latest dashboard changes may not be live.',
     'rebuild_playoff_model.yml': 'The requested live playoff model rebuild/publication did not complete.',
@@ -127,11 +127,32 @@ def cancelled_without_runner_after_same_day_success(run, job_list, history):
     )
 
 
-def message(repo, run, impact, failed, later_success):
+def correction_publication(repo, run):
+    if PurePosixPath(run.get('path','').split('@')[0]).name != 'poll_score_corrections.yml':return None
+    local=datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
+    season=local.year-1 if local.month==1 else local.year
+    september=local.date().replace(year=season,month=9,day=1)
+    first_monday=september+timedelta(days=(-september.weekday())%7+7)
+    week=(local.date()-first_monday).days//7+1
+    receipt=mail.document(repo,'data/refresh_receipts/corrections.json') or {}
+    league='60206' if repo.endswith('/ADL-GM-Dashboard') else '22686'
+    if not (receipt.get('season')==season and receipt.get('week')==week and str(receipt.get('league_id'))==league and receipt.get('process')=='corrections' and receipt.get('status')=='success' and receipt.get('bonus_mfl_verified') is True and receipt.get('payouts_verified') is True and receipt.get('completed_at') and receipt.get('run_id')):return None
+    publication_jobs=api(repo,f'actions/runs/{receipt["run_id"]}/jobs?per_page=100')['jobs']
+    if not any(job.get('name')=='refresh' and job.get('conclusion')=='success' for job in publication_jobs):return None
+    return receipt
+
+
+def message(repo, run, impact, failed, later_success, publication=None):
     title = re.sub(r'\b[a-f0-9]{40,64}\b', '', run.get('display_title') or run['name']).strip()
     status = 'CANCELLED' if run.get('conclusion') == 'cancelled' else 'FAILED'
     subject = f'[League automation {status}] {repo.split("/")[-1]} — {title}'
-    lines = [subject, '', 'Impact: ' + impact, '', 'Failed steps:']
+    if publication:
+        impact=f'Week {publication["week"]} Thursday publication already completed successfully. Only the follow-up freshness check failed; it could not verify whether any newer changes were available.'
+    lines = [subject, '', 'Impact: ' + impact]
+    if publication:
+        lines += ['', 'Verified Thursday publication: ' + mail.local_time(publication['completed_at']),
+                  'Publication run: https://github.com/' + repo + '/actions/runs/' + str(publication['run_id'])]
+    lines += ['', 'Failed steps:']
     lines += ['- ' + item for item in failed]
     lines += ['', 'Run: ' + run['html_url'], 'Attempt: ' + str(run.get('run_attempt', 1)),
               'Started (UTC): ' + run.get('run_started_at', run['created_at']),
@@ -139,6 +160,9 @@ def message(repo, run, impact, failed, later_success):
     if later_success:
         lines += ['Catch-up notice: a later run of this workflow has succeeded.',
                   'Later successful run: ' + later_success['html_url']]
+    elif publication:
+        lines += ['No later successful freshness check was found at report time.',
+                  'The completed Thursday publication remains recorded; follow-up freshness verification is pending.']
     else:
         lines += ['No later successful run of this workflow was found at report time.',
                   'A later retry may recover it; this email does not claim recovery.']
@@ -222,7 +246,9 @@ def main():
                 if incident_already_reported(state, repo, run, history):
                     state['checked'][key] = 'duplicate notification for ' + incident
                     continue
-                subject, body = message(repo, run, impact, failed, later)
+                try:publication=correction_publication(repo,run)
+                except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
+                subject, body = message(repo, run, impact, failed, later, publication)
                 if args.dry_run:
                     print(body + '\n')
                     continue

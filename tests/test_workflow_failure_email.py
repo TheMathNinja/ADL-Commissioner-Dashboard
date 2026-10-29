@@ -114,6 +114,31 @@ class FailureReports(unittest.TestCase):
         self.assertIn('later run', body)
         self.assertIn(m.OWNER, body)
 
+    def test_failed_followup_poll_acknowledges_verified_publication(self):
+        poll=dict(self.run,path='.github/workflows/poll_score_corrections.yml',event='schedule',
+                  name='Poll Thursday score corrections',display_title='Poll Thursday score corrections',
+                  created_at='2026-10-29T21:55:57Z')
+        receipt=dict(season=2026,week=7,league_id='22686',process='corrections',status='success',
+                     bonus_mfl_verified=True,payouts_verified=True,run_id='40897559806',completed_at='2026-10-29T15:12:04Z')
+        with patch.object(m.mail,'document',return_value=receipt),patch.object(m,'api',return_value={'jobs':[{'name':'refresh','conclusion':'success'}]}):
+            publication=m.correction_publication(m.REPOS[1],poll)
+            _,body=m.message(m.REPOS[1],poll,m.production(poll),['check: MFL timeout'],None,publication)
+            self.assertIn('already completed successfully',body)
+            self.assertIn('Only the follow-up freshness check failed',body)
+            self.assertIn('40897559806',body)
+            self.assertNotIn('may not have been processed',body)
+        for change in [dict(week=6),dict(bonus_mfl_verified=False),dict(status='failure')]:
+            with patch.object(m.mail,'document',return_value={**receipt,**change}),patch.object(m,'api')as api:
+                self.assertIsNone(m.correction_publication(m.REPOS[1],poll));api.assert_not_called()
+        with patch.object(m.mail,'document',return_value=receipt),patch.object(m,'api',return_value={'jobs':[{'name':'refresh','conclusion':'failure'}]}):
+            self.assertIsNone(m.correction_publication(m.REPOS[1],poll))
+
+    def test_unknown_publication_is_not_called_missing_after_poll_failure(self):
+        poll=dict(self.run,path='.github/workflows/poll_score_corrections.yml',event='schedule')
+        _,body=m.message(m.REPOS[1],poll,m.production(poll),['check: MFL timeout'],None)
+        self.assertIn('does not establish',body)
+        self.assertNotIn('already completed successfully',body)
+
     def exercise(self, state=None, dry=False, send_error=None):
         state = state or {'sent': {}, 'checked': {}}
         with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.REPOS[2]}), \
