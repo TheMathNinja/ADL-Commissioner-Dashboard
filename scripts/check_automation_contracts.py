@@ -250,6 +250,20 @@ def main() -> int:
     adl = roots.get("ADL-GM-Dashboard")
     fafl = roots.get("FAFL-GM-Dashboard")
     if adl and fafl:
+        corrections=(adl/'scripts/score_corrections.py').read_text(encoding='utf-8')
+        if corrections != (fafl/'scripts/score_corrections.py').read_text(encoding='utf-8'):
+            errors.append('ADL/FAFL Thursday correction readiness policies must match, not just their signatures')
+        if commissioner and "clock >= '04:15'" not in (commissioner/'scripts/CloudPolling.gs').read_text(encoding='utf-8'):
+            errors.append('Cloud scheduler must not start Thursday corrections before 04:15 Eastern')
+        if '"04:15"' not in (adl/'R/score_finalization_guard.R').read_text(encoding='utf-8'):
+            errors.append('ADL score-finality eligibility must agree with the 04:15 Thursday correction boundary')
+        for root,parent in [(adl,'refresh_extension_calculator.yml'),(fafl,'refresh.yml')]:
+            poll=(root/'.github/workflows/poll_score_corrections.yml').read_text(encoding='utf-8')
+            if not all(marker in poll for marker in ('actions/cache/restore@v5','actions/cache/save@v5','.score_correction_observation.json')):
+                errors.append(f'{root.name}: Thursday settling observations must survive between polling runs')
+            source=(root/'.github/workflows'/parent).read_text(encoding='utf-8')
+            if 'Archive timestamped player-score input' not in source or 'include-hidden-files: true' not in source:
+                errors.append(f'{root.name}: weekly runs must preserve their timestamped input evidence')
         for filename in ("score_readiness.py", "score_corrections.py", "apps_script_bridge.py"):
             left = function_signatures(adl / "scripts" / filename)
             right = function_signatures(fafl / "scripts" / filename)

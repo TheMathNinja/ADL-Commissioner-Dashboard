@@ -58,3 +58,29 @@ notification ownership and immutable official-snapshot protection. Report code
 tests, live reads, deployed triggers, real write evidence and email delivery
 separately. A read-only Guardian pass does not prove a live Taxi promotion or
 SMTP delivery. Do not create real roster/lineup changes merely to test an audit.
+
+## Thursday Correction Readiness
+
+Thursday correction polling starts at 04:15 Eastern, not 03:45. This is an
+eligibility boundary after the normal approximately-04:00 MFL processing window,
+not proof that MFL has finished. Require reconciled standings/results/player
+feeds and the same player-score revision observed at least five minutes apart.
+Cache the observation between polling jobs; a changed revision resets the wait.
+The half-hour-spaced GitHub backup slots must also be able to establish stability.
+Waiting is successful polling, not an error or a late-correction warning.
+
+Preserve each run's timestamped player-score input as a 90-day artifact and put
+its capture time, post-build verification time and digest in the completion
+receipt. Confirmation emails show the capture and verification times when
+available. A difference from an earlier snapshot only proves that the two
+observations differ; it does not establish when MFL applied a correction.
+Do not describe ordinary Thursday reconciliation as a post-correction anomaly.
+
+The October 29 investigation compared commits 978e60c7 (ADL) and 15a52233 (FAFL)
+with the later verified publications. Their pre-04:00 player feeds contained
+1,053 entries versus 1,058 later, with 12 changed existing scores. All 32 team
+scores in each later publication matched MFL's own 04:15 ADL / 04:05 FAFL result
+emails, while eight ADL and six FAFL early team totals differed. Those team
+corrections were already present in the MFL emails; no later-change claim is
+justified by this comparison. The emails do not establish every individual
+bench player's correction time.

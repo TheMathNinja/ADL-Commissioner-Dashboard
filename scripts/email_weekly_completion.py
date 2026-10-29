@@ -607,7 +607,12 @@ def message(process, checked):
             begin = datetime.fromisoformat(result['started'].replace('Z', '+00:00'))
             end = datetime.fromisoformat(result['finished'].replace('Z', '+00:00'))
             lines.append(f'Run duration: {(end-begin).total_seconds()/60:.1f} minutes')
-        if process == 'corrections': lines.append('Due Bonus Games entries in MFL verified.')
+        if process == 'corrections':
+            if r.get('player_scores_captured_at'):
+                lines.append('MFL player scores captured: ' + local_time(r['player_scores_captured_at']))
+            if r.get('player_scores_verified_at'):
+                lines.append('Same player-score revision verified after publication: ' + local_time(r['player_scores_verified_at']))
+            lines.append('Due Bonus Games entries in MFL verified.')
         lines += ['Payouts winners and balances verified; team-logo refresh queued separately.',
                   'Live site verified: ' + local_time(result['verified']),
                   'GitHub run: ' + result['url'],

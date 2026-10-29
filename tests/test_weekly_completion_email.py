@@ -180,7 +180,8 @@ class CompletionEmailTest(unittest.TestCase):
 
     def test_correction_message_lists_material_impacts(self):
         result = self.verify()
-        result['receipt'] = dict(result['receipt'], process='corrections')
+        result['receipt'] = dict(result['receipt'], process='corrections',
+            player_scores_captured_at='2026-10-01T08:21:00Z',player_scores_verified_at='2026-10-01T08:30:00Z')
         result['impact'] = dict(run_id='123', week=3,
             ext_pr=[dict(player='James Conner', player_team='ARI', position='RB', old_score=12,
                          new_score=13, old_rank=7, new_rank=6)],
@@ -191,6 +192,8 @@ class CompletionEmailTest(unittest.TestCase):
             bonus_games=[dict(franchise='Carolina Panthers', event='Q1', old_result='T', new_result='L')])
         subject, body = m.message('corrections', [result])
         self.assertEqual(subject, 'ADL 2026 Week 3: Thursday correction publication complete')
+        self.assertIn('MFL player scores captured:',body)
+        self.assertIn('Same player-score revision verified after publication:',body)
         self.assertIn('Week 3 ADL EXT PR changes (rostered, eligible players only)', body)
         self.assertIn('James Conner ARI RB correction: 12 to 13 points | 2026 PR update: RB7 to RB6.', body)
         self.assertIn('Week 3 All-Play changes', body)
