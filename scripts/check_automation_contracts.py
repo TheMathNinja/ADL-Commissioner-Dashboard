@@ -137,6 +137,12 @@ def guardian_collision_errors(sources: dict[str, str]) -> list[str]:
     return errors
 
 
+def publication_is_manual_only(source: str) -> bool:
+    steps=re.split(r'(?=^      - (?:name:|uses:))',source,flags=re.MULTILINE)
+    writers=[step for step in steps if re.search(r'^\s+git push\b',step,re.MULTILINE)]
+    return bool(writers) and all(re.search(r"^        if: github.event_name == 'workflow_dispatch'\s*$",step,re.MULTILINE) for step in writers)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", action="append", required=True, metavar="NAME=PATH")
@@ -283,6 +289,8 @@ def main() -> int:
         }
         for path, generated_outputs in self_trigger_guards.items():
             source = path.read_text(encoding="utf-8")
+            if publication_is_manual_only(source):
+                continue
             for output in generated_outputs:
                 if re.search(r"^\s*-\s*['\"]?" + re.escape(output) + r"['\"]?\s*$", source, re.MULTILINE):
                     errors.append(
