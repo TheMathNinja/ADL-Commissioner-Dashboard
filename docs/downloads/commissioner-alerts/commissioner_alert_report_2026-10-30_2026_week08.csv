@@ -1,6 +1,6 @@
 season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
-2026,8,2026-10-30 09:24:44 UTC,Illegal Lineup Warning,warning,AFC,KCC,Kansas City Chiefs,Starting lineups require minimum 1 PK and 1 PN,"0 PK, 0 PN",Must start 1 additional PK and 1 additional PN,,
-2026,8,2026-10-30 09:24:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Kittle, George SFO TE on Bye in Week 8.  Must replace with eligible WR/TE.",,,
-2026,8,2026-10-30 09:24:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Reese, Arvell NYG LB on Bye in Week 8.  Must replace with eligible DT/DE/LB/CB/S.",,,
-2026,8,2026-10-30 09:24:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Brown, Ji'Ayir SFO S on Bye in Week 8.  Must replace with eligible S.",,,
-2026,8,2026-10-30 09:24:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Bullock, Calen HOU S on Bye in Week 8.  Must replace with eligible S.",,,
+2026,8,2026-10-30 12:50:50 UTC,Illegal Lineup Warning,warning,AFC,KCC,Kansas City Chiefs,Starting lineups require minimum 1 PK and 1 PN,"0 PK, 0 PN",Must start 1 additional PK and 1 additional PN,,
+2026,8,2026-10-30 12:50:50 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Kittle, George SFO TE on Bye in Week 8.  Must replace with eligible WR/TE.",,,
+2026,8,2026-10-30 12:50:50 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Reese, Arvell NYG LB on Bye in Week 8.  Must replace with eligible DT/DE/LB/CB/S.",,,
+2026,8,2026-10-30 12:50:50 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Brown, Ji'Ayir SFO S on Bye in Week 8.  Must replace with eligible S.",,,
+2026,8,2026-10-30 12:50:50 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Bullock, Calen HOU S on Bye in Week 8.  Must replace with eligible S.",,,
