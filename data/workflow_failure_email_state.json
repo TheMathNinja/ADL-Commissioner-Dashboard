@@ -230,6 +230,11 @@
       "sent_at": "2026-10-29T21:58:11.316460+00:00",
       "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Poll Thursday score corrections",
       "incident_key": "TheMathNinja/FAFL-GM-Dashboard:369801771:Poll Thursday score corrections"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:41018355261:1": {
+      "sent_at": "2026-10-30T07:11:33.524292+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 FAFL Inactivity Watch",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch"
     }
   },
   "checked": {
