@@ -1,0 +1,7 @@
+{
+  "season": 2026,
+  "enabled": true,
+  "lineup_tracking_from_week": 8,
+  "repeat_counts": "separate_per_rule_per_owner",
+  "initial_auction": {"starts_at": null, "ends_at": null}
+}

@@ -1,13 +1,21 @@
 name: FAFL Inactivity Watch
+run-name: ${{ github.event_name == 'workflow_dispatch' && (inputs.probe || inputs.dry_run) && 'FAFL Inactivity Watch - read-only' || 'FAFL Inactivity Watch' }}
 on:
   workflow_dispatch:
     inputs:
       probe:
         description: Inspect live source coverage without email or state changes
         type: boolean
+        default: false
+      dry_run:
+        description: Fetch fresh evidence without sending email or saving state
+        type: boolean
         default: true
+  schedule:
+    - cron: '37 10,22 * * *'
 permissions:
-  contents: read
+  contents: write
+  actions: write
 concurrency:
   group: fafl-inactivity-watch
   cancel-in-progress: false
@@ -17,8 +25,27 @@ jobs:
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect authenticated FAFL source coverage without writes
+      - name: Test inactivity policy and source parsing
+        run: python3 -m unittest discover -s tests -p test_fafl_inactivity.py -v
+      - name: Check FAFL inactivity and deliver scoped notifications
         env:
           MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
-        run: python3 scripts/fafl_inactivity.py --probe
+          GH_TOKEN: ${{ github.token }}
+          ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+          ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+          ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+          ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+          PROBE: ${{ inputs.probe }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          args=()
+          if [ "$PROBE" = true ]; then args+=(--probe); fi
+          if [ "$EVENT_NAME" != schedule ] && [ "$DRY_RUN" != false ]; then args+=(--dry-run); fi
+          python3 scripts/fafl_inactivity.py "${args[@]}"
+      - name: Request an independent failure notification
+        if: failure() && github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run email_workflow_failures.yml --repo "$GITHUB_REPOSITORY" -f dry_run=false

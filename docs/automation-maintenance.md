@@ -84,3 +84,46 @@ emails, while eight ADL and six FAFL early team totals differed. Those team
 corrections were already present in the MFL emails; no later-change claim is
 justified by this comparison. The emails do not establish every individual
 bench player's correction time.
+
+## FAFL Inactivity Watch
+
+`fafl-inactivity-watch.yml` is an independent, standard-library Python job. It
+does not install R or run any scoring/model publication. CloudPolling dispatches
+it hourly at minute 7; GitHub supplies two independent backup checks daily.
+The backup skips a fresh successful cloud check. Failure notifications remain
+enabled. Full integration preflight includes the FAFL policy/parser tests.
+
+Authenticated league exports supply exact last-access timestamps and current
+contact details. Owner warnings go only to the affected owner. The digest goes
+only to the uniquely matched Mike Filicicchia, Russ and Tim contacts in FAFL's
+authenticated owner records; missing or ambiguous contacts fail closed. No
+contact addresses or authentication data are written to the public ledger.
+
+Seven elapsed days without a league visit creates one login incident. Missing
+weekly lineup submission is evaluated only after the completed week's Monday
+23:00 Eastern boundary (never before its last scheduled NFL kickoff). Inherited
+lineups do not count as submissions, even if MFL displays a copied timestamp.
+Current/upcoming incomplete lineups are not penalized. Monitoring starts with
+Week 8 in 2026; the system does not invent prior-season or earlier-week strikes.
+
+Auction monitoring uses all `AUCTION_INIT`/`AUCTION_BID` transactions, including
+losing bids, not just auction winners. It activates only during the explicit
+initial-auction start/end window in `data/fafl_inactivity/config_2026.json`.
+Those boundaries are currently unset because the 2026 initial auction is over;
+commissioners must configure the next initial auction rather than infer its
+end from missing bids. Missing bid history is unknown, never proof of inactivity.
+
+The state ledger tracks incidents and counts per franchise/owner/rule. Auction
+and lineup repeat counts are separate. Rechecking one unresolved issue does not
+create another strike. Owner replacements do not inherit the former owner's
+counts. A grace deadline is recorded only after SMTP accepts the warning:
+24 elapsed hours for bids, 120 elapsed hours for lineup/login. A second auction
+or lineup infraction receives no new grace period and is sent for commissioner
+review. Repeated login incidents still receive the normal warning period.
+
+Owner delivery intent is checkpointed before sending; uncertain acknowledgements
+are sent for delivery review instead of automatically duplicating the email or
+starting an unverified deadline. New findings, rectifications, deadline expiry,
+repeat infractions and source-coverage problems produce a deduplicated digest.
+Unknown data cannot clear a watch or establish an overdue violation. No script
+removes an owner, modifies a lineup/roster, or changes winnings.

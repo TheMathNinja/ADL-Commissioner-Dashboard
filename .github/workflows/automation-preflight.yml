@@ -95,6 +95,7 @@ jobs:
       - name: Validate dispatches, signatures, encodings, and scheduler ownership
         run: |
           python3 -m unittest discover -s commissioner/tests -p test_manual_model_publication_contract.py -v
+          python3 -m unittest discover -s commissioner/tests -p test_fafl_inactivity.py -v
           python3 commissioner/scripts/check_automation_contracts.py \
             --repo ADL-GM-Dashboard=adl \
             --repo FAFL-GM-Dashboard=fafl \

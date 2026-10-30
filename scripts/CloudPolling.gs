@@ -21,7 +21,9 @@ const CLOUD_SCHEDULER = {
     ]
   },
   intervalJobs: [],
-  cronJobs: [],
+  cronJobs: [
+    {repo: 'ADL-Commissioner-Dashboard', workflow: 'fafl-inactivity-watch.yml', cron: '7 * * * *', inputs: {dry_run: 'false', probe: 'false'}}
+  ],
   // Fixed local times stay stable across daylight-saving changes.
   localJobs: [
     {repo: 'ADL-GM-Dashboard', workflow: 'daily_adl_league_maintenance.yml', timezone: 'America/New_York', hour: 5, minute: 17, inputs: {send_email: 'true'}},

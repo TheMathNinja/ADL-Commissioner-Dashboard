@@ -15,6 +15,7 @@ LOOKBACK_DAYS = 7
 OWNER = 'fili.mikey@gmail.com'
 REPOS = ['TheMathNinja/ADL-GM-Dashboard', 'TheMathNinja/FAFL-GM-Dashboard', 'TheMathNinja/ADL-Commissioner-Dashboard']
 IMPACT = {
+    'fafl-inactivity-watch.yml': 'FAFL inactivity evidence checks or owner/commissioner notifications did not complete. Existing watch deadlines remain recorded; no ownership changes were made.',
     'daily_adl_league_maintenance.yml': 'The combined morning SalAdj, waiver-correction, roster/Extension, or Commissioner-alert package did not complete.',
     'refresh_extension_calculator.yml': 'ADL Elo, Bonus Games/MFL entries, Playoffs, Payouts, or EXT may be incomplete. See the failed components below.',
     'refresh.yml': 'FAFL Elo, Bonus Games/MFL entries, Playoffs, or Payouts may be incomplete. See the failed components below.',
@@ -37,6 +38,7 @@ IMPACT = {
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
 PRODUCTION_DISPATCH_NAMES = (
+    re.compile(r'^FAFL Inactivity Watch$'),
     re.compile(r'^Daily ADL League Maintenance$'),
     re.compile(r'^Dashboard Watchdog$'),
     re.compile(r'^Synchronize MFL Bonus Games · official · source \d+(?: · attempt \d+)?$'),
