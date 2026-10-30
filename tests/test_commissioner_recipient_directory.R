@@ -27,4 +27,13 @@ send_body <- paste(deparse(body(send_commissioner_alert_email)), collapse = "\n"
 fetch_calls <- gregexpr("fetch_mfl_franchise_recipients\\(", send_body, perl = TRUE)[[1]]
 stopifnot(sum(fetch_calls > 0) == 1L)
 
+shared <- normalize_mfl_franchise_email_rows(tibble::tibble(
+  id = c("0005", "0030", "0030"),
+  name = c("Chicago Bears", "Kansas City Chiefs", "Kansas City Chiefs"),
+  abbrev = c("CHI", "KCC", "KCC"),
+  email = rep("shared@example.com", 3)
+))
+stopifnot(nrow(shared) == 2L, setequal(shared$franchise, c("CHI", "KCC")))
+stopifnot(nrow(dplyr::filter(shared, .data$franchise == "KCC")) == 1L)
+
 cat("Commissioner recipient-directory regression test passed.\n")

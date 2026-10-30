@@ -3209,7 +3209,7 @@ normalize_mfl_franchise_email_rows <- function(franchise_tbl, franchises = NULL)
       source = "ffscrapr::ff_franchises()"
     )
   })) |>
-    distinct(.data$email, .keep_all = TRUE)
+    distinct(.data$franchise, .data$email, .keep_all = TRUE)
 }
 
 fetch_mfl_franchise_recipients <- function(
