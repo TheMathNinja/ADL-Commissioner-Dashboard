@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "incidents": {
+    "0024:bcc3d4ff500357cc7c1e:login:1792701332": {
+      "franchise_id": "0024",
+      "franchise": "Pittsburgh Steelers",
+      "owner_key": "bcc3d4ff500357cc7c1e",
+      "rule": "login",
+      "episode": 1792701332,
+      "count": 1,
+      "observed": "Last league access: Oct 22, 2026 at 04:35 PM EDT",
+      "detected_at": "2026-10-30T00:50:21.923557+00:00",
+      "status": "pending_notice",
+      "activity_at": "2026-10-22T20:35:32+00:00"
+    }
+  },
+  "counts": {
+    "0024:bcc3d4ff500357cc7c1e:login": 1
+  },
+  "audited_weeks": [],
+  "activated_at": "2026-10-30T00:50:21.923557+00:00",
+  "owners": {
+    "0001": {
+      "key": "053b575baef80c94c14e",
+      "changed_at": null
+    },
+    "0002": {
+      "key": "a7ecae7d2151971d8587",
+      "changed_at": null
+    },
+    "0003": {
+      "key": "6739f0bd000e5d6d88be",
+      "changed_at": null
+    },
+    "0004": {
+      "key": "e32c8bc9aeca565c4bb2",
+      "changed_at": null
+    },
+    "0005": {
+      "key": "8c42e1d1a99d88e9f8dc",
+      "changed_at": null
+    },
+    "0006": {
+      "key": "3fcdc7c5250c962c0f55",
+      "changed_at": null
+    },
+    "0007": {
+      "key": "d0aeaade439070ef87e8",
+      "changed_at": null
+    },
+    "0008": {
+      "key": "f8ed8d365f12e40cebc0",
+      "changed_at": null
+    },
+    "0009": {
+      "key": "d40f3b5802ada18c97fc",
+      "changed_at": null
+    },
+    "0010": {
+      "key": "dc366449169d312b8c6b",
+      "changed_at": null
+    },
+    "0011": {
+      "key": "e6a429346511e7705991",
+      "changed_at": null
+    },
+    "0012": {
+      "key": "6578b1f3d0572c373a34",
+      "changed_at": null
+    },
+    "0013": {
+      "key": "5f3f0c1f596c2c0d7318",
+      "changed_at": null
+    },
+    "0014": {
+      "key": "2eae302f396e760dc873",
+      "changed_at": null
+    },
+    "0015": {
+      "key": "c38ef0336f8256254850",
+      "changed_at": null
+    },
+    "0016": {
+      "key": "4936e271de756c7fcbf2",
+      "changed_at": null
+    },
+    "0017": {
+      "key": "95dc06f90ff8226a3351",
+      "changed_at": null
+    },
+    "0018": {
+      "key": "43b6900851b816faa4d9",
+      "changed_at": null
+    },
+    "0019": {
+      "key": "e748e40b6f056c10f20e",
+      "changed_at": null
+    },
+    "0020": {
+      "key": "03b4ccdcc4b0c3399243",
+      "changed_at": null
+    },
+    "0021": {
+      "key": "af3675442d4444976ece",
+      "changed_at": null
+    },
+    "0022": {
+      "key": "c1a8f9a2bce1ad18a4e5",
+      "changed_at": null
+    },
+    "0023": {
+      "key": "78ba5363d54139e2017e",
+      "changed_at": null
+    },
+    "0024": {
+      "key": "bcc3d4ff500357cc7c1e",
+      "changed_at": null
+    },
+    "0025": {
+      "key": "b38a7bd22c6bcbf43065",
+      "changed_at": null
+    },
+    "0026": {
+      "key": "a0f8a79cb898f7212ddd",
+      "changed_at": null
+    },
+    "0027": {
+      "key": "88663b94bed2e23048d2",
+      "changed_at": null
+    },
+    "0028": {
+      "key": "f4d31b6806012fd8b3cd",
+      "changed_at": null
+    },
+    "0029": {
+      "key": "571c7e969d4e5e038e0b",
+      "changed_at": null
+    },
+    "0030": {
+      "key": "0f7e0214c96c7c7ba49e",
+      "changed_at": null
+    },
+    "0031": {
+      "key": "13d366da1a8b95ea5c8b",
+      "changed_at": null
+    },
+    "0032": {
+      "key": "9aa23279f5acc43abd3a",
+      "changed_at": null
+    }
+  },
+  "coverage": [],
+  "last_checked_at": "2026-10-30T00:50:21.923557+00:00"
+}
