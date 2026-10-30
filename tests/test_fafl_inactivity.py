@@ -97,11 +97,12 @@ class InactivityTests(unittest.TestCase):
     def test_owner_delivery_starts_timer_only_after_acceptance_and_does_not_repeat(self):
         self.stale();state=self.run_check();send=Mock();saved=[]
         def save():saved.append(copy.deepcopy(state))
-        m.deliver_owner_notices(state,[self.f],send,save,clock=lambda:self.now)
+        m.deliver_owner_notices(state,[self.f],send,save,clock=lambda:self.now,commissioners=['m@example.com','r@example.com','t@example.com'])
         first=next(iter(saved[0]['incidents'].values()));final=next(iter(state['incidents'].values()))
         self.assertEqual(first['notice']['status'],'sending');self.assertNotIn('deadline',first)
         self.assertEqual(final['deadline'],m.iso(self.now+timedelta(hours=120)))
         self.assertEqual(send.call_args.kwargs['to'],'owner@example.com')
+        self.assertEqual(send.call_args.kwargs['cc'],'m@example.com,r@example.com,t@example.com')
         m.deliver_owner_notices(state,[self.f],send,save,clock=lambda:self.now);self.assertEqual(send.call_count,1)
 
     def test_uncertain_delivery_has_no_deadline_or_automatic_duplicate(self):

@@ -234,7 +234,7 @@ class MFL:
         if kind not in result:raise ValueError('MFL '+kind+' data unavailable')
         return result[kind]
 
-def deliver_owner_notices(updated,franchises,send,save,clock=lambda:datetime.now(timezone.utc)):
+def deliver_owner_notices(updated,franchises,send,save,clock=lambda:datetime.now(timezone.utc),commissioners=None):
     problems=[]
     for key,incident in updated['incidents'].items():
         if incident['status']not in ('pending_notice','review')or incident.get('notice'):continue
@@ -245,7 +245,7 @@ def deliver_owner_notices(updated,franchises,send,save,clock=lambda:datetime.now
         issued=clock();deadline=iso(issued+timedelta(hours=24 if incident['rule']=='auction' else 120))
         title,body=owner_message(incident,deadline)
         incident['notice']={'status':'sending','attempted_at':iso(issued)};save()
-        try:send(title,body,'fafl-inactivity:'+key,to=','.join(recipients))
+        try:send(title,body,'fafl-inactivity:'+key,to=','.join(recipients),**({'cc':','.join(commissioners)} if commissioners else {}))
         except Exception:
             incident['notice']['status']='delivery_uncertain';save();problems.append(incident['franchise']+': owner email delivery uncertain; commissioner review required');break
         incident['notice'].update(status='accepted',issued_at=iso(issued))
@@ -303,17 +303,20 @@ def main():
         if old:payload['sha']=old['sha']
         mail.get_json(url,payload,method='PUT')
     save()
-    delivery_problems=deliver_owner_notices(updated,franchises,mail.send_email,save)
-    summary={'incidents':updated['incidents'],'coverage':updated['coverage'],'delivery_problems':sorted(set(delivery_problems))}
+    delivery_problems=deliver_owner_notices(updated,franchises,mail.send_email,save,commissioners=commissioners)
+    # Owner warnings already copy commissioners; only unresolved operational or
+    # overdue issues need a separate commissioner action email.
+    action_incidents={key:value for key,value in updated['incidents'].items() if value['status'] in ('overdue','resolved_late')}
+    summary={'incidents':action_incidents,'coverage':updated['coverage'],'delivery_problems':sorted(set(delivery_problems))}
     signature=hashlib.sha256(json.dumps(summary,sort_keys=True).encode()).hexdigest()
     actionable=bool(summary['incidents']or summary['coverage']or summary['delivery_problems'])
     if actionable and signature!=updated.get('digest_signature'):
         lines=['FAFL Inactivity Watch','Checked: '+local(iso(now)),'']
-        for incident in updated['incidents'].values():
+        for incident in action_incidents.values():
             lines += digest_incident_lines(incident,now)
         if summary['coverage']:lines += ['Source coverage requiring review:']+summary['coverage']+['']
         if summary['delivery_problems']:lines += ['Notification delivery requiring review:']+summary['delivery_problems']+['']
-        mail.send_email('FAFL Inactivity Watch - Commissioner Digest','\n'.join(lines),'fafl-inactivity-digest:'+signature,to=','.join(commissioners))
+        mail.send_email('FAFL Inactivity Watch - Action Required','\n'.join(lines),'fafl-inactivity-action:'+signature,to=','.join(commissioners))
         updated['digest_signature']=signature;save()
     print('FAFL inactivity check completed; no roster, lineup, ownership or winnings changes were made')
     if delivery_problems:raise RuntimeError('An inactivity notice needs delivery review; commissioners were notified')

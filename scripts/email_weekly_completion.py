@@ -622,7 +622,7 @@ def message(process, checked):
     return subject, '\n'.join(lines)
 
 
-def send_email(subject, body, key, to=None):
+def send_email(subject, body, key, to=None, cc=None):
     to = to or os.environ['WEEKLY_REPORT_EMAIL_TO']
     addresses = getaddresses([to])
     recipients = [address for _, address in addresses if address]
@@ -631,6 +631,12 @@ def send_email(subject, body, key, to=None):
     sender = os.environ['ADL_ALERT_EMAIL_FROM']
     msg = EmailMessage()
     msg['From'], msg['To'], msg['Subject'] = sender, ', '.join(recipients), subject
+    if cc:
+        copied = [address for _, address in getaddresses([cc]) if address]
+        if not copied or any('\n' in address or '\r' in address for address in copied):
+            raise ValueError('Invalid CC recipient')
+        msg['Cc'] = ', '.join(copied)
+        recipients = list(dict.fromkeys(recipients + copied))
     msg['Date'] = format_datetime(datetime.now(timezone.utc))
     msg['Message-ID'] = '<' + hashlib.sha256(key.encode()).hexdigest() + '@analyticsfantasylabs.github.io>'
     msg.set_content(body)
