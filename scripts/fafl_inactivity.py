@@ -165,14 +165,40 @@ def evaluate(state,franchises,lineups,windows,bids,config,now):
     state['coverage']=sorted(set(coverage));state['last_checked_at']=iso(now)
     return state
 
+def incident_details(incident,now):
+    rule=incident['rule']
+    if rule=='login':
+        days=max(0,int((now-moment(incident['activity_at'])).total_seconds()//86400))
+        return ['Rule violated: No league login for 7 consecutive days.',
+                'Last league access: '+local(incident['activity_at'])+f' ({days} days ago)']
+    if rule=='lineup':return [f'Rule violated: No lineup submitted for Week {incident["episode"]}.']
+    return ['Rule violated: No auction bid during a 24-hour period in the initial auction.',incident['observed']]
+
+def remedy_sentence(rule,deadline):
+    action={'login':'log in to the FAFL league','lineup':'submit your current weekly FAFL lineup','auction':'submit an auction bid'}[rule]
+    return 'Please '+action+' by '+local(deadline)+'.'
+
+def digest_incident_lines(incident,now):
+    lines=[incident['franchise']]+incident_details(incident,now)
+    status=incident['status']
+    if status in ('resolved','resolved_late'):
+        lines.append('The owner has addressed this issue'+(' after the warning deadline.' if status=='resolved_late' else '.'))
+    elif status=='retired_owner':lines.append('This warning belonged to a previous owner and no longer applies to the current owner.')
+    elif status=='overdue':lines.append('The warning deadline has passed: '+local(incident['deadline'])+'.')
+    elif status=='review':lines.append('This is a repeat '+incident['rule']+' violation; commissioner review is required under the bylaws.')
+    elif incident.get('deadline'):lines.append(remedy_sentence(incident['rule'],incident['deadline']))
+    else:lines.append('The owner warning has not been confirmed sent; the response period has not started.')
+    if incident.get('resolved_at'):lines.append('Issue addressed: '+local(incident['resolved_at']))
+    if status in ('overdue','review','resolved_late'):lines.append('Commissioners must review the applicable forfeiture policy. No ownership or winnings changes have been made automatically.')
+    return lines+['']
+
 def owner_message(incident,deadline):
     title='FAFL Inactivity Watch - '+incident['franchise']
-    lines=[title,'',incident['observed'],'']
+    lines=[title,'']+incident_details(incident,moment(incident.get('detected_at')) or datetime.now(timezone.utc))+['']
     if incident['count']>=2 and incident['rule']in('auction','lineup'):
         lines+=['This is the second '+incident['rule']+' infraction this season. The bylaws provide for forfeiture without an additional warning period. The commissioners have been notified to review and administer the policy.']
     else:
-        remedy={'login':'Log in to the FAFL league.','lineup':'Submit your current weekly FAFL lineup.','auction':'Submit an auction bid.'}[incident['rule']]
-        lines+=['You are on inactivity watch under the FAFL bylaws.',remedy,'Rectification deadline: '+local(deadline),
+        lines+=['You are on inactivity watch under the FAFL bylaws.',remedy_sentence(incident['rule'],deadline),
                 'The deadline runs from this warning: '+('24 hours.' if incident['rule']=='auction' else '120 hours / five days.'),
                 'If not rectified within that period, the bylaws provide for forfeiture of franchise management and subsequent winnings. Commissioners will review the evidence and handle any replacement; this system does not remove an owner.']
     return title,'\n'.join(lines)
@@ -284,11 +310,7 @@ def main():
     if actionable and signature!=updated.get('digest_signature'):
         lines=['FAFL Inactivity Watch','Checked: '+local(iso(now)),'']
         for incident in updated['incidents'].values():
-            lines += [incident['franchise']+' | '+incident['rule']+' | '+incident['status']+' | infraction '+str(incident['count']),incident['observed']]
-            if incident.get('deadline'):lines.append('Rectification deadline: '+local(incident['deadline']))
-            if incident.get('resolved_at'):lines.append('Rectified: '+local(incident['resolved_at']))
-            if incident['status']in('overdue','review','resolved_late'):lines.append('Commissioner action required: review forfeiture/replacement under the bylaws. No owner access or winnings were changed automatically.')
-            lines += ['Owner notice: '+incident.get('notice',{}).get('status','not yet sent'),'']
+            lines += digest_incident_lines(incident,now)
         if summary['coverage']:lines += ['Source coverage requiring review:']+summary['coverage']+['']
         if summary['delivery_problems']:lines += ['Notification delivery requiring review:']+summary['delivery_problems']+['']
         mail.send_email('FAFL Inactivity Watch - Commissioner Digest','\n'.join(lines),'fafl-inactivity-digest:'+signature,to=','.join(commissioners))

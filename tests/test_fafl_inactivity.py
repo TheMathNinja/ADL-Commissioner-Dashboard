@@ -75,12 +75,24 @@ class InactivityTests(unittest.TestCase):
     def test_owner_warning_text_uses_correct_grace_and_repeat_policy(self):
         incident={'franchise':'Team','rule':'auction','count':1,'observed':'No bid'}
         _,body=m.owner_message(incident,m.iso(self.now+timedelta(hours=24)));self.assertIn('24 hours',body)
-        incident.update(rule='lineup');_,body=m.owner_message(incident,m.iso(self.now+timedelta(hours=120)));self.assertIn('120 hours',body)
+        incident.update(rule='lineup',episode=8);_,body=m.owner_message(incident,m.iso(self.now+timedelta(hours=120)));self.assertIn('120 hours',body)
         incident['count']=2;_,body=m.owner_message(incident,None);self.assertIn('without an additional warning period',body);self.assertNotIn('Rectification deadline',body)
     def test_commissioner_recipient_resolution_is_exact_and_owner_email_is_separate(self):
         commissioners=[dict(self.f,owner_name=name,email=email)for name,email in [('Mike Filicicchia','m@example.com'),('Russ Mataya','r@example.com'),('Tim Shields','t@example.com')]]
         self.assertEqual(m.commissioner_addresses(commissioners),['m@example.com','r@example.com','t@example.com'])
         with self.assertRaises(ValueError):m.commissioner_addresses(commissioners[:2])
+
+    def test_digest_explains_login_rule_and_remedy_without_internal_labels(self):
+        self.stale();state=self.run_check();incident=next(iter(state['incidents'].values()))
+        incident.update(status='watch',deadline=m.iso(self.now+timedelta(hours=120)),notice={'status':'accepted'})
+        body='\n'.join(m.digest_incident_lines(incident,self.now))
+        self.assertIn('No league login for 7 consecutive days',body)
+        self.assertIn('(7 days ago)',body)
+        self.assertIn('Please log in to the FAFL league by',body)
+        self.assertNotIn('Owner notice:',body);self.assertNotIn(' | ',body)
+        incident.update(status='resolved',resolved_at=m.iso(self.now))
+        body='\n'.join(m.digest_incident_lines(incident,self.now))
+        self.assertIn('owner has addressed',body);self.assertNotIn('Please log in',body)
 
     def test_owner_delivery_starts_timer_only_after_acceptance_and_does_not_repeat(self):
         self.stale();state=self.run_check();send=Mock();saved=[]
