@@ -48,4 +48,4 @@ jobs:
         if: failure() && github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run email_workflow_failures.yml --repo "$GITHUB_REPOSITORY" -f dry_run=false
+        run: gh workflow run email_workflow_failures.yml --repo TheMathNinja/ADL-Commissioner-Dashboard -f dry_run=false
