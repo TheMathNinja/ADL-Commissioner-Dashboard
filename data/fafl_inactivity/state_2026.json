@@ -10,12 +10,14 @@
       "count": 1,
       "observed": "Last league access: Oct 22, 2026 at 04:35 PM EDT",
       "detected_at": "2026-10-30T00:50:21.923557+00:00",
-      "status": "pending_notice",
+      "status": "watch",
       "activity_at": "2026-10-22T20:35:32+00:00",
       "notice": {
-        "status": "sending",
-        "attempted_at": "2026-10-30T00:50:27.050509+00:00"
-      }
+        "status": "accepted",
+        "attempted_at": "2026-10-30T00:50:27.050509+00:00",
+        "issued_at": "2026-10-30T00:50:27.050509+00:00"
+      },
+      "deadline": "2026-11-04T00:50:27.050509+00:00"
     }
   },
   "counts": {
