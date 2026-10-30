@@ -111,5 +111,21 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(m.parse_lineups(self.html('Set by commissioner '+stamp),2026,8)['0001']['status'],'review')
     def test_duplicate_lineup_reports_are_rejected(self):
         with self.assertRaises(ValueError):m.parse_lineups(self.html('No lineup submitted')*2,2026,8)
+    def test_incomplete_http_success_retries_then_recovers(self):
+        client=Mock();client.read.side_effect=['<html>Temporarily unavailable</html>',self.html('No lineup submitted')]
+        sleep=Mock()
+        result=m.read_complete_lineups(client,'https://example.com/?W=8',2026,8,{'0001'},sleep)
+        self.assertEqual(result['0001']['status'],'missing')
+        self.assertEqual(client.read.call_count,2);sleep.assert_called_once_with(2)
+        self.assertIn('_inactivity_retry=',client.read.call_args.args[0])
+    def test_persistently_incomplete_report_fails_closed_with_bounded_retries(self):
+        client=Mock();client.read.return_value=self.html('No lineup submitted');sleep=Mock()
+        with self.assertRaisesRegex(ValueError,'after 3 attempts'):
+            m.read_complete_lineups(client,'https://example.com/?W=8',2026,8,{'0001','0002'},sleep)
+        self.assertEqual(client.read.call_count,3);self.assertEqual(sleep.call_count,2)
+    def test_complete_report_needs_no_retry(self):
+        client=Mock();client.read.return_value=self.html('No lineup submitted');sleep=Mock()
+        m.read_complete_lineups(client,'https://example.com/?W=8',2026,8,{'0001'},sleep)
+        client.read.assert_called_once();sleep.assert_not_called()
 
 if __name__=='__main__':unittest.main()

@@ -59,6 +59,18 @@ def parse_lineups(html,season,week):
         result[fid]={'status':'missing' if missing else 'review' if commissioner else 'submitted' if stamp else 'unknown','submitted_at':stamp if not missing else None}
     return result
 
+def read_complete_lineups(client,url,season,week,expected,sleep=time.sleep):
+    expected=set(expected)
+    for attempt in range(3):
+        # Retry incomplete successful HTTP responses, not just transport errors.
+        target=url if not attempt else url+'&_inactivity_retry='+str(time.time_ns())
+        parsed=parse_lineups(client.read(target),season,week)
+        if set(parsed)==expected:return parsed
+        missing=sorted(expected-set(parsed));unexpected=sorted(set(parsed)-expected)
+        print(f'Week {week} lineup coverage attempt {attempt+1}/3: {len(parsed)}/{len(expected)} teams; missing={missing}; unexpected={unexpected}')
+        if attempt<2:sleep(2*(attempt+1))
+    raise ValueError(f'Incomplete Week {week} lineup report after 3 attempts; no inactivity conclusions were issued')
+
 def week_windows(schedule):
     result={}
     for row in rows(schedule['fullNflSchedule']['nflSchedule']):
@@ -247,9 +259,7 @@ def main():
     needed={current}|{week for week in windows if week>=config['lineup_tracking_from_week'] and windows[week]['close']<=now and week not in state.get('audited_weeks',[])}
     lineups={}
     for week in sorted(needed):
-        html=client.read(f'https://{host}/{config["season"]}/options?L=22686&O=06&W={week}')
-        lineups[week]=parse_lineups(html,config['season'],week)
-        if set(lineups[week])!={f['id']for f in franchises}:raise ValueError('Incomplete Week '+str(week)+' lineup report; no inactivity conclusions were issued')
+        lineups[week]=read_complete_lineups(client,f'https://{host}/{config["season"]}/options?L=22686&O=06&W={week}',config['season'],week,{f['id']for f in franchises})
         time.sleep(1)
     bids=None
     if auction.get('starts_at') and moment(auction['starts_at'])<=now<moment(auction['ends_at']):
