@@ -175,8 +175,10 @@ def incident_details(incident,now):
     return ['Rule violated: No auction bid during a 24-hour period in the initial auction.',incident['observed']]
 
 def remedy_sentence(rule,deadline):
-    action={'login':'log in to the FAFL league','lineup':'submit your current weekly FAFL lineup','auction':'submit an auction bid'}[rule]
-    return 'Please '+action+' by '+local(deadline)+'.'
+    action={'login':'log in to the FAFL league page','lineup':'submit your current weekly FAFL lineup','auction':'submit an auction bid'}[rule]
+    day=moment(deadline).astimezone(EASTERN)
+    label=day.strftime('%A, %B ')+str(day.day)
+    return 'Please '+action+' by '+label+'.'
 
 def digest_incident_lines(incident,now):
     lines=[incident['franchise']]+incident_details(incident,now)

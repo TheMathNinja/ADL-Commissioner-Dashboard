@@ -88,7 +88,7 @@ class InactivityTests(unittest.TestCase):
         body='\n'.join(m.digest_incident_lines(incident,self.now))
         self.assertIn('No league login for 7 consecutive days',body)
         self.assertIn('(7 days ago)',body)
-        self.assertIn('Please log in to the FAFL league by',body)
+        self.assertIn('Please log in to the FAFL league page by',body)
         self.assertNotIn('Owner notice:',body);self.assertNotIn(' | ',body)
         incident.update(status='resolved',resolved_at=m.iso(self.now))
         body='\n'.join(m.digest_incident_lines(incident,self.now))
