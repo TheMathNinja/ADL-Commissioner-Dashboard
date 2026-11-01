@@ -3038,6 +3038,24 @@ render_commissioner_clean_run_lines <- function(
   c("Verified Clean Daily Runs", strrep("-", 25L), summary)
 }
 
+render_lineup_team_lines <- function(rows) {
+  lines <- character()
+  for (franchise in unique(rows$franchise)) {
+    team <- rows[rows$franchise == franchise, , drop = FALSE]
+    lines <- c(lines, team$franchise_name[[1]])
+    for (rule in unique(team$rule)) {
+      issues <- team[team$rule == rule, , drop = FALSE]
+      lines <- c(lines, paste0("Rule: ", rule))
+      observed <- unique(issues$observed[!is.na(issues$observed) & nzchar(trimws(issues$observed))])
+      if (length(observed)) lines <- c(lines, paste0("- ", observed))
+      details <- unique(issues$details[!is.na(issues$details) & nzchar(trimws(issues$details))])
+      if (length(details)) lines <- c(lines, paste0("Details: ", details))
+    }
+    lines <- c(lines, "")
+  }
+  lines
+}
+
 render_commissioner_alert_email <- function(
   alerts,
   season = get_current_season(),
@@ -3072,6 +3090,7 @@ render_commissioner_alert_email <- function(
       email_type = roster_cap_email_type(.data$alert_type, suppressWarnings(as.integer(coalesce_col(alerts, c("consecutive_days"), NA_integer_))), .env$render_season, .env$render_checked_date)
     )
 
+  alerts$email_type[alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning")] <- "Illegal Lineup"
   groups <- split(alerts, alerts$email_type)
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
@@ -3084,6 +3103,10 @@ render_commissioner_alert_email <- function(
     rows <- groups[[alert_type]] |>
       arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
     lines <- c(lines, paste0("**", alert_type, "**"), strrep("-", nchar(alert_type)))
+    if (identical(alert_type, "Illegal Lineup")) {
+      lines <- c(lines, render_lineup_team_lines(rows))
+      next
+    }
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_alert_detail_lines(row))
@@ -3117,14 +3140,19 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
     ) |>
     arrange(.data$alert_sort_order, .data$rule)
 
+  alerts$email_type[alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning")] <- "Illegal Lineup"
   groups <- split(alerts, alerts$email_type)
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 
   for (alert_type in names(groups)) {
     rows <- groups[[alert_type]]
-    heading <- pluralize_alert_type(alert_type, nrow(rows))
+    heading <- if (identical(alert_type, "Illegal Lineup")) "Illegal Lineup" else pluralize_alert_type(alert_type, nrow(rows))
     lines <- c(lines, paste0("**", heading, "**"))
+    if (identical(alert_type, "Illegal Lineup")) {
+      lines <- c(lines, render_lineup_team_lines(rows))
+      next
+    }
     for (i in seq_len(nrow(rows))) {
       row <- rows[i, ]
       lines <- c(lines, render_gm_alert_rule_lines(row))
