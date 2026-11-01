@@ -72,60 +72,24 @@ jobs:
   contracts:
     name: Verify cross-repository automation contracts
     runs-on: ubuntu-24.04
+    timeout-minutes: 9
     steps:
-      - name: Check out Commissioner automation
-        uses: actions/checkout@v6
-        with:
-          path: commissioner
-      - name: Check out ADL GM automation
-        uses: actions/checkout@v6
-        with:
-          repository: TheMathNinja/ADL-GM-Dashboard
-          path: adl
-      - name: Check out FAFL GM automation
-        uses: actions/checkout@v6
-        with:
-          repository: TheMathNinja/FAFL-GM-Dashboard
-          path: fafl
-      - name: Check out Lineup Guardian automation
-        uses: actions/checkout@v6
-        with:
-          repository: TheMathNinja/Chicago-Bears-Lineup-Guardian
-          path: guardian
-      - name: Validate dispatches, signatures, encodings, and scheduler ownership
-        run: |
-          python3 -m unittest discover -s commissioner/tests -p test_manual_model_publication_contract.py -v
-          python3 -m unittest discover -s commissioner/tests -p test_fafl_inactivity.py -v
-          python3 commissioner/scripts/check_automation_contracts.py \
-            --repo ADL-GM-Dashboard=adl \
-            --repo FAFL-GM-Dashboard=fafl \
-            --repo ADL-Commissioner-Dashboard=commissioner \
-            --repo Chicago-Bears-Lineup-Guardian=guardian
-
-      - name: Test scheduler recovery, fresh corrections, and nonblocking Guardian isolation
-        working-directory: commissioner
-        run: node tests/test_cloud_polling.cjs
+      - uses: actions/checkout@v6
+      - name: Dispatch and verify the complete private contract audit
+        env:
+          GH_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+        run: python3 scripts/run_private_preflight.py contracts
 
   guardian-audit:
     name: Audit Guardian behavior and both MFL memberships (read-only)
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    env:
-      MFL_USERNAME: ${{ secrets.MFL_USERNAME }}
-      MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
-      LIVE_LINEUP_WRITES: "false"
-      RUN_MODE: monitor
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v6
-        with:
-          repository: TheMathNinja/Chicago-Bears-Lineup-Guardian
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - name: Test Guardian timing, statuses, optimization, Taxi, and locked starters
-        run: npm test
-      - name: Verify live MFL login, ADL and FAFL ownership, and current inputs without writes
-        run: npm run check
+      - name: Dispatch and verify Guardian read-only audit privately
+        env:
+          GH_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+        run: python3 scripts/run_private_preflight.py guardian
 
   preflight:
     needs: contracts

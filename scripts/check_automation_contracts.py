@@ -143,6 +143,16 @@ def publication_is_manual_only(source: str) -> bool:
     return bool(writers) and all(re.search(r"^        if: github.event_name == 'workflow_dispatch'\s*$",step,re.MULTILINE) for step in writers)
 
 
+def personal_sync_contract_errors(public_source: str, private_source: str) -> list[str]:
+    errors=[]
+    if '--repo TheMathNinja/Chicago-Bears-Lineup-Guardian' not in public_source:
+        errors.append('Public CHI sync must hand off to the private repository')
+    if 'Check whether forecast inputs changed' not in private_source or private_source.count("steps.forecast.outputs.changed == 'true'")<2:
+        errors.append('Private CHI sync must skip scientific dependency setup when forecast inputs are unchanged')
+    if 'forecast-cache.outputs.cache-hit' in private_source:
+        errors.append('CHI model publication must not be vetoed by a local cache after the live Site requires an update')
+    return errors
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", action="append", required=True, metavar="NAME=PATH")
@@ -297,13 +307,10 @@ def main() -> int:
                         f"{path.relative_to(path.parents[2])} watches generated output {output} and can trigger itself"
                     )
 
-        chi_sync = (adl / ".github/workflows/sync_chi_team_tools.yml").read_text(encoding="utf-8")
-        if "Check whether forecast inputs changed" not in chi_sync or chi_sync.count(
-            "steps.forecast.outputs.changed == 'true'"
-        ) < 2:
-            errors.append("CHI sync must skip scientific dependency setup when forecast inputs are unchanged")
-        if 'forecast-cache.outputs.cache-hit' in chi_sync:
-            errors.append('CHI model publication must not be vetoed by a local cache after the live Site requires an update')
+        if guardian:
+            errors.extend(personal_sync_contract_errors(
+                (adl / '.github/workflows/sync_chi_team_tools.yml').read_text(encoding='utf-8'),
+                (guardian / '.github/workflows/sync_chi_team_tools.yml').read_text(encoding='utf-8')))
 
     if errors:
         print("Automation contract audit failed:")
