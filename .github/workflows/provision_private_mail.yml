@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Transfer existing mail credentials through encrypted repository secrets
         env:
-          GH_TOKEN: ${{ secrets.ADL_GITHUB_WORKFLOW_TOKEN }}
+          GH_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
           ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
