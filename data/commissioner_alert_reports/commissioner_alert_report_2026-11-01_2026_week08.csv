@@ -1,0 +1,11 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup,violation,NFC,DET,Detroit Lions,"Starting lineups require 12 defensive starters, including minimum 2 CB",11 defensive starters (1 CB),Must start 1 additional CB,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,HOU,Houston Texans,No inactive players allowed in starting lineup,"Brown, A.J. NEP WR is inactive (O)",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,HOU,Houston Texans,No inactive players allowed in starting lineup,"Townsend, Tommy TEN PN is inactive (O)",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,JAC,Jacksonville Jaguars,No inactive players allowed in starting lineup,"Delane, Mansoor KCC CB is inactive (O)",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,JAC,Jacksonville Jaguars,No inactive players allowed in starting lineup,"Sneed, L'Jarius KCC CB is inactive (I)",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Kittle, George SFO TE on Bye in Week 8.  Must replace with eligible WR/TE.",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Reese, Arvell NYG LB on Bye in Week 8.  Must replace with eligible DT/DE/LB/CB/S.",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Brown, Ji'Ayir SFO S on Bye in Week 8.  Must replace with eligible S.",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No starters on bye,"Bullock, Calen HOU S on Bye in Week 8.  Must replace with eligible S.",,,
+2026,8,2026-11-01 10:25:44 UTC,Illegal Lineup Warning,warning,NFC,LAR,Los Angeles Rams,No inactive players allowed in starting lineup,"Delane, Mansoor KCC CB is inactive (O)",,,
