@@ -1,1 +1,2 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
+illegal_waiver_claim|2026|HOU|13848|2026-11-01,2026,,2026-11-02 05:26:13 EST,In-Season Inactivity Violation,violation,AFC,HOU,Houston Texans,Illegal Waiver Claim,Illegal waiver claim,"Johnston, Cam was added without a matching legal waiver window in the prior 24-hour scan.",Latest drop: 2026-10-28 07:39 EDT; expected legal waiver run: 2026-10-30 05:00 EDT,inseason
