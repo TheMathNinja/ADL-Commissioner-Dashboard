@@ -209,21 +209,23 @@ class MFL:
     def __init__(self,season=2026):
         self.season=season;self.cookie=None;self.host='api.myfantasyleague.com'
 
-    def read(self,url,data=None):
+    def read(self,url,data=None,*,retry_safe=False):
         headers={'User-Agent':'FAFL-Inactivity-Watch/1.0'}
         if self.cookie:headers['Cookie']='MFL_USER_ID='+self.cookie
         request=urllib.request.Request(url,data=urllib.parse.urlencode(data).encode() if data else None,headers=headers)
-        for attempt in range(2 if data is None else 1):
+        attempts=3 if retry_safe else (2 if data is None else 1)
+        for attempt in range(attempts):
             try:
                 with urllib.request.urlopen(request,timeout=20)as response:return response.read().decode('utf-8')
             except (OSError,urllib.error.URLError,http.client.HTTPException)as error:
                 code=getattr(error,'code',None)
-                transient=code in (500,502,503,504) if code is not None else not isinstance(getattr(error,'reason',error),ssl.SSLCertVerificationError)
-                if data is not None or attempt or not transient:raise
-                time.sleep(2)
+                transient=code in (429,500,502,503,504) if code is not None else not isinstance(getattr(error,'reason',error),ssl.SSLCertVerificationError)
+                if attempt==attempts-1 or not transient:raise
+                time.sleep(2**(attempt+1))
 
     def login(self):
-        raw=self.read(f'https://api.myfantasyleague.com/{self.season}/login',{'USERNAME':os.environ['MFL_USERNAME'],'PASSWORD':os.environ['MFL_PASSWORD'],'XML':'1'})
+        # Login creates only a session, so retrying a lost response cannot send a notice.
+        raw=self.read(f'https://api.myfantasyleague.com/{self.season}/login',{'USERNAME':os.environ['MFL_USERNAME'],'PASSWORD':os.environ['MFL_PASSWORD'],'XML':'1'},retry_safe=True)
         tree=ET.fromstring(raw)
         value=next((node.attrib['MFL_USER_ID'] for node in tree.iter() if 'MFL_USER_ID' in node.attrib),None)
         if not value:raise ValueError('MFL authentication failed; response and credentials are deliberately not logged')

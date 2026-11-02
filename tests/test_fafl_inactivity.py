@@ -6,6 +6,27 @@ import fafl_inactivity as m
 from unittest.mock import Mock,patch
 
 class InactivityTests(unittest.TestCase):
+    def test_login_retries_connection_timeout_then_authenticates(self):
+        response=Mock();response.__enter__=Mock(return_value=response);response.__exit__=Mock(return_value=False)
+        response.read.return_value=b'<status MFL_USER_ID="session"/>'
+        with patch.dict(m.os.environ,{'MFL_USERNAME':'test','MFL_PASSWORD':'secret'}),patch.object(m.urllib.request,'urlopen',side_effect=[m.urllib.error.URLError(TimeoutError('timed out')),response])as opened,patch.object(m.time,'sleep')as sleep:
+            client=m.MFL();client.login()
+        self.assertEqual(client.cookie,'session');self.assertEqual(opened.call_count,2);sleep.assert_called_once_with(2)
+
+    def test_login_timeout_retries_are_bounded(self):
+        with patch.dict(m.os.environ,{'MFL_USERNAME':'test','MFL_PASSWORD':'secret'}),patch.object(m.urllib.request,'urlopen',side_effect=TimeoutError('timed out'))as opened,patch.object(m.time,'sleep')as sleep:
+            with self.assertRaises(TimeoutError):m.MFL().login()
+        self.assertEqual(opened.call_count,3);self.assertEqual([c.args[0]for c in sleep.call_args_list],[2,4])
+
+    def test_login_auth_failure_and_unsafe_posts_are_not_retried(self):
+        forbidden=m.urllib.error.HTTPError('https://example.test',403,'Forbidden',{},None)
+        with patch.object(m.urllib.request,'urlopen',side_effect=forbidden)as opened,patch.object(m.time,'sleep')as sleep:
+            with self.assertRaises(m.urllib.error.HTTPError):m.MFL().read('https://example.test',{'password':'secret'},retry_safe=True)
+            self.assertEqual(opened.call_count,1);sleep.assert_not_called()
+        with patch.object(m.urllib.request,'urlopen',side_effect=TimeoutError('timed out'))as opened,patch.object(m.time,'sleep')as sleep:
+            with self.assertRaises(TimeoutError):m.MFL().read('https://example.test',{'write':'yes'})
+            self.assertEqual(opened.call_count,1);sleep.assert_not_called()
+
     def setUp(self):
         self.now=datetime.fromisoformat('2026-10-30T00:00:00+00:00')
         self.f={'id':'0001','name':'Test Franchise','owner_name':'Test Owner','username':'owner','email':'owner@example.com','lastVisit':str(int((self.now-timedelta(hours=1)).timestamp()))}
