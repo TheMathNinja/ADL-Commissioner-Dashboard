@@ -213,18 +213,20 @@ def cause_codes(repo,run,job_list):
         codes[job['name']]=code
     return codes
 
-def unreported_steps(state, repo, run, history, failed, codes=None):
-    # Separate delivery windows and reopen an incident after proven recovery.
+def incident_scope(repo,run):
     local = datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
     filename = PurePosixPath(run.get('path','')).name
     day = local.date()
     if filename == 'poll_preliminary_scores.yml' and local.weekday() == 1:
         day -= timedelta(days=1)
+    return incident_key(repo,run)+':'+str(day)
+
+def unreported_steps(state, repo, run, history, failed, codes=None):
     title = run.get('display_title') or run.get('name','')
     recovery = max((r['updated_at'] for r in history if r['workflow_id']==run['workflow_id']
                     and (r.get('display_title') or r.get('name',''))==title
                     and r.get('conclusion')=='success' and r['updated_at']<run['updated_at']), default='')
-    scope = incident_key(repo,run)+':'+str(day)
+    scope = incident_scope(repo,run)
     seen = {step for entry in state['sent'].values() if entry.get('scope')==scope
             and entry.get('failed_at','')>recovery for step in entry.get('failed_steps',[])
             if not codes or entry.get('cause_codes',{}).get(step.split(': ',1)[0])==codes.get(step.split(': ',1)[0])}
@@ -241,8 +243,10 @@ def main():
     state = mail.document(os.environ['GITHUB_REPOSITORY'], STATE_PATH) or {'sent': {}, 'checked': {}}
     state.setdefault('checked', {})
     original = copy.deepcopy(state)
+    histories={}
     for repo in REPOS:
         history = list(runs(repo))
+        histories[repo]=history
         for latest in reversed(history):
             impact = production(latest)
             if not impact:
@@ -259,8 +263,8 @@ def main():
                     continue
                 # A superseded cancellation does not imply an outstanding missed
                 # dependency when the same workflow already completed afterward.
-                later = next((r for r in history if r['workflow_id'] == run['workflow_id'] and r.get('conclusion') == 'success' and r['updated_at'] > run['updated_at']), None)
-                if run.get('conclusion') == 'cancelled' and later and incident_key(repo,later)==incident_key(repo,run) and later['created_at'][:10]==run['created_at'][:10]:
+                later = next((r for r in history if r.get('conclusion')=='success' and r['updated_at']>run['updated_at'] and incident_scope(repo,r)==incident_scope(repo,run)),None)
+                if run.get('conclusion') == 'cancelled' and later:
                     state['checked'][key] = 'cancelled; replaced by successful run'
                     continue
                 job_list = jobs(repo, run)
@@ -302,13 +306,13 @@ def main():
                 save(state)
                 print('SMTP accepted failure report: ' + key)
     if args.deadlines:
-        check_deadlines(state,args.dry_run,datetime.now(timezone.utc))
+        check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories)
     if not args.dry_run and state != original:
         save(state)
     print('Production failure scan complete.')
 
 
-def check_deadlines(state,dry,now):
+def check_deadlines(state,dry,now,histories=None):
     local=now.astimezone(ZoneInfo('America/New_York'))
     if local.hour<10:return
     day=local.date();season=day.year-(day.month==1)
@@ -335,7 +339,9 @@ def check_deadlines(state,dry,now):
         receipt=mail.document(repo,'data/refresh_receipts/'+process+'.json') or {}
         if (receipt.get('season'),str(receipt.get('league_id')),receipt.get('week'),receipt.get('process'),receipt.get('status'),receipt.get('payouts_verified'))==(season,league,week,process,'success',True) and (process!='corrections' or receipt.get('bonus_mfl_verified') is True):continue
         # An already-notified failure of this delivery owns the incident.
-        if any(entry.get('delivery')==[repo,str(day),process,week] for entry in state['sent'].values()):continue
+        known=[entry for entry in state['sent'].values() if entry.get('delivery')==[repo,str(day),process,week]]
+        if known and not any(r.get('conclusion')=='success' and incident_scope(repo,r)==entry['scope']
+                             and r['updated_at']>entry['failed_at'] for entry in known for r in (histories or {}).get(repo,[])):continue
         overdue(repo,f'Week {week} {process}',f'No verified {process} publication receipt for {season} Week {week}. Check the poller and weekly worker; publication has not been confirmed.')
 
 if __name__ == '__main__':

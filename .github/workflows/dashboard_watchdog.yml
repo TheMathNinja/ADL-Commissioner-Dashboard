@@ -21,6 +21,7 @@ jobs:
         run: |
           import json
           import os
+          import re
           import sys
           import urllib.request
           from datetime import datetime, time, timezone
@@ -65,6 +66,22 @@ jobs:
               )
 
           jobs = github_json(run["jobs_url"] + "?per_page=100").get("jobs", [])
+          reuse = [re.fullmatch(r'Reuse verified daily maintenance run (\d+)', j['name'])
+                   for j in jobs if j.get('conclusion')=='success']
+          reuse = [m[1] for m in reuse if m]
+          if reuse:
+              if len(reuse)!=1 or run.get('conclusion')!='success':
+                  sys.exit('Invalid daily maintenance reuse evidence.')
+              original = github_json("https://api.github.com/repos/TheMathNinja/ADL-GM-Dashboard/actions/runs/"+reuse[0])
+              original_time=datetime.fromisoformat(original['created_at'].replace('Z','+00:00')).astimezone(et)
+              if not (window_start<=original_time<=created and original['workflow_id']==run['workflow_id']
+                      and original['head_branch']=='main' and original['conclusion']=='success'):
+                  sys.exit('Daily maintenance source is not a verified same-day publication.')
+              original_jobs=github_json(original['jobs_url']+'?per_page=100')['jobs']
+              intents=lambda items:{j['name'] for j in items if j['name'].startswith('Daily intent v1 ') and j['conclusion']=='success'}
+              if len(intents(jobs))!=1 or intents(jobs)!=intents(original_jobs):
+                  sys.exit('Daily maintenance source intent does not match.')
+              run,jobs,created=original,original_jobs,original_time
           jobs_by_name = {job["name"]: job for job in jobs}
           required_jobs = (
               "Refresh SalAdj and Commissioner data",

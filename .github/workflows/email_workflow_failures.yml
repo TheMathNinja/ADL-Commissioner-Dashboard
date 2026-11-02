@@ -35,6 +35,6 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=()
-          if [ "${{ github.event_name }}" = schedule ]; then args+=(--deadlines); fi
+          if [ "${{ github.event_name }}" = schedule ] || [ "$DRY_RUN" = true ]; then args+=(--deadlines); fi
           if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
           python3 scripts/email_workflow_failures.py "${args[@]}"
