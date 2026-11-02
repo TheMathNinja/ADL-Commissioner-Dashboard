@@ -67,7 +67,7 @@ assess_emergency_adds <- function(adds, posts, pool, rosters, kickoffs, season, 
         emergency_add_player_match(body, player, pool)
     }, logical(1)), ]
     if (!nrow(relevant)) next
-    auction <- transactions[transactions$player_id == add$player_id & transactions$occurred_at <= add$occurred_at &
+    auction <- transactions[transactions$conference == add$conference & transactions$player_id == add$player_id & transactions$occurred_at <= add$occurred_at &
                               transactions$type %in% c("AUCTION_INIT", "AUCTION_WON"), ]
     auction <- auction[order(auction$occurred_at, decreasing = TRUE), ]
     if (nrow(auction) && auction$type[[1]] == "AUCTION_INIT") next

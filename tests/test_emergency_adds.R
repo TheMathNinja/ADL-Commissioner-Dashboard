@@ -6,7 +6,7 @@ pool <- tibble(player_id = "13848", player_name = "Johnston, Cam", player_team =
 roster <- bind_cols(adds |> select(franchise, player_id), tibble(prev_salary = 2.10, prev_years = 1, contract = "2026 UFA"))
 posts <- tibble(franchise = "HOU", declared_at = add_time + 103, body = "I emergency added the PIT punter since my Tommy is out today", source_url = "https://example.test/post")
 kickoffs <- tibble(player_team = "PIT", kickoff_at = as.POSIXct("2026-11-01 18:00:00", tz = "UTC"))
-tx <- tibble(player_id = "13848", occurred_at = add_time - 86400, type = "AUCTION_WON")
+tx <- tibble(conference = "AFC", player_id = "13848", occurred_at = add_time - 86400, type = "AUCTION_WON")
 check <- function(p = posts, r = roster, a = adds, k = kickoffs, players = pool, history = tx) assess_emergency_adds(a, p, players, r, k, 2026, history)
 stopifnot(length(check()$accepted) == 1L, nrow(check()$contracts) == 0L)
 bad <- roster; bad$prev_salary <- 2.01
@@ -32,6 +32,8 @@ wrong <- kickoffs; wrong$kickoff_at <- add_time
 stopifnot(!length(check(k = wrong)$accepted))
 wrong <- tx; wrong$type <- "AUCTION_INIT"
 stopifnot(!length(check(history = wrong)$accepted))
+wrong$conference <- "NFC"
+stopifnot(length(check(history = wrong)$accepted) == 1L)
 ambiguous <- bind_rows(pool, mutate(pool, player_id = "other", player_name = "Other, Player"))
 stopifnot(!length(check(players = ambiguous)$accepted))
 named <- posts; named$body <- "Emergency add Cam Johnston because Tommy is out"
