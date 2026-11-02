@@ -60,8 +60,8 @@ rows$CONTRACT <- c("2026 UFA","2026 UFA","2023 3.18^")
 quiet <- test_env$send_saladj_email(rows,"test.csv","test",season=2026)
 stopifnot(!quiet$sent,quiet$reason=="already_recorded_in_contract_admin")
 test_env$contract_admin_saladj_entries <- function(...) entries
-test_env$resolve_commissioner_alert_recipients <- function(...) tibble(email="test@example.test")
-test_env$send_alert_mail <- function(subject,body,...) {
+test_env$send_alert_mail <- function(subject,body,to,...) {
+  stopifnot(setequal(to,c("fili.mikey@gmail.com","wittecarson@gmail.com","andrewrmast@gmail.com")))
   stopifnot(grepl("Will McDonald",body,fixed=TRUE),!grepl("Jaylen Wright|Robert Spillane",body))
   list(sent=TRUE,reason="test")
 }

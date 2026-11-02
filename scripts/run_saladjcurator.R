@@ -133,15 +133,13 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_
     return(tibble::tibble(sent = FALSE, reason = if (candidate_count) "already_recorded_in_contract_admin" else "no_new_rows", outbox_path = outbox_path, recipients = ""))
   }
 
-  recipients <- resolve_commissioner_alert_recipients(season = season)
-  if (!nrow(recipients)) {
-    return(tibble::tibble(sent = FALSE, reason = "no_recipients", outbox_path = outbox_path, recipients = ""))
-  }
+  # Only the Contract Admin entry team needs this work list.
+  recipients <- c("fili.mikey@gmail.com", "wittecarson@gmail.com", "andrewrmast@gmail.com")
 
   status <- send_alert_mail(
     subject = saladj_email_subject(),
     body = body,
-    to = recipients$email,
+    to = recipients,
     html_body = render_saladj_email_html(body, archive_filename)
   )
 
@@ -149,7 +147,7 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_
     sent = isTRUE(status$sent),
     reason = status$reason,
     outbox_path = outbox_path,
-    recipients = paste(recipients$email, collapse = ", ")
+    recipients = paste(recipients, collapse = ", ")
   )
 }
 
