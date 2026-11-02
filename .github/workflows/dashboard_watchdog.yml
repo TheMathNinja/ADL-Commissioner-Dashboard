@@ -14,7 +14,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Verify today's daily maintenance package completed
+      - name: Check today's maintenance result and alert ownership
         env:
           GH_TOKEN: ${{ github.token }}
         shell: python
@@ -49,7 +49,7 @@ jobs:
           todays_runs = []
           for run in runs:
               created = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00")).astimezone(et)
-              if created >= window_start:
+              if created >= window_start and run.get("display_title") == "Daily ADL League Maintenance" and run.get("head_branch") == "main":
                   todays_runs.append((created, run))
 
           if not todays_runs:
@@ -116,15 +116,28 @@ jobs:
                   f"{name}={jobs_by_name[name].get('conclusion') or jobs_by_name[name].get('status')}"
                   for name in unresolved
               )
-              sys.exit("Today's daily maintenance has unresolved component failures: " + details)
+              # Only coalesce failures with evidence that this exact parent's
+              # component was already reported. Missing runs and receipts still fail.
+              state_file = "data/workflow_failure_email_state.json"
+              with open(state_file, encoding="utf8") as handle:
+                  notices = json.load(handle).get("sent", {})
+              notice = notices.get(f"TheMathNinja/ADL-GM-Dashboard:{run['id']}:{run.get('run_attempt',1)}", {})
+              affected = notice.get("affected_jobs", {})
+              if not all(name in affected and affected[name] == jobs_by_name[name].get("conclusion") for name in unresolved):
+                  sys.exit("Today's daily maintenance has unresolved component failures: " + details)
+              print("Unresolved but already reported by daily maintenance:", details, run["html_url"])
+              with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as summary:
+                  summary.write(f"Maintenance remains incomplete: {details}. [Already reported parent]({run['html_url']}).\n")
 
-          print(f"Daily maintenance components verified: {created:%b %d, %Y %I:%M:%S %p %Z}")
+          if not unresolved:
+              print(f"Daily maintenance components verified: {created:%b %d, %Y %I:%M:%S %p %Z}")
           print(run["html_url"])
           for name, recovery_url in recovered.items():
               print(f"{name} recovered successfully:")
               print(recovery_url)
 
       - name: Verify SalAdjCurator checked in recently
+        if: always() && !cancelled()
         shell: python
         run: |
           import csv

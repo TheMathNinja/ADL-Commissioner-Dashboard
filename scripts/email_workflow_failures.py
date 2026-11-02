@@ -1,6 +1,8 @@
 """Report production failures separately from successful-publication emails."""
 import argparse
 import copy
+import hashlib
+import subprocess
 from datetime import datetime, timedelta, timezone
 import http.client
 import json
@@ -38,13 +40,15 @@ IMPACT = {
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
 PRODUCTION_DISPATCH_NAMES = (
+    re.compile(r'^(?:Poll Thursday score corrections|Poll preliminary score readiness) \(production\)$'),
+    re.compile(r'^Preliminary ADL weekly update · Week \d+ · [a-f0-9]{64}$'),
     re.compile(r'^FAFL Inactivity Watch$'),
     re.compile(r'^Daily ADL League Maintenance$'),
     re.compile(r'^Dashboard Watchdog$'),
     re.compile(r'^Synchronize MFL Bonus Games · official · source \d+(?: · attempt \d+)?$'),
     re.compile(r'^Official Week \d+ cap snapshot \(weekly package \d+\)$'),
     re.compile(r'^(?:Preliminary|Corrections) 60206 2026 week \d+'),
-    re.compile(r'^Official (?:ADL|FAFL) (?:weekly update · Week \d+|correction update · Week \d+ · .+)$', re.IGNORECASE),
+    re.compile(r'^Official (?:ADL|FAFL) (?:weekly update · Week \d+(?: · [a-f0-9]{64})?|correction update · Week \d+ · .+)$', re.IGNORECASE),
 )
 
 
@@ -108,6 +112,8 @@ def failures(run, job_list):
             found.append(job['name'] + ': ' + job['conclusion'])
     if not found and run.get('conclusion') in BAD:
         found.append('Workflow ended with ' + run['conclusion'] + '; detailed step results are unavailable.')
+    if len(found)>1 and PurePosixPath(run.get('path','')).name=='daily_adl_league_maintenance.yml':
+        found=[step for step in found if step!='Verify daily maintenance package: Summarize component results'] or found
     return found
 
 
@@ -178,23 +184,6 @@ def incident_key(repo, run):
     return f'{repo}:{run.get("workflow_id")}:{run.get("display_title") or run.get("name", "")}'
 
 
-def incident_already_reported(state, repo, run, history):
-    incident = incident_key(repo, run)
-    if any(entry.get('incident_key') == incident for entry in state['sent'].values()):
-        return True
-    # State written before incident keys still identifies its source run. Use
-    # the fetched history to coalesce exact-title retries without conflating a
-    # genuinely different correction hash.
-    same_title_ids = {
-        str(candidate['id']) for candidate in history
-        if candidate.get('workflow_id') == run.get('workflow_id')
-        and (candidate.get('display_title') or candidate.get('name', '')) ==
-            (run.get('display_title') or run.get('name', ''))
-    }
-    return any(
-        key.startswith(repo + ':') and key.split(':')[-2] in same_title_ids
-        for key in state['sent']
-    )
 
 
 def save(state):
@@ -202,9 +191,50 @@ def save(state):
     mail.save_state(state)
 
 
+def cause_codes(repo,run,job_list):
+    codes={}
+    for job in job_list:
+        if job.get('conclusion') not in BAD or not job.get('id'):continue
+        # Keep only a fingerprint in state, never raw log text. Unclassified
+        # failures stay independently reportable rather than hiding a new fault.
+        code=f"unclassified:{job['id']}"
+        try:
+            cmd=['gh','run','view',str(run['id']),'--repo',repo,'--job',str(job['id']),'--log-failed']
+            log=subprocess.run(cmd,capture_output=True,text=True,timeout=25,encoding='utf8',errors='replace',check=True).stdout
+            errors=[]
+            for line in log.splitlines():
+                line=re.split(r'\d{4}-\d\d-\d\dT[\d:.]+Z\s+',line,maxsplit=1)[-1].strip()
+                if not re.match(r'^(?:##\[error\]|(?:[\w.]*Error|fatal|error):)',line,re.I):continue
+                if 'process completed with exit code' in line.lower():continue
+                line=re.sub(r'actions/runs/\d+|\b[0-9a-f]{32,64}\b','<revision>',line)
+                errors.append(line)
+            if errors:code=hashlib.sha256('\n'.join(errors[-4:]).encode()).hexdigest()
+        except (OSError,subprocess.SubprocessError):pass
+        codes[job['name']]=code
+    return codes
+
+def unreported_steps(state, repo, run, history, failed, codes=None):
+    # Separate delivery windows and reopen an incident after proven recovery.
+    local = datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
+    filename = PurePosixPath(run.get('path','')).name
+    day = local.date()
+    if filename == 'poll_preliminary_scores.yml' and local.weekday() == 1:
+        day -= timedelta(days=1)
+    title = run.get('display_title') or run.get('name','')
+    recovery = max((r['updated_at'] for r in history if r['workflow_id']==run['workflow_id']
+                    and (r.get('display_title') or r.get('name',''))==title
+                    and r.get('conclusion')=='success' and r['updated_at']<run['updated_at']), default='')
+    scope = incident_key(repo,run)+':'+str(day)
+    seen = {step for entry in state['sent'].values() if entry.get('scope')==scope
+            and entry.get('failed_at','')>recovery for step in entry.get('failed_steps',[])
+            if not codes or entry.get('cause_codes',{}).get(step.split(': ',1)[0])==codes.get(step.split(': ',1)[0])}
+    return scope,[step for step in failed if step not in seen]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--deadlines', action='store_true')
     args = parser.parse_args()
     if os.environ.get('WEEKLY_REPORT_EMAIL_TO') != OWNER:
         raise ValueError('Failure reports must be addressed only to ' + OWNER)
@@ -230,7 +260,7 @@ def main():
                 # A superseded cancellation does not imply an outstanding missed
                 # dependency when the same workflow already completed afterward.
                 later = next((r for r in history if r['workflow_id'] == run['workflow_id'] and r.get('conclusion') == 'success' and r['updated_at'] > run['updated_at']), None)
-                if run.get('conclusion') == 'cancelled' and later:
+                if run.get('conclusion') == 'cancelled' and later and incident_key(repo,later)==incident_key(repo,run) and later['created_at'][:10]==run['created_at'][:10]:
                     state['checked'][key] = 'cancelled; replaced by successful run'
                     continue
                 job_list = jobs(repo, run)
@@ -245,24 +275,68 @@ def main():
                         state['checked'][key] = run.get('conclusion')
                     continue
                 incident = incident_key(repo, run)
-                if incident_already_reported(state, repo, run, history):
+                codes=cause_codes(repo,run,job_list)
+                scope,failed = unreported_steps(state,repo,run,history,failed,codes)
+                if not failed:
                     state['checked'][key] = 'duplicate notification for ' + incident
                     continue
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
                 subject, body = message(repo, run, impact, failed, later, publication)
+                affected={j['name']:j.get('conclusion') for j in job_list if j.get('conclusion') in BAD|{'skipped'}}
+                skipped=[name for name,status in affected.items() if status=='skipped']
+                if skipped:body+='\n\nSkipped dependent jobs: '+', '.join(skipped)
                 if args.dry_run:
                     print(body + '\n')
                     continue
                 mail.send_email(subject, body, 'failure:' + key)
                 state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
-                                      'subject': subject, 'incident_key': incident}
+                                      'subject': subject, 'incident_key': incident, 'scope': scope,
+                                      'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,'failed_at':run['updated_at']}
+                week_match=re.search(r'(weekly update|correction update) · Week (\d+)',run.get('display_title',''))
+                if week_match:
+                    local=datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
+                    process='preliminary' if week_match[1]=='weekly update' else 'corrections'
+                    day=local.date()+timedelta(days=int(process=='preliminary' and local.weekday()==0))
+                    state['sent'][key]['delivery']=[repo,str(day),process,int(week_match[2])]
                 save(state)
                 print('SMTP accepted failure report: ' + key)
+    if args.deadlines:
+        check_deadlines(state,args.dry_run,datetime.now(timezone.utc))
     if not args.dry_run and state != original:
         save(state)
     print('Production failure scan complete.')
 
+
+def check_deadlines(state,dry,now):
+    local=now.astimezone(ZoneInfo('America/New_York'))
+    if local.hour<10:return
+    day=local.date();season=day.year-(day.month==1)
+    sept=day.replace(year=season,month=9,day=1)
+    week=(day-(sept+timedelta(days=(-sept.weekday())%7+7))).days//7+1
+    def overdue(repo,capability,detail):
+        key=f'deadline:{repo}:{day}:{capability}'
+        if key in state['sent']:return
+        subject=f'[League automation overdue] {repo.split("/")[-1]}: {capability}'
+        if dry:print(subject,detail);return
+        mail.send_email(subject,detail,'failure:'+key)
+        state['sent'][key]={'subject':subject,'sent_at':now.isoformat()};save(state)
+    repo=REPOS[0]
+    daily=api(repo,'actions/workflows/daily_adl_league_maintenance.yml/runs?branch=main&per_page=50')['workflow_runs']
+    today=[r for r in daily if r.get('display_title')=='Daily ADL League Maintenance' and
+           (started:=datetime.fromisoformat(r['created_at'].replace('Z','+00:00')).astimezone(local.tzinfo)).date()==day and started.hour>=5]
+    if not today:
+        overdue(repo,'daily maintenance','No main-branch daily maintenance run was found for '+str(day)+'. Check the scheduler.')
+    elif not any(r['status']=='completed' for r in today):
+        overdue(repo,'daily maintenance','Daily maintenance has not finished: '+today[0]['html_url'])
+    process={1:'preliminary',3:'corrections'}.get(day.weekday())
+    if not process or not 1<=week<=17:return
+    for repo,league in zip(REPOS[:2],['60206','22686']):
+        receipt=mail.document(repo,'data/refresh_receipts/'+process+'.json') or {}
+        if (receipt.get('season'),str(receipt.get('league_id')),receipt.get('week'),receipt.get('process'),receipt.get('status'),receipt.get('payouts_verified'))==(season,league,week,process,'success',True) and (process!='corrections' or receipt.get('bonus_mfl_verified') is True):continue
+        # An already-notified failure of this delivery owns the incident.
+        if any(entry.get('delivery')==[repo,str(day),process,week] for entry in state['sent'].values()):continue
+        overdue(repo,f'Week {week} {process}',f'No verified {process} publication receipt for {season} Week {week}. Check the poller and weekly worker; publication has not been confirmed.')
 
 if __name__ == '__main__':
     main()

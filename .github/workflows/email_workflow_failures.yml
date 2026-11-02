@@ -1,5 +1,8 @@
 name: Email league workflow failures
 on:
+  schedule:
+    # Independent of Apps Script: detect a missing morning package or weekly receipt.
+    - cron: '17 15,21 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -32,5 +35,6 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=()
+          if [ "${{ github.event_name }}" = schedule ]; then args+=(--deadlines); fi
           if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
           python3 scripts/email_workflow_failures.py "${args[@]}"

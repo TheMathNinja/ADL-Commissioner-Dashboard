@@ -167,24 +167,41 @@ class FailureReports(unittest.TestCase):
 
     def test_repeated_dispatch_of_same_incident_does_not_email_again(self):
         incident = m.incident_key(m.REPOS[1], self.run)
-        state = {'sent': {'old:run:1': {'subject': 'old', 'incident_key': incident}}, 'checked': {}}
+        state = {'sent': {'old:run:1': {'scope':incident+':2026-10-01','failed_steps':m.failures(self.run,self.jobs),'failed_at':self.run['updated_at']}}, 'checked': {}}
         state, count, _ = self.exercise(state)
         self.assertEqual(count, 0)
         self.assertIn('duplicate notification', next(iter(state['checked'].values())))
 
-    def test_legacy_sent_run_coalesces_same_exact_title(self):
-        prior = dict(self.run, id=99)
-        state = {'sent': {f'{m.REPOS[1]}:99:1': {'subject': 'legacy'}}, 'checked': {}}
-        self.assertTrue(m.incident_already_reported(state, m.REPOS[1], self.run,
-                                                    [self.run, prior]))
-        changed = dict(self.run, display_title=self.run['display_title'] + ' different-hash')
-        self.assertFalse(m.incident_already_reported(state, m.REPOS[1], changed,
-                                                     [changed, prior]))
+
+    def test_distinct_step_recovery_and_next_day_reopen(self):
+        repo=m.REPOS[1];scope,_=m.unreported_steps({'sent':{}},repo,self.run,[],['a'])
+        state={'sent':{'old':dict(scope=scope,failed_steps=['a'],failed_at=self.run['updated_at'])}}
+        later=dict(self.run,updated_at='2026-10-01T16:00:00Z')
+        self.assertEqual(m.unreported_steps(state,repo,later,[],['a','b'])[1],['b'])
+        success=dict(self.run,conclusion='success',updated_at='2026-10-01T15:00:00Z')
+        self.assertEqual(m.unreported_steps(state,repo,later,[success],['a'])[1],['a'])
+        self.assertEqual(m.unreported_steps(state,repo,dict(later,created_at='2026-10-02T14:00:00Z'),[],['a'])[1],['a'])
 
     def test_failed_smtp_is_retried_not_recorded_as_sent(self):
+        # Unaccepted mail must not suppress a future delivery attempt.
         state, _, saved = self.exercise(send_error=RuntimeError('SMTP unavailable'))
         self.assertFalse(state['sent'])
         self.assertEqual(saved, 0)
+
+    def test_missing_dispatch_and_receipts_notify_once_per_delivery(self):
+        now=m.datetime.fromisoformat('2026-11-03T16:00:00+00:00')
+        state={'sent':{}}
+        with patch.object(m,'api',return_value={'workflow_runs':[]}),patch.object(m.mail,'document',return_value=None),patch.object(m,'save'),patch.object(m.mail,'send_email')as send:
+            m.check_deadlines(state,False,now);m.check_deadlines(state,False,now)
+            self.assertEqual(send.call_count,3)
+
+    def test_completed_deliveries_do_not_send_deadline_mail(self):
+        now=m.datetime.fromisoformat('2026-11-05T16:00:00+00:00')
+        def receipt(repo,path):
+            return dict(season=2026,week=8,league_id='60206' if 'ADL-' in repo else '22686',process='corrections',status='success',payouts_verified=True,bonus_mfl_verified=True)
+        daily={'display_title':'Daily ADL League Maintenance','status':'completed','conclusion':'success','created_at':'2026-11-05T10:18:00Z'}
+        with patch.object(m,'api',return_value={'workflow_runs':[daily]}),patch.object(m.mail,'document',side_effect=receipt),patch.object(m.mail,'send_email')as send:
+            m.check_deadlines({'sent':{}},False,now);send.assert_not_called()
 
     def test_wrong_recipient_rejected_before_any_scan(self):
         with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': 'someone@example.com'}), \
