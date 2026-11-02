@@ -3,6 +3,7 @@ library(readr)
 library(tibble)
 
 source("R/commissioner_alerts.R")
+source("R/emergency_adds.R")
 
 inseason_inactivity_dir <- function() {
   Sys.getenv("ADL_INSEASON_INACTIVITY_DIR", unset = file.path("data", "inseason_inactivity"))
@@ -71,6 +72,7 @@ franchise_lookup_table <- function(season = get_current_season(), force_live = T
 }
 
 next_adl_waiver_run_at <- function(x) {
+  if (!length(x)) return(as.POSIXct(character(), tz = "UTC"))
   x_local <- lubridate::with_tz(x, "America/New_York")
   run_at <- as.POSIXct(
     paste0(format(as.Date(x_local), "%Y-%m-%d"), " 05:00:00"),
@@ -166,6 +168,11 @@ evaluate_illegal_waiver_claims <- function(season = get_current_season(), force_
       .data$type_desc %in% c("added", "claimed") | grepl("waiver", paste(.data$type, .data$type_desc, .data$comments), ignore.case = TRUE)
     )
 
+  if (!nrow(waiver_adds)) return(empty_inseason_inactivity_rows())
+
+  emergency <- emergency_add_context(season, run_time)
+  waiver_adds <- waiver_adds |>
+    filter(!emergency_add_key(.data$franchise, .data$player_id, .data$occurred_at) %in% emergency$accepted)
   if (!nrow(waiver_adds)) return(empty_inseason_inactivity_rows())
 
   drops <- normalized |>
@@ -783,6 +790,11 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
 
   issued <- read_issued_inseason_inactivity(season) |>
     normalize_inseason_inactivity_bind_types()
+  if (isTRUE(force_live)) {
+    corrected <- reconcile_emergency_add_violations(issued, emergency_add_context(season, run_time)$accepted, season, run_time)
+    if (isTRUE(persist) && !identical(issued, corrected)) write_issued_inseason_inactivity(corrected, season)
+    issued <- corrected
+  }
   new_alerts <- candidates |>
     anti_join(issued |> distinct(.data$violation_key), by = "violation_key") |>
     arrange(.data$conference, .data$franchise, .data$rule)
@@ -815,6 +827,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
 
 inseason_inactivity_cumulative_summary <- function(season = get_current_season()) {
   issued <- read_issued_inseason_inactivity(season)
+  if ("rescinded_at" %in% names(issued)) issued <- issued[is.na(issued$rescinded_at) | !nzchar(issued$rescinded_at), ]
   if (!nrow(issued) || !"franchise" %in% names(issued)) {
     return(tibble(franchise = character(), franchise_name = character(), inseason_violations = integer()))
   }

@@ -2721,6 +2721,9 @@ build_commissioner_alerts <- function(
     evaluate_bid_adjustment_alerts(rosters, season = season, checked_at = checked_at, force_live = force_live)
   )
   alerts$cash_trade_limit <- evaluate_cash_trade_limit_alerts(rosters, season = season)
+  if (isTRUE(force_live) && isTRUE(include_inseason) && exists("emergency_add_context", mode = "function")) {
+    alerts$emergency_add_contract <- emergency_add_context(season, checked_at, rosters)$contracts
+  }
 
   if (include_offseason) {
     alerts$roster_cap <- evaluate_roster_cap_alerts(rosters, rule = roster_cap_rule, season = season, checked_at = checked_at)
