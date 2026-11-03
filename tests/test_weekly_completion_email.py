@@ -260,7 +260,7 @@ class CompletionEmailTest(unittest.TestCase):
         subject,body=m.gotw_message(2026,5,{'ADL':candidates,'FAFL':candidates},dict.fromkeys(history,seeds),history)
         self.assertIn('Week 5',subject)
         self.assertIn('Playoff Percentage Points Up For Grabs: 30.0 (#1 of 16)',body)
-        self.assertIn('Team 1 (3-1-0 | #1 Elo: 1600 | Seed #16) vs. Team 2 (3-1-0 | #2 Elo: 1599 | Seed #15)',body)
+        self.assertIn('Team 1 (3-1 | #1 Elo: 1600 | Seed #16 | Streak: unavailable) vs. Team 2 (3-1 | #2 Elo: 1599 | Seed #15 | Streak: unavailable)',body)
         self.assertIn('30% playoff percentage-point swing, 20% average seed swing, 30% average Elo, and 20% Elo closeness.',body)
         self.assertIn('Playoff Seed Swing: 3.40 slots (#1 of 16) [Team 1 1.8/4.2; Team 2 3.0/4.0]',body)
         self.assertIn('[Team 1 70/50; Team 2 60/50]',body)
@@ -309,11 +309,18 @@ class CompletionEmailTest(unittest.TestCase):
                 team_a_draft_if_win='12',team_a_draft_if_loss='10',team_b_draft_if_win='10',team_b_draft_if_loss='9',combined_draft_swing='3'))
         week,candidates=m.gotw_candidates('ADL',swing,elo,dict(franchise=franchises),bonus)
         self.assertEqual(week,7)
-        self.assertEqual(candidates[0]['a_record'],'4-3-0*')
+        self.assertEqual(candidates[0]['a_record'],'4-3*')
         self.assertEqual(candidates[0]['b_record'],'3-3-1*')
         seeds={f'{i+1:04}':i%16+1 for i in range(32)}
         _,body=m.gotw_message(2026,7,{'ADL':candidates,'FAFL':candidates},dict.fromkeys(('ADL','FAFL'),seeds))
         self.assertIn('* Records include unofficial Q2 Bonus Game results.',body)
+
+    def test_streak_counts_bonus_after_head_to_head(self):
+        games = {(w, '0001'): {'result': r} for w, r in enumerate('LLLWW', 1)}
+        for bonus in (dict(event='Q1', bonus_result='1.0'), dict(pred_q1_bonus_wins='1')):
+            rows = [dict(franchise_id='0001', **bonus)]
+            self.assertEqual(m.bonus_streak('0001', 3, games, rows), 'W1')
+            self.assertEqual(m.bonus_streak('0001', 5, games, rows), 'W3')
 
     def test_published_game_of_week_is_parsed_from_homepage(self):
         html=b'<img alt="ADL Game of the Week, Week 6: Miami Dolphins at Houston Texans &mdash; Big game">'

@@ -21,7 +21,7 @@ import urllib.request
 
 from verify_bonus_receipt import validate_bonus_receipt
 from weekly_email_support import ET, mfl, priced_rank, snapshot
-from gotw_blurbs import fetch_context, make_blurb
+from gotw_blurbs import fetch_context, history_games, make_blurb
 
 LEAGUES = {
     'ADL': ('TheMathNinja/ADL-GM-Dashboard', '60206', 'refresh_extension_calculator.yml'),
@@ -234,6 +234,36 @@ def competition_rank(values, value, reverse=False):
     return 1 + sum(v > target if reverse else v < target for v in rounded)
 
 
+def bonus_streak(team, through, games, bonus_rows):
+    rows = [r for r in bonus_rows if str(r['franchise_id']).zfill(4) == team]
+    outcomes = []
+    for week in range(1, through + 1):
+        outcomes.append((games.get((week, team)) or {}).get('result'))
+        if week not in (3, 6, 9, 12):
+            continue
+        events = [(f'Q{week//3}', f'pred_q{week//3}_bonus_wins')]
+        if week == 12:
+            events.append(('All-Season', 'pred_rs_bonus_wins'))
+        for event, field in events:
+            values = [r['bonus_result'] for r in rows if r.get('event') == event]
+            if not values:
+                values = [r[field] for r in rows if field in r]
+            outcomes.append({'1': 'W', '1.0': 'W', '0': 'L', '0.0': 'L',
+                             '0.5': 'T', '.5': 'T'}.get(str(values[0])) if len(values) == 1 else None)
+    count = 0
+    for outcome in reversed(outcomes):
+        if outcome is None:
+            return 'unavailable'
+        if outcome != outcomes[-1]:
+            break
+        count += 1
+    return f'{outcomes[-1]}{count}' if count else 'unavailable'
+
+
+def record_text(record):
+    return '-'.join(map(str, record if record[2] else record[:2]))
+
+
 def gotw_candidates(league, swing, elo, standings, bonus_games=None):
     if len(swing) != 16:
         raise ValueError(f'{league} playoff swing must contain 16 matchups')
@@ -272,9 +302,9 @@ def gotw_candidates(league, swing, elo, standings, bonus_games=None):
                     b_elo_rank=competition_rank(rating_values, ratings[b], reverse=True),
                     combined_elo=ratings[a]+ratings[b],
                     elo_difference=abs(ratings[a]-ratings[b]),
-                    a_record=('-'.join(map(str, records[row['team_a_id']])) + ('*' if preliminary_bonus else ''))
+                    a_record=(record_text(records[row['team_a_id']]) + ('*' if preliminary_bonus else ''))
                              if row['team_a_id'] in records else 'record unavailable',
-                    b_record=('-'.join(map(str, records[row['team_b_id']])) + ('*' if preliminary_bonus else ''))
+                    b_record=(record_text(records[row['team_b_id']]) + ('*' if preliminary_bonus else ''))
                              if row['team_b_id'] in records else 'record unavailable')
         enriched.append(item)
     combined = [r['combined_elo'] for r in enriched]
@@ -418,8 +448,8 @@ def gotw_message(season, target_week, candidates, seeds, history=None):
             lines += gotw_history_lines(league, history.get(league, []), target_week - 1)
         for rank, r in enumerate(candidates[league], 1):
             lines += [
-                f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f} | Seed #{seeds[league][r["team_a_id"]]}) vs. '
-                f'{r["team_b"]} ({r["b_record"]} | #{r["b_elo_rank"]} Elo: {r["b_elo"]:.0f} | Seed #{seeds[league][r["team_b_id"]]})',
+                f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f} | Seed #{seeds[league][r["team_a_id"]]} | Streak: {r.get("a_streak", "unavailable")}) vs. '
+                f'{r["team_b"]} ({r["b_record"]} | #{r["b_elo_rank"]} Elo: {r["b_elo"]:.0f} | Seed #{seeds[league][r["team_b_id"]]} | Streak: {r.get("b_streak", "unavailable")})',
                 'Blurb: ' + (r.get('blurb') or make_blurb(league, r)['text']),
                 f'Playoff Percentage Points Up For Grabs: {float(r["combined_swing"]):.1f} (#{r["impact_rank"]} of 16) {scenarios(r, "playoff", 0)}',
                 f'Playoff Seed Swing: {float(r["combined_seed_swing"]):.2f} slots (#{r["seed_rank"]} of 16) {scenarios(r, "seed", 1)}',
@@ -479,7 +509,11 @@ def maybe_send_gotw(state, dry_run=False, force=False):
         context = fetch_context(season, league_id)
         context['standings'] = standings_inputs[league]
         used_kinds = []
+        games = history_games(context.get('schedule'), target - 1)
+        bonus = [r for r in inputs[league][2] or [] if int(r['season']) == season]
         for candidate in candidates[league]:
+            for side in ('a', 'b'):
+                candidate[side + '_streak'] = bonus_streak(candidate[f'team_{side}_id'], target - 1, games, bonus)
             story = make_blurb(league, candidate, context, used_kinds)
             used_kinds.append(story['kind'])
             candidate['blurb'] = story['text']
