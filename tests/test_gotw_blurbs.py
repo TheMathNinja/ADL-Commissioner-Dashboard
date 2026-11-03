@@ -173,7 +173,8 @@ class BlurbTest(unittest.TestCase):
                    combined_draft_swing=2, team_a_draft_if_win=12, team_a_draft_if_loss=11,
                    team_b_draft_if_win=12, team_b_draft_if_loss=11)
         elo = [dict(week=7, franchise_name=f'Team {i}', elo=1500) for i in range(32)]
-        with patch.object(email, 'csv_document', return_value=[row]), \
+        with patch.object(email, 'csv_document', side_effect=lambda repo, path: [] if path.endswith('bonus_games.csv') else [row]), \
+                patch.object(email, 'published_gotw_seeds', return_value={row['team_a_id']: 1, row['team_b_id']: 2}), \
                 patch.object(email, 'gotw_elo', return_value=elo), patch.object(email, 'mfl', return_value={}), \
                 patch.object(email, 'gotw_candidates', side_effect=lambda *args: (8, [copy.deepcopy(row)])), \
                 patch.object(email, 'fetch_context', return_value=context([game(1)])), \
