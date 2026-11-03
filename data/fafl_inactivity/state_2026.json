@@ -29,12 +29,14 @@
       "count": 1,
       "observed": "No owner-submitted Week 8 lineup; MFL may have inherited a lineup",
       "detected_at": "2026-11-03T04:09:39.059097+00:00",
-      "status": "pending_notice",
+      "status": "watch",
       "activity_at": null,
       "notice": {
-        "status": "sending",
-        "attempted_at": "2026-11-03T04:09:45.795402+00:00"
-      }
+        "status": "accepted",
+        "attempted_at": "2026-11-03T04:09:45.795402+00:00",
+        "issued_at": "2026-11-03T04:09:45.795402+00:00"
+      },
+      "deadline": "2026-11-08T04:09:45.795402+00:00"
     }
   },
   "counts": {
