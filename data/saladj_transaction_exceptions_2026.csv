@@ -1,0 +1,4 @@
+exception_id,season,FRAN,DATE,PLAYER,SALARY,decision,reason,source,recorded_date,retained_event
+2026-kcc-lvr-void-cash-kcc,2026,KCC,10/21/2026 13:22:02,Cash Trade,-1.70,VOID,Illegal KCC/LVR trade was canceled and redone without cash. No cash adjustment should be entered.,KCC GM explanation relayed by Michael in this chat,2026-11-03,
+2026-kcc-lvr-void-cash-lvr,2026,LVR,10/21/2026 13:22:02,Cash Trade,1.70,VOID,Illegal KCC/LVR trade was canceled and redone without cash. No cash adjustment should be entered.,KCC GM explanation relayed by Michael in this chat,2026-11-03,
+2026-kcc-dugger-duplicate-void,2026,KCC,10/21/2026 13:25:02,Kyle Dugger,7.08,VOID,Duplicate Dugger processing associated with the voided trade. Count only the valid October 22 drop already entered in Contract Admin and MFL.,KCC GM explanation relayed by Michael in this chat,2026-11-03,10/22/2026 14:55:57 KCC Kyle Dugger; MFL adjustment 198 $4.25; existing Contract Admin drop

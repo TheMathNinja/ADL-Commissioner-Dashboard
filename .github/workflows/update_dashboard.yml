@@ -162,6 +162,7 @@ jobs:
       - name: Verify salary-adjustment notification rules before live processing
         if: steps.localtime.outputs.should_run == 'true'
         run: |
+          Rscript scripts/test_saladj_transaction_exceptions.R
           Rscript scripts/test_saladj_notification_policy.R
           Rscript scripts/test_saladj_email.R
           Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching

@@ -1,3 +1,4 @@
+source("R/saladj_transaction_exceptions.R")
 # saladj_engine.R
 # ---------------
 # Builds the copy-pasteable ADL salary adjustment transaction table.
@@ -1571,6 +1572,9 @@ if (file.exists(manual_adjustments_csv)) {
     dplyr::arrange(.data$CONF, .data$.manual_date_sort, .data$FRAN) %>%
     dplyr::select(-.data$.manual_date_sort)
 }
+
+final_out_csv <- apply_saladj_transaction_exceptions(final_out_csv,current_season,
+  file.path(output_dir,paste0("saladj_transaction_exceptions_",current_season,".csv")))
 
 readr::write_csv(final_out_csv, out_csv, na = "")
 saveRDS(final_out_csv, out_rds)

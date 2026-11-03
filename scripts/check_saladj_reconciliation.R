@@ -1,3 +1,4 @@
+source("R/saladj_transaction_exceptions.R")
 # check_saladj_reconciliation.R
 # -----------------------------
 # Compares MFL salary cap adjustments with the latest SalAdj Curator ledger.
@@ -243,6 +244,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
 
   current_pen_col <- paste0(season, " PEN")
   saladj <- readr::read_csv(path, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+  saladj <- apply_saladj_transaction_exceptions(saladj,season)
 
   if (!"FRAN" %in% names(saladj)) {
     stop("SalAdj Curator CSV is missing FRAN column: ", path, call. = FALSE)
