@@ -1,0 +1,56 @@
+{
+  "season": 2026,
+  "week": 8,
+  "backup_id": "41585609455-1",
+  "created_at_utc": "2026-11-03T05:46:18.177988+00:00",
+  "actor": "TheMathNinja",
+  "source_commit": "3beee8114e9862a379eefca76e9f17682c70c3ae",
+  "workflow_run_id": "41585609455",
+  "files": [
+    {
+      "path": "2026w8_ADLsalarycapwarnings.csv",
+      "sha256": "b16dfb7e7284487829eb2cf3a8afbde999b0a1993be81d704811a19fd8506dc7",
+      "bytes": 39
+    },
+    {
+      "path": "2026w8_ADLsalarycapcomplete.csv",
+      "sha256": "c815f916674d8623d17e53e0ddcc229d7e3bfc667d723809a2efd937a3577dcb",
+      "bytes": 190
+    },
+    {
+      "path": "2026w8_ADLsalarycapmetadata.csv",
+      "sha256": "329d7b0285911d31cc5d2f7a82c476b73b0e4fdfbac16ee89358cc977f672bb3",
+      "bytes": 244
+    },
+    {
+      "path": "snapshots/2026w8_ADLsalarycapsnapshot.rds",
+      "sha256": "0182785d2a5e4bb0600654da6cd5f1983263a7beb7463837cdc76429d26b5456",
+      "bytes": 33063
+    },
+    {
+      "path": "snapshots/2026w8_ADLsalarycapsnapshot.csv",
+      "sha256": "8203e0fa1e3e050dff9c876eb12155e3bcc53d64719e734395aef93a96017ffc",
+      "bytes": 115420
+    },
+    {
+      "path": "adjustment_snapshots/2026w8_ADLsalaryadjustments.csv",
+      "sha256": "e858bbb3bc810275c3ecbcd08421f5a0a37b2412ecd4607caebe8224b18a91f9",
+      "bytes": 19188
+    },
+    {
+      "path": "waiver_corrections/2026w8_ADLwaivercorrections.csv",
+      "sha256": "39aa432d76edab9faa2ef53109723e9affee57e878599225aef2014bcf0a9af9",
+      "bytes": 2430
+    },
+    {
+      "path": "summaries/2026w8_ADLsalarycapsummary.rds",
+      "sha256": "992dcfedd4114138980e2182e7f7ace188f51bca33fd8e4936743e546714a6c1",
+      "bytes": 4379
+    },
+    {
+      "path": "summaries/2026w8_ADLsalarycapsummary.csv",
+      "sha256": "b237f36baa76629c056001dc4cfffca24de05642489245fb819f9ffd8bf1cab4",
+      "bytes": 14394
+    }
+  ]
+}
