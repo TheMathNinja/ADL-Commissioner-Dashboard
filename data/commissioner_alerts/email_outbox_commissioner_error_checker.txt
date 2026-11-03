@@ -1,10 +1,9 @@
-The Commissioner Error Checker found salary adjustments awaiting MFL entry before the next official cap snapshot.
+The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin displayed total: NYG | $63.02
-MFL roster-page total: NYG | $57.87
-Pending Contract Admin rows: J. Wright ($1.26; NFC Sal Adj row 134); R. Spillane ($3.89; NFC Sal Adj row 135)
-Explanation: The $5.15 difference is fully explained by rows whose ENTD? field is not marked.
-Required: Enter the pending NYG adjustment(s) in MFL before the next official cap snapshot: J. Wright ($1.26; NFC Sal Adj row 134); R. Spillane ($3.89; NFC Sal Adj row 135). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
+Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)
+Erroneous Sal Adj tab entry: CAR | Malcolm Koonce | Contract: $2.20 / 1 yr / 2026 UFA
+Expected Sal Adj tab entry: PHI | Malcolm Koonce | Contract: $2.20 / 1 yr / 2026 UFA
+Original transaction/drop: Nov 3, 2026 at 6:54:14 AM ET
+Required: Move this Contract Admin entry from CAR to PHI.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.

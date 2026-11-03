@@ -1,17 +1,23 @@
-SalAdj scraper scheduled: 11/2/2026 5:17 a.m. EST
+SalAdj scraper scheduled: 11/3/2026 5:17 a.m. EST
 Run type: Scheduled daily refresh
-Run started: 11/2/2026 5:19 a.m. EST
-Run completed / email prepared: 11/2/2026 5:20 a.m. EST (runtime: 0m 54s)
+Run started: 11/3/2026 9:19 a.m. EST
+Run completed / email prepared: 11/3/2026 9:20 a.m. EST (runtime: 0m 54s)
 
-SalAdj Curator published 2 new row(s) at 11/2/2026 5:20 a.m. EST.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_02_ADLSalAdjCurator.csv
+SalAdj Curator published 5 new row(s) at 11/3/2026 9:19 a.m. EST.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_03_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 NFC
 ---
-- Dropped 11/1/2026 09:07:43 ET by DET | Vita Vea TBB DT: $3.27 / 1 yr / 2024 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 3, 2026
-- Dropped 11/1/2026 21:37:25 ET by DET | TJ Edwards CHI LB: $2.70 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 3, 2026
+- Dropped 11/3/2026 00:39:46 ET by MIN | Sam Darnold SEA QB: $24.98 / 2 yr / 2025 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 4, 2026
+- Dropped 11/3/2026 00:39:46 ET by MIN | Daniel Jones IND QB: $11.88 / 2 yr / 2026 mEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 4, 2026
+- Dropped 11/3/2026 00:39:46 ET by MIN | Antoine Winfield TBB S: $15.43 / 2 yr / 2024 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 4, 2026
+- Dropped 11/3/2026 00:39:46 ET by MIN | Jordan Davis PHI DT: $15.36 / 3 yr / 2025 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 4, 2026
+- Dropped 11/3/2026 06:54:14 ET by PHI | Malcolm Koonce LVR DE: $2.20 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 5, 2026
 
