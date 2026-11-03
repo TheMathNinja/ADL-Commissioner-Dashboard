@@ -19,12 +19,27 @@
       },
       "deadline": "2026-11-04T00:50:27.050509+00:00",
       "resolved_at": "2026-11-01T12:58:06+00:00"
+    },
+    "0001:053b575baef80c94c14e:lineup:8": {
+      "franchise_id": "0001",
+      "franchise": "Dallas Cowboys",
+      "owner_key": "053b575baef80c94c14e",
+      "rule": "lineup",
+      "episode": 8,
+      "count": 1,
+      "observed": "No owner-submitted Week 8 lineup; MFL may have inherited a lineup",
+      "detected_at": "2026-11-03T04:09:39.059097+00:00",
+      "status": "pending_notice",
+      "activity_at": null
     }
   },
   "counts": {
-    "0024:bcc3d4ff500357cc7c1e:login": 1
+    "0024:bcc3d4ff500357cc7c1e:login": 1,
+    "0001:053b575baef80c94c14e:lineup": 1
   },
-  "audited_weeks": [],
+  "audited_weeks": [
+    8
+  ],
   "activated_at": "2026-10-30T00:50:21.923557+00:00",
   "owners": {
     "0001": {
@@ -157,6 +172,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-03T03:09:38.623775+00:00",
+  "last_checked_at": "2026-11-03T04:09:39.059097+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
