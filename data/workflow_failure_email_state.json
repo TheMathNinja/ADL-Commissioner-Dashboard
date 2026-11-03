@@ -235,6 +235,32 @@
       "sent_at": "2026-10-30T07:11:33.524292+00:00",
       "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 FAFL Inactivity Watch",
       "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:41582777341:1": {
+      "sent_at": "2026-11-03T05:17:10.396564+00:00",
+      "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL weekly update \u00b7 Week 8 \u00b7",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL weekly update \u00b7 Week 8 \u00b7 23fbb9a32307ea416b5ab19829b39bf11c40293515a3c3a2f7d61c66f33bc3bf",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL weekly update \u00b7 Week 8 \u00b7 23fbb9a32307ea416b5ab19829b39bf11c40293515a3c3a2f7d61c66f33bc3bf:2026-11-03",
+      "failed_steps": [
+        "refresh: Install dependencies and validate",
+        "refresh: Require a verified Payouts publication for every refresh"
+      ],
+      "cause_codes": {
+        "refresh": "33eb870558c91ed4b05929e93fc5b8935e8d42a329a49e7da677f8fcc7648beb"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Request weekly completion email": "skipped",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped"
+      },
+      "failed_at": "2026-11-03T05:15:57Z",
+      "delivery": [
+        "TheMathNinja/FAFL-GM-Dashboard",
+        "2026-11-03",
+        "preliminary",
+        8
+      ]
     }
   },
   "checked": {
