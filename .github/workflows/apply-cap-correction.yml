@@ -16,12 +16,24 @@ on:
       corrections:
         description: Comma-separated FRANCHISE:amount pairs
         required: true
+      apply_summary_files:
+        description: Also update and commit the saved summary CSV/RDS and correction ledger.
+        type: boolean
+        default: false
+      restore_backup_id:
+        description: Optional verified original backup to restore before applying corrections.
+        type: string
+        default: ""
       reason:
         description: Audit reason
         required: true
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: commissioner-dashboard-data-writes
+  cancel-in-progress: false
 
 jobs:
   apply:
@@ -35,6 +47,41 @@ jobs:
         uses: actions/checkout@v6
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
+      - name: Verify original-package restoration
+        run: python3 -m unittest discover -s tests -p test_cap_snapshot_restore.py -v
+
+      - name: Validate optional original-package restoration
+        env:
+          RESTORE_BACKUP_ID: ${{ inputs.restore_backup_id }}
+        run: |
+          if [ -n "$RESTORE_BACKUP_ID" ]; then
+            test "${{ inputs.apply_summary_files }}" = "true" || exit 1
+            python3 scripts/restore_cap_snapshot_backup.py --season "${{ inputs.season }}" --week "${{ inputs.week }}" --backup-id "$RESTORE_BACKUP_ID" --key "${{ inputs.correction_key }}"
+          fi
+
+      - name: Apply saved-summary corrections
+        if: inputs.apply_summary_files == true
+        env:
+          CORRECTION_KEY: ${{ inputs.correction_key }}
+          CORRECTIONS: ${{ inputs.corrections }}
+          CORRECTION_REASON: ${{ inputs.reason }}
+        run: >-
+          Rscript scripts/apply_manual_cap_correction.R
+          --season=${{ inputs.season }}
+          --week=${{ inputs.week }}
+          --key="${CORRECTION_KEY}"
+          --corrections="${CORRECTIONS}"
+          --reason="${CORRECTION_REASON}"
+          --apply-files=true
+          --apply-sheet=false
+
+      - name: Restore original base columns in Cap Rollover
+        if: inputs.restore_backup_id != ''
+        env:
+          CURRENT_SEASON: ${{ inputs.season }}
+          SNAPSHOT_WEEK: ${{ inputs.week }}
+        run: Rscript scripts/push_cap_rollover_to_google_sheet.R
+
       - name: Apply and verify Google Sheet corrections
         env:
           CORRECTION_KEY: ${{ inputs.correction_key }}
@@ -49,3 +96,20 @@ jobs:
           --reason="${CORRECTION_REASON}"
           --apply-files=false
           --apply-sheet=true
+
+      - name: Rebuild public cap summaries
+        if: inputs.apply_summary_files == true
+        env:
+          CURRENT_SEASON: ${{ inputs.season }}
+        run: Rscript scripts/build_dashboard.R
+
+      - name: Commit audited cap correction
+        if: inputs.apply_summary_files == true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cap_accounting docs
+          git diff --cached --quiet && exit 0
+          git commit -m "Preserve original cap snapshot and record audited late corrections"
+          git pull --rebase origin main
+          git push origin HEAD:main
