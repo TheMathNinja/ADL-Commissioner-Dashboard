@@ -3365,44 +3365,8 @@ send_alert_mail <- function(subject, body, to, cc = character(), html_body = NUL
   if (!length(to) || !nzchar(from) || !nzchar(smtp_server)) {
     return(list(sent = FALSE, reason = "email_not_configured"))
   }
-  if (!requireNamespace("curl", quietly = TRUE)) {
-    return(list(sent = FALSE, reason = "curl_package_not_installed"))
-  }
-
-  content <- if (!is.null(html_body) && nzchar(html_body)) {
-    boundary <- paste0("adl-boundary-", as.integer(Sys.time()))
-    paste0(
-      "Content-Type: multipart/alternative; boundary=\"", boundary, "\"\r\n\r\n",
-      "--", boundary, "\r\n",
-      "Content-Type: text/plain; charset=UTF-8\r\n\r\n",
-      body, "\r\n\r\n",
-      "--", boundary, "\r\n",
-      "Content-Type: text/html; charset=UTF-8\r\n\r\n",
-      html_body, "\r\n\r\n",
-      "--", boundary, "--"
-    )
-  } else {
-    paste0("Content-Type: text/plain; charset=UTF-8\r\n\r\n", body)
-  }
-
-  message <- paste0(
-    "From: ", from, "\r\n",
-    "To: ", paste(to, collapse = ", "), "\r\n",
-    if (length(cc)) paste0("Cc: ", paste(cc, collapse = ", "), "\r\n") else "",
-    "Subject: ", subject, "\r\n",
-    "MIME-Version: 1.0\r\n",
-    content
-  )
-
-  curl::send_mail(
-    mail_from = from,
-    mail_rcpt = unique(c(to, cc)),
-    smtp_server = smtp_server,
-    message = charToRaw(message),
-    username = Sys.getenv("ADL_SMTP_USERNAME", unset = ""),
-    password = Sys.getenv("ADL_SMTP_PASSWORD", unset = ""),
-    use_ssl = Sys.getenv("ADL_SMTP_SSL", unset = "try")
-  )
+  source("R/alert_transport.R", local = TRUE)
+  deliver_alert(subject, body, to, cc, html_body)
 
   list(sent = TRUE, reason = "sent")
 }

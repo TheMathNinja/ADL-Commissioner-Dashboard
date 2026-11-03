@@ -136,12 +136,12 @@ send_saladj_email <- function(new_rows, archive_filename, run_time_display, run_
   # Only the Contract Admin entry team needs this work list.
   recipients <- c("fili.mikey@gmail.com", "wittecarson@gmail.com", "andrewrmast@gmail.com")
 
-  status <- send_alert_mail(
+  status <- tryCatch(send_alert_mail(
     subject = saladj_email_subject(),
     body = body,
     to = recipients,
     html_body = render_saladj_email_html(body, archive_filename)
-  )
+  ), error = function(e) list(sent = FALSE, reason = "delivery_unconfirmed"))
 
   tibble::tibble(
     sent = isTRUE(status$sent),
@@ -309,7 +309,10 @@ if (send_email) {
   message("SalAdj email outbox: ", email_status$outbox_path[[1]])
   quiet_success <- email_status$reason[[1]] %in% c("no_new_rows", "already_recorded_in_contract_admin")
   if (!isTRUE(email_status$sent[[1]]) && !quiet_success) {
-    stop("SalAdj email was requested but not sent: ", email_status$reason[[1]], call. = FALSE)
+    output <- Sys.getenv("GITHUB_OUTPUT")
+    if (Sys.getenv("DEFER_SALADJ_MAIL_FAILURE") != "true" || !nzchar(output))
+      stop("SalAdj email was requested but not sent: ", email_status$reason[[1]], call. = FALSE)
+    cat("mail_unconfirmed=true\n", file = output, append = TRUE)
   }
   if (isTRUE(email_status$sent[[1]]) || quiet_success) {
     readr::write_csv(saladj_rows, last_emailed_csv, na = "")

@@ -289,7 +289,11 @@ def main():
                 subject, body = message(repo, run, impact, failed, later, publication)
                 affected={j['name']:j.get('conclusion') for j in job_list if j.get('conclusion') in BAD|{'skipped'}}
                 skipped=[name for name,status in affected.items() if status=='skipped']
-                if skipped:body+='\n\nSkipped dependent jobs: '+', '.join(skipped)
+                if run.get('name') == 'Daily ADL League Maintenance':
+                    passed = [j['name'] for j in job_list if j.get('conclusion') == 'success'
+                              and not j['name'].startswith('Daily intent')]
+                    if passed:body+='\n\nCompleted successfully: '+', '.join(passed)
+                if skipped:body+='\n\nSkipped jobs: '+', '.join(skipped)
                 if args.dry_run:
                     print(body + '\n')
                     continue

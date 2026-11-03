@@ -165,11 +165,14 @@ jobs:
           Rscript scripts/test_saladj_transaction_exceptions.R
           Rscript scripts/test_saladj_notification_policy.R
           Rscript scripts/test_saladj_email.R
+          python3 -m unittest discover -s tests -p test_alert_transport.py
           Rscript scripts/check_saladj_reconciliation.R --self-test-name-matching
 
       - name: Run SalAdjCurator script
+        id: curator
         if: steps.localtime.outputs.should_run == 'true'
         env:
+          DEFER_SALADJ_MAIL_FAILURE: 'true'
           CURRENT_SEASON: ${{ steps.localtime.outputs.current_season }}
           RAW_CACHE_DIR: ${{ env.RAW_CACHE_DIR }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
@@ -236,6 +239,12 @@ jobs:
           done
 
           echo "Failed to push dashboard update after 3 attempts."
+          exit 1
+
+      - name: Require confirmed SalAdj digest delivery
+        if: steps.curator.outputs.mail_unconfirmed == 'true'
+        run: |
+          echo "::error::SalAdj digest delivery was not confirmed. Check the outbox and sent mail before retrying."
           exit 1
 
       - name: Upload SalAdj recovery outputs

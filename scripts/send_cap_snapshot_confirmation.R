@@ -54,22 +54,8 @@ send_snapshot_mail <- function(subject, body, recipients) {
   from <- Sys.getenv("ADL_ALERT_EMAIL_FROM", unset = "")
   smtp_server <- Sys.getenv("ADL_SMTP_SERVER", unset = "")
   if (!length(recipients) || !nzchar(from) || !nzchar(smtp_server)) stop("Snapshot confirmation email is not configured.")
-  message <- paste0(
-    "From: ", from, "\r\n",
-    "To: ", paste(recipients, collapse = ", "), "\r\n",
-    "Subject: ", subject, "\r\n",
-    "Content-Type: text/plain; charset=UTF-8\r\n\r\n",
-    body
-  )
-  curl::send_mail(
-    mail_from = from,
-    mail_rcpt = recipients,
-    smtp_server = smtp_server,
-    message = charToRaw(message),
-    username = Sys.getenv("ADL_SMTP_USERNAME", unset = ""),
-    password = Sys.getenv("ADL_SMTP_PASSWORD", unset = ""),
-    use_ssl = Sys.getenv("ADL_SMTP_SSL", unset = "try")
-  )
+  source("R/alert_transport.R", local = TRUE)
+  deliver_alert(subject, body, recipients)
 }
 
 season <- get_current_season()
