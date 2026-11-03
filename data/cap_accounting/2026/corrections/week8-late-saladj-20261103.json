@@ -2,139 +2,22 @@
   "key": "week8-late-saladj-20261103",
   "original_snapshot": "2026-11-03 00:22:57 EST",
   "later_capture_run": 41585609455,
-  "sheet_write_run": 41588601879,
-  "total": "31.16",
-  "events": [
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0027",
-        "amount": "2.71",
-        "adjustment_id": "204",
-        "description": "O. Odighizuwa - 1 yr at $4.51 mil dropped 10/29/26",
-        "timestamp": "1793683720",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0032",
-        "amount": "9.57",
-        "adjustment_id": "205",
-        "description": "T.J. Edwards - 2 yrs at $10.63 mil dropped 10/28/26 - accelerated",
-        "timestamp": "1793683720",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0002",
-        "amount": "1.26",
-        "adjustment_id": "206",
-        "description": "J. Wright - 1 yr at $2.1 mil dropped 10/27/26",
-        "timestamp": "1793683756",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0002",
-        "amount": "3.89",
-        "adjustment_id": "207",
-        "description": "R. Spillane - 3 yrs at $3.24 mil dropped 10/27/26",
-        "timestamp": "1793683829",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0003",
-        "amount": "2.22",
-        "adjustment_id": "208",
-        "description": "W. McDonald - 1 yr at $3.70 mil dropped 10/27/26",
-        "timestamp": "1793683866",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0013",
-        "amount": "1.26",
-        "adjustment_id": "209",
-        "description": "C. Ridley - 1 yr at $2.1 mil dropped 10/28/26",
-        "timestamp": "1793683894",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0006",
-        "amount": "1.88",
-        "adjustment_id": "210",
-        "description": "C. Campbell - 2 yrs at $2.09 mil dropped 10/30/26",
-        "timestamp": "1793683934",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0001",
-        "amount": "4.79",
-        "adjustment_id": "211",
-        "description": "D. Payne - 1 yr at $7.99 mil dropped 10/31/26",
-        "timestamp": "1793683980",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0006",
-        "amount": "1.96",
-        "adjustment_id": "212",
-        "description": "V. Vea - 1 yr at $3.27 mil dropped 11/1/26",
-        "timestamp": "1793684016",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    },
-    {
-      "before": null,
-      "after": {
-        "franchise_id": "0006",
-        "amount": "1.62",
-        "adjustment_id": "213",
-        "description": "T.J. Edwards - 1 yr at $2.7 mil dropped 11/1/26",
-        "timestamp": "1793684043",
-        "season": "2026",
-        "week": "8",
-        "captured_at_utc": "2026-11-03 05:46:35"
-      }
-    }
+  "sheet_initial_write_run": 41588601879,
+  "successful_restore_and_correction_run": 41589437075,
+  "successful_output_commit": "a38053e04958956bbe2ae7b5940fc0eeab2de57a",
+  "total_corr": "31.16",
+  "recorded_correction_count": 7,
+  "late_mfl_adjustment_ids": [
+    "204",
+    "205",
+    "206",
+    "207",
+    "208",
+    "209",
+    "210",
+    "211",
+    "212",
+    "213"
   ],
-  "published_via": "Verified API recovery after workflow file-publication conflict; sheet formulas are idempotent by correction key"
+  "note": "Successful workflow outputs and first-application audit timestamps preserved; original cap snapshot remains frozen, with late Week 8 adjustments isolated in CORR. The later MIN/NOS roster moves are not part of Week 8."
 }
