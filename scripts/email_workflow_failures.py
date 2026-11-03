@@ -39,6 +39,51 @@ IMPACT = {
     'email_workflow_failures.yml': 'A failure-report delivery attempt failed. This notice comes from a later reporter run.',
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
+COMMISSIONER = 'TheMathNinja/ADL-Commissioner-Dashboard'
+DAILY_REPO = 'TheMathNinja/ADL-GM-Dashboard'
+DAILY_CHILDREN = {
+    'update_dashboard.yml': ('Commissioner data', 'Refresh SalAdj and Commissioner data', 'Dispatch Commissioner-owned data refresh'),
+    'waiver-cap-corrections.yml': ('Waiver corrections', 'Apply waiver cap corrections', 'Dispatch Commissioner-owned waiver corrections'),
+    'daily-commissioner-alerts.yml': ('Commissioner alerts', 'Run Commissioner alerts', 'Dispatch Commissioner-owned alerts'),
+}
+
+
+def daily_child(run):
+    spec = DAILY_CHILDREN.get(PurePosixPath(run.get('path', '')).name)
+    if spec and run.get('event') == 'workflow_dispatch' and run.get('head_branch') == 'main':
+        match = re.fullmatch(r'Daily maintenance (\d+) - ' + spec[0], run.get('display_title', ''))
+        if match:
+            return match[1], spec
+
+
+def propagated_child(repo, parent, job, step):
+    if repo != DAILY_REPO or PurePosixPath(parent['path']).name != 'daily_adl_league_maintenance.yml':
+        return None
+    if not any((job['name'], step) == spec[1:] for spec in DAILY_CHILDREN.values()):
+        return None
+    try:
+        log = subprocess.run(['gh','run','view',str(parent['id']),'--repo',repo,'--job',str(job['id']),
+                              '--attempt',str(parent.get('run_attempt',1)),'--log-failed'],capture_output=True,text=True,encoding='utf8',errors='replace',
+                             timeout=30,check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    ids = set(re.findall(r'Child workflow (\d+) completed with conclusion: (?:failure|timed_out|cancelled|action_required)\.(?=\s|$)', log))
+    return ids.pop() if len(ids) == 1 else None
+
+
+def delivered_child(state, repo, run, jobs_by_name, line):
+    name, _, step = line.partition(': ')
+    job = jobs_by_name.get(name)
+    if not job or not job.get('id'):
+        return False
+    child_id = propagated_child(repo, run, job, step)
+    if not child_id:
+        return False
+    return any(key.startswith(f'{COMMISSIONER}:{child_id}:') and
+               entry.get('daily_parent') == str(run['id']) and
+               entry.get('daily_job') == name and
+               job.get('started_at','~') <= entry['failed_at'] <= job.get('completed_at','')
+               for key, entry in state['sent'].items())
 PRODUCTION_DISPATCH_NAMES = (
     re.compile(r'^(?:Poll Thursday score corrections|Poll preliminary score readiness) \(production\)$'),
     re.compile(r'^Preliminary ADL weekly update · Week \d+ · [a-f0-9]{64}$'),
@@ -75,7 +120,7 @@ def production(run):
     is_orchestrated_dispatch = event == 'workflow_dispatch' and any(
         pattern.search(title) for pattern in PRODUCTION_DISPATCH_NAMES
     )
-    if run.get('head_branch') != 'main' or not (is_scheduled or is_orchestrated_dispatch):
+    if run.get('head_branch') != 'main' or not (is_scheduled or is_orchestrated_dispatch or daily_child(run)):
         return None
     return IMPACT.get(filename)
 
@@ -241,10 +286,12 @@ def main():
     if os.environ.get('WEEKLY_REPORT_EMAIL_TO') != OWNER:
         raise ValueError('Failure reports must be addressed only to ' + OWNER)
     state = mail.document(os.environ['GITHUB_REPOSITORY'], STATE_PATH) or {'sent': {}, 'checked': {}}
+    if args.dry_run:
+        state = copy.deepcopy(state)
     state.setdefault('checked', {})
     original = copy.deepcopy(state)
     histories={}
-    for repo in REPOS:
+    for repo in sorted(REPOS, key=lambda r: r != COMMISSIONER):
         history = list(runs(repo))
         histories[repo]=history
         for latest in reversed(history):
@@ -272,6 +319,31 @@ def main():
                     state['checked'][key] = 'cancelled before runner assignment; same-day watchdog already succeeded'
                     continue
                 failed = failures(run, job_list)
+                child = daily_child(run) if repo == COMMISSIONER else None
+                if child and failed:
+                    # An older reporter may already have delivered the parent incident.
+                    parent_id, (_, name, step) = child
+                    for key_parent, entry in state['sent'].items():
+                        if (key_parent.startswith(f'{DAILY_REPO}:{parent_id}:') and
+                                name + ': ' + step in entry.get('failed_steps', []) and
+                                run['updated_at'] <= entry['failed_at']):
+                            attempt_parent = int(key_parent.rsplit(':', 1)[1])
+                            parent = dict(id=parent_id,run_attempt=attempt_parent,path='daily_adl_league_maintenance.yml')
+                            try:
+                                related = next((j for j in jobs(DAILY_REPO,parent) if j['name']==name),None)
+                            except (RuntimeError, OSError):
+                                related = None
+                            if (related and related['started_at'] <= run['updated_at'] <= related['completed_at']
+                                    and propagated_child(DAILY_REPO,parent,related,step)==str(run['id'])):
+                                state['checked'][key]='reported by '+key_parent
+                                break
+                    if key in state['checked']:continue
+                if failed and repo == DAILY_REPO and 'daily_adl_league_maintenance.yml' in run['path']:
+                    by_name = {j['name']:j for j in job_list}
+                    failed = [line for line in failed if not delivered_child(state,repo,run,by_name,line)]
+                    if not failed:
+                        state['checked'][key]='reported by exact failed child'
+                        continue
                 if not failed:
                     # The reporter's own success and Pages builds from receipt
                     # commits must not create a perpetual state-commit/build loop.
@@ -287,6 +359,8 @@ def main():
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
                 subject, body = message(repo, run, impact, failed, later, publication)
+                if child:
+                    body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
                 affected={j['name']:j.get('conclusion') for j in job_list if j.get('conclusion') in BAD|{'skipped'}}
                 skipped=[name for name,status in affected.items() if status=='skipped']
                 if run.get('name') == 'Daily ADL League Maintenance':
@@ -296,19 +370,22 @@ def main():
                 if skipped:body+='\n\nSkipped jobs: '+', '.join(skipped)
                 if args.dry_run:
                     print(body + '\n')
-                    continue
-                mail.send_email(subject, body, 'failure:' + key)
+                else:
+                    mail.send_email(subject, body, 'failure:' + key)
                 state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
                                       'subject': subject, 'incident_key': incident, 'scope': scope,
                                       'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,'failed_at':run['updated_at']}
+                if child:
+                    state['sent'][key].update(daily_parent=child[0],daily_job=child[1][1])
                 week_match=re.search(r'(weekly update|correction update) · Week (\d+)',run.get('display_title',''))
                 if week_match:
                     local=datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
                     process='preliminary' if week_match[1]=='weekly update' else 'corrections'
                     day=local.date()+timedelta(days=int(process=='preliminary' and local.weekday()==0))
                     state['sent'][key]['delivery']=[repo,str(day),process,int(week_match[2])]
-                save(state)
-                print('SMTP accepted failure report: ' + key)
+                if not args.dry_run:
+                    save(state)
+                    print('SMTP accepted failure report: ' + key)
     if args.deadlines:
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories)
     if not args.dry_run and state != original:

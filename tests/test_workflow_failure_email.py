@@ -22,6 +22,25 @@ class FailureReports(unittest.TestCase):
 
     def test_production_is_limited_to_recurring_or_orchestrated_runs(self):
         self.assertTrue(m.production(self.run))
+
+    def test_daily_parent_child_incidents(self):
+        parent = dict(self.run,id=42,path='daily_adl_league_maintenance.yml',display_title='Daily ADL League Maintenance')
+        for path,(suffix,name,step) in m.DAILY_CHILDREN.items():
+            child=dict(parent,id=43,path=path,display_title=f'Daily maintenance 42 - {suffix}')
+            self.assertTrue(m.production(child))
+            self.assertFalse(m.production(dict(child,display_title='preview')))
+            job=dict(id=7,name=name,started_at=parent['created_at'],completed_at=parent['updated_at'])
+            state={'sent':{m.COMMISSIONER+':43:1':dict(daily_parent='42',daily_job=name,failed_at=child['updated_at'])}}
+            with patch.object(m.subprocess,'run') as cmd:
+                cmd.return_value.stdout='Child workflow 43 completed with conclusion: failure.'
+                args=(m.DAILY_REPO,parent,{name:job},name+': '+step)
+                self.assertTrue(m.delivered_child(state,*args))
+                self.assertFalse(m.delivered_child({'sent':{}},*args))
+                self.assertFalse(m.delivered_child(state,*args[:-1],name+': Independent verification failed'))
+                cmd.return_value.stdout='Unable to dispatch a child'
+                self.assertFalse(m.delivered_child(state,*args))
+
+    def test_other_production_exclusions(self):
         self.assertIsNone(m.production(dict(self.run, path='.github/workflows/evaluate_playoff_model.yml')))
         self.assertIsNone(m.production(dict(self.run, event='pull_request')))
         self.assertIsNone(m.production(dict(self.run, event='push')))
