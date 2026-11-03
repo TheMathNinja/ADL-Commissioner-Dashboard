@@ -11,6 +11,9 @@ required = {
     "direct dispatch requires authorization": "No official snapshot authorization was supplied; exiting without changes.",
     "authorization defaults off": "authorize_official_snapshot:\n        description: \"Authorize creation of a new immutable weekly snapshot.\"\n        required: false\n        type: boolean\n        default: false",
     "repair suppresses email": "if: steps.localtime.outputs.notify_needed == 'true'",
+    "overwrite defaults off": "overwrite_existing_week:\n        description: \"Explicit manual recapture of this week; preserve a verified backup and suppress confirmation email.\"\n        required: false\n        type: boolean\n        default: false",
+    "overwrite backup": "python3 scripts/prepare_cap_snapshot_overwrite.py",
+    "overwrite is separate from weekly retries": "Overwrite is a separate manual operation, not a weekly-package retry.",
     "snapshot retries": "Salary cap accounting attempt ${attempt} failed.",
     "sheet retries": "Cap Rollover writeback attempt ${attempt} failed.",
     "missing credentials are fatal": "Cap Rollover cannot be certified complete.",
@@ -22,3 +25,4 @@ if missing:
     raise SystemExit("Cap workflow safety checks failed: " + ", ".join(missing))
 
 print("Cap workflow transaction and retry checks passed.")
+
