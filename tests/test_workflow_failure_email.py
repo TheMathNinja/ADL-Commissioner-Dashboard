@@ -41,6 +41,20 @@ class FailureReports(unittest.TestCase):
                 self.assertFalse(m.delivered_child(state,*args))
 
     def test_other_production_exclusions(self):
+        self.assertIsNone(m.production(dict(self.run, event='pull_request')))
+
+    def test_historical_child_does_not_treat_preview_as_delivery(self):
+        old = dict(self.run, path='daily-commissioner-alerts.yml',display_title='Daily maintenance 42 - Commissioner alerts')
+        ok = dict(old,created_at='2026-10-31T09:00:00Z',conclusion='success',display_title='Daily maintenance 43 - Commissioner alerts')
+        preview = dict(ok,display_title='daily-commissioner-alerts')
+        self.assertIsNone(m.later_daily_cycle(m.COMMISSIONER,old,[preview]))
+        self.assertEqual(ok,m.later_daily_cycle(m.COMMISSIONER,old,[ok,preview]))
+        subject,body=m.message(m.COMMISSIONER,old,'impact',['alert step'],None,later_cycle=ok)
+        self.assertIn('history:',subject)
+        self.assertIn('does not confirm',body)
+        self.assertNotIn('No later successful',body)
+
+    def test_manual_and_unrelated_workflows(self):
         self.assertIsNone(m.production(dict(self.run, path='.github/workflows/evaluate_playoff_model.yml')))
         self.assertIsNone(m.production(dict(self.run, event='pull_request')))
         self.assertIsNone(m.production(dict(self.run, event='push')))

@@ -195,10 +195,23 @@ def correction_publication(repo, run):
     return receipt
 
 
-def message(repo, run, impact, failed, later_success, publication=None):
+def later_daily_cycle(repo, run, history):
+    child = daily_child(run)
+    if repo != COMMISSIONER or not child:
+        return None
+    candidates = (r for r in history if r.get('workflow_id') == run['workflow_id']
+                  and r.get('conclusion') == 'success' and r['created_at'] > run['updated_at']
+                  and (other := daily_child(r)) and other[1] == child[1] and other[0] != child[0])
+    return max(candidates, key=lambda r: r['created_at'], default=None)
+
+
+def message(repo, run, impact, failed, later_success, publication=None, later_cycle=None):
     title = re.sub(r'\b[a-f0-9]{40,64}\b', '', run.get('display_title') or run['name']).strip()
     status = 'CANCELLED' if run.get('conclusion') == 'cancelled' else 'FAILED'
     subject = f'[League automation {status}] {repo.split("/")[-1]} — {title}'
+    if later_cycle and not later_success:
+        subject = f'[League automation history: {run["created_at"][:10]} UTC] {title}'
+        impact = 'This earlier daily job did not complete. A later daily cycle passed; that does not confirm the original work or notification was completed.'
     if publication:
         impact=f'Week {publication["week"]} Thursday publication already completed successfully. Only the follow-up freshness check failed; it could not verify whether any newer changes were available.'
     lines = [subject, '', 'Impact: ' + impact]
@@ -213,6 +226,8 @@ def message(repo, run, impact, failed, later_success, publication=None):
     if later_success:
         lines += ['Catch-up notice: a later run of this workflow has succeeded.',
                   'Later successful run: ' + later_success['html_url']]
+    elif later_cycle:
+        lines += ['Latest successful production cycle: ' + later_cycle['html_url']]
     elif publication:
         lines += ['No later successful freshness check was found at report time.',
                   'The completed Thursday publication remains recorded; follow-up freshness verification is pending.']
@@ -358,7 +373,7 @@ def main():
                     continue
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
-                subject, body = message(repo, run, impact, failed, later, publication)
+                subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
                 if child:
                     body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
                 affected={j['name']:j.get('conclusion') for j in job_list if j.get('conclusion') in BAD|{'skipped'}}
