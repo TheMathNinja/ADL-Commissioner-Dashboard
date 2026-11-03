@@ -280,6 +280,24 @@
         "Verify daily maintenance package": "failure"
       },
       "failed_at": "2026-11-03T10:24:56Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:41033183781:1": {
+      "sent_at": "2026-11-03T17:58:29.616264+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Daily maintenance 41032591452 - Commissioner alerts",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 41032591452 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 41032591452 - Commissioner alerts:2026-10-30",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "3696ee8350189cd3e10e77397a77debc6617d976a24084dfcaeab03764fbb25c"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-10-30T09:26:00Z",
+      "daily_parent": "41032591452",
+      "daily_job": "Run Commissioner alerts"
     }
   },
   "checked": {
@@ -858,6 +876,14 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:41631957608:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:41633346339:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:41641837829:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:41650922621:1": "success"
+    "TheMathNinja/ADL-Commissioner-Dashboard:41650922621:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40664011586:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40664322859:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40664641657:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40848762719:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40849021814:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:40849307673:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:41032608021:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:41032900582:1": "success"
   }
 }
