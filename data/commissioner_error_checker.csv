@@ -1,1 +1,2 @@
 issue,expected_franchise,actual_franchise,player,expected_amount,actual_amount,mfl_description,transaction_date,mfl_entered_at,action,stage,actual_system,expected_player_team,expected_player_pos,expected_years,expected_contract,issue_key
+WRONG_FRANCHISE,PHI,CAR,Malcolm Koonce,2.2,2.2,M. Koonce,"Nov 3, 2026 at 6:54:14 AM ET",11/16/2025,Move this Contract Admin entry from CAR to PHI.,SalAdj Curator -> Contract Admin Sal Adj,Contract Admin,LVR,DE,1,2026 UFA,SalAdj Curator -> Contract Admin Sal Adj|WRONG_FRANCHISE|PHI|CAR|Malcolm Koonce|2.20|2.20
