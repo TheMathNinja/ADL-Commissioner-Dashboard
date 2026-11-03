@@ -45,6 +45,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: main
       - name: Set up cached ADL R runtime
         uses: ./.github/actions/setup-adl-r
       - name: Verify original-package restoration
@@ -108,8 +110,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/cap_accounting docs
+          git add data/cap_accounting docs/salary-cap-accounting.html docs/downloads/salary-cap-accounting
           git diff --cached --quiet && exit 0
           git commit -m "Preserve original cap snapshot and record audited late corrections"
-          git pull --rebase origin main
+          git pull --rebase --autostash -X theirs origin main
           git push origin HEAD:main
