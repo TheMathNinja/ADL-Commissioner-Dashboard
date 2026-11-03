@@ -261,6 +261,25 @@
         "preliminary",
         8
       ]
+    },
+    "TheMathNinja/ADL-GM-Dashboard:41618310247:1": {
+      "sent_at": "2026-11-03T10:25:49.028843+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Daily ADL League Maintenance",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance:2026-11-03",
+      "failed_steps": [
+        "Refresh SalAdj and Commissioner data: Dispatch Commissioner-owned data refresh"
+      ],
+      "cause_codes": {
+        "Refresh SalAdj and Commissioner data": "unclassified:125857330783",
+        "Verify daily maintenance package": "unclassified:125859747467"
+      },
+      "affected_jobs": {
+        "Refresh SalAdj and Commissioner data": "failure",
+        "Apply waiver cap corrections": "skipped",
+        "Verify daily maintenance package": "failure"
+      },
+      "failed_at": "2026-11-03T10:24:56Z"
     }
   },
   "checked": {
