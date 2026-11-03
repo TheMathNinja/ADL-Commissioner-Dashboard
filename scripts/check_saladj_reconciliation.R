@@ -543,6 +543,21 @@ latest_official_cap_snapshot_time <- function(season, base_dir = file.path("data
   if (length(adjustment_times)) max(adjustment_times) else as.POSIXct(NA, tz = "UTC")
 }
 
+transaction_day <- function(x) {
+  if (inherits(x, "POSIXt")) return(as.Date(x, tz = "America/New_York"))
+  raw <- trimws(as.character(x))
+  day <- as.Date(rep(NA_character_, length(raw)))
+  for (pair in list(c("^\\d{1,2}/\\d{1,2}/\\d{4}\\b", "%m/%d/%Y"),
+                    c("^\\d{1,2}/\\d{1,2}/\\d{2}\\b", "%m/%d/%y"),
+                    c("^\\d{4}-\\d{2}-\\d{2}", "%Y-%m-%d"))) {
+    ix <- which(grepl(pair[1], raw, perl = TRUE))
+    day[ix] <- as.Date(raw[ix], format = pair[2])
+  }
+  ix <- which(grepl("^[3-6][0-9]{4}([.]0+)?$", raw))
+  day[ix] <- as.Date(as.numeric(raw[ix]), origin = "1899-12-30")
+  day
+}
+
 build_commissioner_error_report <- function(
   expected_entries,
   actual_entries,
@@ -569,6 +584,11 @@ build_commissioner_error_report <- function(
       actual_entries$description, description_matches_expected, logical(1),
       player = expected$player, is_cash_trade = expected$is_cash_trade
     )
+    event_ok <- rep(TRUE, nrow(actual_entries))
+    if ("transaction_day" %in% names(actual_entries)) {
+      event_ok <- actual_entries$transaction_day == transaction_day(expected$row_date)
+    }
+    description_match <- description_match & event_ok
     identity_candidates <- which(description_match & !(actual_entries$actual_id %in% used_actual))
     candidate_amounts <- actual_entries$amount[identity_candidates]
     amount_candidates <- identity_candidates[
@@ -601,6 +621,16 @@ build_commissioner_error_report <- function(
       next
     }
 
+    if ("transaction_day" %in% names(actual_entries)) {
+      # Never borrow a different franchise's row from another legitimate drop.
+      other <- expected_entries[which(transaction_day(expected_entries$row_date) == transaction_day(expected$row_date) &
+        expected_entries$player == expected$player & expected_entries$franchise != expected$franchise), ]
+      amount_candidates <- amount_candidates[!actual_entries$franchise[amount_candidates] %in% other$franchise]
+      if ("is_br" %in% names(actual_entries) && "is_br" %in% names(expected))
+        amount_candidates <- amount_candidates[which(actual_entries$is_br[amount_candidates] == expected$is_br)]
+      if (length(amount_candidates) != 1L) amount_candidates <- integer()
+      if (length(identity_same_franchise)) amount_candidates <- integer()
+    }
     if (length(amount_candidates)) {
       chosen <- amount_candidates[[1]]
       used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
@@ -643,7 +673,7 @@ build_commissioner_error_report <- function(
       player = expected$player, is_cash_trade = expected$is_cash_trade
     )
     suspected_candidates <- which(
-      suspected_match & !(actual_entries$actual_id %in% used_actual) &
+      suspected_match & event_ok & !(actual_entries$actual_id %in% used_actual) &
         actual_entries$franchise == expected$franchise &
         !is.na(actual_entries$amount) &
         abs(actual_entries$amount - expected$amount) <= tolerance
@@ -933,11 +963,14 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
   )
   findings <- list()
   finding_index <- 0L
+  used_rows <- integer()
 
   for (i in seq_len(nrow(expected_entries))) {
     expected <- expected_entries[i, ]
     candidates <- which(
       sheet_entries$franchise == expected$franchise &
+        !(seq_len(nrow(sheet_entries)) %in% used_rows) &
+        transaction_day(sheet_entries$entered_at) == transaction_day(expected$row_date) &
         vapply(
           sheet_entries$description,
           description_matches_expected,
@@ -949,6 +982,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         abs(sheet_entries$input_salary - expected$salary_amount) <= tolerance
     )
     if (!length(candidates)) next
+    used_rows <- c(used_rows, candidates[[1]])
     actual <- sheet_entries[candidates[[1]], ]
 
     for (j in seq_len(nrow(controls))) {
@@ -1036,6 +1070,7 @@ build_historical_mfl_expectations <- function(sheet_entries, curator_entries, se
     curator <- curator_entries[i, ]
     candidates <- which(
       expected$franchise == curator$franchise &
+        transaction_day(sheet_entries$entered_at[match(expected$source_sheet_id, sheet_entries$actual_id)]) == transaction_day(curator$row_date) &
         !(expected$source_sheet_id %in% used_sheet_ids) &
         vapply(
           expected$player,
@@ -1539,6 +1574,22 @@ if (arg_flag("self-test-name-matching")) {
   }
   expected_acc_test <- saladj_expected_by_franchise("data/SalAdjCurator_latest.csv", season = 2026L,
                                                  accelerations = declaration_test, return_entries = TRUE)
+  drops <- tibble(franchise = c("PHI", "PHI", "NYG"), player = "Malcolm Koonce",
+                  amount = 2.2, is_br = FALSE, is_cash_trade = FALSE,
+                  row_date = parse_saladj_date(c("11/3/2026", "11/12/2026", "11/20/2026"), 2026))
+  rows <- tibble(actual_id = 1:4, franchise = c("CAR", "NYG", "PHI", "PHI"), amount = 2.2,
+                 description = "M. Koonce", is_br = c(TRUE, FALSE, FALSE, FALSE),
+                 entered_at = c("11/16/2025", "11/20/26", "11/12/2026", "11/03/2026"),
+                 transaction_day = transaction_day(entered_at))
+  stopifnot(nrow(build_commissioner_error_report(drops, rows)) == 0L)
+  cutoff <- parse_saladj_date("11/30/2026", 2026)
+  missing <- build_commissioner_error_report(drops, rows[-4, ], latest_snapshot_time = cutoff)
+  stopifnot(identical(missing$issue, "MISSING_ENTRY"), missing$expected_franchise == "PHI")
+  rows$franchise[4] <- "DAL"
+  wrong <- build_commissioner_error_report(drops, rows, latest_snapshot_time = cutoff)
+  stopifnot(identical(wrong$issue, "WRONG_FRANCHISE"), wrong$actual_franchise == "DAL")
+  rows$is_br[4] <- TRUE
+  stopifnot(identical(build_commissioner_error_report(drops, rows, latest_snapshot_time = cutoff)$issue, "MISSING_ENTRY"))
   sutton_test <- expected_acc_test |> filter(.data$franchise == "NYG", .data$player == "Courtland Sutton")
   stopifnot(nrow(sutton_test) == 1L, sutton_test$is_accelerated_declared, sutton_test$is_accelerated,
             sutton_test$amount == 29.96, sutton_test$expected_future_amount == 0)
@@ -1780,10 +1831,11 @@ sheet_expected_entries <- expected_entries |>
 sheet_actual_entries <- sheet_entries |>
   transmute(
     actual_id = row_number(), franchise, amount = .data$input_salary,
-    description, entered_at
+    description, entered_at, transaction_day = transaction_day(entered_at), is_br
   )
 sheet_entry_details <- expected_entries |>
   transmute(
+    transaction_date = vapply(seq_along(row_date), function(i) format_audit_datetime(row_date[i]), character(1)),
     expected_franchise = .data$franchise,
     player,
     expected_amount = .data$salary_amount,
@@ -1805,7 +1857,7 @@ sheet_error_report <- build_commissioner_error_report(
   latest_snapshot_time = latest_snapshot_time
 ) |>
   label_stage_findings("SalAdj Curator -> Contract Admin Sal Adj", "Contract Admin") |>
-  left_join(sheet_entry_details, by = c("expected_franchise", "player", "expected_amount"))
+  left_join(sheet_entry_details, by = c("expected_franchise", "player", "expected_amount", "transaction_date"))
 control_field_error_report <- audit_contract_admin_control_fields(
   expected_entries, sheet_entries, tolerance = tolerance
 )
