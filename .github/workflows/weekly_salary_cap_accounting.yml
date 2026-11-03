@@ -218,6 +218,15 @@ jobs:
           echo "Failed to record completed cap package after 3 attempts."
           exit 1
 
+      - name: Reconcile snapshot with MFL ledger and Contract Admin (read only)
+        if: steps.localtime.outputs.notify_needed == 'true'
+        run: |
+          if ! python3 scripts/cap_snapshot_review.py "$CURRENT_SEASON" "$SNAPSHOT_WEEK" > "$RUNNER_TEMP/cap-review.txt"; then
+            echo "::warning::Salary reconciliation unavailable; the confirmation will request review."
+            echo "Salary reconciliation: unavailable. Compare the snapshot, MFL and Contract Admin before entering CORR." > "$RUNNER_TEMP/cap-review.txt"
+          fi
+          cat "$RUNNER_TEMP/cap-review.txt"
+
       - name: Email official snapshot confirmation
         if: steps.localtime.outputs.notify_needed == 'true'
         continue-on-error: true
@@ -226,6 +235,7 @@ jobs:
           SNAPSHOT_WEEK: ${{ env.SNAPSHOT_WEEK }}
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
           ADL_CAP_SNAPSHOT_SEND_EMAIL: "true"
+          ADL_CAP_REVIEW_PATH: ${{ runner.temp }}/cap-review.txt
           ADL_CAP_SNAPSHOT_EMAIL_TO: fili.mikey@gmail.com,wittecarson@gmail.com
           ADL_CAP_SNAPSHOT_SHEET_STATUS: updated successfully
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}

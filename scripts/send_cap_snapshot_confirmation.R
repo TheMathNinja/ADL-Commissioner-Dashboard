@@ -10,6 +10,9 @@ format_snapshot_confirmation <- function(metadata) {
   taken_et <- as.POSIXct(format(taken, tz = "America/New_York", usetz = FALSE), tz = "America/New_York")
   date_text <- paste0(format(taken_et, "%A, %b "), as.integer(format(taken_et, "%d")), format(taken_et, ", %Y at %I:%M:%S %p ET"))
   weekly_update_url <- trimws(Sys.getenv("ADL_WEEKLY_UPDATE_URL", unset = ""))
+  path <- Sys.getenv("ADL_CAP_REVIEW_PATH")
+  review <- if (file.exists(path)) readLines(path, warn = FALSE) else character()
+  if (!length(review)) review <- "Salary reconciliation: unavailable. Review before entering CORR."
   lines <- c(
     paste0("ADL Week ", metadata$week[[1]], " Salary Cap Accounting Snapshot"),
     "",
@@ -18,7 +21,7 @@ format_snapshot_confirmation <- function(metadata) {
     paste0("The official Week ", metadata$week[[1]], " salary cap accounting snapshot was recorded successfully."),
     paste0("Snapshot taken: ", date_text),
     paste0("Contract Admin Cap Rollover tab: ", Sys.getenv("ADL_CAP_SNAPSHOT_SHEET_STATUS", unset = "updated successfully")),
-    paste0("Snapshot workflow: ", metadata$workflow_run_url[[1]])
+    "", review, "", paste0("Snapshot workflow: ", metadata$workflow_run_url[[1]])
   )
   if (nzchar(weekly_update_url)) {
     lines <- c(
@@ -99,7 +102,8 @@ writeLines(body, preview_path)
 
 if (tolower(Sys.getenv("ADL_CAP_SNAPSHOT_SEND_EMAIL", unset = "false")) %in% c("1", "true", "yes")) {
   recipients <- split_recipients(Sys.getenv("ADL_CAP_SNAPSHOT_EMAIL_TO", unset = ""))
-  subject <- paste0("[ADL Commissioner Alerts] Week ", week, " salary cap accounting snapshot complete")
+  status <- if (grepl("Salary reconciliation: all 32", body, fixed = TRUE)) "reconciled" else "review needed"
+  subject <- paste0("[ADL Commissioner Alerts] Week ", week, " salary cap snapshot recorded: ", status)
   send_snapshot_mail(subject, body, recipients)
   message("Sent official cap snapshot confirmation to ", paste(recipients, collapse = ", "))
 } else {
