@@ -377,7 +377,26 @@ def gotw_history_lines(league, rows, through_week=None):
     return lines
 
 
-def gotw_message(season, target_week, candidates, history=None):
+def gotw_seed_lookup(rows):
+    seeds = {r['franchise_id']: int(r['seed']) for r in rows}
+    if len(rows) != 32 or len(seeds) != 32 or sorted(seeds.values()) != sorted(list(range(1, 17)) * 2):
+        raise ValueError('Playoff Picture must contain 32 franchises seeded 1-16 by conference')
+    return seeds
+
+
+def published_gotw_seeds(league, repo, season, target):
+    if league == 'FAFL':
+        return gotw_seed_lookup(csv_document(repo, f'docs/playoff-picture/week-{target:02d}.csv'))
+    # ADL embeds the table data in its week-specific public forecast, not a CSV.
+    path = f'docs/playoff-picture/ADL_{season}_W{target:02d}_playoff_and_draft_forecast.html'
+    with urllib.request.urlopen(f'https://raw.githubusercontent.com/{repo}/main/{path}', timeout=45) as response:
+        page = response.read().decode('utf-8')
+    marker = 'const data={"NFC":'
+    data, _ = json.JSONDecoder().raw_decode(page[page.index(marker) + len('const data='):])
+    return gotw_seed_lookup(data['NFC'] + data['AFC'])
+
+
+def gotw_message(season, target_week, candidates, seeds, history=None):
     abbreviations = franchise_abbreviations()
     def scenarios(row, metric, digits):
         teams = []
@@ -399,8 +418,8 @@ def gotw_message(season, target_week, candidates, history=None):
             lines += gotw_history_lines(league, history.get(league, []), target_week - 1)
         for rank, r in enumerate(candidates[league], 1):
             lines += [
-                f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f}) vs. '
-                f'{r["team_b"]} ({r["b_record"]} | #{r["b_elo_rank"]} Elo: {r["b_elo"]:.0f})',
+                f'{rank}. {r["team_a"]} ({r["a_record"]} | #{r["a_elo_rank"]} Elo: {r["a_elo"]:.0f} | Seed #{seeds[league][r["team_a_id"]]}) vs. '
+                f'{r["team_b"]} ({r["b_record"]} | #{r["b_elo_rank"]} Elo: {r["b_elo"]:.0f} | Seed #{seeds[league][r["team_b_id"]]})',
                 'Blurb: ' + (r.get('blurb') or make_blurb(league, r)['text']),
                 f'Playoff Percentage Points Up For Grabs: {float(r["combined_swing"]):.1f} (#{r["impact_rank"]} of 16) {scenarios(r, "playoff", 0)}',
                 f'Playoff Seed Swing: {float(r["combined_seed_swing"]):.2f} slots (#{r["seed_rank"]} of 16) {scenarios(r, "seed", 1)}',
@@ -467,7 +486,9 @@ def maybe_send_gotw(state, dry_run=False, force=False):
             print(f'{league} GoTW blurb evidence: ' + json.dumps(story, sort_keys=True))
     prepared = time.perf_counter()
     history = gotw_history(state, season, target - 1)
-    subject, body = gotw_message(season, target, candidates, history)
+    seeds = {league: published_gotw_seeds(league, repo, season, target)
+             for league, (repo, _, _) in LEAGUES.items()}
+    subject, body = gotw_message(season, target, candidates, seeds, history)
     rendered = time.perf_counter()
     if dry_run:
         print(body)

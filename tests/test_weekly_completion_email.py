@@ -256,10 +256,11 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertEqual(candidates[0]['team_a'],'Team 1')
         history={league:[dict(season=2026,week=4,team_a='Kansas City Chiefs',team_b='Indianapolis Colts')]
                  for league in ('ADL','FAFL')}
-        subject,body=m.gotw_message(2026,5,{'ADL':candidates,'FAFL':candidates},history)
+        seeds=m.gotw_seed_lookup([dict(franchise_id=f'{i+1:04}',seed=str(16-i%16)) for i in range(32)])
+        subject,body=m.gotw_message(2026,5,{'ADL':candidates,'FAFL':candidates},dict.fromkeys(history,seeds),history)
         self.assertIn('Week 5',subject)
         self.assertIn('Playoff Percentage Points Up For Grabs: 30.0 (#1 of 16)',body)
-        self.assertIn('Team 1 (3-1-0 | #1 Elo: 1600) vs. Team 2 (3-1-0 | #2 Elo: 1599)',body)
+        self.assertIn('Team 1 (3-1-0 | #1 Elo: 1600 | Seed #16) vs. Team 2 (3-1-0 | #2 Elo: 1599 | Seed #15)',body)
         self.assertIn('30% playoff percentage-point swing, 20% average seed swing, 30% average Elo, and 20% Elo closeness.',body)
         self.assertIn('Playoff Seed Swing: 3.40 slots (#1 of 16) [Team 1 1.8/4.2; Team 2 3.0/4.0]',body)
         self.assertIn('[Team 1 70/50; Team 2 60/50]',body)
@@ -310,7 +311,8 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertEqual(week,7)
         self.assertEqual(candidates[0]['a_record'],'4-3-0*')
         self.assertEqual(candidates[0]['b_record'],'3-3-1*')
-        _,body=m.gotw_message(2026,7,{'ADL':candidates,'FAFL':candidates})
+        seeds={f'{i+1:04}':i%16+1 for i in range(32)}
+        _,body=m.gotw_message(2026,7,{'ADL':candidates,'FAFL':candidates},dict.fromkeys(('ADL','FAFL'),seeds))
         self.assertIn('* Records include unofficial Q2 Bonus Game results.',body)
 
     def test_published_game_of_week_is_parsed_from_homepage(self):
