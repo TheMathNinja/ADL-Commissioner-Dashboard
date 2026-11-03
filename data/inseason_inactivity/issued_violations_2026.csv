@@ -12,3 +12,5 @@ repeated_roster_violation|2026|JAC|Roster Cap Violation|Maximum 45 non-suspended
 illegal_lineup|2026|CAR|7,2026-10-27 05:33:45 EDT,2026,NFC,CAR,Carolina Panthers,Illegal Lineup,GM must submit a legal weekly lineup,,
 illegal_lineup|2026|DET|7,2026-10-27 05:33:45 EDT,2026,NFC,DET,Detroit Lions,Illegal Lineup,GM must submit a legal weekly lineup,,
 illegal_waiver_claim|2026|HOU|13848|2026-11-01,2026-11-02 05:26:13 EST,2026,AFC,HOU,Houston Texans,Illegal Waiver Claim,Illegal waiver claim,2026-11-02 12:50:40 EST,Emergency-add declaration and acquisition window verified; any contract-entry issue is tracked separately for commissioners.
+illegal_lineup|2026|KCC|8,2026-11-03 05:23:17 EST,2026,AFC,KCC,Kansas City Chiefs,Illegal Lineup,GM must submit a legal weekly lineup,,
+illegal_lineup|2026|DET|8,2026-11-03 05:23:17 EST,2026,NFC,DET,Detroit Lions,Illegal Lineup,GM must submit a legal weekly lineup,,

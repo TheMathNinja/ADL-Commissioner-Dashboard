@@ -1,1 +1,3 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
+illegal_lineup|2026|KCC|8,2026,8,2026-11-03 05:23:17 EST,In-Season Inactivity Violation,violation,AFC,KCC,Kansas City Chiefs,Illegal Lineup,GM must submit a legal weekly lineup,"Week 8 lineup was submitted or played illegally: 0 PK, 0 PN",Must start 1 additional PK and 1 additional PN,inseason
+illegal_lineup|2026|DET|8,2026,8,2026-11-03 05:23:17 EST,In-Season Inactivity Violation,violation,NFC,DET,Detroit Lions,Illegal Lineup,GM must submit a legal weekly lineup,Week 8 lineup was submitted or played illegally: 11 defensive starters (1 CB),Must start 1 additional CB,inseason

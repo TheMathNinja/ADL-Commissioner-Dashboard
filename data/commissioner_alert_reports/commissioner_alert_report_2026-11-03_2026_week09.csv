@@ -1,0 +1,4 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,9,2026-11-03 10:23:17 UTC,Roster Warning,warning,NFC,DAL,Dallas Cowboys,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Mayfield, Baker TBB QB from Active to Injured Reserve to be fully compliant.",,
+2026,8,2026-11-03 10:23:17 UTC,In-Season Inactivity Violation,violation,AFC,KCC,Kansas City Chiefs,GM must submit a legal weekly lineup,"Week 8 lineup was submitted or played illegally: 0 PK, 0 PN",Must start 1 additional PK and 1 additional PN,,
+2026,8,2026-11-03 10:23:17 UTC,In-Season Inactivity Violation,violation,NFC,DET,Detroit Lions,GM must submit a legal weekly lineup,Week 8 lineup was submitted or played illegally: 11 defensive starters (1 CB),Must start 1 additional CB,,
