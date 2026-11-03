@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import smtplib
 import ssl
 import sys
@@ -30,7 +31,7 @@ def main() -> None:
     server_url = required("ADL_SMTP_SERVER")
     parsed = urlparse(server_url if "://" in server_url else f"smtp://{server_url}")
     host = parsed.hostname or parsed.path
-    use_ssl = parsed.scheme.lower() == "smtps"
+    use_ssl = parsed.scheme.lower() == "smtps" or parsed.port == 465
     port = parsed.port or (465 if use_ssl else 587)
 
     message = EmailMessage()
@@ -44,17 +45,19 @@ def main() -> None:
         message.add_alternative(payload["html"], subtype="html")
 
     context = ssl.create_default_context()
-    if use_ssl:
-        with smtplib.SMTP_SSL(host, port, context=context, timeout=30) as smtp:
-            smtp.login(username, password)
-            refused = smtp.send_message(message)
-    else:
-        with smtplib.SMTP(host, port, timeout=30) as smtp:
-            smtp.ehlo()
+    if re.fullmatch(r'(?:[a-z]{4} ){3}[a-z]{4}', password):
+        password = password.replace(' ', '')
+    factory = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    with factory(host, port, timeout=30, **({'context': context} if use_ssl else {})) as smtp:
+        if not use_ssl:
             smtp.starttls(context=context)
-            smtp.ehlo()
-            smtp.login(username, password)
-            refused = smtp.send_message(message)
+        smtp.ehlo()
+        if 'LOGIN' in smtp.esmtp_features.get('auth', '').upper().split():
+            smtp.user, smtp.password = username, password
+            smtp.auth('LOGIN', smtp.auth_login, initial_response_ok=False)
+        else:
+            smtp.login(username, password, initial_response_ok=False)
+        refused = smtp.send_message(message)
 
     if refused:
         raise RuntimeError("Partial SMTP delivery; review before retrying")
