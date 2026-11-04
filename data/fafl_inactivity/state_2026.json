@@ -48,7 +48,11 @@
       "observed": "Last league access: Oct 28, 2026 at 12:12 AM EDT",
       "detected_at": "2026-11-04T05:09:40.006680+00:00",
       "status": "pending_notice",
-      "activity_at": "2026-10-28T04:12:39+00:00"
+      "activity_at": "2026-10-28T04:12:39+00:00",
+      "notice": {
+        "status": "sending",
+        "attempted_at": "2026-11-04T05:09:44.884370+00:00"
+      }
     }
   },
   "counts": {
