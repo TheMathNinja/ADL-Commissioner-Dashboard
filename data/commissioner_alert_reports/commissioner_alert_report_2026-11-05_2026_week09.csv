@@ -1,0 +1,3 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,9,2026-11-05 10:25:56 UTC,Roster Cap Violation,violation,AFC,LAC,Los Angeles Chargers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,9,2026-11-05 10:25:56 UTC,Roster Warning,warning,AFC,HOU,Houston Texans,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,47 non-suspended/non-holdout Active + Taxi players,"Move Rolder, Jimmy DET LB from Active to Injured Reserve; Bourne, Kendrick ARI WR from Active to Injured Reserve to be fully compliant.",,
