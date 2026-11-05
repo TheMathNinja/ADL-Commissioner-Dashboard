@@ -75,7 +75,7 @@ def get_json(url, payload=None, method=None):
         with urllib.request.urlopen(req, timeout=45) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
-        if exc.code == 404:
+        if exc.code == 404 and (method is None or method == 'GET') and payload is None:
             return None
         raise
 
@@ -725,13 +725,35 @@ def send_email(subject, body, key, to=None, cc=None):
 def save_state(state):
     repo = os.environ['GITHUB_REPOSITORY']
     url = f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
-    current = get_json(url)
-    payload = dict(message='Record delivered weekly refresh email',
-                   content=base64.b64encode((json.dumps(state, indent=2)+'\n').encode()).decode(),
-                   branch='main')
-    if current:
-        payload['sha'] = current['sha']
-    get_json(url, payload, method='PUT')
+    for attempt in range(4):
+        try:
+            # A failed PUT response may hide an accepted write. Re-read before
+            # retrying, and preserve records committed by another writer.
+            current = get_json(url + '?ref=main')
+            remote = json.loads(base64.b64decode(current['content'])) if current else {}
+            merged = dict(remote)
+            for key, value in state.items():
+                merged[key] = ({**remote.get(key, {}), **value}
+                               if isinstance(value, dict) and isinstance(remote.get(key, {}), dict)
+                               else value)
+            if current and remote == merged:
+                state.update(merged)
+                return
+            payload = dict(message='Record league email reporting state',
+                           content=base64.b64encode((json.dumps(merged, indent=2)+'\n').encode()).decode(),
+                           branch='main')
+            if current:
+                payload['sha'] = current['sha']
+            get_json(url, payload, method='PUT')
+            state.update(merged)
+            return
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (408, 409, 429, 500, 502, 503, 504) or attempt == 3:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if attempt == 3:
+                raise
+        time.sleep(2 ** (attempt + 1))
 
 
 def main():
