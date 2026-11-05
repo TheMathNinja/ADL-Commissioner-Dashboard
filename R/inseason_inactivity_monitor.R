@@ -578,17 +578,13 @@ evaluate_lineup_submission_inactivity <- function(season = get_current_season(),
   week <- commissioner_alert_status_week(season = season, checked_at = run_time)
   if (is.na(week)) return(empty_inseason_inactivity_rows())
 
-  kickoffs <- tryCatch(read_nfl_team_kickoffs(season = season, week = week), error = function(e) tibble())
-  first_game_at <- if (nrow(kickoffs) && "kickoff_at" %in% names(kickoffs)) {
-    kickoff_values <- as.POSIXct(kickoffs$kickoff_at, tz = "UTC")
-    kickoff_values <- kickoff_values[!is.na(kickoff_values)]
-    if (length(kickoff_values)) min(kickoff_values) else as.POSIXct(NA)
-  } else {
-    as.POSIXct(NA)
-  }
-  if (!is.na(first_game_at) && lubridate::with_tz(run_time, "UTC") < first_game_at) {
-    return(empty_inseason_inactivity_rows())
-  }
+  # Check the most recent locked week, not a still-editable Thursday lineup.
+  last_game_at <- lineup_week_last_kickoff(read_nfl_team_kickoffs(season = season, week = week))
+  if (is.na(last_game_at)) stop("Cannot verify lineup submission deadline: missing kickoff evidence.")
+  if (run_time < last_game_at) week <- week - 1L
+  if (week < 1L) return(empty_inseason_inactivity_rows())
+  last_game_at <- lineup_week_last_kickoff(read_nfl_team_kickoffs(season = season, week = week))
+  if (is.na(last_game_at) || run_time < last_game_at) stop("Cannot verify a completed lineup submission window.")
 
   audit <- tryCatch(
     lineup_submission_audit(season = season, week = week, force_live = force_live),
@@ -664,7 +660,9 @@ evaluate_lineup_submission_warnings <- function(season = get_current_season(), w
 evaluate_confirmed_illegal_lineup_inactivity <- function(
   season = get_current_season(),
   run_time = Sys.time(),
-  reports = NULL
+  reports = NULL,
+  fetch_lineups = fetch_live_lineups,
+  fetch_kickoffs = read_nfl_team_kickoffs
 ) {
   if (is.null(reports)) reports <- read_all_commissioner_alert_reports(season)
   if (!nrow(reports) || !"week" %in% names(reports)) return(empty_inseason_inactivity_rows())
@@ -672,16 +670,41 @@ evaluate_confirmed_illegal_lineup_inactivity <- function(
   current_week <- commissioner_alert_status_week(season = season, checked_at = run_time)
   if (is.na(current_week)) return(empty_inseason_inactivity_rows())
 
-  reports |>
+  candidates <- reports |>
     mutate(report_week = suppressWarnings(as.integer(.data$week))) |>
     filter(
-      .data$alert_type == "Illegal Lineup",
+      .data$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning"),
+      startsWith(.data$rule, "Starting lineups require"),
       !is.na(.data$franchise),
       nzchar(.data$franchise),
       !is.na(.data$report_week),
       .data$report_week < .env$current_week
     ) |>
-    group_by(.data$conference, .data$franchise, .data$franchise_name, week = .data$report_week) |>
+    distinct(.data$conference, .data$franchise, .data$franchise_name, week = .data$report_week)
+  if (!nrow(candidates)) return(empty_inseason_inactivity_rows())
+
+  verified <- bind_rows(lapply(sort(unique(candidates$week)), function(week) {
+    last_kickoff <- lineup_week_last_kickoff(fetch_kickoffs(season = season, week = week))
+    if (is.na(last_kickoff)) stop("Cannot confirm Week ", week, " lineup violations without kickoff evidence.")
+    if (run_time < last_kickoff) return(tibble())
+    lineups <- fetch_lineups(season = season, week = week)
+    if (!nrow(lineups) || anyNA(lineups$player_pos) || any(!nzchar(lineups$player_pos))) {
+      stop("Cannot confirm Week ", week, " lineup violations from missing player/position data.")
+    }
+    teams <- candidates |> filter(.data$week == .env$week)
+    bind_rows(lapply(seq_len(nrow(teams)), function(i) {
+      team <- teams[i, ]
+      selected <- lineups |> filter(.data$franchise == team$franchise[[1]])
+      if (!nrow(selected) || anyDuplicated(selected$player_id)) stop("Incomplete final lineup evidence for ", team$franchise[[1]], " Week ", week)
+      issues <- lineup_starter_count_alert_rows(selected$franchise_id[[1]], nrow(selected), selected, 21L)
+      if (!nrow(issues)) return(tibble())
+      issues |> mutate(conference = team$conference[[1]], franchise = team$franchise[[1]],
+                       franchise_name = team$franchise_name[[1]], week = .env$week)
+    }))
+  }))
+  if (!nrow(verified)) return(empty_inseason_inactivity_rows())
+  verified |>
+    group_by(.data$conference, .data$franchise, .data$franchise_name, .data$week) |>
     summarize(
       observed = paste(unique(.data$observed), collapse = "; "),
       details = paste(unique(.data$details[nzchar(coalesce(.data$details, ""))]), collapse = "; "),
@@ -696,7 +719,7 @@ evaluate_confirmed_illegal_lineup_inactivity <- function(
       week = as.character(.data$week),
       violation_category = "Illegal Lineup",
       rule = "GM must submit a legal weekly lineup",
-      observed = paste0("Week ", .data$week, " lineup was submitted or played illegally: ", .data$observed),
+      observed = paste0("Week ", .data$week, " final MFL lineup has a confirmed structural violation: ", .data$observed),
       details,
       violation_key = paste("illegal_lineup", season, .data$franchise, .data$week, sep = "|"),
       season_phase = "inseason"

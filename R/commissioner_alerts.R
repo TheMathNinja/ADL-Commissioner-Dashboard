@@ -1612,6 +1612,13 @@ lineup_alert_type <- function(severity) {
   ifelse(identical(severity, "warning") | severity == "warning", "Illegal Lineup Warning", "Illegal Lineup")
 }
 
+lineup_week_last_kickoff <- function(kickoffs) {
+  if (is.null(kickoffs) || !nrow(kickoffs) || !"kickoff_at" %in% names(kickoffs)) return(as.POSIXct(NA))
+  values <- as.POSIXct(kickoffs$kickoff_at, tz = "UTC")
+  if (anyNA(values)) return(as.POSIXct(NA))
+  max(values)
+}
+
 lineup_alert_date <- function(x) {
   as.Date(lubridate::with_tz(as.POSIXct(x, tz = "UTC"), "America/New_York"))
 }
@@ -2265,7 +2272,8 @@ evaluate_illegal_lineup_alerts <- function(
       severity = if (isTRUE(.env$is_first_game_warning_day)) {
         rep("warning", dplyr::n())
       } else {
-        lineup_alert_severity(.data$lineup_lock_at, checked_at = .env$checked_at)
+        # Empty later-game slots remain repairable after an earlier starter locks.
+        rep(lineup_alert_severity(lineup_week_last_kickoff(kickoffs), checked_at = .env$checked_at), dplyr::n())
       },
       alert_type = lineup_alert_type(.data$severity)
     )
@@ -2444,7 +2452,6 @@ evaluate_illegal_lineup_alerts <- function(
   }
 
   structural_warning_franchise_ids <- if (
-    isTRUE(is_first_game_warning_day) &&
       nrow(count_alerts) &&
       "franchise_id_temp" %in% names(count_alerts)
   ) {

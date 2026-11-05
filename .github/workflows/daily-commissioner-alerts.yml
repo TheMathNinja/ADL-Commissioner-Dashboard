@@ -106,6 +106,7 @@ jobs:
         run: |
           Rscript tests/test_commissioner_recipient_directory.R
           Rscript tests/test_lineup_email_grouping.R
+          Rscript tests/test_final_lineup_confirmation.R
           Rscript tests/test_emergency_adds.R
 
       - name: Run commissioner alerts

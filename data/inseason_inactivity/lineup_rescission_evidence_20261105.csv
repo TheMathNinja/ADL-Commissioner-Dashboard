@@ -1,0 +1,106 @@
+conference,franchise,franchise_name,franchise_id,player_id,player_name,player_team,player_pos,lineup_slot,week,verified_at,source_url
+NFC,NYG,New York Giants,0002,14779,"Herbert, Justin",LAC,QB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,14086,"Hill, Justice",BAL,RB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17527,"Cameron, Josh",JAC,WR,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,14832,"Lamb, CeeDee",DAL,WR,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,13630,"Sutton, Courtland",DEN,WR,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17521,"Thomas, Zavion",CHI,WR,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,15794,"McBride, Trey",ARI,TE,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17736,"Zvada, Dominic",NYG,PK,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,13431,"Sanchez, Rigoberto",IND,PN,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,14153,"Allen, Zach",DEN,DT,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,14897,"Brown, Derrick",CAR,DT,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,13448,"Butler, Adam",LVR,DT,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17568,"Mesidor, Akheem",LAC,DE,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,15378,"Oweh, Odafe",WAS,DE,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,16019,"Hansen, Jake",HOU,LB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,15428,"Sherwood, Jamien",NYJ,LB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,13281,"Douglas, Rasul",WAS,CB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,16670,"McKinstry, Kool-Aid",NOS,CB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,14669,"Nixon, Keisean",GBP,CB,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17563,"Downs, Caleb",DAL,S,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,NYG,New York Giants,0002,17153,"Mukuba, Andrew",PHI,S,NA,6,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=6&JSON=1
+NFC,CAR,Carolina Panthers,0010,13113,"Watson, Deshaun",CLE,QB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,14073,"Jacobs, Josh",GBP,RB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,17075,"Golden, Matthew",GBP,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,15762,"Pickens, George",DAL,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,16185,"Smith-Njigba, Jaxon",SEA,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,16620,"Worthy, Xavier",KCC,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,15798,"Likely, Isaiah",NYG,TE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,11936,"Boswell, Chris",PIT,PK,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,15051,"Townsend, Tommy",TEN,PN,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,12754,"Collins, Maliek",CLE,DT,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,14159,"Lawrence, Dexter",CIN,DT,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,15352,"Collins, Zaven",ARI,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,12221,"Hunter, Danielle",HOU,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,16262,"White, Keion",SFO,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,17556,"Reese, Arvell",NYG,LB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,14221,"Williams, Quincy",CLE,LB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,15852,"Gordon, Kyler",CHI,CB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,13764,"Johnson, Taron",LVR,CB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,14180,"Murphy, Byron",MIN,CB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,16725,"Mustapha, Malik",SFO,S,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,CAR,Carolina Panthers,0010,17172,"Woodson, Craig",NEP,S,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,7836,"Rodgers, Aaron",PIT,QB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17477,"Coleman, Jonah",DEN,RB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,15261,"Hubbard, Chuba",CAR,RB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17071,"McMillan, Tetairoa",CAR,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17157,"TeSlaa, Isaac",DET,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17134,"Williams, Kyle",NEP,WR,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,15802,"Otton, Cade",TBB,TE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,16896,"Shrader, Spencer",IND,PK,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,11383,"Martin, Sam",CAR,PN,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,15390,"McNeill, Alim",DET,DT,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17146,"Williams, Tyleik",DET,DT,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17550,"Bain Jr., Rueben",TBB,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,17112,"Carter, Abdul",NYG,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,14225,"Crosby, Maxx",LVR,DE,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,14893,"Baun, Zack",PHI,LB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,15846,"Walker, Quay",LVR,LB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,15387,"Werner, Pete",NOS,LB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,13707,"Ward, Denzel",CLE,CB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,16241,"Witherspoon, Devon",SEA,CB,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,16281,"Brown, Ji'Ayir",SFO,S,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,14186,"Rapp, Taylor",DEN,S,NA,7,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=7&JSON=1
+NFC,DET,Detroit Lions,0006,7836,"Rodgers, Aaron",PIT,QB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17477,"Coleman, Jonah",DEN,RB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,15261,"Hubbard, Chuba",CAR,RB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17071,"McMillan, Tetairoa",CAR,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,15761,"Shakir, Khalil",BUF,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17134,"Williams, Kyle",NEP,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17627,"Hibner, Matthew",BAL,TE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,12956,"Lutz, Wil",DEN,PK,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,11383,"Martin, Sam",CAR,PN,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,15390,"McNeill, Alim",DET,DT,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17146,"Williams, Tyleik",DET,DT,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17555,"Woods, Peter",KCC,DT,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17550,"Bain Jr., Rueben",TBB,DE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,14225,"Crosby, Maxx",LVR,DE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,14893,"Baun, Zack",PHI,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,16283,"Overshown, DeMarvion",DAL,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,15846,"Walker, Quay",LVR,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,16701,"Rakestraw, Ennis",DET,CB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,16241,"Witherspoon, Devon",SEA,CB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,15469,"Hamlin, Damar",BUF,S,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+NFC,DET,Detroit Lions,0006,17575,"McNeil-Warren, Emmanuel",CLE,S,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,13116,"Mahomes, Patrick",KCC,QB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15255,"Gainwell, Kenneth",TBB,RB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15281,"Chase, Ja'Marr",CIN,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17501,"Concepcion, KC",CLE,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,14836,"Jefferson, Justin",MIN,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,16616,"Odunze, Rome",CHI,WR,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17103,"Fannin, Harold",CLE,TE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15979,"Dicker, Cameron",LAC,PK,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,12323,"Pinion, Bradley",MIA,PN,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17570,"Hunter, Lee",CAR,DT,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15391,"Williams, Milton",NEP,DT,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17550,"Bain Jr., Rueben",TBB,DE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15853,"Mafe, Boye",CIN,DE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17160,"Umanmielen, Princely",CAR,DE,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17628,"Daniels, Kendal",ATL,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17589,"Trotter, Josiah",TBB,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,14221,"Williams, Quincy",CLE,LB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17639,"Abney, Keith",DET,CB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,17128,"Barron, Jahdae",DEN,CB,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,15835,"Brisker, Jaquan",PIT,S,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
+AFC,KCC,Kansas City Chiefs,0030,16572,"Okada, Ty",SEA,S,NA,8,2026-11-05,https://api.myfantasyleague.com/2026/export?TYPE=weeklyResults&L=60206&W=8&JSON=1
