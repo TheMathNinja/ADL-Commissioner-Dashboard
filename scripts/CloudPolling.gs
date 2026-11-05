@@ -7,6 +7,7 @@ const CLOUD_SCHEDULER = {
   alertEmail: 'fili.mikey@gmail.com',
   owner: 'TheMathNinja',
   intervalMinutes: 5,
+  dispatchAlertGraceMinutes: 15,
   maxCatchUpMinutes: 26 * 60,
   circuitFailureThreshold: 3,
   circuitProbeMinutes: 60,
@@ -156,16 +157,26 @@ function cloudDispatch_(job, token, overrideInputs) {
     '/actions/workflows/' + job.workflow + '/dispatches';
   let response;
   for (let attempt = 0; attempt < 4; attempt++) {
-    response = UrlFetchApp.fetch(url,
+    try { response = UrlFetchApp.fetch(url,
       {method: 'post', headers: cloudHeaders_(token), contentType: 'application/json',
         payload: JSON.stringify({ref: 'main', inputs: inputs}), muteHttpExceptions: true});
+    } catch (cause) {
+      if (attempt < 3) { Utilities.sleep(Math.pow(2, attempt) * 1000); continue; }
+      const error = new Error(job.repo + '/' + job.workflow + ': dispatch transport failed; acceptance is unconfirmed.');
+      error.dispatchFailure = true;
+      error.retryable = true;
+      throw error;
+    }
     const code = response.getResponseCode();
     if (code === 200 || code === 204) return;
     if ([429, 500, 502, 503, 504].indexOf(code) < 0 || attempt === 3) break;
     Utilities.sleep(Math.pow(2, attempt) * 1000);
   }
-  throw new Error(job.repo + '/' + job.workflow + ' returned HTTP ' +
+  const error = new Error(job.repo + '/' + job.workflow + ' returned HTTP ' +
     response.getResponseCode() + ': ' + response.getContentText().slice(0, 500));
+  error.dispatchFailure = true;
+  error.retryable = [429, 500, 502, 503, 504].indexOf(response.getResponseCode()) >= 0;
+  throw error;
 }
 
 function cloudVerifyWorkflow_(job, token) {
@@ -319,6 +330,7 @@ function cloudJobKey_(job) {
 
 function dispatchOnce_(job, token, slot, props, overrideInputs) {
   const key = cloudJobKey_(job);
+  const incidentKey = 'CLOUD_DISPATCH_INCIDENT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
   const receipt = 'CLOUD_SCHEDULER_SENT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
   const slotText = String(slot.getTime());
   if (props.getProperty(receipt) === slotText) {
@@ -328,12 +340,30 @@ function dispatchOnce_(job, token, slot, props, overrideInputs) {
   try {
     cloudDispatch_(job, token, overrideInputs);
     props.setProperty(receipt, slotText);
+    props.deleteProperty(incidentKey);
     props.deleteProperty('CLOUD_SCHEDULER_ALERT_' + key.replace(/[^A-Za-z0-9_]/g, '_'));
     console.log('Dispatched ' + key + ' for ' + slot.toISOString());
     return true;
   } catch (error) {
-    cloudAlert_(key, error.message);
-    throw error;
+    if (!error.dispatchFailure) throw error;
+    let incident;
+    try { incident = JSON.parse(props.getProperty(incidentKey) || 'null'); } catch (ignored) {}
+    if (!incident || !Number.isFinite(incident.firstFailure)) incident = {firstFailure: Date.now(), alerted: false};
+    incident.lastFailure = Date.now();
+    incident.slot = slotText;
+    incident.error = error.message;
+    props.setProperty(incidentKey, JSON.stringify(incident));
+    if (!incident.alerted && (!error.retryable ||
+        Date.now() - incident.firstFailure >= CLOUD_SCHEDULER.dispatchAlertGraceMinutes * 60000)) {
+      MailApp.sendEmail(CLOUD_SCHEDULER.alertEmail, 'League cloud scheduler failed: ' + key,
+        'GitHub has not confirmed acceptance of this required workflow dispatch. Automatic retries will continue.\n\n' +
+        error.message + '\nFirst unsuccessful attempt (UTC): ' + new Date(incident.firstFailure).toISOString() +
+        '\nThis is a dispatch problem, not confirmation that the league check itself failed.');
+      incident.alerted = true;
+      props.setProperty(incidentKey, JSON.stringify(incident));
+    }
+    console.warn('Dispatch remains pending: ' + key + ': ' + error.message);
+    return false;
   }
 }
 
