@@ -1,0 +1,8 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Diaby, YaYa TBB DE is inactive (O)",,,
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,NFC,DAL,Dallas Cowboys,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,NFC,DET,Detroit Lions,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,
+2026,9,2026-11-06 10:25:26 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,No inactive players allowed in starting lineup,"Watson, Jaylen LAR CB is inactive (O)",,,
+2026,9,2026-11-06 10:25:26 UTC,Roster Cap Violation,violation,NFC,SEA,Seattle Seahawks,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
