@@ -269,6 +269,7 @@ NFC,DET,Detroit Lions,14840,"Aiyuk, Brandon SFO WR","Aiyuk, Brandon",SFO,WR,Acti
 NFC,DET,Detroit Lions,17726,"Stevens, Drew WAS PK","Stevens, Drew",WAS,PK,Active,R,1.1,1,266.44,2026 UFA,,stevens
 NFC,DET,Detroit Lions,17680,"Spears-Jennings, Robert PIT S","Spears-Jennings, Robert",PIT,S,Active,R,1.1,1,266.44,2026 UFA,,spears-jennings
 NFC,DET,Detroit Lions,17226,"Hassanein, Ahmed DET DE","Hassanein, Ahmed",DET,DE,Active,,1.1,1,266.44,2026 UFA,,hassanein
+NFC,DET,Detroit Lions,17572,"Terrell, Avieon ATL CB","Terrell, Avieon",ATL,CB,Active,R,1.1,1,266.44,2026 UFA,,terrell
 NFC,GBP,Green Bay Packers,15284,"Waddle, Jaylen DEN WR","Waddle, Jaylen",DEN,WR,Active,,16.36,4,266.62,2025 oEXT,,waddle
 NFC,GBP,Green Bay Packers,15711,"Walker III, Kenneth KCC RB","Walker III, Kenneth",KCC,RB,Active,,10.8,3,266.62,2026 oEXT,,walker iii
 NFC,GBP,Green Bay Packers,15329,"Pitts, Kyle ATL TE","Pitts, Kyle",ATL,TE,Active,,9.39,4,266.62,2024 iEXT,,pitts
@@ -1026,7 +1027,6 @@ AFC,CIN,Cincinnati Bengals,13223,"Humphrey, Marlon BAL CB","Humphrey, Marlon",BA
 AFC,CIN,Cincinnati Bengals,15362,"Surtain II, Patrick DEN CB","Surtain II, Patrick",DEN,CB,Active,,3.15,3,266.62,2026 UFA,,surtain ii
 AFC,CIN,Cincinnati Bengals,16195,"Wicks, Dontayvion PHI WR","Wicks, Dontayvion",PHI,WR,Active,Questionable,1.1,1,266.62,2026 UFA,,wicks
 AFC,CIN,Cincinnati Bengals,16295,"Conner, Chamarri KCC S","Conner, Chamarri",KCC,S,Active,,4.95,3,266.62,2026 UFA,,conner
-AFC,CIN,Cincinnati Bengals,13719,"Pineiro, Eddy SFO PK","Pineiro, Eddy",SFO,PK,Active,,2,1,266.62,2026 UFA,,pineiro
 AFC,CIN,Cincinnati Bengals,11671,"Evans, Mike SFO WR","Evans, Mike",SFO,WR,Active,Questionable,24.8,2,266.62,2026 UFA,,evans
 AFC,CIN,Cincinnati Bengals,17599,"Douglas, Caleb MIA WR","Douglas, Caleb",MIA,WR,Active,R,1.07,4,266.62,2026 4.10,,douglas
 AFC,CIN,Cincinnati Bengals,16684,"Washington, Malik MIA WR","Washington, Malik",MIA,WR,Active,,1.1,2,266.62,2024 5.01,,washington
@@ -1035,9 +1035,9 @@ AFC,CIN,Cincinnati Bengals,9051,"Campbell, Calais BAL DT","Campbell, Calais",BAL
 AFC,CIN,Cincinnati Bengals,16757,"Vidal, Kimani LAC RB","Vidal, Kimani",LAC,RB,Active,,1.1,1,266.62,2026 UFA,,vidal
 AFC,CIN,Cincinnati Bengals,14073,"Jacobs, Josh GBP RB","Jacobs, Josh",GBP,RB,Active,,14.27,1,266.62,2024 UFA,,jacobs
 AFC,CIN,Cincinnati Bengals,16419,"Szmyt, Andre CLE PK","Szmyt, Andre",CLE,PK,Active,,1.1,1,266.62,2026 UFA,,szmyt
+AFC,CIN,Cincinnati Bengals,17473,"Price, Jadarian SEA RB","Price, Jadarian",SEA,RB,Active,R,8.26,4,266.62,2026 1.03,,price
 AFC,CIN,Cincinnati Bengals,15738,"Davis, Malik DAL RB","Davis, Malik",DAL,RB,INJURED_RESERVE,,1.1,1,266.62,2026 R/F,,davis
 AFC,CIN,Cincinnati Bengals,13192,"Njoku, David LAC TE","Njoku, David",LAC,TE,INJURED_RESERVE,IR-R,2,1,266.62,2026 UFA,,njoku
-AFC,CIN,Cincinnati Bengals,17473,"Price, Jadarian SEA RB","Price, Jadarian",SEA,RB,INJURED_RESERVE,R,8.26,4,266.62,2026 1.03,,price
 AFC,CIN,Cincinnati Bengals,17595,"Onyedim, Tyler DEN DT","Onyedim, Tyler",DEN,DT,Taxi,R,0.94,3,266.62,2026 UDFA,,onyedim
 AFC,CLE,Cleveland Browns,13782,"Dickson, Michael SEA PN","Dickson, Michael",SEA,PN,Active,,4.73,1,255.02,2024 iEXT,,dickson
 AFC,CLE,Cleveland Browns,15352,"Collins, Zaven ARI DE","Collins, Zaven",ARI,DE,Active,,4.1,1,255.02,2024 iEXT,,collins
