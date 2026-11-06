@@ -67,12 +67,14 @@
       "count": 1,
       "observed": "Last league access: Oct 29, 2026 at 07:29 PM EDT",
       "detected_at": "2026-11-06T00:09:40.728745+00:00",
-      "status": "pending_notice",
+      "status": "watch",
       "activity_at": "2026-10-29T23:29:33+00:00",
       "notice": {
-        "status": "sending",
-        "attempted_at": "2026-11-06T00:09:45.423243+00:00"
-      }
+        "status": "accepted",
+        "attempted_at": "2026-11-06T00:09:45.423243+00:00",
+        "issued_at": "2026-11-06T00:09:45.423243+00:00"
+      },
+      "deadline": "2026-11-11T00:09:45.423243+00:00"
     }
   },
   "counts": {
