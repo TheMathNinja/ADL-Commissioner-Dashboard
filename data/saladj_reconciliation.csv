@@ -1,8 +1,8 @@
 franchise,mfl_saladj,saladj_expected,saladj_expected_known,difference,status,adjustment_count,saladj_row_count,known_penalty_rows,missing_penalty_rows,missing_penalty_players,accelerated_rows,acceleration_declaration_players
-ATL,78.02,77.1,77.1,0.92,MISMATCH,21,14,14,0,,1,Tatum Bethune
+ATL,99.99,77.1,77.1,22.89,MISMATCH,22,14,14,0,,1,Tatum Bethune
 BAL,17.61,6.98,6.98,10.63,MISMATCH,11,9,9,0,,0,
 BUF,5.71,1.25,1.25,4.46,MISMATCH,5,1,1,0,,0,
-CAR,20.33,15.01,15.01,5.32,MISMATCH,9,6,6,0,,0,
+CAR,20.33,18.64,18.64,1.69,MISMATCH,9,7,7,0,,0,
 CHI,19.04,9.2,9.2,9.84,MISMATCH,7,5,5,0,,0,
 CLE,51.73,45.79,45.79,5.94,MISMATCH,9,7,7,0,,1,Courtland Sutton
 DAL,33.92,10.29,10.29,23.63,MISMATCH,7,3,3,0,,0,
@@ -14,17 +14,17 @@ KCC,46.01,40.62,40.62,5.39,MISMATCH,15,9,9,0,,2,Marquise Brown; TJ Hockenson
 LAC,37.26,16.17,16.17,21.09,MISMATCH,7,4,4,0,,2,Ifeatu Melifonwu; TJ Edwards
 LAR,8.12,-2,-2,10.12,MISMATCH,3,1,1,0,,0,
 MIA,21.48,20.76,20.76,0.72,MISMATCH,8,7,7,0,,1,Paulson Adebo
-MIN,37.53,93.43,93.43,-55.9,MISMATCH,9,8,8,0,,5,Tershawn Wharton; Sam Darnold; Daniel Jones; Antoine Winfield; Jordan Davis
+MIN,103.02,93.43,93.43,9.59,MISMATCH,13,8,8,0,,5,Tershawn Wharton; Sam Darnold; Daniel Jones; Antoine Winfield; Jordan Davis
 NEP,22.27,4.62,4.62,17.65,MISMATCH,5,2,2,0,,0,
-NOS,18.49,19.75,19.75,-1.26,MISMATCH,6,7,7,0,,1,JT Tuimoloau
-NYG,63.02,63.37,63.37,-0.35,MISMATCH,12,12,12,0,,2,Courtland Sutton; Robert Spillane
+NYG,64.28,63.37,63.37,0.91,MISMATCH,13,12,12,0,,2,Courtland Sutton; Robert Spillane
 NYJ,-5.27,-11,-11,5.73,MISMATCH,3,2,2,0,,0,
-PHI,6.98,4.92,4.92,2.06,MISMATCH,4,4,4,0,,0,
+PHI,8.3,4.92,4.92,3.38,MISMATCH,5,4,4,0,,0,
 SEA,36.89,9.38,9.38,27.51,MISMATCH,12,5,5,0,,0,
 WAS,2.47,-4.25,-4.25,6.72,MISMATCH,9,7,7,0,,0,
 ARI,5.94,5.94,5.94,0,MATCH,4,4,4,0,,0,
 GBP,2.18,2.18,2.18,0,MATCH,1,1,1,0,,1,Azeez Ojulari
 HOU,2.57,2.57,2.57,0,MATCH,1,1,1,0,,0,
 LVR,-1.6,-1.6,-1.6,0,MATCH,6,6,6,0,,0,
+NOS,19.75,19.75,19.75,0,MATCH,7,7,7,0,,1,JT Tuimoloau
 PIT,1.26,1.26,1.26,0,MATCH,1,1,1,0,,0,
 SFO,6.5,6.5,6.5,0,MATCH,1,1,1,0,,0,

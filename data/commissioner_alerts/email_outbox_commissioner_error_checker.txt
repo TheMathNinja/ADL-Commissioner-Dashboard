@@ -1,9 +1,9 @@
 The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Error Type: Incorrect franchise in NFC Sal Adj tab (Contract Admin Sheet)
-Erroneous Sal Adj tab entry: CAR | Malcolm Koonce | Contract: $2.20 / 1 yr / 2026 UFA
-Expected Sal Adj tab entry: PHI | Malcolm Koonce | Contract: $2.20 / 1 yr / 2026 UFA
-Original transaction/drop: Nov 3, 2026 at 6:54:14 AM ET
-Required: Move this Contract Admin entry from CAR to PHI.
+Error Type: Incorrect control value in NFC Sal Adj tab (Contract Admin Sheet)
+Erroneous Sal Adj tab entry: NYG | Tyree Wilson (1.XX+) | 2026 calculated penalty: $1.26
+Expected Sal Adj tab entry: NYG | Tyree Wilson (1.XX+) | 2026 calculated penalty: $1.26
+Original transaction/drop: Nov 4, 2026 at 12:39:37 PM ET
+Required: Copy the Curator 1.XX+ value into Contract Admin and let its penalty formula recalculate.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
