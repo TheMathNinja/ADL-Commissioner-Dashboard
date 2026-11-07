@@ -739,7 +739,7 @@ NFC,SEA,Seattle Seahawks,10700,"Cousins, Kirk LVR QB","Cousins, Kirk",LVR,QB,Act
 NFC,SEA,Seattle Seahawks,17554,"Parker, T.J. BUF DE","Parker, T.J.",BUF,DE,Active,R,1.86,4,261.29,2026 2.09,,parker
 NFC,SEA,Seattle Seahawks,15681,"Elliss, Christian NEP LB","Elliss, Christian",NEP,LB,Active,,1.1,1,261.29,2026 R/F,,elliss
 NFC,SEA,Seattle Seahawks,17163,"Parrish, Jacob TBB CB","Parrish, Jacob",TBB,CB,Active,,0.99,2,261.29,2025 UDFA,,parrish
-NFC,SEA,Seattle Seahawks,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,Questionable,1.02,4,261.29,2026 4.19,,jacas
+NFC,SEA,Seattle Seahawks,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,R,1.02,4,261.29,2026 4.19,,jacas
 NFC,SEA,Seattle Seahawks,17657,"Green, Taylen CLE QB","Green, Taylen",CLE,QB,Active,R,0.94,3,261.29,2026 UDFA,,green
 NFC,SEA,Seattle Seahawks,15357,"Barmore, Christian NEP DT","Barmore, Christian",NEP,DT,Active,,13.7,1,261.29,2025 UFA,,barmore
 NFC,SEA,Seattle Seahawks,16794,"Briggs, Jowon NYJ DT","Briggs, Jowon",NYJ,DT,Active,,1.1,1,261.29,2026 UFA,,briggs
@@ -1070,7 +1070,7 @@ AFC,CLE,Cleveland Browns,15819,"Wyatt, Devonte GBP DT","Wyatt, Devonte",GBP,DT,A
 AFC,CLE,Cleveland Browns,17657,"Green, Taylen CLE QB","Green, Taylen",CLE,QB,Active,R,0.98,4,255.02,2026 5.18,,green
 AFC,CLE,Cleveland Browns,11222,"Allen, Keenan IND WR","Allen, Keenan",IND,WR,Active,,2,1,255.02,2026 UFA,,allen
 AFC,CLE,Cleveland Browns,17503,"Bernard, Germie PIT WR","Bernard, Germie",PIT,WR,Active,R,2.12,4,255.02,2026 2.05,,bernard
-AFC,CLE,Cleveland Browns,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,Questionable,1,4,255.02,2026 5.05,,jacas
+AFC,CLE,Cleveland Browns,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,R,1,4,255.02,2026 5.05,,jacas
 AFC,CLE,Cleveland Browns,17124,"Carter, Barrett CIN LB","Carter, Barrett",CIN,LB,Active,,1.03,3,255.02,2025 5.18,,carter
 AFC,CLE,Cleveland Browns,17508,"Bell, Skyler BUF WR","Bell, Skyler",BUF,WR,Active,R,1.23,4,255.02,2026 3.14,,bell
 AFC,CLE,Cleveland Browns,11936,"Boswell, Chris PIT PK","Boswell, Chris",PIT,PK,Active,,2,1,255.02,2026 UFA,,boswell
