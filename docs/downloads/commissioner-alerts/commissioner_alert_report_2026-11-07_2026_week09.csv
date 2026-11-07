@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,9,2026-11-07 10:25:20 UTC,Illegal Lineup Warning,warning,NFC,DAL,Dallas Cowboys,No inactive players allowed in starting lineup,"Samuel, Deebo SFO WR is inactive (O)",,,
+2026,9,2026-11-07 10:25:20 UTC,Illegal Lineup Warning,warning,NFC,DAL,Dallas Cowboys,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,9,2026-11-07 10:25:20 UTC,Roster Cap Violation,violation,NFC,GBP,Green Bay Packers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,1 above maximum (45 Active + 1 Taxi),,1
+2026,9,2026-11-07 10:25:20 UTC,Roster Warning,warning,NFC,DAL,Dallas Cowboys,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Mayfield, Baker TBB QB from Active to Injured Reserve to be fully compliant.",,
