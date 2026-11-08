@@ -316,6 +316,22 @@
       "failed_at": "2026-11-08T10:27:23Z",
       "daily_parent": "42470936570",
       "daily_job": "Run Commissioner alerts"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:42478139390:1": {
+      "sent_at": "2026-11-08T19:42:00.448904+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Dashboard Watchdog",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog:2026-11-08",
+      "failed_steps": [
+        "check-dashboard-freshness: Check today's maintenance result and alert ownership"
+      ],
+      "cause_codes": {
+        "check-dashboard-freshness": "unclassified:128723989907"
+      },
+      "affected_jobs": {
+        "check-dashboard-freshness": "failure"
+      },
+      "failed_at": "2026-11-08T11:59:46Z"
     }
   },
   "checked": {
@@ -1108,6 +1124,7 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:42470213809:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42470964454:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42471182945:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:42470936570:1": "reported by exact failed child"
+    "TheMathNinja/ADL-GM-Dashboard:42470936570:1": "reported by exact failed child",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42474497103:1": "success"
   }
 }
