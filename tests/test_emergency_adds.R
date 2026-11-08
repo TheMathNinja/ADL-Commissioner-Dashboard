@@ -1,4 +1,22 @@
 source("R/inseason_inactivity_monitor.R")
+valid_schedule <- data.frame(season = 2026, week = 9, game_type = "REG",
+  home_team = "PIT", away_team = "BAL", gameday = "2026-11-08", gametime = "13:00")
+reads <- 0L; clears <- 0L
+recovered <- suppressWarnings(load_verified_nfl_schedule(2026, loader = function(...) {
+  reads <<- reads + 1L
+  if (reads == 1L) return(data.frame(roof = character()))
+  if (reads == 2L) stop("temporary network failure")
+  valid_schedule
+}, clear = function() clears <<- clears + 1L, sleep = function(...) NULL))
+stopifnot(identical(recovered, valid_schedule), reads == 3L, clears == 2L)
+for (bad in list(data.frame(), transform(valid_schedule, season = 2025),
+                 transform(valid_schedule, gametime = NA_character_))) {
+  reads <- 0L
+  failed <- tryCatch(suppressWarnings(load_verified_nfl_schedule(2026,
+    loader = function(...) { reads <<- reads + 1L; bad },
+    clear = function() NULL, sleep = function(...) NULL)), error = identity)
+  stopifnot(inherits(failed, "error"), reads == 4L)
+}
 add_time <- as.POSIXct("2026-11-01 14:22:25", tz = "UTC")
 adds <- tibble(conference = "AFC", franchise = "HOU", franchise_name = "Houston Texans",
                player_id = "13848", player_name = "Johnston, Cam", occurred_at = add_time)

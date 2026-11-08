@@ -123,7 +123,7 @@ emergency_add_context <- function(season, run_time, rosters = NULL) {
       raw |> transmute(player_id = as.character(.data$player_id), player_name = .data$player_name,
                        player_team = .data$team, player_pos = .data$pos)
     ) |> distinct()
-    games <- nflreadr::load_schedules(seasons = season)
+    games <- load_verified_nfl_schedule(season)
     game_type <- nfl_schedule_type_col(games)
     if (is.na(game_type)) stop("Cannot verify emergency-add kickoff windows: NFL schedule has no season type.", call. = FALSE)
     games <- games |> filter(.data[[game_type]] == "REG", .data$week %in% 1:18) |>

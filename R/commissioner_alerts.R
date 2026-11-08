@@ -1350,6 +1350,35 @@ nfl_schedule_type_col <- function(schedule) {
   )
 }
 
+load_verified_nfl_schedule <- function(season, loader = nflreadr::load_schedules,
+                                       clear = nflreadr::clear_cache, sleep = Sys.sleep) {
+  reason <- "empty schedule"
+  for (attempt in seq_len(4)) {
+    schedule <- tryCatch(loader(seasons = season), error = function(e) {
+      reason <<- conditionMessage(e)
+      NULL
+    })
+    required <- c("season", "week", "home_team", "away_team")
+    if (is.data.frame(schedule) && nrow(schedule) &&
+        all(required %in% names(schedule)) && !is.na(nfl_schedule_type_col(schedule)) &&
+        ("game_datetime" %in% names(schedule) || all(c("gameday", "gametime") %in% names(schedule)))) {
+      type <- nfl_schedule_type_col(schedule)
+      games <- schedule[schedule$season == season & schedule[[type]] == "REG" &
+                          schedule$week %in% 1:18, , drop = FALSE]
+      if (nrow(games) && !anyNA(nfl_game_kickoff_at(games))) return(schedule)
+      reason <- "no regular-season games with complete kickoff times"
+    } else if (!is.null(schedule)) {
+      reason <- paste("incomplete schedule schema:", paste(names(schedule), collapse = ", "))
+    }
+    if (attempt < 4) {
+      warning(sprintf("NFL schedule read %d/4 invalid (%s); retrying", attempt, reason), call. = FALSE)
+      clear()
+      sleep(2^attempt)
+    }
+  }
+  stop(paste("Cannot verify NFL kickoff windows after 4 reads:", reason), call. = FALSE)
+}
+
 nfl_game_kickoff_at <- function(schedule) {
   if ("game_datetime" %in% names(schedule)) {
     kickoff <- lubridate::ymd_hms(schedule$game_datetime, quiet = TRUE, tz = "UTC")
@@ -1380,7 +1409,7 @@ read_nfl_team_kickoffs <- function(season = get_current_season(), week) {
     return(tibble(player_team = character(), kickoff_at = as.POSIXct(character())))
   }
 
-  schedule <- nflreadr::load_schedules(seasons = season)
+  schedule <- load_verified_nfl_schedule(season)
   schedule_type_col <- nfl_schedule_type_col(schedule)
   if (is.na(schedule_type_col)) {
     warning("NFL schedule has no season_type or game_type column; kickoff-aware lineup alert severity is unavailable.", call. = FALSE)
