@@ -1,4 +1,5 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0016|pl=17597|ts=2026-11-07 00:35:53|ty=FREE_AGENT|td=dropped|cm=NA,17597,Romello Height,NFC,0016,2026-11-07 00:35:53,2026-11-08 10:00:00,0006,1.1,2026 UFA
 txn=|fr=0001|pl=13952|ts=2026-11-04 19:01:24|ty=FREE_AGENT|td=dropped|cm=NA,13952,Frankie Luvu,NFC,0001,2026-11-04 19:01:24,2026-11-06 10:00:00,0008,2,2026 UFA
 txn=|fr=0002|pl=16152|ts=2026-11-04 17:39:28|ty=FREE_AGENT|td=dropped|cm=NA,16152,Anthony Richardson,NFC,0002,2026-11-04 17:39:28,2026-11-06 10:00:00,0008,1.1,2026 UFA
 txn=|fr=0006|pl=13164|ts=2026-11-02 01:40:05|ty=FREE_AGENT|td=dropped|cm=NA,13164,Cooper Kupp,NFC,0006,2026-11-02 01:40:05,2026-11-03 10:00:00,0003,2,2026 UFA

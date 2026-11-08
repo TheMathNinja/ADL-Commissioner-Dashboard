@@ -1,15 +1,22 @@
-SalAdj scraper scheduled: 11/7/2026 5:17 a.m. EST
+SalAdj scraper scheduled: 11/8/2026 5:17 a.m. EST
 Run type: Scheduled daily refresh
-Run started: 11/7/2026 5:19 a.m. EST
-Run completed / email prepared: 11/7/2026 5:20 a.m. EST (runtime: 0m 50s)
+Run started: 11/8/2026 5:20 a.m. EST
+Run completed / email prepared: 11/8/2026 5:21 a.m. EST (runtime: 0m 58s)
 
-SalAdj Curator published 1 new row(s) at 11/7/2026 5:20 a.m. EST.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_07_ADLSalAdjCurator.csv
+SalAdj Curator published 3 new row(s) at 11/8/2026 5:20 a.m. EST.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_08_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
 NFC
 ---
-- Dropped 11/6/2026 16:00:19 ET by CAR | Keaton Mitchell LAC RB: $6.05 / 1 yr / 2024 RRFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 8, 2026
+- Dropped 11/7/2026 21:14:09 ET by ATL | Kwity Paye LVR DE: $4.08 / 2 yr / 2024 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 9, 2026
+- Dropped 11/8/2026 02:31:11 ET by GBP | Tyrel Dodson CAR LB: $5.00 / 1 yr / 2026 mEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 9, 2026
+
+AFC
+---
+- Dropped 11/7/2026 10:22:30 ET by PIT | Emanuel Wilson SEA RB: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 9, 2026
 
