@@ -406,7 +406,6 @@ NFC,ATL,Atlanta Falcons,17122,"Walker, Jalon ATL DE","Walker, Jalon",ATL,DE,Acti
 NFC,ATL,Atlanta Falcons,16148,"Young, Bryce CAR QB","Young, Bryce",CAR,QB,Active,,6.09,1,264.87,2023 1.05,,young
 NFC,ATL,Atlanta Falcons,14127,"Meyers, Jakobi JAC WR","Meyers, Jakobi",JAC,WR,Active,,8.12,2,264.87,2026 oEXT,,meyers
 NFC,ATL,Atlanta Falcons,13298,"Stewart, Grover IND DT","Stewart, Grover",IND,DT,Active,,5.88,1,264.87,2025 SRFA,,stewart
-NFC,ATL,Atlanta Falcons,15345,"Paye, Kwity LVR DE","Paye, Kwity",LVR,DE,Active,,4.08,2,264.87,2024 iEXT,,paye
 NFC,ATL,Atlanta Falcons,17350,"Huntington, Adin CLE DE","Huntington, Adin",CLE,DE,Active,,1.1,1,264.87,2026 UFA,,huntington
 NFC,CAR,Carolina Panthers,13589,"Allen, Josh BUF QB","Allen, Josh",BUF,QB,Active,,27.24,1,262.99,2021 EXT,,allen
 NFC,CAR,Carolina Panthers,14907,"Delpit, Grant CLE S","Delpit, Grant",CLE,S,Active,,2.98,1,262.99,2024 iEXT,,delpit
@@ -564,7 +563,6 @@ NFC,ARI,Arizona Cardinals,15237,"Lawrence, Trevor JAC QB","Lawrence, Trevor",JAC
 NFC,ARI,Arizona Cardinals,15834,"Hamilton, Kyle BAL S","Hamilton, Kyle",BAL,S,Active,,8.45,3,260.14,2025 iEXT,,hamilton
 NFC,ARI,Arizona Cardinals,15293,"Bateman, Rashod BAL WR","Bateman, Rashod",BAL,WR,Active,,5,3,260.14,2024 iEXT,,bateman
 NFC,ARI,Arizona Cardinals,16162,"Gibbs, Jahmyr DET RB","Gibbs, Jahmyr",DET,RB,Active,,7.93,1,260.14,2023 1.03,,gibbs
-NFC,ARI,Arizona Cardinals,16239,"Campbell, Jack DET LB","Campbell, Jack",DET,LB,Active,IR,2.93,1,260.14,2023 1.14,,campbell
 NFC,ARI,Arizona Cardinals,16234,"Simpson, Trenton BAL LB","Simpson, Trenton",BAL,LB,Active,,1.41,1,260.14,2023 3.12,,simpson
 NFC,ARI,Arizona Cardinals,16617,"Coleman, Keon BUF WR","Coleman, Keon",BUF,WR,Active,,3.22,2,260.14,2024 1.11,,coleman
 NFC,ARI,Arizona Cardinals,16618,"Thomas Jr., Brian JAC WR","Thomas Jr., Brian",JAC,WR,Active,,3.45,2,260.14,2024 1.10,,thomas jr.
@@ -605,10 +603,11 @@ NFC,ARI,Arizona Cardinals,14080,"Singletary, Devin NYG RB","Singletary, Devin",N
 NFC,ARI,Arizona Cardinals,15898,"Ogbonnia, Otito DAL DT","Ogbonnia, Otito",DAL,DT,Active,,1.1,1,260.14,2026 UFA,,ogbonnia
 NFC,ARI,Arizona Cardinals,16788,"Vele, Devaughn NOS WR","Vele, Devaughn",NOS,WR,Active,,1.1,1,260.14,2026 UFA,,vele
 NFC,ARI,Arizona Cardinals,14983,"Bass, Tyler BUF PK","Bass, Tyler",BUF,PK,Active,,1.2,1,260.14,2026 UFA,,bass
+NFC,ARI,Arizona Cardinals,12785,"Robinson, Demarcus SFO WR","Robinson, Demarcus",SFO,WR,Active,,2.3,1,260.14,2026 UFA,,robinson
 NFC,ARI,Arizona Cardinals,16256,"Bresee, Bryan NOS DT","Bresee, Bryan",NOS,DT,INJURED_RESERVE,IR,3.7,1,260.14,2023 3.01^,,bresee
 NFC,ARI,Arizona Cardinals,13700,"Landry, Harold NEP DE","Landry, Harold",NEP,DE,INJURED_RESERVE,IR-PUP,10.89,1,260.14,2024 B/R,,landry
 NFC,ARI,Arizona Cardinals,17206,"Oliver, Collin GBP DE","Oliver, Collin",GBP,DE,INJURED_RESERVE,IR-R,0.99,2,260.14,2025 UDFA,,oliver
-NFC,ARI,Arizona Cardinals,12785,"Robinson, Demarcus SFO WR","Robinson, Demarcus",SFO,WR,INJURED_RESERVE,,2.3,1,260.14,2026 UFA,,robinson
+NFC,ARI,Arizona Cardinals,16239,"Campbell, Jack DET LB","Campbell, Jack",DET,LB,INJURED_RESERVE,IR,2.93,1,260.14,2023 1.14,,campbell
 NFC,LAR,Los Angeles Rams,13214,"Watt, T.J. PIT DE","Watt, T.J.",PIT,DE,Active,,25.36,5,254.03,2025 iEXT,,watt
 NFC,LAR,Los Angeles Rams,15698,"Purdy, Brock SFO QB","Purdy, Brock",SFO,QB,Active,,32.78,6,254.03,2026 oEXT,,purdy
 NFC,LAR,Los Angeles Rams,13251,"Baker, Budda ARI S","Baker, Budda",ARI,S,Active,,3.27,1,254.03,2024 B/R,,baker
@@ -798,8 +797,8 @@ AFC,BUF,Buffalo Bills,15337,"Gray, Noah KCC TE","Gray, Noah",KCC,TE,Active,,1.1,
 AFC,BUF,Buffalo Bills,14918,"Terrell, A.J. ATL CB","Terrell, A.J.",ATL,CB,Active,,1.1,1,266.62,2026 UFA,,terrell
 AFC,BUF,Buffalo Bills,16216,"Washington, Darnell PIT TE","Washington, Darnell",PIT,TE,Active,,1.9,1,266.62,2026 UFA,,washington
 AFC,BUF,Buffalo Bills,15914,"Rodriguez, Malcolm DET LB","Rodriguez, Malcolm",DET,LB,Active,,1.1,1,266.62,2026 UFA,,rodriguez
+AFC,BUF,Buffalo Bills,16692,"Newton, Jer'Zhan WAS DT","Newton, Jer'Zhan",WAS,DT,Active,Questionable,1.49,2,266.62,2024 3.03,,newton
 AFC,BUF,Buffalo Bills,16256,"Bresee, Bryan NOS DT","Bresee, Bryan",NOS,DT,INJURED_RESERVE,IR,3.7,1,266.62,2023 2.04^,,bresee
-AFC,BUF,Buffalo Bills,16692,"Newton, Jer'Zhan WAS DT","Newton, Jer'Zhan",WAS,DT,INJURED_RESERVE,Questionable,1.49,2,266.62,2024 3.03,,newton
 AFC,BUF,Buffalo Bills,15831,"Chenal, Leo WAS LB","Chenal, Leo",WAS,LB,INJURED_RESERVE,,2.1,3,266.62,2026 oEXT,,chenal
 AFC,BUF,Buffalo Bills,14518,"Thompson, Jalen DAL S","Thompson, Jalen",DAL,S,INJURED_RESERVE,IR,2.18,1,266.62,2026 oEXT,,thompson
 AFC,BUF,Buffalo Bills,15779,"Doubs, Romeo NEP WR","Doubs, Romeo",NEP,WR,INJURED_RESERVE,IR,6.17,3,266.62,2025 iEXT,,doubs
@@ -807,7 +806,6 @@ AFC,BUF,Buffalo Bills,17108,"Arroyo, Elijah SEA TE","Arroyo, Elijah",SEA,TE,INJU
 AFC,BUF,Buffalo Bills,14109,"McLaurin, Terry WAS WR","McLaurin, Terry",WAS,WR,INJURED_RESERVE,IR,10.29,2,266.62,2024 B/R,,mclaurin
 AFC,BUF,Buffalo Bills,16693,"Sweat, T'Vondre NYJ DT","Sweat, T'Vondre",NYJ,DT,INJURED_RESERVE,IR,1.23,2,266.62,2024 3.19,,sweat
 AFC,BUF,Buffalo Bills,16671,"Arnold, Terrion SEA CB","Arnold, Terrion",SEA,CB,Taxi,Suspended,1.18,2,266.62,2024 4.07,,arnold
-AFC,BUF,Buffalo Bills,16722,"Knight, Tyrice SEA LB","Knight, Tyrice",SEA,LB,Taxi,,1.1,1,266.62,2026 UFA,,knight
 AFC,MIA,Miami Dolphins,15287,"St. Brown, Amon-Ra DET WR","St. Brown, Amon-Ra",DET,WR,Active,Questionable,37.05,3,266.62,2024 iEXT,,st. brown
 AFC,MIA,Miami Dolphins,16188,"Johnston, Quentin LAC WR","Johnston, Quentin",LAC,WR,Active,,4.92,1,266.62,2023 1.07,,johnston
 AFC,MIA,Miami Dolphins,16190,"Flowers, Zay BAL WR","Flowers, Zay",BAL,WR,Active,,3.53,1,266.62,2023 1.11,,flowers
@@ -1316,7 +1314,6 @@ AFC,TEN,Tennessee Titans,13592,"Darnold, Sam SEA QB","Darnold, Sam",SEA,QB,Activ
 AFC,TEN,Tennessee Titans,15721,"White, Rachaad WAS RB","White, Rachaad",WAS,RB,Active,,2.85,2,260.48,2026 mEXT,,white
 AFC,TEN,Tennessee Titans,16181,"Brown, Chase CIN RB","Brown, Chase",CIN,RB,Active,,9.71,2,260.48,2025 iEXT,,brown
 AFC,TEN,Tennessee Titans,17499,"Lemon, Makai PHI WR","Lemon, Makai",PHI,WR,Active,R,5.56,4,260.48,2026 1.06,,lemon
-AFC,TEN,Tennessee Titans,17552,"Howell, Cashius CIN DE","Howell, Cashius",CIN,DE,Active,IR,1.44,4,260.48,2026 3.04,,howell
 AFC,TEN,Tennessee Titans,15256,"Williams, Javonte DAL RB","Williams, Javonte",DAL,RB,Active,,31.1,1,260.48,2026 UFA,,williams
 AFC,TEN,Tennessee Titans,12801,"Hill, Tyreek FA WR","Hill, Tyreek",FA,WR,Active,Questionable,3.33,2,260.48,2026 UFA,,hill
 AFC,TEN,Tennessee Titans,13723,"Payne, Da'Ron WAS DT","Payne, Da'Ron",WAS,DT,Active,IR,4.1,1,260.48,2026 UFA,,payne
@@ -1339,9 +1336,10 @@ AFC,TEN,Tennessee Titans,16014,"Adams, Tony TEN S","Adams, Tony",TEN,S,Active,,1
 AFC,TEN,Tennessee Titans,15972,"Mason, Jordan MIN RB","Mason, Jordan",MIN,RB,Active,,3.52,1,260.48,2026 RRFA,,mason
 AFC,TEN,Tennessee Titans,17544,"Stowers, Eli PHI TE","Stowers, Eli",PHI,TE,Active,R,2.2,4,260.48,2026 2.04,,stowers
 AFC,TEN,Tennessee Titans,14148,"Sweat, Montez CHI DE","Sweat, Montez",CHI,DE,Active,,8.55,2,260.48,2026 UFA,,sweat
+AFC,TEN,Tennessee Titans,12785,"Robinson, Demarcus SFO WR","Robinson, Demarcus",SFO,WR,Active,,1.1,1,260.48,2026 UFA,,robinson
 AFC,TEN,Tennessee Titans,16597,"Brooks, Jonathon CAR RB","Brooks, Jonathon",CAR,RB,INJURED_RESERVE,IR,2.86,2,260.48,2024 1.13,,brooks
-AFC,TEN,Tennessee Titans,12785,"Robinson, Demarcus SFO WR","Robinson, Demarcus",SFO,WR,INJURED_RESERVE,,1.1,1,260.48,2026 UFA,,robinson
 AFC,TEN,Tennessee Titans,14867,"Kmet, Cole CHI TE","Kmet, Cole",CHI,TE,INJURED_RESERVE,,1.1,1,260.48,2026 UFA,,kmet
+AFC,TEN,Tennessee Titans,17552,"Howell, Cashius CIN DE","Howell, Cashius",CIN,DE,INJURED_RESERVE,IR,1.44,4,260.48,2026 3.04,,howell
 AFC,DEN,Denver Broncos,13696,"Smith, Roquan BAL LB","Smith, Roquan",BAL,LB,Active,,14.27,2,261.42,2024 oEXT,,smith
 AFC,DEN,Denver Broncos,14897,"Brown, Derrick CAR DT","Brown, Derrick",CAR,DT,Active,,19.49,2,261.42,2024 oEXT,,brown
 AFC,DEN,Denver Broncos,15428,"Sherwood, Jamien NYJ LB","Sherwood, Jamien",NYJ,LB,Active,,5.88,2,261.42,2025 SRFA,,sherwood
