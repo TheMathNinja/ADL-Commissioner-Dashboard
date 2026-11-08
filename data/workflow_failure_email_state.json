@@ -298,6 +298,24 @@
       "failed_at": "2026-10-30T09:26:00Z",
       "daily_parent": "41032591452",
       "daily_job": "Run Commissioner alerts"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:42471397260:1": {
+      "sent_at": "2026-11-08T10:28:33.548564+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Daily maintenance 42470936570 - Commissioner alerts",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 42470936570 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 42470936570 - Commissioner alerts:2026-11-08",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "fbc685e97657c48586fba974bcbecaa519a990bf7a2015d53b9385347bc3f11b"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-08T10:27:23Z",
+      "daily_parent": "42470936570",
+      "daily_job": "Run Commissioner alerts"
     }
   },
   "checked": {
@@ -1079,6 +1097,16 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:42428471043:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42433009088:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42435663249:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:42437309841:1": "success"
+    "TheMathNinja/ADL-Commissioner-Dashboard:42437309841:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42441517178:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42445651860:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42449649532:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42453582167:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42457618381:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42461715847:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42465978228:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42470213809:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42470964454:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42471182945:1": "success"
   }
 }
