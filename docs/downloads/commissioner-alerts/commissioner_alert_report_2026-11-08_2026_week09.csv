@@ -1,7 +1,7 @@
 season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
-2026,9,2026-11-08 14:41:47 UTC,Illegal Lineup Warning,warning,AFC,LAC,Los Angeles Chargers,No inactive players allowed in starting lineup,"Wallace, Trevin NYJ LB is inactive (O)",,,
-2026,9,2026-11-08 14:41:47 UTC,Illegal Lineup Warning,warning,AFC,LAC,Los Angeles Chargers,No inactive players allowed in starting lineup,"Lee, Will CAR CB is inactive (O)",,,
-2026,9,2026-11-08 14:41:47 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Williams, Leonard SEA DT is inactive (O)",,,
-2026,9,2026-11-08 14:41:47 UTC,Illegal Lineup Warning,warning,NFC,CHI,Chicago Bears,No inactive players allowed in starting lineup,"Reed, D.J. DET CB is inactive (O)",,,
-2026,9,2026-11-08 14:41:47 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,No inactive players allowed in starting lineup,"Wilson, Garrett NYJ WR is inactive (O)",,,
-2026,9,2026-11-08 14:41:47 UTC,Roster Warning,warning,AFC,LAC,Los Angeles Chargers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Campbell, Jack DET LB from Active to Injured Reserve to be fully compliant.",,
+2026,9,2026-11-08 14:45:49 UTC,Illegal Lineup Warning,warning,AFC,LAC,Los Angeles Chargers,No inactive players allowed in starting lineup,"Wallace, Trevin NYJ LB is inactive (O)",,,
+2026,9,2026-11-08 14:45:49 UTC,Illegal Lineup Warning,warning,AFC,LAC,Los Angeles Chargers,No inactive players allowed in starting lineup,"Lee, Will CAR CB is inactive (O)",,,
+2026,9,2026-11-08 14:45:49 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,No inactive players allowed in starting lineup,"Williams, Leonard SEA DT is inactive (O)",,,
+2026,9,2026-11-08 14:45:49 UTC,Illegal Lineup Warning,warning,NFC,CHI,Chicago Bears,No inactive players allowed in starting lineup,"Reed, D.J. DET CB is inactive (O)",,,
+2026,9,2026-11-08 14:45:49 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,No inactive players allowed in starting lineup,"Wilson, Garrett NYJ WR is inactive (O)",,,
+2026,9,2026-11-08 14:45:49 UTC,Roster Warning,warning,AFC,LAC,Los Angeles Chargers,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,46 non-suspended/non-holdout Active + Taxi players,"Move Campbell, Jack DET LB from Active to Injured Reserve to be fully compliant.",,
