@@ -224,7 +224,7 @@ def message(repo, run, impact, failed, later_success, publication=None, later_cy
               'Started (UTC): ' + run.get('run_started_at', run['created_at']),
               'Run last updated (UTC): ' + run['updated_at'], '']
     if later_success:
-        lines += ['Catch-up notice: a later run of this workflow has succeeded.',
+        lines += ['A later run succeeded, but recovery of this failed work could not be verified.',
                   'Later successful run: ' + later_success['html_url']]
     elif later_cycle:
         lines += ['Latest successful production cycle: ' + later_cycle['html_url']]
@@ -322,6 +322,56 @@ def recovered_inactivity_startup(repo, run, job_list, later):
     return required <= successful
 
 
+def verified_recovery(repo, run, job_list, history):
+    """Suppress historical alerts only when the same production work passed."""
+    if run.get('conclusion') not in BAD:
+        return None
+    for later in history:
+        retry = (later.get('id') == run.get('id') and
+                 later.get('run_attempt', 1) > run.get('run_attempt', 1))
+        if (later.get('status') != 'completed' or later.get('conclusion') != 'success'
+                or not production(later)
+                or later.get('path') != run.get('path')
+                or incident_scope(repo, later) != incident_scope(repo, run)
+                or later.get('updated_at', '') <= run.get('updated_at', '')
+                or (not retry and later.get('created_at', '') <= run.get('updated_at', ''))):
+            continue
+        try:
+            completed = jobs(repo, later)
+        except (OSError, RuntimeError, ValueError, KeyError):
+            continue  # Unavailable recovery evidence must not hide the failure.
+        successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
+        affected = [j for j in job_list if j.get('conclusion') in BAD | {'skipped'}]
+        if not job_list:
+            # Startup failures have no step evidence: require a complete execution,
+            # not a green workflow whose actual work was skipped.
+            if completed and len(successful) == len(completed) and all(
+                    any(s.get('conclusion') == 'success' and s['name'] not in
+                        {'Set up job', 'Complete job'} for s in j.get('steps', []))
+                    for j in completed):
+                return later
+            continue
+        if not affected:
+            continue
+        recovered = True
+        for old in affected:
+            new = successful.get(old['name'])
+            if not new:
+                recovered = False
+                break
+            passed = {s['name'] for s in new.get('steps', []) if s.get('conclusion') == 'success'}
+            required = {s['name'] for s in old.get('steps', []) if s.get('conclusion') in BAD | {'skipped'}}
+            if not required:
+                required = {s['name'] for s in old.get('steps', [])
+                            if s.get('conclusion') != 'skipped'}
+            if not passed or not required <= passed:
+                recovered = False
+                break
+        if recovered:
+            return later
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
@@ -342,7 +392,7 @@ def main():
             impact = production(latest)
             if not impact:
                 continue
-            # Inspect earlier attempts too: successful retries must not hide failures.
+            # Inspect earlier attempts; suppress only evidence-backed recoveries.
             for attempt in range(1, latest.get('run_attempt', 1) + 1):
                 key = f'{repo}:{latest["id"]}:{attempt}'
                 if key in state['sent'] or key in state['checked']:
@@ -358,10 +408,11 @@ def main():
                 if recovered_watchdog(repo, run, later):
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
-                if run.get('conclusion') == 'cancelled' and later:
-                    state['checked'][key] = 'cancelled; replaced by successful run'
-                    continue
                 job_list = jobs(repo, run)
+                recovery = verified_recovery(repo, run, job_list, history)
+                if recovery:
+                    state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
+                    continue
                 if recovered_inactivity_startup(repo, run, job_list, later):
                     state['checked'][key] = 'startup failure superseded by verified live inactivity check: ' + later['html_url']
                     continue

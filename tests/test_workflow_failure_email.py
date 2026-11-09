@@ -23,6 +23,49 @@ class FailureReports(unittest.TestCase):
     def test_production_is_limited_to_recurring_or_orchestrated_runs(self):
         self.assertTrue(m.production(self.run))
 
+    def test_general_recovery_matches_failed_and_dependent_work(self):
+        later = dict(self.run, id=2, conclusion='success',
+                     created_at='2026-10-01T15:00:00Z', updated_at='2026-10-01T15:10:00Z')
+        passed = copy.deepcopy(self.jobs)
+        passed[0]['conclusion'] = 'success'
+        passed[0]['steps'][0]['conclusion'] = 'success'
+        with patch.object(m, 'jobs', return_value=passed):
+            check = lambda old, candidate: m.verified_recovery(m.REPOS[1], self.run, old, [candidate])
+            self.assertEqual(check(self.jobs, later), later)
+            for changes in ({'display_title': 'Manual preview'}, {'head_branch': 'test'},
+                            {'workflow_id': 999}, {'status': 'in_progress'},
+                            {'conclusion': 'failure'}, {'path': 'refresh_rosters.yml'},
+                            {'created_at': '2026-10-02T15:00:00Z'},
+                            {'created_at': '2026-10-01T13:00:00Z'}):
+                self.assertIsNone(check(self.jobs, dict(later, **changes)))
+            self.assertIsNone(check(self.jobs + [dict(name='publish', conclusion='skipped')], later))
+            blocked = copy.deepcopy(self.jobs)
+            blocked[0]['steps'].append(dict(name='publish', conclusion='skipped'))
+            self.assertIsNone(check(blocked, later))
+            self.assertEqual(check([], later), later)
+        for evidence in ([], self.jobs, [dict(name='refresh', conclusion='skipped', steps=[])]):
+            with patch.object(m, 'jobs', return_value=evidence):
+                self.assertIsNone(check(self.jobs, later))
+                self.assertIsNone(check([], later))
+        with patch.object(m, 'jobs', side_effect=RuntimeError('unavailable')):
+            self.assertIsNone(check(self.jobs, later))
+
+    def test_verified_retry_is_recorded_without_email(self):
+        earlier = copy.deepcopy(self.run)
+        later = dict(earlier, run_attempt=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')
+        passed = copy.deepcopy(self.jobs)
+        passed[0]['conclusion'] = passed[0]['steps'][0]['conclusion'] = 'success'
+        state = {'sent': {}, 'checked': {}}
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.COMMISSIONER}), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [m.REPOS[1]]), \
+             patch.object(m, 'runs', return_value=[later]), patch.object(m, 'api', return_value=earlier), \
+             patch.object(m, 'jobs', side_effect=lambda repo, run: self.jobs if run.get('run_attempt') == 1 else passed), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
+            m.main()
+        send.assert_not_called()
+        self.assertIn('verified recovery', state['checked'][m.REPOS[1] + ':1:1'])
+
     def test_recovered_inactivity_startup_requires_live_same_day_check(self):
         run = dict(self.run, id=42671504712, path='fafl-inactivity-watch.yml',
                    display_title='FAFL Inactivity Watch', created_at='2026-11-09T18:09:31Z',
@@ -272,7 +315,7 @@ class FailureReports(unittest.TestCase):
         with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.REPOS[2]}), \
              patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [m.REPOS[1]]), \
              patch.object(m, 'runs', return_value=[self.run]), patch.object(m, 'api', return_value=earlier), \
-             patch.object(m, 'jobs', side_effect=[self.jobs, []]), \
+             patch.object(m, 'jobs', side_effect=[self.jobs, [], []]), \
              patch.object(m.mail, 'document', return_value=None), \
              patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
             m.main()
