@@ -94,13 +94,26 @@
         "issued_at": "2026-11-08T13:09:44.285357+00:00"
       },
       "deadline": "2026-11-13T13:09:44.285357+00:00"
+    },
+    "0007:d0aeaade439070ef87e8:login:1793642772": {
+      "franchise_id": "0007",
+      "franchise": "Green Bay Packers",
+      "owner_key": "d0aeaade439070ef87e8",
+      "rule": "login",
+      "episode": 1793642772,
+      "count": 1,
+      "observed": "Last league access: Nov 02, 2026 at 01:06 PM EST",
+      "detected_at": "2026-11-09T19:09:41.219977+00:00",
+      "status": "pending_notice",
+      "activity_at": "2026-11-02T18:06:12+00:00"
     }
   },
   "counts": {
     "0024:bcc3d4ff500357cc7c1e:login": 2,
     "0001:053b575baef80c94c14e:lineup": 1,
     "0001:053b575baef80c94c14e:login": 1,
-    "0012:6578b1f3d0572c373a34:login": 1
+    "0012:6578b1f3d0572c373a34:login": 1,
+    "0007:d0aeaade439070ef87e8:login": 1
   },
   "audited_weeks": [
     8
@@ -237,6 +250,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-09T17:09:40.034717+00:00",
+  "last_checked_at": "2026-11-09T19:09:41.219977+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
