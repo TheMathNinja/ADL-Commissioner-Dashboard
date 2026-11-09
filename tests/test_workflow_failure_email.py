@@ -257,6 +257,37 @@ class FailureReports(unittest.TestCase):
             self.assertIn('later run', send.call_args.args[1])
             self.assertTrue(send.call_args.args[2].endswith(':1:1'))
 
+    def test_recovered_watchdog_requires_both_checks_and_same_day(self):
+        old = dict(self.run, path='dashboard_watchdog.yml', name='Dashboard Watchdog', display_title='Dashboard Watchdog')
+        later = dict(old, id=2, conclusion='success', updated_at='2026-10-01T16:00:00Z')
+        checks = [dict(name=name, conclusion='success') for name in
+                  ["Check today's maintenance result and alert ownership", "Verify SalAdjCurator checked in recently"]]
+        with patch.object(m, 'jobs', return_value=[dict(conclusion='success', steps=checks)]):
+            self.assertTrue(m.recovered_watchdog(m.COMMISSIONER, old, later))
+            self.assertFalse(m.recovered_watchdog(m.COMMISSIONER, old, None))
+            self.assertFalse(m.recovered_watchdog(m.COMMISSIONER, old, dict(later, created_at='2026-10-02T14:00:00Z')))
+            self.assertFalse(m.recovered_watchdog(m.COMMISSIONER, old, dict(later, head_branch='preview')))
+            self.assertFalse(m.recovered_watchdog(m.COMMISSIONER, self.run, later))
+        checks[0]['conclusion'] = 'skipped'
+        with patch.object(m, 'jobs', return_value=[dict(conclusion='success', steps=checks)]):
+            self.assertFalse(m.recovered_watchdog(m.COMMISSIONER, old, later))
+
+    def test_recovered_watchdog_is_recorded_without_sending_catchup(self):
+        old = dict(self.run, path='dashboard_watchdog.yml', name='Dashboard Watchdog', display_title='Dashboard Watchdog')
+        later = dict(old, id=2, conclusion='success', updated_at='2026-10-01T16:00:00Z')
+        checks = [dict(name=name, conclusion='success') for name in
+                  ["Check today's maintenance result and alert ownership", "Verify SalAdjCurator checked in recently"]]
+        state = {'sent': {}, 'checked': {}}
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.COMMISSIONER}), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [m.COMMISSIONER]), \
+             patch.object(m, 'runs', return_value=[later, old]), \
+             patch.object(m, 'jobs', return_value=[dict(conclusion='success', steps=checks)]), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
+            m.main()
+        send.assert_not_called()
+        self.assertIn('verified same-day', state['checked'][m.COMMISSIONER + ':1:1'])
+
     def test_pagination_does_not_miss_older_failures(self):
         with patch.object(m, 'api', side_effect=[{'workflow_runs': [self.run] * 20}, {'workflow_runs': [self.run]}]) as api:
             self.assertEqual(len(list(m.runs(m.REPOS[1]))), 21)

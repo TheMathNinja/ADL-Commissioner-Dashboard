@@ -293,6 +293,19 @@ def unreported_steps(state, repo, run, history, failed, codes=None):
     return scope,[step for step in failed if step not in seen]
 
 
+def recovered_watchdog(repo, run, later):
+    if (repo != COMMISSIONER or PurePosixPath(run.get('path', '')).name != 'dashboard_watchdog.yml'
+            or not later or later.get('status') != 'completed' or later.get('conclusion') != 'success'
+            or later.get('head_branch') != 'main' or later.get('workflow_id') != run.get('workflow_id')
+            or later.get('updated_at', '') <= run.get('updated_at', '')
+            or incident_scope(repo, later) != incident_scope(repo, run)):
+        return False
+    required = {"Check today's maintenance result and alert ownership", "Verify SalAdjCurator checked in recently"}
+    successful = {step['name'] for job in jobs(repo, later) if job.get('conclusion') == 'success'
+                  for step in job.get('steps', []) if step.get('conclusion') == 'success'}
+    return required <= successful
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
@@ -326,6 +339,9 @@ def main():
                 # A superseded cancellation does not imply an outstanding missed
                 # dependency when the same workflow already completed afterward.
                 later = next((r for r in history if r.get('conclusion')=='success' and r['updated_at']>run['updated_at'] and incident_scope(repo,r)==incident_scope(repo,run)),None)
+                if recovered_watchdog(repo, run, later):
+                    state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
+                    continue
                 if run.get('conclusion') == 'cancelled' and later:
                     state['checked'][key] = 'cancelled; replaced by successful run'
                     continue
