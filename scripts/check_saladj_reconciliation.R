@@ -964,6 +964,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
   findings <- list()
   finding_index <- 0L
   used_rows <- integer()
+  ambiguous_events <- character()
 
   if ("contract_type" %in% names(sheet_entries)) {
     invalid <- which(is_ng_rookie_contract(sheet_entries$contract_type) &
@@ -1000,6 +1001,13 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         ) & sheet_entries$is_br == expected$is_br
     )
     if (length(candidates) > 1L) {
+      exact_salary <- candidates[!is.na(sheet_entries$input_salary[candidates]) &
+        abs(sheet_entries$input_salary[candidates] - expected$salary_amount) <= tolerance + 1e-8]
+      if (length(exact_salary) == 1L) candidates <- exact_salary
+    }
+    event_key <- paste(expected$franchise, expected$player, transaction_day(expected$row_date), expected$is_br)
+    if (length(candidates) > 1L && !event_key %in% ambiguous_events) {
+      ambiguous_events <- c(ambiguous_events, event_key)
       finding_index <- finding_index + 1L
       findings[[finding_index]] <- tibble(
         issue = "WRONG_CONTROL_VALUE", control_label = "Row matching",
@@ -1031,7 +1039,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         same <- identical(normalize_adl_contract(want), normalize_adl_contract(have))
       } else {
         if (is.na(want)) next # Unknown source values cannot establish an error.
-        same <- !is.na(have) && abs(want - have) <= if (label == "YEARS") 0 else tolerance
+        same <- !is.na(have) && abs(want - have) <= if (label == "YEARS") 0 else tolerance + 1e-8
       }
       if (same) next
       display <- function(x) if (is.na(x) || !nzchar(trimws(as.character(x)))) "blank" else as.character(x)
@@ -1705,6 +1713,14 @@ if (arg_flag("self-test-name-matching")) {
   sheet_contract_test$input_salary <- 30
   stopifnot("SALARY" %in% audit_contract_admin_control_fields(contract_test, sheet_contract_test)$control_label)
   stopifnot(identical(audit_contract_admin_control_fields(contract_test, bind_rows(sheet_contract_test, sheet_contract_test))$control_label, "Row matching"))
+  sheet_contract_test$input_salary <- contract_test$salary_amount
+  sheet_contract_test$input_years <- contract_test$years_amount
+  contract_test$expected_future_amount <- 0.61
+  sheet_contract_test$future_penalty_amount <- 0.62
+  stopifnot(nrow(audit_contract_admin_control_fields(contract_test, sheet_contract_test)) == 0L)
+  extra_row <- sheet_contract_test
+  extra_row$input_salary <- 50
+  stopifnot(nrow(audit_contract_admin_control_fields(contract_test, bind_rows(sheet_contract_test, extra_row))) == 0L)
   sutton_mfl_test <- tibble(actual_id = 1L, franchise = "NYG", amount = 29.96,
                            description = "C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated",
                            entered_at = "Oct 23, 2026 at 11:59:06 AM ET")
