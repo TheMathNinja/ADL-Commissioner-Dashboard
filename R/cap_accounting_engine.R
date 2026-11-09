@@ -129,12 +129,8 @@ has_plus_contract <- function(contract_info) {
   stringr::str_detect(x, "\\+")
 }
 
-is_rvsd_contract <- function(contract_info) {
-  x <- dplyr::coalesce(contract_info, "")
-  m <- stringr::str_match(x, "^([0-9]+)\\.XX\\^$")
-  n <- suppressWarnings(as.integer(m[, 2]))
-  !is.na(n) & n >= 3L
-}
+source("R/saladj_contracts.R")
+is_rvsd_contract <- function(contract_info) is_ng_rookie_contract(contract_info)
 
 format_et <- function(x, fmt = "%m/%d/%Y %I:%M %p %Z") {
   ifelse(is.na(x), "", format(lubridate::with_tz(x, "America/Toronto"), fmt))
@@ -375,7 +371,7 @@ build_waiver_corrections <- function(
         is_extension_cap_penalty_contract(.data$info_snap),
       qualifies = .data$salary_or_contract_qualifies | .data$missing_salary_snapshot
     ) %>%
-    dplyr::filter(.data$qualifies, !.data$waiver_claimed) %>%
+    dplyr::filter(.data$qualifies, !.data$waiver_claimed, !is_ng_rookie_contract(.data$info_snap)) %>%
     dplyr::transmute(
       SEASON = as.character(current_season),
       WEEK = as.character(snapshot_week),

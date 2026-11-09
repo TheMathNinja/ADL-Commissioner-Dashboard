@@ -1,4 +1,5 @@
 # Shared read-only Contract Admin salary-adjustment access and identity helpers.
+source("R/saladj_contracts.R")
 
 get_google_service_account_path <- function() {
   credentials_path <- Sys.getenv("GOOGLE_APPLICATION_CREDENTIALS", unset = "")
@@ -128,7 +129,7 @@ contract_admin_saladj_entries <- function(season) {
     rows <- as.data.frame(rows, stringsAsFactors = FALSE)
     headers <- trimws(as.character(unlist(rows[1, ], use.names = FALSE)))
     required <- c(
-      "DATE", "FRAN", "PLAYER", "SALARY", "B/R", "TR/IB", "FG", "(S)",
+      "DATE", "FRAN", "PLAYER", "SALARY", "YEARS", "CONTRACT", "B/R", "TR/IB", "FG", "(S)",
       "JT", "ACC", "1.XX+", penalty_col, paste0(season + 1L, " PEN"), "RVSD?", "ENTD?"
     )
     missing <- setdiff(required, headers)
@@ -143,6 +144,8 @@ contract_admin_saladj_entries <- function(season) {
       franchise = toupper(trimws(as.character(values[[column_index[["FRAN"]]]]))),
       player = trimws(as.character(values[[column_index[["PLAYER"]]]])),
       input_salary = parse_amount(values[[column_index[["SALARY"]]]]),
+      input_years = parse_amount(values[[column_index[["YEARS"]]]]),
+      contract_type = as.character(values[[column_index[["CONTRACT"]]]]),
       penalty_amount = parse_amount(values[[column_index[[penalty_col]]]]),
       future_penalty_amount = parse_amount(values[[column_index[[paste0(season + 1L, " PEN")]]]]),
       entered_at = as.character(values[[column_index[["DATE"]]]]),

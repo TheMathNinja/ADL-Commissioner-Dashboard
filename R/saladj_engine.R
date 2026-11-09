@@ -1,4 +1,5 @@
 source("R/saladj_transaction_exceptions.R")
+source("R/saladj_contracts.R")
 # saladj_engine.R
 # ---------------
 # Builds the copy-pasteable ADL salary adjustment transaction table.
@@ -289,10 +290,7 @@ has_plus <- function(contractInfo) {
 }
 
 is_xx_caret_3plus <- function(contractInfo) {
-  x <- dplyr::coalesce(contractInfo, "")
-  m <- stringr::str_match(x, "^([0-9]+)\\.XX\\^$")
-  n <- suppressWarnings(as.integer(m[, 2]))
-  !is.na(n) & n >= 3
+  is_ng_rookie_contract(contractInfo) & grepl("^", contractInfo, fixed = TRUE)
 }
 
 format_mdy_hms <- function(x) {
@@ -1387,7 +1385,7 @@ sd_rows <- tx_enriched %>%
     qualifies = .data$salary_or_contract_qualifies |
       .data$recent_missing_snapshot_review
   ) %>%
-  dplyr::filter(.data$qualifies) %>%
+  dplyr::filter(.data$qualifies, !is_ng_rookie_contract(.data$info_snap)) %>%
   dplyr::mutate(
     SALARY = dplyr::if_else(.data$missing_salary_snapshot, "CHECK", as.character(.data$salary_snap)),
     YEARS  = dplyr::if_else(.data$missing_salary_snapshot, "CHECK", as.character(.data$years_snap)),
@@ -1502,6 +1500,7 @@ qualified_all <- dplyr::bind_rows(qualified_existing, new_qualified) %>%
   dplyr::select(-"DATE_sort_local")
 
 qualified_all <- normalize_and_dedupe_cache(qualified_all)
+qualified_all <- exclude_ng_rookie_drops(qualified_all)
 
 saveRDS(qualified_all, qualified_rds)
 
@@ -1575,6 +1574,7 @@ if (file.exists(manual_adjustments_csv)) {
 
 final_out_csv <- apply_saladj_transaction_exceptions(final_out_csv,current_season,
   file.path(output_dir,paste0("saladj_transaction_exceptions_",current_season,".csv")))
+final_out_csv <- exclude_ng_rookie_drops(final_out_csv)
 
 readr::write_csv(final_out_csv, out_csv, na = "")
 saveRDS(final_out_csv, out_rds)

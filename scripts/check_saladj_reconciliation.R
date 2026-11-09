@@ -965,6 +965,26 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
   finding_index <- 0L
   used_rows <- integer()
 
+  if ("contract_type" %in% names(sheet_entries)) {
+    invalid <- which(is_ng_rookie_contract(sheet_entries$contract_type) &
+      !sheet_entries$is_br & !sheet_entries$is_trade_or_ib)
+    for (i in invalid) {
+      actual <- sheet_entries[i, ]
+      finding_index <- finding_index + 1L
+      findings[[finding_index]] <- tibble(
+        issue = "WRONG_CONTROL_FLAG", control_label = "RVSD?",
+        actual_control = "unchecked", expected_control = "checked (NG rookie drop)",
+        expected_franchise = actual$franchise, actual_franchise = actual$franchise,
+        player = paste0(actual$player, " (NG rookie drop)"),
+        expected_amount = 0, actual_amount = actual$penalty_amount,
+        expected_future_amount = 0, actual_future_amount = actual$future_penalty_amount,
+        transaction_date = format_audit_datetime(actual$entered_at),
+        action = "Mark this non-guaranteed rookie drop RVSD? and retain a note explaining the reversal; it must not contribute a cap penalty. PPE does not change guarantee level.",
+        stage = "Contract Admin NG eligibility", actual_system = "Contract Admin"
+      )
+    }
+  }
+
   for (i in seq_len(nrow(expected_entries))) {
     expected <- expected_entries[i, ]
     candidates <- which(
@@ -977,13 +997,60 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
           logical(1),
           player = expected$player,
           is_cash_trade = expected$is_cash_trade
-        ) &
-        !is.na(sheet_entries$input_salary) &
-        abs(sheet_entries$input_salary - expected$salary_amount) <= tolerance
+        ) & sheet_entries$is_br == expected$is_br
     )
-    if (!length(candidates)) next
+    if (length(candidates) > 1L) {
+      finding_index <- finding_index + 1L
+      findings[[finding_index]] <- tibble(
+        issue = "WRONG_CONTROL_VALUE", control_label = "Row matching",
+        actual_control = paste(length(candidates), "matching rows"), expected_control = "one identifiable transaction row",
+        expected_franchise = expected$franchise, actual_franchise = expected$franchise,
+        player = paste0(expected$player, " (row matching)"), expected_amount = expected$amount,
+        actual_amount = NA_real_, transaction_date = format_audit_datetime(expected$row_date),
+        action = "Review same-day entries for this player and franchise; ambiguous rows were not assigned corrections automatically.",
+        stage = "SalAdj Curator controls -> Contract Admin formula", actual_system = "Contract Admin"
+      )
+    }
+    if (length(candidates) != 1L) next
     used_rows <- c(used_rows, candidates[[1]])
     actual <- sheet_entries[candidates[[1]], ]
+
+    # Compare source inputs independently of the calculated penalty: distinct
+    # contracts/years can produce the same current-year dollar amount.
+    fields <- list(
+      CONTRACT = c("contract_type", "contract_type"),
+      YEARS = c("years_amount", "input_years"),
+      SALARY = c("salary_amount", "input_salary"),
+      `Next-year penalty` = c("expected_future_amount", "future_penalty_amount")
+    )
+    for (label in names(fields)) {
+      pair <- fields[[label]]
+      if (!all(pair[[1]] %in% names(expected), pair[[2]] %in% names(actual))) next
+      want <- expected[[pair[[1]]]][[1]]; have <- actual[[pair[[2]]]][[1]]
+      if (label == "CONTRACT") {
+        same <- identical(normalize_adl_contract(want), normalize_adl_contract(have))
+      } else {
+        if (is.na(want)) next # Unknown source values cannot establish an error.
+        same <- !is.na(have) && abs(want - have) <= if (label == "YEARS") 0 else tolerance
+      }
+      if (same) next
+      display <- function(x) if (is.na(x) || !nzchar(trimws(as.character(x)))) "blank" else as.character(x)
+      finding_index <- finding_index + 1L
+      findings[[finding_index]] <- tibble(
+        issue = "WRONG_CONTROL_VALUE", control_label = label,
+        actual_control = display(have), expected_control = display(want),
+        expected_franchise = expected$franchise, actual_franchise = actual$franchise,
+        player = paste0(expected$player, " (", label, ")"),
+        expected_amount = expected$amount, actual_amount = actual$penalty_amount,
+        penalty_season = expected$penalty_season,
+        expected_future_amount = expected$expected_future_amount,
+        actual_future_amount = actual$future_penalty_amount,
+        transaction_date = format_audit_datetime(expected$row_date),
+        action = if (label == "Next-year penalty") "Review the next-year penalty formula and its input controls against the Curator calculation."
+          else paste0("Set Contract Admin ", label, " to '", display(want), "'.", if (label == "CONTRACT") " Contract text alone does not change the sheet's penalty formula." else ""),
+        stage = "SalAdj Curator controls -> Contract Admin formula", actual_system = "Contract Admin"
+      )
+    }
 
     for (j in seq_len(nrow(controls))) {
       field <- controls$field[[j]]
@@ -1006,9 +1073,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         actual_control = if (isTRUE(actual[[field]])) "checked" else "unchecked",
         mfl_description = paste0(
           "Contract Admin ", label, " flag is ", direction,
-          "; this caused the sheet formula to calculate $",
-          sprintf("%.2f", actual$penalty_amount), " instead of $",
-          sprintf("%.2f", expected$amount), "."
+          "; verify this control independently of the calculated penalty."
         ),
         transaction_date = format_audit_datetime(expected$row_date),
         mfl_entered_at = format_audit_datetime(actual$entered_at),
@@ -1058,6 +1123,10 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
 }
 
 build_historical_mfl_expectations <- function(sheet_entries, curator_entries, season, tolerance = 0.01) {
+  if ("contract_type" %in% names(sheet_entries)) {
+    sheet_entries <- sheet_entries[!(is_ng_rookie_contract(sheet_entries$contract_type) &
+      !sheet_entries$is_br & !sheet_entries$is_trade_or_ib), ]
+  }
   expected <- sheet_entries |>
     filter(!is.na(.data$penalty_amount)) |>
     transmute(
@@ -1614,6 +1683,28 @@ if (arg_flag("self-test-name-matching")) {
     mutate(description = "C. Sutton", input_salary = 24.97, penalty_amount = 29.96,
            future_penalty_amount = 0, entered_at = "10/20/2026")
   stopifnot(nrow(audit_contract_admin_control_fields(sutton_test, sutton_sheet_test)) == 0L)
+  contract_test <- sutton_test
+  contract_test$contract_type <- "2023 3.18^"
+  sheet_contract_test <- sutton_sheet_test
+  sheet_contract_test$contract_type <- "2023 3.18"
+  sheet_contract_test$input_years <- contract_test$years_amount
+  differences <- audit_contract_admin_control_fields(contract_test, sheet_contract_test)
+  stopifnot("RVSD?" %in% differences$control_label)
+  differences <- differences |> filter(control_label == "CONTRACT")
+  stopifnot(nrow(differences) == 1L, differences$control_label == "CONTRACT",
+    differences$actual_control == "2023 3.18", differences$expected_control == "2023 3.18^")
+  stopifnot(any(grepl("2023 3.18\\^", format_checker_finding(differences))))
+  sheet_contract_test$contract_type <- " 2023   3.18^ "
+  stopifnot(identical(audit_contract_admin_control_fields(contract_test, sheet_contract_test)$control_label, "RVSD?"))
+  contract_test$contract_type <- "2023 2.18^"
+  sheet_contract_test$contract_type <- "2023 2.18^"
+  sheet_contract_test$input_years <- 4
+  sheet_contract_test$future_penalty_amount <- 10
+  differences <- audit_contract_admin_control_fields(contract_test, sheet_contract_test)
+  stopifnot(setequal(differences$control_label, c("YEARS", "Next-year penalty")))
+  sheet_contract_test$input_salary <- 30
+  stopifnot("SALARY" %in% audit_contract_admin_control_fields(contract_test, sheet_contract_test)$control_label)
+  stopifnot(identical(audit_contract_admin_control_fields(contract_test, bind_rows(sheet_contract_test, sheet_contract_test))$control_label, "Row matching"))
   sutton_mfl_test <- tibble(actual_id = 1L, franchise = "NYG", amount = 29.96,
                            description = "C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated",
                            entered_at = "Oct 23, 2026 at 11:59:06 AM ET")
