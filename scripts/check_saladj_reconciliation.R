@@ -1028,6 +1028,12 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
       finding_index <- finding_index + 1L
       findings[[finding_index]] <- tibble(
         issue = "WRONG_CONTROL_VALUE",
+        control_label = "1.XX+",
+        actual_control = if (is.na(actual$plus_raw) || !nzchar(actual$plus_raw)) "blank" else actual$plus_raw,
+        expected_control = if (is.na(expected$plus_raw) || !nzchar(expected$plus_raw)) "blank" else expected$plus_raw,
+        penalty_season = expected$penalty_season,
+        actual_future_amount = actual$future_penalty_amount,
+        expected_future_amount = expected$expected_future_amount,
         expected_franchise = expected$franchise,
         actual_franchise = actual$franchise,
         player = paste0(expected$player, " (1.XX+)"),
@@ -1035,12 +1041,13 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
         actual_amount = actual$penalty_amount,
         mfl_description = paste0(
           "Contract Admin 1.XX+ is '", actual$plus_raw, "' but Curator has '",
-          expected$plus_raw, "'; the formula produced $", sprintf("%.2f", actual$penalty_amount),
-          " instead of $", sprintf("%.2f", expected$amount), "."
+          expected$plus_raw, "'."
         ),
         transaction_date = format_audit_datetime(expected$row_date),
         mfl_entered_at = format_audit_datetime(actual$entered_at),
-        action = "Copy the Curator 1.XX+ value into Contract Admin and let its penalty formula recalculate.",
+        action = if (is.na(expected$plus_raw) || !nzchar(expected$plus_raw)) {
+          "Clear the 1.XX+ cell in Contract Admin and let its penalty formulas recalculate."
+        } else paste0("Set the 1.XX+ cell in Contract Admin to '", expected$plus_raw, "' and let its penalty formulas recalculate."),
         stage = "SalAdj Curator controls -> Contract Admin formula",
         actual_system = "Contract Admin"
       )
@@ -1175,7 +1182,7 @@ format_checker_finding <- function(row) {
     ))
   }
   penalty_season <- checker_row_value(row, "penalty_season", as.character(get_current_season()))
-  if (as.character(row$issue) == "WRONG_CONTROL_FLAG" &&
+  if (as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE") &&
       nzchar(checker_row_value(row, "control_label"))) {
     next_season <- as.integer(penalty_season) + 1L
     show_amount <- function(value) {
@@ -1185,7 +1192,9 @@ format_checker_finding <- function(row) {
     year_line <- function(year, actual, expected) {
       actual <- suppressWarnings(as.numeric(actual))
       expected <- suppressWarnings(as.numeric(expected))
-      paste0(year, " Sheet penalty: ", show_amount(actual), "; expected ", show_amount(expected))
+      if (!is.na(actual) && !is.na(expected) && sprintf("%.2f", actual) == sprintf("%.2f", expected)) {
+        paste0(year, " Sheet penalty: ", show_amount(actual), " (unchanged; matches expected).")
+      } else paste0(year, " Sheet penalty: ", show_amount(actual), "; expected ", show_amount(expected))
     }
     return(c(
       paste0("Error Type: Incorrect ", row$control_label, " setting in ", list_label),
@@ -1204,7 +1213,9 @@ format_checker_finding <- function(row) {
       if (nzchar(checker_row_value(row, "transaction_date"))) paste0("Original transaction/drop: ", row$transaction_date),
       if (nzchar(checker_row_value(row, "related_mfl_entered_at"))) paste0("MFL salary-adjustment entry date: ", row$related_mfl_entered_at),
       "",
-      paste0("Required: ", if (row$expected_control == "unchecked") {
+      paste0("Required: ", if (row$issue == "WRONG_CONTROL_VALUE") {
+        row$action
+      } else if (row$expected_control == "unchecked") {
         paste0("Remove the ", row$control_label, " mark in Contract Admin and let both penalty cells recalculate.")
       } else paste0("Mark ", row$control_label, " in Contract Admin and let both penalty cells recalculate."),
         if (nzchar(checker_row_value(row, "related_mfl_action"))) {
@@ -1358,12 +1369,18 @@ format_checker_finding <- function(row) {
       ""
     ))
   }
+  identical_display <- identical(paste(actual_parts, collapse = " | "), paste(expected_parts, collapse = " | "))
   c(
     paste0("Error Type: ", checker_error_label(row$issue, list_label)),
-    if (nzchar(actual_franchise) && !is.na(actual_amount)) {
+    if (identical_display) c(
+      paste0("Entry: ", paste(actual_parts, collapse = " | ")),
+      "The displayed amounts match; this finding concerns another entry detail.",
+      if (nzchar(actual_description)) paste0("Details: ", actual_description) else "Details unavailable; review the source finding before changing this entry."
+    ),
+    if (!identical_display && nzchar(actual_franchise) && !is.na(actual_amount)) {
       paste0(actual_label, ": ", paste(actual_parts, collapse = " | "))
     } else NULL,
-    if (is_total_issue) {
+    if (identical_display) NULL else if (is_total_issue) {
       paste0("MFL roster-page Salary Adjustments total: ", paste(expected_parts, collapse = " | "))
     } else {
       paste0(checker_expected_label(list_label), ": ", paste(expected_parts, collapse = " | "))
@@ -1796,7 +1813,26 @@ if (arg_flag("self-test-name-matching")) {
       "The Commissioner Error Checker found salary adjustments awaiting MFL entry"
     )
   )
-  message("Commissioner Error Checker suspected-name matching tests passed.")
+  value_case <- tibble(issue = "WRONG_CONTROL_VALUE", actual_system = "Contract Admin",
+    stage = "SalAdj Curator controls -> Contract Admin formula",
+    expected_franchise = "NYG", actual_franchise = "NYG", player = "Tyree Wilson (1.XX+)",
+    control_label = "1.XX+", actual_control = "2023 2.06", expected_control = "blank",
+    penalty_season = 2026L, expected_amount = 1.26, actual_amount = 1.26,
+    expected_future_amount = 0, actual_future_amount = 0,
+    transaction_date = "Nov 4, 2026", action = "Clear the 1.XX+ cell.")
+  text <- paste(format_checker_finding(value_case), collapse = "\n")
+  stopifnot(grepl("2023 2.06; expected blank", text, fixed = TRUE),
+    grepl("2026 Sheet penalty: $1.26 (unchanged; matches expected)", text, fixed = TRUE),
+    grepl("2027 Sheet penalty: $0.00 (unchanged; matches expected)", text, fixed = TRUE),
+    !grepl("Erroneous Sal Adj tab entry", text, fixed = TRUE))
+  value_case$actual_future_amount <- 3
+  value_case$expected_control <- "2.10"
+  text <- paste(format_checker_finding(value_case), collapse = "\n")
+  stopifnot(grepl("2027 Sheet penalty: $3.00; expected $0.00", text, fixed = TRUE),
+    grepl("expected 2.10", text, fixed = TRUE))
+  value_case$actual_amount <- NA_real_
+  stopifnot(any(grepl("2026 Sheet penalty: not available", format_checker_finding(value_case), fixed = TRUE)))
+  message("Commissioner Error Checker comparison and name-matching tests passed.")
   quit(save = "no", status = 0L)
 }
 
