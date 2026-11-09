@@ -23,6 +23,29 @@ class FailureReports(unittest.TestCase):
     def test_production_is_limited_to_recurring_or_orchestrated_runs(self):
         self.assertTrue(m.production(self.run))
 
+    def test_recovered_inactivity_startup_requires_live_same_day_check(self):
+        run = dict(self.run, id=42671504712, path='fafl-inactivity-watch.yml',
+                   display_title='FAFL Inactivity Watch', created_at='2026-11-09T18:09:31Z',
+                   updated_at='2026-11-09T18:10:32Z')
+        later = dict(run, id=42680641457, conclusion='success',
+                     created_at='2026-11-09T19:09:31Z', updated_at='2026-11-09T19:10:00Z')
+        steps = [dict(name=name, conclusion='success') for name in (
+            'Test inactivity policy and source parsing',
+            'Check FAFL inactivity and deliver scoped notifications')]
+        with patch.object(m, 'jobs', return_value=[dict(conclusion='success', steps=steps)]):
+            check = lambda jobs, recovery: m.recovered_inactivity_startup(m.COMMISSIONER, run, jobs, recovery)
+            self.assertTrue(check([], later))
+            self.assertFalse(check(self.jobs, later))
+            self.assertFalse(check([], None))
+            for changes in ({'conclusion': 'failure'}, {'status': 'in_progress'},
+                            {'display_title': 'FAFL Inactivity Watch - read-only'},
+                            {'workflow_id': 99}, {'head_branch': 'test'},
+                            {'created_at': '2026-11-10T19:09:31Z'},
+                            {'created_at': '2026-11-09T17:09:31Z'}):
+                self.assertFalse(check([], dict(later, **changes)))
+        with patch.object(m, 'jobs', return_value=[dict(conclusion='success', steps=steps[:1])]):
+            self.assertFalse(m.recovered_inactivity_startup(m.COMMISSIONER, run, [], later))
+
     def test_daily_parent_child_incidents(self):
         parent = dict(self.run,id=42,path='daily_adl_league_maintenance.yml',display_title='Daily ADL League Maintenance')
         for path,(suffix,name,step) in m.DAILY_CHILDREN.items():

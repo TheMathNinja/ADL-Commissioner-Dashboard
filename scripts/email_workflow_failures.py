@@ -306,6 +306,22 @@ def recovered_watchdog(repo, run, later):
     return required <= successful
 
 
+def recovered_inactivity_startup(repo, run, job_list, later):
+    """A verified live check supersedes a same-day check that never started."""
+    if (repo != COMMISSIONER or job_list or run.get('conclusion') not in BAD
+            or PurePosixPath(run.get('path', '')).name != 'fafl-inactivity-watch.yml'
+            or not later or later.get('status') != 'completed'
+            or later.get('conclusion') != 'success' or not production(later)
+            or later.get('created_at', '') <= run.get('updated_at', '')
+            or incident_scope(repo, later) != incident_scope(repo, run)):
+        return False
+    required = {'Test inactivity policy and source parsing',
+                'Check FAFL inactivity and deliver scoped notifications'}
+    successful = {step['name'] for job in jobs(repo, later) if job.get('conclusion') == 'success'
+                  for step in job.get('steps', []) if step.get('conclusion') == 'success'}
+    return required <= successful
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
@@ -346,6 +362,9 @@ def main():
                     state['checked'][key] = 'cancelled; replaced by successful run'
                     continue
                 job_list = jobs(repo, run)
+                if recovered_inactivity_startup(repo, run, job_list, later):
+                    state['checked'][key] = 'startup failure superseded by verified live inactivity check: ' + later['html_url']
+                    continue
                 if cancelled_without_runner_after_same_day_success(run, job_list, history):
                     state['checked'][key] = 'cancelled before runner assignment; same-day watchdog already succeeded'
                     continue
