@@ -147,12 +147,22 @@ jobs:
           MFL_PASSWORD: ${{ secrets.MFL_PASSWORD }}
           MFL_USER_AGENT: ${{ secrets.MFL_USER_AGENT }}
         run: |
+          Rscript tests/test_emergency_salary_preflight.R
+          Rscript scripts/preflight_emergency_salaries.R
           for attempt in 1 2 3; do
             Rscript scripts/run_cap_accounting.R && exit 0
             echo "Salary cap accounting attempt ${attempt} failed."
             sleep $((attempt * 15))
           done
           exit 1
+
+      - name: Preserve emergency salary preflight evidence
+        if: always() && steps.localtime.outputs.capture_needed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: emergency-salary-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/cap_accounting/*/emergency_salary_preflight/
+          if-no-files-found: ignore
 
       - name: Build dashboard site
         if: steps.localtime.outputs.capture_needed == 'true'

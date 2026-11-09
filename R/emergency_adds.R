@@ -107,15 +107,15 @@ reconcile_emergency_add_violations <- function(issued, accepted, season, checked
   issued
 }
 
-emergency_add_context <- function(season, run_time, rosters = NULL) {
-  key <- paste(season, as.numeric(run_time))
+emergency_add_context <- function(season, run_time, rosters = NULL, lookback_days = 7) {
+  key <- paste(season, as.numeric(run_time), lookback_days)
   if (exists(key, .emergency_add_cache, inherits = FALSE)) return(get(key, .emergency_add_cache))
   if (is.null(rosters)) rosters <- load_current_rosters(force_live = TRUE, source = "live", season = season)
   franchises <- distinct(rosters, .data$conference, .data$franchise, .data$franchise_name)
   raw <- fetch_inseason_transactions(season)
   tx <- normalize_inseason_transactions(raw, franchises)
   adds <- tx |> filter(.data$type_desc %in% c("added", "claimed"), .data$occurred_at <= run_time,
-                      .data$occurred_at >= run_time - lubridate::days(7))
+                      .data$occurred_at >= run_time - lubridate::days(lookback_days))
   result <- list(accepted = character(), contracts = tibble())
   if (nrow(adds)) {
     pool <- bind_rows(
@@ -134,6 +134,7 @@ emergency_add_context <- function(season, run_time, rosters = NULL) {
     ) |> filter(!is.na(.data$kickoff_at)) |> distinct()
     result <- assess_emergency_adds(adds, fetch_emergency_add_posts(season, franchises), pool, rosters, kickoffs, season, tx)
   }
+  result$transactions <- tx
   assign(key, result, .emergency_add_cache)
   result
 }
