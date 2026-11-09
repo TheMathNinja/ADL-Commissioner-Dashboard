@@ -558,11 +558,28 @@ transaction_day <- function(x) {
   day
 }
 
+read_cash_correction_dates <- function(path = "data/saladj_cash_correction_dates.csv") {
+  rows <- readr::read_csv(path, show_col_types = FALSE,
+    col_types = readr::cols(.default = readr::col_character()))
+  required <- c("season", "franchise", "amount", "effective_date", "entered_date", "evidence")
+  if (!all(required %in% names(rows))) stop("Cash correction date audit is missing required fields.")
+  rows$amount <- suppressWarnings(as.numeric(rows$amount))
+  rows$effective_date <- as.Date(rows$effective_date)
+  rows$entered_date <- as.Date(rows$entered_date)
+  key <- paste(rows$season, rows$franchise, rows$amount, rows$effective_date)
+  if (anyDuplicated(key) || anyNA(rows[required]) || any(!nzchar(rows$evidence)) ||
+      any(!is.finite(rows$amount)) || any(rows$amount == 0) ||
+      any(format(rows$effective_date, "%Y") != rows$season) ||
+      any(rows$entered_date < rows$effective_date)) stop("Invalid or ambiguous cash correction date audit.")
+  rows
+}
+
 build_commissioner_error_report <- function(
   expected_entries,
   actual_entries,
   tolerance = 0.01,
-  latest_snapshot_time = as.POSIXct(NA, tz = "UTC")
+  latest_snapshot_time = as.POSIXct(NA, tz = "UTC"),
+  cash_correction_dates = read_cash_correction_dates()
 ) {
   used_actual <- integer()
   findings <- vector("list", nrow(expected_entries))
@@ -587,6 +604,20 @@ build_commissioner_error_report <- function(
     event_ok <- rep(TRUE, nrow(actual_entries))
     if ("transaction_day" %in% names(actual_entries)) {
       event_ok <- actual_entries$transaction_day == transaction_day(expected$row_date)
+      if (isTRUE(expected$is_cash_trade)) {
+        # Only explicitly audited corrections may use a different entry date.
+        # A matching amount alone must never borrow an unrelated player penalty.
+        description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
+        approved <- which(cash_correction_dates$franchise == expected$franchise &
+          cash_correction_dates$season == format(transaction_day(expected$row_date), "%Y") &
+          cash_correction_dates$effective_date == transaction_day(expected$row_date) &
+          abs(cash_correction_dates$amount - expected$amount) < 1e-8)
+        if (length(approved) > 1L) stop("Ambiguous cash correction date mapping.")
+        if (length(approved) == 1L) {
+          event_ok <- actual_entries$transaction_day == cash_correction_dates$entered_date[approved]
+        }
+        if ("is_br" %in% names(actual_entries)) event_ok <- event_ok & !actual_entries$is_br
+      }
     }
     description_match <- description_match & event_ok
     identity_candidates <- which(description_match & !(actual_entries$actual_id %in% used_actual))
@@ -602,7 +633,7 @@ build_commissioner_error_report <- function(
       actual_entries$franchise[amount_candidates] == expected$franchise
     ]
 
-    if (length(same_franchise)) {
+    if (length(same_franchise) && (!isTRUE(expected$is_cash_trade) || length(same_franchise) == 1L)) {
       chosen <- same_franchise[[1]]
       used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
       next
@@ -1630,6 +1661,40 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  correction_expected <- tibble(franchise = c("WAS", "NOS"), player = "Cash Trade",
+    amount = c(0.05, -0.05), is_cash_trade = TRUE, is_br = FALSE,
+    row_date = parse_saladj_date(rep("8/26/2026 08:41:41", 2), 2026))
+  correction_actual <- tibble(actual_id = 1:2, franchise = c("WAS", "NOS"),
+    amount = c(0.05, -0.05), description = "Cash Trade", entered_at = "10/14/2026",
+    transaction_day = as.Date("2026-10-14"), is_br = FALSE)
+  correction_check <- function(actual = correction_actual, expected = correction_expected) {
+    build_commissioner_error_report(expected, actual,
+      latest_snapshot_time = as.POSIXct("2026-11-09", tz = "UTC"))
+  }
+  stopifnot(nrow(correction_check()) == 0L)
+  bad <- correction_actual; bad$description[1] <- "C. Kmet"
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  bad <- correction_actual; bad$is_br[1] <- TRUE
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  bad <- correction_actual; bad$amount[1] <- -0.05
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  bad <- correction_actual; bad$franchise[1] <- "PHI"
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  bad <- correction_actual; bad$transaction_day[1] <- as.Date("2026-10-15")
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  bad <- correction_actual; bad$transaction_day[1] <- as.Date("2026-08-26")
+  stopifnot(nrow(correction_check(bad)) == 1L)
+  duplicate <- correction_actual[1, ]; duplicate$actual_id <- 3L
+  stopifnot(nrow(correction_check(bind_rows(correction_actual, duplicate))) == 1L)
+  unapproved <- correction_expected; unapproved$row_date <- unapproved$row_date + 86400
+  stopifnot(nrow(correction_check(expected = unapproved)) == 2L)
+  other_season <- correction_expected; other_season$row_date <- parse_saladj_date(rep("8/26/2025", 2), 2025)
+  stopifnot(nrow(correction_check(expected = other_season)) == 2L)
+  stopifnot(nrow(correction_check(expected = bind_rows(correction_expected, correction_expected[1, ]))) == 1L)
+  regular <- correction_expected; regular$amount <- c(-8.6, 8.6)
+  regular_actual <- correction_actual; regular_actual$amount <- regular$amount
+  regular_actual$transaction_day <- as.Date("2026-08-26")
+  stopifnot(nrow(correction_check(regular_actual, regular)) == 0L)
   incomplete_salary_test <- tibble(
     issue = "WRONG_AMOUNT", expected_franchise = "CHI", actual_franchise = "CHI",
     player = "Terry McLaurin", expected_amount = 22.8, actual_amount = NA_real_,
