@@ -332,6 +332,18 @@
         "check-dashboard-freshness": "failure"
       },
       "failed_at": "2026-11-08T11:59:46Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:42671504712:1": {
+      "sent_at": "2026-11-09T19:32:33.247008+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 FAFL Inactivity Watch",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch:2026-11-09",
+      "failed_steps": [
+        "Workflow ended with failure; detailed step results are unavailable."
+      ],
+      "cause_codes": {},
+      "affected_jobs": {},
+      "failed_at": "2026-11-09T18:10:32Z"
     }
   },
   "checked": {
@@ -1155,6 +1167,14 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:42600101017:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42600424655:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:42600764227:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:42600055525:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:42600055525:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42606723175:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42613316220:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42614660965:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42623001150:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42631910498:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42641785434:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42651896434:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:42661849177:1": "success"
   }
 }
