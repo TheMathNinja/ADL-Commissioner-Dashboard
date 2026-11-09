@@ -988,6 +988,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
 
   for (i in seq_len(nrow(expected_entries))) {
     expected <- expected_entries[i, ]
+    if (isTRUE(expected$is_cash_trade)) next # Cash has no player contract; amount reconciliation owns it.
     candidates <- which(
       sheet_entries$franchise == expected$franchise &
         !(seq_len(nrow(sheet_entries)) %in% used_rows) &
@@ -1721,6 +1722,11 @@ if (arg_flag("self-test-name-matching")) {
   extra_row <- sheet_contract_test
   extra_row$input_salary <- 50
   stopifnot(nrow(audit_contract_admin_control_fields(contract_test, bind_rows(sheet_contract_test, extra_row))) == 0L)
+  cash_test <- contract_test
+  cash_test$is_cash_trade <- TRUE
+  cash_test$player <- "Cash Trade"
+  cash_test$salary_amount <- 0.05
+  stopifnot(nrow(audit_contract_admin_control_fields(cash_test, sheet_contract_test)) == 0L)
   sutton_mfl_test <- tibble(actual_id = 1L, franchise = "NYG", amount = 29.96,
                            description = "C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated",
                            entered_at = "Oct 23, 2026 at 11:59:06 AM ET")
