@@ -60,6 +60,36 @@ html <- '<div class="frm pst"><div class="poster"><a>Houston Texans</a></div><ta
 parsed <- parse_emergency_add_posts(xml2::read_html(html), adds |> select(franchise, franchise_name), "https://example.test/post")
 stopifnot(nrow(parsed) == 1L, parsed$franchise == "HOU", as.numeric(parsed$declared_at) == as.numeric(add_time + 103))
 issued <- tibble(violation_key = c("illegal_waiver_claim|2026|HOU|13848|2026-11-01", "illegal_waiver_claim|2026|CHI|13848|2026-11-01"))
+base <- "https://www46.myfantasyleague.com/2026/mb/"
+board <- paste0(base, "board_show.pl?bid=202660206")
+canonical <- paste0(base, "topic_show.pl?bid=202660206&tid=6682235")
+adhoc <- paste0(base, "topic_show.pl?bid=202660206&tid=6764775")
+fixture <- function(text) xml2::read_html(text)
+pages <- list()
+pages[[board]] <- fixture('<a href="topic_show.pl?bid=202660206&tid=6682235">Main</a><a href="board_show.pl?bid=202660206;pg=2">Next</a>')
+pages[[paste0(board, "&pg=2")]] <- fixture('<a href="topic_show.pl?bid=202660206&tid=6764775">Unrelated title</a><a href="board_show.pl?bid=202660206">Back</a><a href="https://evil.test/2026/mb/topic_show.pl?bid=202660206&tid=9">Ignore</a><a href="topic_show.pl?bid=202699999&tid=9">Other league</a>')
+pages[[canonical]] <- fixture(gsub("emergency added", "added", html))
+pages[[adhoc]] <- fixture(paste0(gsub("emergency added", "added", html), '<a href="topic_show.pl?bid=202660206&tid=6764775&pg=2">Next</a>'))
+pages[[paste0(adhoc, "&pg=2")]] <- fixture(html)
+reads <- character()
+reader <- function(url) { reads <<- c(reads, url); stopifnot(url %in% names(pages)); pages[[url]] }
+discovered <- fetch_emergency_add_posts(2026, adds |> select(franchise, franchise_name), reader)
+stopifnot(nrow(discovered) == 1L, length(reads) == 5L, !anyDuplicated(reads),
+          discovered$source_url == paste0(adhoc, "&pg=2"), length(check(p = discovered)$accepted) == 1L)
+failed <- tryCatch(fetch_emergency_add_posts(2026, adds, function(url) {
+  if (url == paste0(board, "&pg=2")) stop("Unavailable")
+  reader(url)
+}), error = identity)
+stopifnot(inherits(failed, "error"))
+hall_time <- as.POSIXct("2026-11-08 16:21:07", tz = "UTC")
+hall_add <- mutate(adds, franchise = "NYJ", franchise_name = "New York Jets", player_id = "17769", player_name = "Hall, Aaron", occurred_at = hall_time)
+hall_pool <- mutate(pool, player_id = "17769", player_name = "Hall, Aaron", player_team = "CAR", player_pos = "DT")
+hall_posts <- mutate(posts, franchise = "NYJ", declared_at = hall_time + 461,
+  body = "Emergency Add for NYJ: Hall, Aaron CAR DT (R). Williams is out and others already played/are on bye).")
+hall_roster <- mutate(roster, franchise = "NYJ", player_id = "17769")
+hall_games <- tibble(player_team = "CAR", kickoff_at = as.POSIXct("2026-11-08 18:00:00", tz = "UTC"))
+hall_result <- assess_emergency_adds(hall_add, hall_posts, hall_pool, hall_roster, hall_games, 2026, tx)
+stopifnot(identical(hall_result$accepted, "NYJ|17769|1794154867"), nrow(hall_result$contracts) == 0L)
 corrected <- reconcile_emergency_add_violations(issued, check()$accepted, 2026, add_time + 86400)
 stopifnot(!is.na(corrected$rescinded_at[[1]]), is.na(corrected$rescinded_at[[2]]), nrow(corrected) == nrow(issued),
           identical(corrected, reconcile_emergency_add_violations(corrected, check()$accepted, 2026, add_time + 90000)))

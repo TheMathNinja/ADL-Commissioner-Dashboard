@@ -19,13 +19,65 @@ parse_emergency_add_posts <- function(doc, franchises, url) {
     distinct()
 }
 
-fetch_emergency_add_posts <- function(season, franchises) {
+read_emergency_board_page <- function(url) {
+  response <- httr::RETRY("GET", url, httr::timeout(25), times = 3, quiet = TRUE)
+  httr::stop_for_status(response)
+  xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8"))
+}
+
+# Traverse only this league's board/thread links, never arbitrary links in posts.
+emergency_board_links <- function(doc, base, bid, kind, tid = NULL) {
+  hrefs <- rvest::html_attr(rvest::html_elements(doc, "a[href]"), "href")
+  unique(unlist(lapply(hrefs, function(href) {
+    u <- httr::parse_url(gsub(";", "&", xml2::url_absolute(href, base), fixed = TRUE))
+    origin <- httr::parse_url(base)
+    if (!identical(u$hostname, origin$hostname) || !identical(u$scheme, "https") ||
+        !identical(u$path, paste0(dirname(origin$path), "/", kind, "_show.pl"))) return(NULL)
+    q <- u$query
+    if (!identical(q$bid, bid) || !is.null(q$PRINTER)) return(NULL)
+    if (kind == "topic" && (is.null(q$tid) || !grepl("^[0-9]+$", q$tid) ||
+        (!is.null(tid) && !identical(q$tid, tid)))) return(NULL)
+    if (!is.null(q$pg) && !grepl("^[0-9]+$", q$pg)) return(NULL)
+    u$query <- list(bid = bid)
+    if (kind == "topic") u$query$tid <- q$tid
+    if (!is.null(q$pg) && q$pg != "1") u$query$pg <- q$pg
+    u$fragment <- NULL
+    httr::build_url(u)
+  }), use.names = FALSE))
+}
+
+fetch_emergency_add_posts <- function(season, franchises, reader = read_emergency_board_page) {
   url <- Sys.getenv(paste0("ADL_EMERGENCY_ADD_THREAD_URL_", season), unset = "")
   if (!nzchar(url) && season == 2026L) url <- "https://www46.myfantasyleague.com/2026/mb/topic_show.pl?bid=202660206&tid=6682235"
   if (!nzchar(url)) stop("No emergency-add message-board thread configured for ", season, call. = FALSE)
-  response <- httr::RETRY("GET", url, httr::timeout(25), times = 3, quiet = TRUE)
-  httr::stop_for_status(response)
-  parse_emergency_add_posts(xml2::read_html(httr::content(response, as = "text", encoding = "UTF-8")), franchises, url)
+  origin <- httr::parse_url(url)
+  bid <- origin$query$bid
+  if (is.null(bid) || !grepl("^[0-9]+$", bid)) stop("Emergency-add thread has no valid league board ID.")
+  origin$path <- paste0(dirname(origin$path), "/board_show.pl")
+  origin$query <- list(bid = bid); origin$fragment <- NULL
+  pending <- httr::build_url(origin); visited <- character(); topics <- url
+  while (length(pending)) {
+    page <- pending[[1]]; pending <- pending[-1]
+    if (page %in% visited) next
+    if (length(visited) >= 100L) stop("Emergency-add board discovery incomplete: page limit reached.")
+    doc <- reader(page)
+    found <- emergency_board_links(doc, page, bid, "topic")
+    if (!length(found)) stop("Cannot verify emergency adds: no league topics parsed from board.")
+    topics <- union(topics, found); visited <- c(visited, page)
+    pending <- union(pending, setdiff(emergency_board_links(doc, page, bid, "board"), visited))
+  }
+  visited <- character(); posts <- list()
+  while (length(topics)) {
+    page <- topics[[1]]; topics <- topics[-1]
+    if (page %in% visited) next
+    if (length(visited) >= 500L) stop("Emergency-add thread discovery incomplete: page limit reached.")
+    doc <- reader(page)
+    posts[[length(posts) + 1L]] <- parse_emergency_add_posts(doc, franchises, page)
+    visited <- c(visited, page)
+    tid <- httr::parse_url(page)$query$tid
+    topics <- union(topics, setdiff(emergency_board_links(doc, page, bid, "topic", tid), visited))
+  }
+  bind_rows(posts) |> distinct()
 }
 
 emergency_add_player_match <- function(body, player, pool) {
