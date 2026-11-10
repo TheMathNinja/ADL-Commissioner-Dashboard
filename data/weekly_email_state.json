@@ -115,6 +115,10 @@
     "preliminary:FAFL-42760915710": {
       "sent_at": "2026-11-10T05:29:55.367252+00:00",
       "subject": "FAFL 2026 Week 9: Weekly publication package complete"
+    },
+    "gotw:2026:10": {
+      "sent_at": "2026-11-10T05:35:40.635624+00:00",
+      "subject": "2026 Week 10: ADL & FAFL Game of the Week suggestions"
     }
   },
   "gotw_history": {
@@ -151,6 +155,12 @@
         "blurb": "Buffalo seeks Week 1 vengeance in the ADL's most heavyweight divisional battle",
         "banner_drive_id": "1TTpUTkyoT2X-QQt9wfIiXkYfOBBl1XhO",
         "publication_verified": true
+      },
+      {
+        "season": 2026,
+        "week": 9,
+        "team_a": "Indianapolis Colts",
+        "team_b": "Denver Broncos"
       }
     ],
     "FAFL": [
@@ -186,6 +196,12 @@
         "blurb": "The NFC West is up for grabs and these two are fighting for their playoff lives",
         "banner_drive_id": "1TexU-5-GuW4D6DHzco6KLLhCFF1bOmAZ",
         "publication_verified": true
+      },
+      {
+        "season": 2026,
+        "week": 9,
+        "team_a": "New York Jets",
+        "team_b": "Los Angeles Chargers"
       }
     ]
   }
