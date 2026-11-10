@@ -1,2 +1,1 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
-illegal_waiver_claim|2026|NYJ|17769|2026-11-08,2026,,2026-11-09 05:25:50 EST,In-Season Inactivity Violation,violation,AFC,NYJ,New York Jets,Illegal Waiver Claim,Illegal waiver claim,"Hall, Aaron was added without a matching legal waiver window in the prior 24-hour scan.",Latest drop: 2026-10-08 08:23 EDT; expected legal waiver run: 2026-10-10 05:00 EDT,inseason

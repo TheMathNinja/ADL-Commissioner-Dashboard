@@ -1,0 +1,9 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Sutton, Courtland DEN WR on Bye in Week 10.  Must replace with eligible RB/WR.",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Crawshaw, Jeremy DEN PN on Bye in Week 10.  Must replace with eligible PN.",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Booker, Austin CHI DE on Bye in Week 10.  Must replace with eligible DE.",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Parrish, Jacob TBB CB on Bye in Week 10.  Must replace with eligible DE/LB/CB/S.",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Scott, Keionte TBB CB on Bye in Week 10.  Must replace with eligible DE/LB/CB/S.",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,PIT,Pittsburgh Steelers,No inactive players allowed in starting lineup,"Murray, Kyler MIN QB is inactive (O)",,,
+2026,10,2026-11-10 10:31:55 UTC,Illegal Lineup Warning,warning,AFC,PIT,Pittsburgh Steelers,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
