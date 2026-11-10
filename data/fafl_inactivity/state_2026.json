@@ -112,6 +112,30 @@
         "issued_at": "2026-11-09T19:09:46.296592+00:00"
       },
       "deadline": "2026-11-14T19:09:46.296592+00:00"
+    },
+    "0007:d0aeaade439070ef87e8:lineup:9": {
+      "franchise_id": "0007",
+      "franchise": "Green Bay Packers",
+      "owner_key": "d0aeaade439070ef87e8",
+      "rule": "lineup",
+      "episode": 9,
+      "count": 1,
+      "observed": "No owner-submitted Week 9 lineup; MFL may have inherited a lineup",
+      "detected_at": "2026-11-10T04:09:38.269884+00:00",
+      "status": "pending_notice",
+      "activity_at": null
+    },
+    "0024:bcc3d4ff500357cc7c1e:lineup:9": {
+      "franchise_id": "0024",
+      "franchise": "Pittsburgh Steelers",
+      "owner_key": "bcc3d4ff500357cc7c1e",
+      "rule": "lineup",
+      "episode": 9,
+      "count": 1,
+      "observed": "No owner-submitted Week 9 lineup; MFL may have inherited a lineup",
+      "detected_at": "2026-11-10T04:09:38.269884+00:00",
+      "status": "pending_notice",
+      "activity_at": null
     }
   },
   "counts": {
@@ -119,10 +143,13 @@
     "0001:053b575baef80c94c14e:lineup": 1,
     "0001:053b575baef80c94c14e:login": 1,
     "0012:6578b1f3d0572c373a34:login": 1,
-    "0007:d0aeaade439070ef87e8:login": 1
+    "0007:d0aeaade439070ef87e8:login": 1,
+    "0007:d0aeaade439070ef87e8:lineup": 1,
+    "0024:bcc3d4ff500357cc7c1e:lineup": 1
   },
   "audited_weeks": [
-    8
+    8,
+    9
   ],
   "activated_at": "2026-10-30T00:50:21.923557+00:00",
   "owners": {
@@ -256,6 +283,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-10T03:09:40.536734+00:00",
+  "last_checked_at": "2026-11-10T04:09:38.269884+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
