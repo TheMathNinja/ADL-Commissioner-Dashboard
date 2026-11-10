@@ -20,3 +20,17 @@ gm <- render_commissioner_gm_alert_email(alerts[1:4, ], 2026, 8)
 stopifnot(count(gm, "Rule: No starters on bye") == 1L)
 stopifnot(identical(alerts$alert_type[[1]], "Illegal Lineup Warning"))
 cat("Lineup email grouping tests passed.\n")
+
+mixed <- dplyr::bind_rows(alerts, dplyr::mutate(alerts[1, ], alert_type = "Roster Warning"),
+                         dplyr::mutate(alerts[1, ], alert_type = "In-Season Inactivity Violation"))
+for (day in 9:15) {
+  when <- as.POSIXct(sprintf("2026-11-%02d 05:25:00", day), tz = "America/New_York")
+  result <- filter_lineup_email_days(mixed, when)
+  stopifnot(nrow(result) == if (day %in% c(10, 11)) 2L else nrow(mixed))
+}
+stopifnot(nrow(filter_lineup_email_days(alerts, as.POSIXct("2026-11-10 04:59:00", tz = "UTC"))) == 5L,
+          nrow(filter_lineup_email_days(alerts, as.POSIXct("2026-11-10 05:00:00", tz = "UTC"))) == 0L,
+          nrow(filter_lineup_email_days(alerts, as.POSIXct("2026-07-07 04:00:00", tz = "UTC"))) == 0L,
+          nrow(filter_lineup_email_days(alerts[0, ], as.POSIXct("2026-11-10", tz = "UTC"))) == 0L)
+stopifnot(grepl("alerts <- filter_lineup_email_days", paste(deparse(body(send_commissioner_alert_email)), collapse = "\n"), fixed = TRUE))
+cat("Lineup email weekday policy tests passed.\n")

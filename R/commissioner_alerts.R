@@ -3407,6 +3407,14 @@ send_alert_mail <- function(subject, body, to, cc = character(), html_body = NUL
   list(sent = TRUE, reason = "sent")
 }
 
+filter_lineup_email_days <- function(alerts, run_time = Sys.time()) {
+  eastern_day <- as.POSIXlt(run_time, tz = "America/New_York")$wday
+  if (eastern_day %in% c(2L, 3L)) {
+    alerts <- alerts[!(alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning")), , drop = FALSE]
+  }
+  alerts
+}
+
 send_commissioner_alert_email <- function(
   alerts,
   season = get_current_season(),
@@ -3416,9 +3424,11 @@ send_commissioner_alert_email <- function(
   gm_subject = NULL,
   digest_title = NULL,
   gm_title_prefix = NULL,
-  compliant_teams = NULL
+  compliant_teams = NULL,
+  run_time = Sys.time()
 ) {
-  checked_date <- Sys.Date()
+  alerts <- filter_lineup_email_days(alerts, run_time)
+  checked_date <- as.Date(run_time, tz = "America/New_York")
   date_label <- commissioner_alert_date_label(checked_date)
 
   if (!nrow(alerts) && !send_empty) {
