@@ -104,14 +104,15 @@
       "count": 1,
       "observed": "Last league access: Nov 02, 2026 at 01:06 PM EST",
       "detected_at": "2026-11-09T19:09:41.219977+00:00",
-      "status": "watch",
+      "status": "resolved",
       "activity_at": "2026-11-02T18:06:12+00:00",
       "notice": {
         "status": "accepted",
         "attempted_at": "2026-11-09T19:09:46.296592+00:00",
         "issued_at": "2026-11-09T19:09:46.296592+00:00"
       },
-      "deadline": "2026-11-14T19:09:46.296592+00:00"
+      "deadline": "2026-11-14T19:09:46.296592+00:00",
+      "resolved_at": "2026-11-10T13:28:00+00:00"
     },
     "0007:d0aeaade439070ef87e8:lineup:9": {
       "franchise_id": "0007",
@@ -122,14 +123,15 @@
       "count": 1,
       "observed": "No owner-submitted Week 9 lineup; MFL may have inherited a lineup",
       "detected_at": "2026-11-10T04:09:38.269884+00:00",
-      "status": "watch",
+      "status": "resolved",
       "activity_at": null,
       "notice": {
         "status": "accepted",
         "attempted_at": "2026-11-10T04:09:43.987737+00:00",
         "issued_at": "2026-11-10T04:09:43.987737+00:00"
       },
-      "deadline": "2026-11-15T04:09:43.987737+00:00"
+      "deadline": "2026-11-15T04:09:43.987737+00:00",
+      "resolved_at": "2026-11-10T13:28:00+00:00"
     },
     "0024:bcc3d4ff500357cc7c1e:lineup:9": {
       "franchise_id": "0024",
@@ -295,6 +297,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-10T13:09:40.240664+00:00",
+  "last_checked_at": "2026-11-10T14:09:39.493130+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
