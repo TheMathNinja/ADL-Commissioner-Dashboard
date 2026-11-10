@@ -1,7 +1,6 @@
 franchise,mfl_saladj,saladj_expected,saladj_expected_known,difference,status,adjustment_count,saladj_row_count,known_penalty_rows,missing_penalty_rows,missing_penalty_players,accelerated_rows,acceleration_declaration_players
 ATL,103.66,80.77,80.77,22.89,MISMATCH,23,15,15,0,,2,Tatum Bethune; Kwity Paye
 BAL,17.61,6.98,6.98,10.63,MISMATCH,11,9,9,0,,0,
-BUF,5.71,1.25,1.25,4.46,MISMATCH,5,1,1,0,,0,
 CAR,23.96,18.64,18.64,5.32,MISMATCH,10,7,7,0,,0,
 CHI,19.04,9.2,9.2,9.84,MISMATCH,7,5,5,0,,0,
 CLE,51.73,45.79,45.79,5.94,MISMATCH,9,7,7,0,,1,Courtland Sutton
@@ -21,6 +20,7 @@ NYJ,-5.27,-11,-11,5.73,MISMATCH,3,2,2,0,,0,
 PHI,6.08,2.7,2.7,3.38,MISMATCH,4,3,3,0,,0,
 SEA,36.89,9.38,9.38,27.51,MISMATCH,12,5,5,0,,0,
 WAS,2.47,-4.25,-4.25,6.72,MISMATCH,9,7,7,0,,0,
+BUF,5.71,,1.25,,INCOMPLETE_FORMULA,5,2,1,1,Kenneth Gainwell,0,
 ARI,5.94,5.94,5.94,0,MATCH,4,4,4,0,,0,
 GBP,5.18,5.18,5.18,0,MATCH,2,2,2,0,,1,Azeez Ojulari
 HOU,2.57,2.57,2.57,0,MATCH,1,1,1,0,,0,
