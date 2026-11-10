@@ -1,9 +1,8 @@
 The Commissioner Error Checker found salary-adjustment discrepancies.
 
-Error Type: Incorrect control value in NFC Sal Adj tab (Contract Admin Sheet)
-Erroneous Sal Adj tab entry: NYG | Tyree Wilson (1.XX+) | 2026 calculated penalty: $1.26
-Expected Sal Adj tab entry: NYG | Tyree Wilson (1.XX+) | 2026 calculated penalty: $1.26
-Original transaction/drop: Nov 4, 2026 at 12:39:37 PM ET
-Required: Copy the Curator 1.XX+ value into Contract Admin and let its penalty formula recalculate.
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: ATL | Cash Trade | Penalty/adjustment: $3.65
+Original transaction/drop: May 3, 2026 at 8:32:29 AM ET
+Required: Add or verify the missing $3.65 cash-trade adjustment for ATL.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
