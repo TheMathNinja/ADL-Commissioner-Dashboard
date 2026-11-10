@@ -345,10 +345,10 @@ NFC,MIN,Minnesota Vikings,12676,"Henry, Hunter NEP TE","Henry, Hunter",NEP,TE,Ac
 NFC,MIN,Minnesota Vikings,15836,"Hill, Daxton CIN CB","Hill, Daxton",CIN,CB,Active,,2,1,265.12,2026 UFA,,hill
 NFC,MIN,Minnesota Vikings,15832,"Stingley Jr., Derek HOU CB","Stingley Jr., Derek",HOU,CB,Active,,2.25,3,265.12,2026 UFA,,stingley jr.
 NFC,MIN,Minnesota Vikings,17607,"Raridon, Eli NEP TE","Raridon, Eli",NEP,TE,Active,R,1.03,4,265.12,2026 4.17,,raridon
-NFC,MIN,Minnesota Vikings,17643,"Demmings, Charles MIN CB","Demmings, Charles",MIN,CB,Active,R,0.94,3,265.12,2026 UDFA,,demmings
+NFC,MIN,Minnesota Vikings,17643,"Demmings, Charles MIN CB","Demmings, Charles",MIN,CB,Active,Out,0.94,3,265.12,2026 UDFA,,demmings
 NFC,MIN,Minnesota Vikings,14925,"Uche, Josh MIA DE","Uche, Josh",MIA,DE,Active,,1.1,1,265.12,2026 UFA,,uche
 NFC,MIN,Minnesota Vikings,14182,"Hooker, Amani TEN S","Hooker, Amani",TEN,S,Active,,2,1,265.12,2026 UFA,,hooker
-NFC,MIN,Minnesota Vikings,17608,"Thomas, Jakobe MIN S","Thomas, Jakobe",MIN,S,Active,R,0.94,3,265.12,2026 UDFA,,thomas
+NFC,MIN,Minnesota Vikings,17608,"Thomas, Jakobe MIN S","Thomas, Jakobe",MIN,S,Active,Out,0.94,3,265.12,2026 UDFA,,thomas
 NFC,MIN,Minnesota Vikings,13806,"Elliott, DeShon PIT S","Elliott, DeShon",PIT,S,Active,,7.7,2,265.12,2025 RRFA,,elliott
 NFC,MIN,Minnesota Vikings,16572,"Okada, Ty SEA S","Okada, Ty",SEA,S,Active,,2,1,265.12,2026 UFA,,okada
 NFC,MIN,Minnesota Vikings,16204,"Dell, Tank HOU WR","Dell, Tank",HOU,WR,Active,,1.35,1,265.12,2023 3.15,,dell
@@ -529,7 +529,7 @@ NFC,TBB,Tampa Bay Buccaneers,16615,"Nabers, Malik NYG WR","Nabers, Malik",NYG,WR
 NFC,TBB,Tampa Bay Buccaneers,16166,"Tucker, Sean TBB RB","Tucker, Sean",TBB,RB,Active,,3.67,2,252.92,2026 ORFA5,,tucker
 NFC,TBB,Tampa Bay Buccaneers,13743,"Warner, Fred SFO LB","Warner, Fred",SFO,LB,Active,,10.2,4,252.92,2026 mEXT,,warner
 NFC,TBB,Tampa Bay Buccaneers,17543,"Sadiq, Kenyon NYJ TE","Sadiq, Kenyon",NYJ,TE,Active,R,4.13,4,252.92,2026 1.09,,sadiq
-NFC,TBB,Tampa Bay Buccaneers,17481,"Claiborne, Demond MIN RB","Claiborne, Demond",MIN,RB,Active,Out,1.59,4,252.92,2026 2.15,,claiborne
+NFC,TBB,Tampa Bay Buccaneers,17481,"Claiborne, Demond MIN RB","Claiborne, Demond",MIN,RB,Active,IR,1.59,4,252.92,2026 2.15,,claiborne
 NFC,TBB,Tampa Bay Buccaneers,17478,"Allen, Kaytron MIA RB","Allen, Kaytron",MIA,RB,Active,R,1.18,4,252.92,2026 3.18,,allen
 NFC,TBB,Tampa Bay Buccaneers,16450,"Thomas, Drake SEA LB","Thomas, Drake",SEA,LB,Active,,2.1,1,252.92,2026 UFA,,thomas
 NFC,TBB,Tampa Bay Buccaneers,13671,"Andrews, Mark BAL TE","Andrews, Mark",BAL,TE,Active,,3.04,2,252.92,2026 UFA,,andrews
@@ -632,7 +632,7 @@ NFC,LAR,Los Angeles Rams,17145,"Winston, Kevin TEN S","Winston, Kevin",TEN,S,Act
 NFC,LAR,Los Angeles Rams,17591,"Boerkircher, Nate JAC TE","Boerkircher, Nate",JAC,TE,Active,R,0.94,3,254.03,2026 UDFA,,boerkircher
 NFC,LAR,Los Angeles Rams,17581,"Cisse, Brandon GBP CB","Cisse, Brandon",GBP,CB,Active,R,0.98,4,254.03,2026 5.17,,cisse
 NFC,LAR,Los Angeles Rams,17577,"Wheatley, Zakee CAR S","Wheatley, Zakee",CAR,S,Active,R,0.94,3,254.03,2026 UDFA,,wheatley
-NFC,LAR,Los Angeles Rams,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,Active,Out,2.1,1,254.03,2026 UFA,,palmer
+NFC,LAR,Los Angeles Rams,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,Active,IR,2.1,1,254.03,2026 UFA,,palmer
 NFC,LAR,Los Angeles Rams,12678,"Higbee, Tyler LAR TE","Higbee, Tyler",LAR,TE,Active,,2,1,254.03,2026 UFA,,higbee
 NFC,LAR,Los Angeles Rams,14095,"Johnson, Ty BUF RB","Johnson, Ty",BUF,RB,Active,,1.1,1,254.03,2026 UFA,,johnson
 NFC,LAR,Los Angeles Rams,14933,"Blackmon, Julian NOS S","Blackmon, Julian",NOS,S,Active,,1.1,1,254.03,2026 UFA,,blackmon
@@ -725,8 +725,8 @@ NFC,SEA,Seattle Seahawks,15822,"Lloyd, Devin CAR LB","Lloyd, Devin",CAR,LB,Activ
 NFC,SEA,Seattle Seahawks,15789,"Watson, Christian GBP WR","Watson, Christian",GBP,WR,Active,,30.01,4,261.29,2026 mEXT,,watson
 NFC,SEA,Seattle Seahawks,17462,"Mendoza, Fernando LVR QB","Mendoza, Fernando",LVR,QB,Active,R,11.67,4,261.29,2026 1.01,,mendoza
 NFC,SEA,Seattle Seahawks,17511,"Fields, Malachi NYG WR","Fields, Malachi",NYG,WR,Active,R,1.67,4,261.29,2026 2.13,,fields
-NFC,SEA,Seattle Seahawks,17579,"Banks, Caleb MIN DT","Banks, Caleb",MIN,DT,Active,R,1.32,4,261.29,2026 3.09,,banks
-NFC,SEA,Seattle Seahawks,17508,"Bell, Skyler BUF WR","Bell, Skyler",BUF,WR,Active,R,1.25,4,261.29,2026 3.13,,bell
+NFC,SEA,Seattle Seahawks,17579,"Banks, Caleb MIN DT","Banks, Caleb",MIN,DT,Active,Out,1.32,4,261.29,2026 3.09,,banks
+NFC,SEA,Seattle Seahawks,17508,"Bell, Skyler BUF WR","Bell, Skyler",BUF,WR,Active,Out,1.25,4,261.29,2026 3.13,,bell
 NFC,SEA,Seattle Seahawks,17482,"Washington Jr., Mike LVR RB","Washington Jr., Mike",LVR,RB,Active,R,1.1,4,261.29,2026 4.06,,washington jr.
 NFC,SEA,Seattle Seahawks,16145,"McMillian, Ja'Quan DEN CB","McMillian, Ja'Quan",DEN,CB,Active,,2,1,261.29,2026 UFA,,mcmillian
 NFC,SEA,Seattle Seahawks,14995,"Metellus, Josh MIN S","Metellus, Josh",MIN,S,Active,,2.1,1,261.29,2026 UFA,,metellus
@@ -870,7 +870,7 @@ AFC,NEP,New England Patriots,12752,"Byard, Kevin NEP S","Byard, Kevin",NEP,S,Act
 AFC,NEP,New England Patriots,12626,"Henry, Derrick BAL RB","Henry, Derrick",BAL,RB,Active,,20.33,2,259.69,2026 B/R,,henry
 AFC,NEP,New England Patriots,17543,"Sadiq, Kenyon NYJ TE","Sadiq, Kenyon",NYJ,TE,Active,R,3.8,4,259.69,2026 1.10,,sadiq
 AFC,NEP,New England Patriots,17500,"Boston, Denzel CLE WR","Boston, Denzel",CLE,WR,Active,R,3.08,4,259.69,2026 1.13,,boston
-AFC,NEP,New England Patriots,17579,"Banks, Caleb MIN DT","Banks, Caleb",MIN,DT,Active,R,1.36,4,259.69,2026 3.07,,banks
+AFC,NEP,New England Patriots,17579,"Banks, Caleb MIN DT","Banks, Caleb",MIN,DT,Active,Out,1.36,4,259.69,2026 3.07,,banks
 AFC,NEP,New England Patriots,17507,"Branch, Zachariah ATL WR","Branch, Zachariah",ATL,WR,Active,Out,1.26,4,259.69,2026 3.12,,branch
 AFC,NEP,New England Patriots,13319,"Jones, Aaron MIN RB","Jones, Aaron",MIN,RB,Active,,10,1,259.69,2026 UFA,,jones
 AFC,NEP,New England Patriots,15861,"Bonitto, Nik DEN DE","Bonitto, Nik",DEN,DE,Active,,11.05,4,259.69,2026 UFA,,bonitto
@@ -922,7 +922,7 @@ AFC,NYJ,New York Jets,12225,"Williams, Leonard SEA DT","Williams, Leonard",SEA,D
 AFC,NYJ,New York Jets,15355,"Bolton, Nick KCC LB","Bolton, Nick",KCC,LB,Active,,10.4,5,248.08,2026 UFA,,bolton
 AFC,NYJ,New York Jets,11945,"Santos, Cairo CHI PK","Santos, Cairo",CHI,PK,Active,,1.1,1,248.08,2026 UFA,,santos
 AFC,NYJ,New York Jets,12772,"Murray, Eric JAC S","Murray, Eric",JAC,S,Active,,1.1,1,248.08,2026 UFA,,murray
-AFC,NYJ,New York Jets,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,Active,Out,1.1,1,248.08,2026 UFA,,palmer
+AFC,NYJ,New York Jets,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,Active,IR,1.1,1,248.08,2026 UFA,,palmer
 AFC,NYJ,New York Jets,16383,"Pace, Ivan MIN LB","Pace, Ivan",MIN,LB,Active,,1.1,1,248.08,2026 UFA,,pace
 AFC,NYJ,New York Jets,14925,"Uche, Josh MIA DE","Uche, Josh",MIA,DE,Active,,1.1,1,248.08,2026 R/F,,uche
 AFC,NYJ,New York Jets,16281,"Brown, Ji'Ayir SFO S","Brown, Ji'Ayir",SFO,S,Active,,1.1,1,248.08,2026 ERFA,,brown
@@ -1067,7 +1067,7 @@ AFC,CLE,Cleveland Browns,11222,"Allen, Keenan IND WR","Allen, Keenan",IND,WR,Act
 AFC,CLE,Cleveland Browns,17503,"Bernard, Germie PIT WR","Bernard, Germie",PIT,WR,Active,R,2.12,4,255.02,2026 2.05,,bernard
 AFC,CLE,Cleveland Browns,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,R,1,4,255.02,2026 5.05,,jacas
 AFC,CLE,Cleveland Browns,17124,"Carter, Barrett CIN LB","Carter, Barrett",CIN,LB,Active,,1.03,3,255.02,2025 5.18,,carter
-AFC,CLE,Cleveland Browns,17508,"Bell, Skyler BUF WR","Bell, Skyler",BUF,WR,Active,R,1.23,4,255.02,2026 3.14,,bell
+AFC,CLE,Cleveland Browns,17508,"Bell, Skyler BUF WR","Bell, Skyler",BUF,WR,Active,Out,1.23,4,255.02,2026 3.14,,bell
 AFC,CLE,Cleveland Browns,11936,"Boswell, Chris PIT PK","Boswell, Chris",PIT,PK,Active,,2,1,255.02,2026 UFA,,boswell
 AFC,CLE,Cleveland Browns,17475,"McGowan, Seth IND RB","McGowan, Seth",IND,RB,Active,R,2.1,1,255.02,2026 UFA,,mcgowan
 AFC,CLE,Cleveland Browns,16342,"Douglas, Demario NEP WR","Douglas, Demario",NEP,WR,Active,,1.5,1,255.02,2026 UFA,,douglas
@@ -1504,7 +1504,7 @@ AFC,LAC,Los Angeles Chargers,17462,"Mendoza, Fernando LVR QB","Mendoza, Fernando
 AFC,LAC,Los Angeles Chargers,17586,"Rodriguez, Jacob MIA LB","Rodriguez, Jacob",MIA,LB,Active,R,2.5,4,266.62,2026 2.01,,rodriguez
 AFC,LAC,Los Angeles Chargers,17511,"Fields, Malachi NYG WR","Fields, Malachi",NYG,WR,Active,R,2.05,4,266.62,2026 2.06,,fields
 AFC,LAC,Los Angeles Chargers,17571,"Golday, Jake MIN LB","Golday, Jake",MIN,LB,Active,R,1.39,4,266.62,2026 3.06,,golday
-AFC,LAC,Los Angeles Chargers,17481,"Claiborne, Demond MIN RB","Claiborne, Demond",MIN,RB,Active,Out,1.15,4,266.62,2026 3.20,,claiborne
+AFC,LAC,Los Angeles Chargers,17481,"Claiborne, Demond MIN RB","Claiborne, Demond",MIN,RB,Active,IR,1.15,4,266.62,2026 3.20,,claiborne
 AFC,LAC,Los Angeles Chargers,17573,"Johnson, Chris MIA CB","Johnson, Chris",MIA,CB,Active,R,1.1,4,266.62,2026 4.06,,johnson
 AFC,LAC,Los Angeles Chargers,17646,"Kilgore, Jalon BUF S","Kilgore, Jalon",BUF,S,Active,R,0.98,4,266.62,2026 5.21,,kilgore
 AFC,LAC,Los Angeles Chargers,15812,"Hall, Logan HOU DT","Hall, Logan",HOU,DT,Active,,1.1,1,266.62,2026 R/F,,hall
