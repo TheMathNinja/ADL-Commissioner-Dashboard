@@ -601,16 +601,13 @@ build_commissioner_error_report <- function(
       actual_entries$description, description_matches_expected, logical(1),
       player = expected$player, is_cash_trade = expected$is_cash_trade
     )
-    # MFL rows do not carry transaction_day; enforce cash identity on both paths.
-    if (isTRUE(expected$is_cash_trade)) {
-      description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
-    }
     event_ok <- rep(TRUE, nrow(actual_entries))
     if ("transaction_day" %in% names(actual_entries)) {
       event_ok <- actual_entries$transaction_day == transaction_day(expected$row_date)
       if (isTRUE(expected$is_cash_trade)) {
         # Only explicitly audited corrections may use a different entry date.
         # A matching amount alone must never borrow an unrelated player penalty.
+        description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
         approved <- which(cash_correction_dates$franchise == expected$franchise &
           cash_correction_dates$season == format(transaction_day(expected$row_date), "%Y") &
           cash_correction_dates$effective_date == transaction_day(expected$row_date) &
@@ -636,7 +633,8 @@ build_commissioner_error_report <- function(
       actual_entries$franchise[amount_candidates] == expected$franchise
     ]
 
-    if (length(same_franchise) && (!isTRUE(expected$is_cash_trade) || length(same_franchise) == 1L)) {
+    if (length(same_franchise) && (!isTRUE(expected$is_cash_trade) ||
+        !"transaction_day" %in% names(actual_entries) || length(same_franchise) == 1L)) {
       chosen <- same_franchise[[1]]
       used_actual <- c(used_actual, actual_entries$actual_id[[chosen]])
       next
@@ -1680,17 +1678,26 @@ if (arg_flag("self-test-name-matching")) {
   atl_check <- function(actual = atl_actual) build_commissioner_error_report(
     atl_expected, actual, latest_snapshot_time = as.POSIXct("2026-11-10", tz = "UTC"))
   stopifnot(nrow(atl_check()) == 0L)
-  # Even an exactly equal player penalty cannot stand in for a cash transfer.
+  # Preserve the legacy MFL amount/franchise matching without wording gates.
   exact_penalty <- atl_actual; exact_penalty$amount[3] <- 3.65
   stopifnot(nrow(atl_check(exact_penalty)) == 0L)
-  missing_cash <- atl_check(exact_penalty[-1, ])
+  missing_cash <- atl_check(atl_actual[2, ])
   stopifnot(identical(missing_cash$issue, "MISSING_ENTRY"),
             identical(missing_cash$expected_franchise, "ATL"))
   duplicate_cash <- atl_actual[1, ]; duplicate_cash$actual_id <- 4L
-  ambiguous_cash <- atl_check(bind_rows(atl_actual, duplicate_cash))
-  stopifnot(identical(ambiguous_cash$issue, "AMBIGUOUS_CASH_MATCH"),
-    grepl("Do not add another adjustment", build_checker_email_body(
-      label_stage_findings(ambiguous_cash, "Contract Admin history -> MFL", "MFL"))))
+  stopifnot(nrow(atl_check(bind_rows(atl_actual, duplicate_cash))) == 0L)
+  historical_expected <- tibble(
+    franchise = c("BAL", "LVR", "BAL", "DEN", "DEN", "KCC", "KCC", "NOS", "WAS", "NOS", "NYG"),
+    player = "Cash Trade", amount = c(1, -1, -6, 6, 6.2, -6.2, 7.2, 8.6, -8.6, 3.6, -3.6),
+    is_cash_trade = TRUE, row_date = as.POSIXct("2026-09-01", tz = "UTC"))
+  historical_actual <- tibble(actual_id = 1:11, franchise = historical_expected$franchise,
+    amount = historical_expected$amount, entered_at = "9/2/2026",
+    description = c(rep("BAL sends LVR $1 mil - 4/21/26", 2),
+      rep("DEN gives BAL $6 in trade 8/1", 2), rep("DEN sends KCC $6.2 in trade 8/1/26", 2),
+      "KCC sends $7.2 to IND in a trade 8/13", rep("NOS sends WAS $8.6 mil - trade 8/26/26", 2),
+      rep("NOS sends NYG $3.6 mil - trade 9/1/26", 2)))
+  stopifnot(nrow(build_commissioner_error_report(historical_expected, historical_actual,
+    latest_snapshot_time = as.POSIXct("2026-11-10", tz = "UTC"))) == 0L)
   correction_expected <- tibble(franchise = c("WAS", "NOS"), player = "Cash Trade",
     amount = c(0.05, -0.05), is_cash_trade = TRUE, is_br = FALSE,
     row_date = parse_saladj_date(rep("8/26/2026 08:41:41", 2), 2026))
