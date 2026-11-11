@@ -1,0 +1,12 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,BAL,Baltimore Ravens,"Starting lineups require 12 defensive starters, including minimum 2 CB",11 defensive starters (1 CB),Must start 1 additional CB,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,BUF,Buffalo Bills,"Starting lineups require 12 defensive starters, including minimum 2 DT",11 defensive starters (1 DT),Must start 1 additional DT,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Sutton, Courtland DEN WR on Bye in Week 10.  Must replace with eligible RB/WR.",,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Crawshaw, Jeremy DEN PN on Bye in Week 10.  Must replace with eligible PN.",,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Booker, Austin CHI DE on Bye in Week 10.  Must replace with eligible DE.",,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Parrish, Jacob TBB CB on Bye in Week 10.  Must replace with eligible DE/LB/CB/S.",,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,DEN,Denver Broncos,No starters on bye,"Scott, Keionte TBB CB on Bye in Week 10.  Must replace with eligible DE/LB/CB/S.",,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,AFC,PIT,Pittsburgh Steelers,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,
+2026,10,2026-11-11 10:26:14 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,
