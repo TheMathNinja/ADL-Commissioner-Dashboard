@@ -1,8 +1,63 @@
 The Commissioner Error Checker found salary-adjustment discrepancies.
 
+Error Type: Incomplete formula in AFC Sal Adj tab (Contract Admin Sheet)
+Expected Sal Adj tab entry: BUF | Kenneth Gainwell | Amount/formula pending
+Original transaction/drop: Nov 10, 2026 at 10:10:34 AM ET
+Required: Complete the penalty formula before reconciling this entry.
+
 Error Type: Missing entry in MFL salary adjustments
-Expected MFL salary-adjustment entry: ATL | Cash Trade | Penalty/adjustment: $3.65
-Original transaction/drop: May 3, 2026 at 8:32:29 AM ET
-Required: Add or verify the missing $3.65 cash-trade adjustment for ATL.
+Expected MFL salary-adjustment entry: BAL | Cash Trade | Penalty/adjustment: $1.00
+Original transaction/drop: Apr 21, 2026 at 12:00:00 AM ET
+Required: Add or verify the missing $1.00 cash-trade adjustment for BAL.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: BAL | Cash Trade | Penalty/adjustment: $-6.00
+Original transaction/drop: Aug 1, 2026 at 6:18:52 PM ET
+Required: Add or verify the missing $-6.00 cash-trade adjustment for BAL.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: DEN | Cash Trade | Penalty/adjustment: $6.20
+Original transaction/drop: Aug 1, 2026 at 7:39:15 PM ET
+Required: Add or verify the missing $6.20 cash-trade adjustment for DEN.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: DEN | Cash Trade | Penalty/adjustment: $6.00
+Original transaction/drop: Aug 1, 2026 at 6:18:52 PM ET
+Required: Add or verify the missing $6.00 cash-trade adjustment for DEN.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: KCC | Cash Trade | Penalty/adjustment: $-6.20
+Original transaction/drop: Aug 1, 2026 at 7:39:15 PM ET
+Required: Add or verify the missing $-6.20 cash-trade adjustment for KCC.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: KCC | Cash Trade | Penalty/adjustment: $7.20
+Original transaction/drop: Aug 13, 2026 at 12:48:16 PM ET
+Required: Add or verify the missing $7.20 cash-trade adjustment for KCC.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: LVR | Cash Trade | Penalty/adjustment: $-1.00
+Original transaction/drop: Apr 21, 2026 at 12:00:00 AM ET
+Required: Add or verify the missing $-1.00 cash-trade adjustment for LVR.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: NOS | Cash Trade | Penalty/adjustment: $8.60
+Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
+Required: Add or verify the missing $8.60 cash-trade adjustment for NOS.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: NOS | Cash Trade | Penalty/adjustment: $3.60
+Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
+Required: Add or verify the missing $3.60 cash-trade adjustment for NOS.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: NYG | Cash Trade | Penalty/adjustment: $-3.60
+Original transaction/drop: Sep 1, 2026 at 6:57:54 PM ET
+Required: Add or verify the missing $-3.60 cash-trade adjustment for NYG.
+
+Error Type: Missing entry in MFL salary adjustments
+Expected MFL salary-adjustment entry: WAS | Cash Trade | Penalty/adjustment: $-8.60
+Original transaction/drop: Aug 26, 2026 at 8:41:41 AM ET
+Required: Add or verify the missing $-8.60 cash-trade adjustment for WAS.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
