@@ -601,13 +601,16 @@ build_commissioner_error_report <- function(
       actual_entries$description, description_matches_expected, logical(1),
       player = expected$player, is_cash_trade = expected$is_cash_trade
     )
+    # MFL rows do not carry transaction_day; enforce cash identity on both paths.
+    if (isTRUE(expected$is_cash_trade)) {
+      description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
+    }
     event_ok <- rep(TRUE, nrow(actual_entries))
     if ("transaction_day" %in% names(actual_entries)) {
       event_ok <- actual_entries$transaction_day == transaction_day(expected$row_date)
       if (isTRUE(expected$is_cash_trade)) {
         # Only explicitly audited corrections may use a different entry date.
         # A matching amount alone must never borrow an unrelated player penalty.
-        description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
         approved <- which(cash_correction_dates$franchise == expected$franchise &
           cash_correction_dates$season == format(transaction_day(expected$row_date), "%Y") &
           cash_correction_dates$effective_date == transaction_day(expected$row_date) &
@@ -641,13 +644,17 @@ build_commissioner_error_report <- function(
 
     if (isTRUE(expected$is_cash_trade)) {
       if (!missing_entry_affected_official_snapshot(expected$row_date, latest_snapshot_time)) next
+      ambiguous <- length(same_franchise) > 1L
       findings[[i]] <- tibble(
-        issue = "MISSING_ENTRY", expected_franchise = expected$franchise,
+        issue = if (ambiguous) "AMBIGUOUS_CASH_MATCH" else "MISSING_ENTRY", expected_franchise = expected$franchise,
         actual_franchise = NA_character_, player = expected$player,
         expected_amount = expected$amount, actual_amount = NA_real_, mfl_description = "",
         transaction_date = format_audit_datetime(expected$row_date), mfl_entered_at = "",
-        action = paste0("Add or verify the missing $", sprintf("%.2f", expected$amount),
-                        " cash-trade adjustment for ", expected$franchise, ".")
+        action = if (ambiguous) paste0("Review the ", length(same_franchise),
+          " matching cash-trade entries for ", expected$franchise,
+          "; the checker cannot uniquely identify this transaction. Do not add another adjustment based on this alert.") else
+          paste0("Add or verify the missing $", sprintf("%.2f", expected$amount),
+                 " cash-trade adjustment for ", expected$franchise, ".")
       )
       next
     }
@@ -1242,6 +1249,7 @@ checker_error_label <- function(issue, list_label) {
   label <- switch(
     as.character(issue),
     MISSING_ENTRY = "Missing entry in",
+    AMBIGUOUS_CASH_MATCH = "Ambiguous cash-trade match in",
     SUSPECTED_NAME_MATCH = "Suspected typo match in",
     WRONG_FRANCHISE = "Incorrect franchise in",
     WRONG_AMOUNT = "Incorrect amount in",
@@ -1661,6 +1669,28 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  atl_expected <- tibble(franchise = c("ATL", "WAS"), player = "Cash Trade",
+    amount = c(3.65, -3.65), is_cash_trade = TRUE,
+    row_date = parse_saladj_date(rep("5/3/2026 08:32:29", 2), 2026))
+  atl_actual <- tibble(actual_id = 1:3, franchise = c("ATL", "WAS", "ATL"),
+    amount = c(3.65, -3.65, 3.64),
+    description = c(rep("ATL sends WAS $3.65 cash trade 5/3/26", 2),
+                    "D. Greenlaw - 1 yr at $6.06 mil dropped 9/30/26"),
+    entered_at = c("5/4/2026", "5/4/2026", "10/8/2026"))
+  atl_check <- function(actual = atl_actual) build_commissioner_error_report(
+    atl_expected, actual, latest_snapshot_time = as.POSIXct("2026-11-10", tz = "UTC"))
+  stopifnot(nrow(atl_check()) == 0L)
+  # Even an exactly equal player penalty cannot stand in for a cash transfer.
+  exact_penalty <- atl_actual; exact_penalty$amount[3] <- 3.65
+  stopifnot(nrow(atl_check(exact_penalty)) == 0L)
+  missing_cash <- atl_check(exact_penalty[-1, ])
+  stopifnot(identical(missing_cash$issue, "MISSING_ENTRY"),
+            identical(missing_cash$expected_franchise, "ATL"))
+  duplicate_cash <- atl_actual[1, ]; duplicate_cash$actual_id <- 4L
+  ambiguous_cash <- atl_check(bind_rows(atl_actual, duplicate_cash))
+  stopifnot(identical(ambiguous_cash$issue, "AMBIGUOUS_CASH_MATCH"),
+    grepl("Do not add another adjustment", build_checker_email_body(
+      label_stage_findings(ambiguous_cash, "Contract Admin history -> MFL", "MFL"))))
   correction_expected <- tibble(franchise = c("WAS", "NOS"), player = "Cash Trade",
     amount = c(0.05, -0.05), is_cash_trade = TRUE, is_br = FALSE,
     row_date = parse_saladj_date(rep("8/26/2026 08:41:41", 2), 2026))
