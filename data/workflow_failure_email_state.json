@@ -531,6 +531,22 @@
       "audit_parent": "43264268292",
       "audit_attempt": 2,
       "audit_kind": "guardian"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43321784261:1": {
+      "sent_at": "2026-11-12T22:50:06.480817+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Chicago Bears Lineup Guardian",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian:2026-11-12",
+      "failed_steps": [
+        "guardian: Publish private roster audit"
+      ],
+      "cause_codes": {
+        "guardian": "4b4462a6bac7366e9b25b7e1674f7895214e48e26d05b8b46021d2becf6a8ecb"
+      },
+      "affected_jobs": {
+        "guardian": "failure"
+      },
+      "failed_at": "2026-11-12T22:39:21Z"
     }
   },
   "checked": {
