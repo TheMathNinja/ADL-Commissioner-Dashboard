@@ -906,6 +906,7 @@ AFC,NEP,New England Patriots,17569,"McDonald, Kayden HOU DT","McDonald, Kayden",
 AFC,NEP,New England Patriots,16236,"To'oTo'o, Henry HOU LB","To'oTo'o, Henry",HOU,LB,Active,,1.14,1,259.69,2023 5.21,,to'oto'o
 AFC,NEP,New England Patriots,14983,"Bass, Tyler BUF PK","Bass, Tyler",BUF,PK,Active,,1.1,1,259.69,2026 UFA,,bass
 AFC,NEP,New England Patriots,17148,"Collins, Alfred SFO DT","Collins, Alfred",SFO,DT,Active,IR,1.16,3,259.69,2025 4.01,,collins
+AFC,NEP,New England Patriots,17192,"Watkins, Jordan SFO WR","Watkins, Jordan",SFO,WR,Active,,1.1,1,259.69,2026 UFA,,watkins
 AFC,NEP,New England Patriots,15872,"Bryant, Coby CHI S","Bryant, Coby",CHI,S,INJURED_RESERVE,IR,3.83,4,259.69,2026 UFA,,bryant
 AFC,NEP,New England Patriots,16206,"Wilson, Michael ARI WR","Wilson, Michael",ARI,WR,INJURED_RESERVE,IR,12.21,3,259.69,2026 iEXT,,wilson
 AFC,NEP,New England Patriots,17080,"Noel, Jaylin HOU WR","Noel, Jaylin",HOU,WR,INJURED_RESERVE,IR,1.38,3,259.69,2025 3.08,,noel
@@ -941,7 +942,7 @@ AFC,NYJ,New York Jets,12620,"Prescott, Dak DAL QB","Prescott, Dak",DAL,QB,Active
 AFC,NYJ,New York Jets,16333,"Higgins, Elijah ARI TE","Higgins, Elijah",ARI,TE,Active,,1.1,1,248.08,2026 UFA,,higgins
 AFC,NYJ,New York Jets,16752,"Davis, Isaiah NYJ RB","Davis, Isaiah",NYJ,RB,Active,,1.1,1,248.08,2026 UFA,,davis
 AFC,NYJ,New York Jets,17527,"Cameron, Josh JAC WR","Cameron, Josh",JAC,WR,Active,R,1.1,1,248.08,2026 UFA,,cameron
-AFC,NYJ,New York Jets,16171,"Miller, Kendre FA RB","Miller, Kendre",FA,RB,Active,,2.1,1,248.08,2023 2.06,,miller
+AFC,NYJ,New York Jets,16171,"Miller, Kendre DAL RB","Miller, Kendre",DAL,RB,Active,,2.1,1,248.08,2023 2.06,,miller
 AFC,NYJ,New York Jets,13132,"Kamara, Alvin NOS RB","Kamara, Alvin",NOS,RB,Active,Questionable,2.1,1,248.08,2026 UFA,,kamara
 AFC,NYJ,New York Jets,14328,"Wingard, Andrew ARI S","Wingard, Andrew",ARI,S,Active,Questionable,1.3,1,248.08,2026 UFA,,wingard
 AFC,NYJ,New York Jets,14180,"Murphy, Byron MIN CB","Murphy, Byron",MIN,CB,Active,,1.1,1,248.08,2026 UFA,,murphy
@@ -1242,6 +1243,7 @@ AFC,IND,Indianapolis Colts,15461,"Lopez, Roy ARI DT","Lopez, Roy",ARI,DT,Active,
 AFC,IND,Indianapolis Colts,16649,"Johnson, Theo NYG TE","Johnson, Theo",NYG,TE,Active,,1.11,2,245.71,2024 4.19,,johnson
 AFC,IND,Indianapolis Colts,13198,"Garrett, Myles LAR DE","Garrett, Myles",LAR,DE,Active,Questionable,22.9,5,245.71,2025 iEXT,,garrett
 AFC,IND,Indianapolis Colts,12140,"Winston, Jameis NYG QB","Winston, Jameis",NYG,QB,Active,,1.1,1,245.71,2026 UFA,,winston
+AFC,IND,Indianapolis Colts,14086,"Hill, Justice BAL RB","Hill, Justice",BAL,RB,Active,,1.1,1,245.71,2026 UFA,,hill
 AFC,IND,Indianapolis Colts,16282,"Turner, Kobie LAR DT","Turner, Kobie",LAR,DT,INJURED_RESERVE,IR,5.92,1,245.71,2024 SRFA,,turner
 AFC,IND,Indianapolis Colts,16747,"Tracy, Tyrone NYG RB","Tracy, Tyrone",NYG,RB,INJURED_RESERVE,IR,1.14,2,245.71,2024 4.10,,tracy
 AFC,IND,Indianapolis Colts,15871,"Joseph, Kerby DET S","Joseph, Kerby",DET,S,INJURED_RESERVE,IR-PUP,1.1,1,245.71,2026 UFA,,joseph
