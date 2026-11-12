@@ -414,6 +414,32 @@
         "Verify daily maintenance package": "failure"
       },
       "failed_at": "2026-11-12T10:27:37Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:43205980592:1": {
+      "sent_at": "2026-11-12T11:16:01.179372+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL correction update \u00b7 Week 9 \u00b7",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 9 \u00b7 9599a8f0b4269485504c55e48603ca3f584f5537fda8533a10af67c150466bd9",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 9 \u00b7 9599a8f0b4269485504c55e48603ca3f584f5537fda8533a10af67c150466bd9:2026-11-12",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified:131141142222"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Request weekly completion email": "skipped"
+      },
+      "failed_at": "2026-11-12T11:12:53Z",
+      "delivery": [
+        "TheMathNinja/ADL-GM-Dashboard",
+        "2026-11-12",
+        "corrections",
+        9
+      ]
     }
   },
   "checked": {
