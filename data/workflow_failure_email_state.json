@@ -485,7 +485,12 @@
       "failed_at": "2026-11-12T16:59:13Z",
       "audit_parent": "43264268292",
       "audit_attempt": 1,
-      "audit_kind": "guardian"
+      "audit_kind": "guardian",
+      "observed_cause_codes": {
+        "guardian-audit / preflight": "54626fa4bf6d71729fd21ef65a52c60a23e6ec256e56f2fed3675dead8243085"
+      },
+      "last_seen_at": "2026-11-12T17:00:03Z",
+      "latest_run_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/43264461487"
     }
   },
   "checked": {
@@ -1559,6 +1564,18 @@
     "TheMathNinja/ADL-GM-Dashboard:43264744613:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:43265544256:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:43266446084:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:43266432626:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:43266432626:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": "duplicate notification for TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - guardian - source 43264422561-1-guardian",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43264268292:1": "reported by exact private audit child",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43264422561:1": "reported by exact private audit child",
+    "TheMathNinja/ADL-GM-Dashboard:43267334234:1": "success"
+  },
+  "linked_reports": {
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
+      "failed_at": "2026-11-12T17:00:03Z",
+      "audit_parent": "43264422561",
+      "audit_attempt": 1,
+      "audit_kind": "guardian"
+    }
   }
 }
