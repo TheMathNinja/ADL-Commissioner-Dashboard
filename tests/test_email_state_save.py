@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -16,6 +16,31 @@ def item(state, sha='old'):
 
 
 class StateSaveTests(unittest.TestCase):
+    @patch.object(mail.time, 'sleep')
+    def test_explicit_temporary_smtp_rejection_retries_same_message(self, sleep):
+        smtp=Mock();message=object()
+        smtp.send_message.side_effect=[mail.smtplib.SMTPDataError(451,b'temporary'),{}]
+        mail.send_message_with_retries(smtp,message,'sender',['recipient'])
+        self.assertEqual(smtp.send_message.call_count,2)
+        self.assertEqual(smtp.send_message.call_args_list[0],smtp.send_message.call_args_list[1])
+        sleep.assert_called_once_with(2)
+
+    @patch.object(mail.time, 'sleep')
+    def test_persistent_temporary_smtp_rejection_is_not_success(self, sleep):
+        smtp=Mock();smtp.send_message.side_effect=mail.smtplib.SMTPDataError(451,b'temporary')
+        with self.assertRaises(mail.smtplib.SMTPDataError):
+            mail.send_message_with_retries(smtp,object(),'sender',['recipient'])
+        self.assertEqual(smtp.send_message.call_count,3)
+
+    @patch.object(mail.time, 'sleep')
+    def test_permanent_or_ambiguous_smtp_delivery_is_not_retried(self, sleep):
+        for error in [mail.smtplib.SMTPDataError(550,b'permanent'),TimeoutError(),mail.smtplib.SMTPServerDisconnected()]:
+            smtp=Mock();smtp.send_message.side_effect=error
+            with self.assertRaises(type(error)):
+                mail.send_message_with_retries(smtp,object(),'sender',['recipient'])
+            self.assertEqual(smtp.send_message.call_count,1)
+        sleep.assert_not_called()
+
     def setUp(self):
         self.env = patch.dict(os.environ, GITHUB_REPOSITORY='owner/repo')
         self.env.start()

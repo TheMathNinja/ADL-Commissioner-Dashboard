@@ -719,7 +719,18 @@ def send_email(subject, body, key, to=None, cc=None):
             smtp.auth('LOGIN', smtp.auth_login, initial_response_ok=False)
         else:
             smtp.login(username, password, initial_response_ok=False)
-        smtp.send_message(msg, from_addr=parseaddr(sender)[1], to_addrs=recipients)
+        send_message_with_retries(smtp, msg, parseaddr(sender)[1], recipients)
+
+
+def send_message_with_retries(smtp, msg, sender, recipients):
+    # Retry only an explicit temporary DATA rejection, never ambiguous delivery.
+    for attempt in range(3):
+        try:
+            return smtp.send_message(msg, from_addr=sender, to_addrs=recipients)
+        except smtplib.SMTPDataError as error:
+            if not 400 <= error.smtp_code < 500 or attempt == 2:
+                raise
+            time.sleep(2 ** (attempt + 1))
 
 
 def save_state(state):
