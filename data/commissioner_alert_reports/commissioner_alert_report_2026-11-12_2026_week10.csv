@@ -1,0 +1,9 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,AFC,BUF,Buffalo Bills,"Starting lineups require 12 defensive starters, including minimum 2 DT",11 defensive starters (1 DT),Must start 1 additional DT,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,Starting lineups require 12 defensive starters,"11 defensive starters (2 DT, 2 DE, 3 LB, 2 CB, 2 S)",Must start 1 additional DT/DE/CB/S,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,AFC,NYJ,New York Jets,Starting lineups require minimum 1 PK,0 PK,Must start 1 additional PK,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,NFC,LAR,Los Angeles Rams,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,NFC,TBB,Tampa Bay Buccaneers,No inactive players allowed in starting lineup,"Nacua, Puka LAR WR is inactive (O)",,,
+2026,10,2026-11-12 10:25:23 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,
+2026,10,2026-11-12 10:25:23 UTC,Roster Cap Violation,violation,AFC,JAC,Jacksonville Jaguars,Maximum 45 non-suspended/non-holdout players on Active Roster + Taxi Squad,48 non-suspended/non-holdout Active + Taxi players,3 above maximum (44 Active + 4 Taxi),,1
