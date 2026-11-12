@@ -1,15 +1,1 @@
-SalAdj scraper scheduled: 11/11/2026 5:17 a.m. EST
-Run type: Scheduled daily refresh
-Run started: 11/11/2026 5:20 a.m. EST
-Run completed / email prepared: 11/11/2026 5:21 a.m. EST (runtime: 0m 51s)
-
-SalAdj Curator published 1 new row(s) at 11/11/2026 5:20 a.m. EST.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_11_ADLSalAdjCurator.csv
-
-Please enter the following new salary adjustments in the Contract Admin sheet.
-
-AFC
----
-- Dropped 11/10/2026 10:10:34 ET by BUF | Kenneth Gainwell: CHECK / CHECK yr
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 12, 2026; CHECK SALARY - NO PRIOR AFC FRANCHISE SNAPSHOT
-
+No new SalAdj rows were found.
