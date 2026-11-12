@@ -511,6 +511,26 @@
       },
       "last_seen_at": "2026-11-12T17:00:03Z",
       "latest_run_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/43264461487"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43289997242:1": {
+      "sent_at": "2026-11-12T19:48:56.739224+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Private league audit - guardian - source 43264268292-2-guardian",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - guardian - source 43264268292-2-guardian",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - guardian - source 43264268292-2-guardian:2026-11-12",
+      "failed_steps": [
+        "guardian-audit / preflight: Verify projection-based acquisition values without acquiring players"
+      ],
+      "cause_codes": {
+        "guardian-audit / preflight": "027e1956c46e34275c7b6d4968877709b64a194e69ea4ca1ea6ab07aefdd094b"
+      },
+      "affected_jobs": {
+        "guardian-audit / preflight": "failure",
+        "contracts": "skipped"
+      },
+      "failed_at": "2026-11-12T19:26:25Z",
+      "audit_parent": "43264268292",
+      "audit_attempt": 2,
+      "audit_kind": "guardian"
     }
   },
   "checked": {
