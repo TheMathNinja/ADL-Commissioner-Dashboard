@@ -455,6 +455,24 @@ def recovered_inactivity_startup(repo, run, job_list, later):
     return required <= successful
 
 
+def recovery_scope(repo, run):
+    scope = incident_scope(repo, run)
+    parent = private_parent(run) if repo == GUARDIAN else None
+    if parent and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
+        parent_id, attempt, kind = parent
+        scope = scope.replace(f'source {parent_id}-{attempt}-{kind}',
+                              f'source {parent_id}-<attempt>-{kind}')
+    return scope
+
+
+def inactive_audit_branch(repo, run, job):
+    parent = private_parent(run) if repo == GUARDIAN else None
+    if not parent or PurePosixPath(run.get('path', '')).name != 'league-audit.yml':
+        return False
+    unused = 'contracts' if parent[2] == 'guardian' else 'guardian-audit'
+    return job.get('conclusion') == 'skipped' and job['name'] == unused
+
+
 def verified_recovery(repo, run, job_list, history):
     """Suppress historical alerts only when the same production work passed."""
     if run.get('conclusion') not in BAD:
@@ -465,7 +483,7 @@ def verified_recovery(repo, run, job_list, history):
         if (later.get('status') != 'completed' or later.get('conclusion') != 'success'
                 or not production(later)
                 or later.get('path') != run.get('path')
-                or incident_scope(repo, later) != incident_scope(repo, run)
+                or recovery_scope(repo, later) != recovery_scope(repo, run)
                 or later.get('updated_at', '') <= run.get('updated_at', '')
                 or (not retry and later.get('created_at', '') <= run.get('updated_at', ''))):
             continue
@@ -474,7 +492,8 @@ def verified_recovery(repo, run, job_list, history):
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
-        affected = [j for j in job_list if j.get('conclusion') in BAD | {'skipped'}]
+        affected = [j for j in job_list if j.get('conclusion') in BAD | {'skipped'}
+                    and not inactive_audit_branch(repo, run, j)]
         if not job_list:
             # Startup failures have no step evidence: require a complete execution,
             # not a green workflow whose actual work was skipped.

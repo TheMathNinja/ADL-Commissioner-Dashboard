@@ -10,6 +10,30 @@ import email_workflow_failures as m
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_private_audit_recovery_across_parent_attempts(self):
+        old=dict(id=43289997242,workflow_id=123,path='.github/workflows/league-audit.yml',
+            display_title='Private league audit - guardian - source 43264268292-2-guardian',
+            event='workflow_dispatch',head_branch='main',status='completed',conclusion='failure',
+            created_at='2026-11-12T19:25:23Z',updated_at='2026-11-12T19:26:25Z',_private_report=True)
+        later=dict(old,id=999,conclusion='success',created_at='2026-11-12T19:29:00Z',
+            updated_at='2026-11-12T19:31:31Z',
+            display_title='Private league audit - guardian - source 43264268292-3-guardian')
+        step='Verify projection-based acquisition values without acquiring players'
+        failed=[dict(name='guardian-audit / preflight',conclusion='failure',steps=[dict(name=step,conclusion='failure')]),
+                dict(name='contracts',conclusion='skipped',steps=[])]
+        passed=copy.deepcopy(failed)
+        passed[0]['conclusion']='success';passed[0]['steps'][0]['conclusion']='success'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertEqual(m.verified_recovery(m.GUARDIAN,old,failed,[later]),later)
+            for title in ['Private league audit - contracts - source 43264268292-3-contracts',
+                          'Private league audit - guardian - source 123-3-guardian']:
+                self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[dict(later,display_title=title)]))
+            extra=failed+[dict(name='required publication',conclusion='skipped',steps=[])]
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,extra,[later]))
+        passed[0]['steps'][0]['conclusion']='skipped'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[later]))
+
     def setUp(self):
         self.repo = m.DAILY_REPO
         self.run = dict(id=43191957893, workflow_id=279881511,
