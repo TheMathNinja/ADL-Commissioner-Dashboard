@@ -272,14 +272,12 @@ class FailureReports(unittest.TestCase):
         self.assertIn('duplicate notification', next(iter(state['checked'].values())))
 
 
-    def test_distinct_step_recovery_and_next_day_reopen(self):
+    def test_distinct_step_and_midnight_does_not_reopen(self):
         repo=m.REPOS[1];scope,_=m.unreported_steps({'sent':{}},repo,self.run,[],['a'])
         state={'sent':{'old':dict(scope=scope,failed_steps=['a'],failed_at=self.run['updated_at'])}}
         later=dict(self.run,updated_at='2026-10-01T16:00:00Z')
         self.assertEqual(m.unreported_steps(state,repo,later,[],['a','b'])[1],['b'])
-        success=dict(self.run,conclusion='success',updated_at='2026-10-01T15:00:00Z')
-        self.assertEqual(m.unreported_steps(state,repo,later,[success],['a'])[1],['a'])
-        self.assertEqual(m.unreported_steps(state,repo,dict(later,created_at='2026-10-02T14:00:00Z'),[],['a'])[1],['a'])
+        self.assertEqual(m.unreported_steps(state,repo,dict(later,created_at='2026-10-02T14:00:00Z'),[],['a'])[1],[])
 
     def test_failed_smtp_is_retried_not_recorded_as_sent(self):
         # Unaccepted mail must not suppress a future delivery attempt.

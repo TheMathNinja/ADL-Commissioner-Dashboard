@@ -8,6 +8,7 @@ import http.client
 import json
 import os
 import re
+import urllib.request
 from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
@@ -16,7 +17,19 @@ STATE_PATH = 'data/workflow_failure_email_state.json'
 LOOKBACK_DAYS = 7
 OWNER = 'fili.mikey@gmail.com'
 REPOS = ['TheMathNinja/ADL-GM-Dashboard', 'TheMathNinja/FAFL-GM-Dashboard', 'TheMathNinja/ADL-Commissioner-Dashboard']
+GUARDIAN = 'TheMathNinja/Chicago-Bears-Lineup-Guardian'
+PRIVATE_IMPACT = {
+    'guardian.yml': 'A Guardian check did not complete; lineup protection may be unavailable.',
+    'initial-lineup.yml': 'The initial-lineup safety check did not complete.',
+    'delayed-pickup.yml': 'The delayed IR pickup recheck did not complete.',
+    'preflight.yml': 'The read-only Guardian readiness audit did not complete.',
+    'league-audit.yml': 'The private cross-repository or Guardian readiness audit did not complete.',
+    'model_contract_preflight.yml': 'Private model compatibility checks did not complete.',
+    'refresh_chi_team_tools.yml': 'The private forecast and matching prepared-value refresh did not complete.',
+    'sync_chi_team_tools.yml': 'The private trade synchronization did not complete.',
+}
 IMPACT = {
+    'automation-preflight.yml': 'The cross-repository or Guardian readiness audit did not complete.',
     'fafl-inactivity-watch.yml': 'FAFL inactivity evidence checks or owner/commissioner notifications did not complete. Existing watch deadlines remain recorded; no ownership changes were made.',
     'daily_adl_league_maintenance.yml': 'The combined morning SalAdj, waiver-correction, roster/Extension, or Commissioner-alert package did not complete.',
     'refresh_extension_calculator.yml': 'ADL Elo, Bonus Games/MFL entries, Playoffs, Payouts, or EXT may be incomplete. See the failed components below.',
@@ -46,6 +59,44 @@ DAILY_CHILDREN = {
     'waiver-cap-corrections.yml': ('Waiver corrections', 'Apply waiver cap corrections', 'Dispatch Commissioner-owned waiver corrections'),
     'daily-commissioner-alerts.yml': ('Commissioner alerts', 'Run Commissioner alerts', 'Dispatch Commissioner-owned alerts'),
 }
+PRIVATE_PARENT_STEPS = {
+    'guardian': ('Audit Guardian behavior and both MFL memberships (read-only)', 'Dispatch and verify Guardian read-only audit privately'),
+    'contracts': ('Verify cross-repository automation contracts', 'Dispatch and verify the complete private contract audit'),
+}
+
+
+def private_parent(run):
+    if PurePosixPath(run.get('path','')).name != 'league-audit.yml':
+        return None
+    match = re.fullmatch(r'Private league audit - (guardian|contracts) - source (\d+)-(\d+)-\1', run.get('display_title',''))
+    return (match[2],int(match[3]),match[1]) if match else None
+
+
+def private_child_link(repo, run, job, step):
+    if (repo != COMMISSIONER or PurePosixPath(run.get('path','')).name != 'automation-preflight.yml'
+            or (job.get('name'),step) not in PRIVATE_PARENT_STEPS.values() or not job.get('id')):
+        return None
+    try:
+        log = subprocess.run(['gh','run','view',str(run['id']),'--repo',repo,'--job',str(job['id']),
+            '--attempt',str(run.get('run_attempt',1)),'--log-failed'],capture_output=True,text=True,
+            encoding='utf8',errors='replace',timeout=30,check=True).stdout
+    except (OSError,subprocess.SubprocessError):
+        return None
+    ids = set(re.findall(r'Private audit: https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/(\d+)',log))
+    return ids.pop() if len(ids)==1 else None
+
+
+def delivered_private_child(state, repo, run, jobs_by_name, line):
+    name, _, step = line.partition(': ')
+    job = jobs_by_name.get(name,{})
+    child_id = private_child_link(repo,run,job,step)
+    return bool(child_id and any(key.startswith(GUARDIAN+':'+child_id+':') and
+        entry.get('audit_parent') == str(run['id']) and entry.get('audit_attempt') == run.get('run_attempt',1)
+        for key,entry in reported_records(state).items()))
+
+
+def reported_records(state):
+    return {**state.get('linked_reports',{}),**state['sent']}
 
 
 def daily_child(run):
@@ -83,7 +134,7 @@ def delivered_child(state, repo, run, jobs_by_name, line):
                entry.get('daily_parent') == str(run['id']) and
                entry.get('daily_job') == name and
                job.get('started_at','~') <= entry['failed_at'] <= job.get('completed_at','')
-               for key, entry in state['sent'].items())
+               for key, entry in reported_records(state).items())
 PRODUCTION_DISPATCH_NAMES = (
     re.compile(r'^(?:Poll Thursday score corrections|Poll preliminary score readiness) \(production\)$'),
     re.compile(r'^Preliminary ADL weekly update · Week \d+ · [a-f0-9]{64}$'),
@@ -101,7 +152,17 @@ def api(repo, path):
     error = None
     for attempt in range(5):
         try:
-            value = mail.get_json(f'https://api.github.com/repos/{repo}/{path}')
+            if repo == GUARDIAN:
+                token = os.environ.get('PRIVATE_REPORT_TOKEN')
+                if not token:
+                    raise RuntimeError('Private failure-report coverage credential is unavailable')
+                req = urllib.request.Request(f'https://api.github.com/repos/{repo}/{path}', headers={
+                    'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
+                    'User-Agent': 'League-incident-reporter'})
+                with urllib.request.urlopen(req, timeout=45) as response:
+                    value = json.load(response)
+            else:
+                value = mail.get_json(f'https://api.github.com/repos/{repo}/{path}')
             if value is None:
                 raise RuntimeError(f'GitHub resource unavailable: {repo}/{path}')
             return value
@@ -117,10 +178,15 @@ def production(run):
     event = run.get('event')
     is_scheduled = event == 'schedule'
     title = run.get('display_title') or run.get('name', '')
+    if filename == 'automation-preflight.yml' and not run.get('_audit_report'):
+        return None
+    if run.get('_private_report'):
+        return PRIVATE_IMPACT.get(filename) if run.get('head_branch') == 'main' and event in {'schedule','workflow_dispatch','push'} else None
     is_orchestrated_dispatch = event == 'workflow_dispatch' and any(
         pattern.search(title) for pattern in PRODUCTION_DISPATCH_NAMES
     )
-    if run.get('head_branch') != 'main' or not (is_scheduled or is_orchestrated_dispatch or daily_child(run)):
+    audit = filename == 'automation-preflight.yml' and event in {'push','workflow_dispatch'}
+    if run.get('head_branch') != 'main' or not (is_scheduled or is_orchestrated_dispatch or daily_child(run) or audit):
         return None
     return IMPACT.get(filename)
 
@@ -255,12 +321,15 @@ def cause_codes(repo,run,job_list):
     codes={}
     for job in job_list:
         if job.get('conclusion') not in BAD or not job.get('id'):continue
-        # Keep only a fingerprint in state, never raw log text. Unclassified
-        # failures stay independently reportable rather than hiding a new fault.
-        code=f"unclassified:{job['id']}"
+        # Run/job IDs identify attempts, not causes. Unknown causes retain the
+        # component outage; a newly failed step remains separately reportable.
+        code='unclassified'
         try:
             cmd=['gh','run','view',str(run['id']),'--repo',repo,'--job',str(job['id']),'--log-failed']
-            log=subprocess.run(cmd,capture_output=True,text=True,timeout=25,encoding='utf8',errors='replace',check=True).stdout
+            env = dict(os.environ)
+            if repo == GUARDIAN:
+                env['GH_TOKEN'] = os.environ.get('PRIVATE_REPORT_TOKEN','')
+            log=subprocess.run(cmd,capture_output=True,text=True,timeout=25,encoding='utf8',errors='replace',check=True,env=env).stdout
             errors=[]
             for line in log.splitlines():
                 line=re.split(r'\d{4}-\d\d-\d\dT[\d:.]+Z\s+',line,maxsplit=1)[-1].strip()
@@ -282,15 +351,79 @@ def incident_scope(repo,run):
     return incident_key(repo,run)+':'+str(day)
 
 def unreported_steps(state, repo, run, history, failed, codes=None):
-    title = run.get('display_title') or run.get('name','')
-    recovery = max((r['updated_at'] for r in history if r['workflow_id']==run['workflow_id']
-                    and (r.get('display_title') or r.get('name',''))==title
-                    and r.get('conclusion')=='success' and r['updated_at']<run['updated_at']), default='')
     scope = incident_scope(repo,run)
-    seen = {step for entry in state['sent'].values() if entry.get('scope')==scope
-            and entry.get('failed_at','')>recovery for step in entry.get('failed_steps',[])
-            if not codes or entry.get('cause_codes',{}).get(step.split(': ',1)[0])==codes.get(step.split(': ',1)[0])}
+    episode = notification_episode(incident_key(repo, run), run['created_at'])
+    seen = set()
+    for entry in state['sent'].values():
+        identity = entry.get('incident_key') or re.sub(r':\d{4}-\d\d-\d\d$', '', entry.get('scope',''))
+        if notification_episode(identity, entry.get('failed_at','')) != episode:
+            continue
+        if entry.get('resolved_at') and entry['resolved_at'] < run['updated_at']:
+            continue
+        if entry_recovered(repo, run, entry, history):
+            continue
+        observed = entry.setdefault('observed_cause_codes', dict(entry.get('cause_codes', {})))
+        for step in entry.get('failed_steps', []):
+            name = step.split(': ', 1)[0]
+            old, new = observed.get(name), (codes or {}).get(name)
+            unknown = lambda value: not value or value.startswith('unclassified')
+            if not codes or unknown(old) or unknown(new) or old == new:
+                seen.add(step)
+                # Enrich an unknown incident, without editing the original email
+                # evidence. A later *different* known cause can then alert.
+                if unknown(old) and not unknown(new):
+                    observed[name] = new
+        if any(step in seen for step in failed):
+            entry['last_seen_at'] = run['updated_at']
+            entry['latest_run_url'] = run.get('html_url')
     return scope,[step for step in failed if step not in seen]
+
+
+def notification_episode(identity, timestamp):
+    """Deduplicate an outage across retries/midnight, but not across seasons."""
+    identity = re.sub(r'\b[a-f0-9]{40,64}\b', '<input>', identity)
+    identity = re.sub(r'Daily maintenance \d+ - ', 'Daily maintenance - ', identity)
+    identity = re.sub(r'(Private league audit - (?:guardian|contracts)) - source .+', r'\1', identity)
+    identity = re.sub(r'(Chicago Bears (?:Lineup Guardian|Initial Lineup Safety Net)) - .+', r'\1', identity)
+    return identity + ':' + str(timestamp)[:4]
+
+
+def entry_recovered(repo, run, entry, history):
+    """A green title alone cannot reopen an already-notified outage."""
+    expected = {}
+    startup = False
+    for step in entry.get('failed_steps', []):
+        name, separator, action = step.partition(': ')
+        if not separator:
+            startup = True
+            continue
+        expected.setdefault(name, set()).add(action)
+    for name in entry.get('affected_jobs', {}):
+        expected.setdefault(name, set())
+    for candidate in history:
+        if (candidate.get('workflow_id') != run.get('workflow_id')
+                or candidate.get('conclusion') != 'success'
+                or candidate.get('status', 'completed') != 'completed'
+                or candidate.get('head_branch', 'main') != 'main'
+                or not entry.get('failed_at','') < candidate.get('updated_at','') < run['updated_at']
+                or notification_episode(incident_key(repo,candidate),candidate.get('created_at','')) !=
+                   notification_episode(incident_key(repo,run),run['created_at'])):
+            continue
+        try:
+            completed = jobs(repo, candidate)
+            passed = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
+        except (OSError, RuntimeError, ValueError, KeyError):
+            continue
+        full_recovery = (completed and len(passed) == len(completed) and all(
+            any(s.get('conclusion') == 'success' and s['name'] not in {'Set up job','Complete job'}
+                for s in j.get('steps', [])) for j in completed))
+        if ((startup and full_recovery) or (not startup and expected and all(name in passed and required <= {
+                s['name'] for s in passed[name].get('steps', []) if s.get('conclusion') == 'success'
+                } for name, required in expected.items()))):
+            entry['resolved_at'] = candidate['updated_at']
+            entry['recovery_url'] = candidate.get('html_url')
+            return True
+    return False
 
 
 def recovered_watchdog(repo, run, later):
@@ -376,17 +509,42 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--deadlines', action='store_true')
+    parser.add_argument('--verify-coverage', action='store_true')
     args = parser.parse_args()
     if os.environ.get('WEEKLY_REPORT_EMAIL_TO') != OWNER:
         raise ValueError('Failure reports must be addressed only to ' + OWNER)
+    if args.verify_coverage:
+        # Read the original attempts, not a later successful retry. Never send
+        # or acknowledge emails while checking access to failure evidence.
+        for repo, number in [(DAILY_REPO,43199358490),(COMMISSIONER,42471397260),(GUARDIAN,43193643494)]:
+            run = api(repo,f'actions/runs/{number}/attempts/1')
+            evidence = jobs(repo,run)
+            if not failures(run,evidence):
+                raise RuntimeError('Required failure evidence missing: '+repo+'/'+str(number))
+            print('Verified failure coverage: '+repo+'/'+str(number))
+        return
     state = mail.document(os.environ['GITHUB_REPOSITORY'], STATE_PATH) or {'sent': {}, 'checked': {}}
     if args.dry_run:
         state = copy.deepcopy(state)
     state.setdefault('checked', {})
     original = copy.deepcopy(state)
     histories={}
-    for repo in sorted(REPOS, key=lambda r: r != COMMISSIONER):
-        history = list(runs(repo))
+    coverage_errors=[]
+    private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
+    repositories = REPOS + ([GUARDIAN] if private_since else [])
+    for repo in sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2):
+        try:
+            history = list(runs(repo))
+        except (OSError, RuntimeError, ValueError, KeyError):
+            coverage_errors.append(repo)
+            continue  # A private API outage must not stop public failure reporting.
+        if repo == GUARDIAN:
+            for run in history:
+                run['_private_report'] = True
+            history = [run for run in history if run['updated_at'] >= private_since]
+        elif repo == COMMISSIONER and private_since:
+            for run in history:
+                run['_audit_report'] = run['updated_at'] >= private_since
         histories[repo]=history
         for latest in reversed(history):
             impact = production(latest)
@@ -398,8 +556,14 @@ def main():
                 if key in state['sent'] or key in state['checked']:
                     continue
                 run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
+                if repo == GUARDIAN:
+                    run['_private_report'] = True
+                elif repo == COMMISSIONER and private_since:
+                    run['_audit_report'] = run['updated_at'] >= private_since
                 if run['status'] != 'completed':
                     continue
+                if notification_pending(repo,run,datetime.now(timezone.utc)):
+                    continue  # Leave unacknowledged for the next periodic scan.
                 if str(run['id']) == os.environ.get('GITHUB_RUN_ID') and repo == os.environ['GITHUB_REPOSITORY']:
                     continue
                 # A superseded cancellation does not imply an outstanding missed
@@ -420,6 +584,24 @@ def main():
                     state['checked'][key] = 'cancelled before runner assignment; same-day watchdog already succeeded'
                     continue
                 failed = failures(run, job_list)
+                audit_parent = private_parent(run) if repo == GUARDIAN else None
+                if audit_parent and failed:
+                    parent_id,parent_attempt,kind = audit_parent
+                    parent_key = f'{COMMISSIONER}:{parent_id}:{parent_attempt}'
+                    previous = state['sent'].get(parent_key,{})
+                    name,step = PRIVATE_PARENT_STEPS[kind]
+                    if name+': '+step in previous.get('failed_steps',[]):
+                        parent = dict(id=parent_id,run_attempt=parent_attempt,path='automation-preflight.yml')
+                        parent_job = next((j for j in jobs(COMMISSIONER,parent) if j['name']==name),{})
+                        if private_child_link(COMMISSIONER,parent,parent_job,step)==str(run['id']):
+                            state['checked'][key]='reported by '+parent_key
+                            continue
+                if failed and repo == COMMISSIONER and PurePosixPath(run['path']).name == 'automation-preflight.yml':
+                    by_name = {j['name']:j for j in job_list}
+                    failed = [line for line in failed if not delivered_private_child(state,repo,run,by_name,line)]
+                    if not failed:
+                        state['checked'][key]='reported by exact private audit child'
+                        continue
                 child = daily_child(run) if repo == COMMISSIONER else None
                 if child and failed:
                     # An older reporter may already have delivered the parent incident.
@@ -456,6 +638,15 @@ def main():
                 scope,failed = unreported_steps(state,repo,run,history,failed,codes)
                 if not failed:
                     state['checked'][key] = 'duplicate notification for ' + incident
+                    # Retain exact child/parent attribution even when the child
+                    # retry was covered by an earlier incident email.
+                    if child or audit_parent:
+                        record = {'failed_at':run['updated_at']}
+                        if child:
+                            record.update(daily_parent=child[0],daily_job=child[1][1])
+                        if audit_parent:
+                            record.update(audit_parent=audit_parent[0],audit_attempt=audit_parent[1],audit_kind=audit_parent[2])
+                        state.setdefault('linked_reports',{})[key]=record
                     continue
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
@@ -478,6 +669,8 @@ def main():
                                       'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,'failed_at':run['updated_at']}
                 if child:
                     state['sent'][key].update(daily_parent=child[0],daily_job=child[1][1])
+                if audit_parent:
+                    state['sent'][key].update(audit_parent=audit_parent[0],audit_attempt=audit_parent[1],audit_kind=audit_parent[2])
                 week_match=re.search(r'(weekly update|correction update) · Week (\d+)',run.get('display_title',''))
                 if week_match:
                     local=datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
@@ -491,7 +684,17 @@ def main():
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories)
     if not args.dry_run and state != original:
         save(state)
+    if coverage_errors:
+        raise RuntimeError('Failure coverage unavailable; native notifications must remain enabled: '+', '.join(coverage_errors))
     print('Production failure scan complete.')
+
+
+def notification_pending(repo, run, now):
+    if run.get('conclusion') not in BAD:
+        return False
+    delay = 10 if repo == GUARDIAN and PurePosixPath(run.get('path','')).name in {'guardian.yml','initial-lineup.yml'} else 15
+    ended = datetime.fromisoformat(run['updated_at'].replace('Z','+00:00'))
+    return now - ended < timedelta(minutes=delay)
 
 
 def check_deadlines(state,dry,now,histories=None):

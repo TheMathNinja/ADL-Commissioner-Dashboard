@@ -1,14 +1,18 @@
 name: Email league workflow failures
 on:
   schedule:
-    # Independent of Apps Script: detect a missing morning package or weekly receipt.
-    - cron: '17 15,21 * * *'
+    # Independent of Apps Script: recheck transient failures and private workflows.
+    - cron: '7,17,27,37,47,57 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
         description: Preview failure reports without sending
         type: boolean
         default: true
+      verify_coverage:
+        description: Read-only verification of parent, child and private failure evidence
+        type: boolean
+        default: false
 permissions:
   # The reporter records sent incidents in data/workflow_failure_email_state.json.
   contents: write
@@ -26,17 +30,25 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
           python3 -m unittest discover -s tests -p test_email_state_save.py -v
+          python3 -m unittest discover -s tests -p test_incident_replay.py -v
       - name: Report failed league dependencies independently of publication
         env:
           GH_TOKEN: ${{ github.token }}
+          PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+          PRIVATE_FAILURE_REPORTING_SINCE: ${{ vars.PRIVATE_FAILURE_REPORTING_SINCE }}
           WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
           ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
           ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
           DRY_RUN: ${{ inputs.dry_run }}
+          VERIFY_COVERAGE: ${{ inputs.verify_coverage }}
         run: |
           args=()
+          if [ "$VERIFY_COVERAGE" = true ]; then
+            python3 scripts/email_workflow_failures.py --verify-coverage
+            exit 0
+          fi
           if [ "${{ github.event_name }}" = schedule ] || [ "$DRY_RUN" = true ]; then args+=(--deadlines); fi
           if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
           python3 scripts/email_workflow_failures.py "${args[@]}"
