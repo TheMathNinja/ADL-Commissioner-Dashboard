@@ -440,6 +440,32 @@
         "corrections",
         9
       ]
+    },
+    "TheMathNinja/ADL-GM-Dashboard:43250233951:1": {
+      "sent_at": "2026-11-12T15:56:26.279922+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Official ADL correction update \u00b7 Week 9 \u00b7",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 9 \u00b7 9599a8f0b4269485504c55e48603ca3f584f5537fda8533a10af67c150466bd9",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:Official ADL correction update \u00b7 Week 9 \u00b7 9599a8f0b4269485504c55e48603ca3f584f5537fda8533a10af67c150466bd9:2026-11-12",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified:131293739243"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Request weekly completion email": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped"
+      },
+      "failed_at": "2026-11-12T15:52:20Z",
+      "delivery": [
+        "TheMathNinja/ADL-GM-Dashboard",
+        "2026-11-12",
+        "corrections",
+        9
+      ]
     }
   },
   "checked": {
@@ -1492,6 +1518,7 @@
     "TheMathNinja/ADL-GM-Dashboard:43250185266:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:43251072829:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:43251303972:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:43251989210:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:43251989210:1": "success",
+    "TheMathNinja/ADL-GM-Dashboard:43199358490:2": "success"
   }
 }
