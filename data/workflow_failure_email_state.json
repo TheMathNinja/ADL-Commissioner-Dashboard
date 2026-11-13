@@ -279,7 +279,9 @@
         "Apply waiver cap corrections": "skipped",
         "Verify daily maintenance package": "failure"
       },
-      "failed_at": "2026-11-03T10:24:56Z"
+      "failed_at": "2026-11-03T10:24:56Z",
+      "resolved_at": "2026-11-12T15:55:06Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/43199358490"
     },
     "TheMathNinja/ADL-Commissioner-Dashboard:41033183781:1": {
       "sent_at": "2026-11-03T17:58:29.616264+00:00",
@@ -425,7 +427,9 @@
         "Refresh rosters, EXT and Salary Cap Manager / refresh": "failure",
         "Verify daily maintenance package": "failure"
       },
-      "failed_at": "2026-11-12T10:27:37Z"
+      "failed_at": "2026-11-12T10:27:37Z",
+      "resolved_at": "2026-11-12T15:55:06Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/43199358490"
     },
     "TheMathNinja/ADL-GM-Dashboard:43205980592:1": {
       "sent_at": "2026-11-12T11:16:01.179372+00:00",
@@ -1962,7 +1966,9 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:43408525362:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43411559472:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43411623678:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:43414781435:1": "success"
+    "TheMathNinja/ADL-Commissioner-Dashboard:43414781435:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43422804812:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43431220595:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -2045,6 +2051,25 @@
         "check-dashboard-freshness": "failure"
       },
       "failed_at": "2026-11-13T11:59:51Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:43408271069:1": {
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance:2026-11-13",
+      "failed_steps": [
+        "Refresh rosters, EXT and Salary Cap Manager / refresh: Refresh rosters, EXT and Salary Cap Manager data"
+      ],
+      "cause_codes": {
+        "Refresh SalAdj and Commissioner data": "unclassified",
+        "Refresh rosters, EXT and Salary Cap Manager / refresh": "unclassified",
+        "Verify daily maintenance package": "unclassified"
+      },
+      "affected_jobs": {
+        "Refresh SalAdj and Commissioner data": "failure",
+        "Refresh rosters, EXT and Salary Cap Manager / refresh": "failure",
+        "Apply waiver cap corrections": "skipped",
+        "Verify daily maintenance package": "failure"
+      },
+      "failed_at": "2026-11-13T10:25:55Z"
     }
   },
   "delivery_receipts": {
@@ -2072,6 +2097,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-13T13:49:58.969489+00:00",
       "accepted_at": "2026-11-13T13:50:02.031918+00:00"
+    },
+    "failure:TheMathNinja/ADL-GM-Dashboard:43408271069:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-13T13:50:40.495752+00:00"
     }
   }
 }
