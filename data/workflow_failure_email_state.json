@@ -596,6 +596,22 @@
       "audit_parent": "43334161219",
       "audit_attempt": 1,
       "audit_kind": "guardian"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43339453493:1": {
+      "sent_at": "2026-11-13T01:00:27.861426+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Sync private CHI Team Tools trades",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403728453:Sync private CHI Team Tools trades",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403728453:Sync private CHI Team Tools trades:2026-11-12",
+      "failed_steps": [
+        "sync: Read MFL and update private CHI dashboard"
+      ],
+      "cause_codes": {
+        "sync": "unclassified"
+      },
+      "affected_jobs": {
+        "sync": "failure"
+      },
+      "failed_at": "2026-11-13T00:44:59Z"
     }
   },
   "checked": {
