@@ -1978,6 +1978,20 @@
         "sync": "failure"
       },
       "failed_at": "2026-11-13T00:44:59Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43408314983:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:243098758:Daily maintenance 43408271069 - Commissioner data",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:243098758:Daily maintenance 43408271069 - Commissioner data:2026-11-13",
+      "failed_steps": [
+        "build-dashboard: Verify salary-adjustment notification rules before live processing"
+      ],
+      "cause_codes": {
+        "build-dashboard": "605ed4adecdb59d4030c9b4cd36c0fdf97b44a7aa957b17d27ea7d2adb9ca5f6"
+      },
+      "affected_jobs": {
+        "build-dashboard": "failure"
+      },
+      "failed_at": "2026-11-13T10:20:28Z"
     }
   },
   "delivery_receipts": {
@@ -1995,6 +2009,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-13T01:00:22.567591+00:00",
       "accepted_at": "2026-11-13T01:00:25.623550+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:43408314983:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-13T10:40:15.973397+00:00"
     }
   }
 }
