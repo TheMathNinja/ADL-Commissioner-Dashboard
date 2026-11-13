@@ -3095,6 +3095,11 @@ render_lineup_team_lines <- function(rows) {
   lines
 }
 
+commissioner_digest_alerts <- function(alerts) {
+  # Final prior-week lineup violations arrive through the inactivity monitor.
+  alerts[!(alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning")), , drop = FALSE]
+}
+
 render_commissioner_alert_email <- function(
   alerts,
   season = get_current_season(),
@@ -3104,6 +3109,7 @@ render_commissioner_alert_email <- function(
   title = NULL,
   compliant_teams = NULL
 ) {
+  alerts <- commissioner_digest_alerts(alerts)
   render_season <- as.integer(season[[1]])
   render_checked_date <- as.Date(checked_date[[1]])
   title <- title %||% paste0("ADL Commissioner Alerts - ", commissioner_digest_date_label(checked_date, week))
@@ -3428,6 +3434,7 @@ send_commissioner_alert_email <- function(
   run_time = Sys.time()
 ) {
   alerts <- filter_lineup_email_days(alerts, run_time)
+  digest_alerts <- commissioner_digest_alerts(alerts)
   checked_date <- as.Date(run_time, tz = "America/New_York")
   date_label <- commissioner_alert_date_label(checked_date)
 
@@ -3444,6 +3451,9 @@ send_commissioner_alert_email <- function(
       nzchar(.data$franchise)
     )
   offender_franchises <- unique(offender_alerts$franchise)
+  if (nrow(alerts) && !nrow(digest_alerts) && !length(offender_franchises)) {
+    return(tibble(sent = FALSE, reason = "offender_franchise_not_found", outbox_path = "", gm_emails_sent = 0L))
+  }
 
   # Fetch the MFL franchise directory once for both digest and offender mail.
   # A second immediate ff_franchises() request can cross MFL's rate limit even
@@ -3521,7 +3531,9 @@ send_commissioner_alert_email <- function(
     franchise_alerts <- offender_alerts |> filter(.data$franchise == .env$franchise)
     franchise_recipients <- offender_recipients |> filter(toupper(.data$franchise) == toupper(.env$franchise))
     gm_to <- franchise_recipients$email
-    gm_cc <- conference_cc_email(franchise_alerts$conference[[1]])
+    # A mixed GM message must not leak lineup warnings through commissioner CC.
+    # Other alert types remain visible in the filtered commissioner digest.
+    gm_cc <- if (any(franchise_alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning"))) "" else conference_cc_email(franchise_alerts$conference[[1]])
     franchise_title_prefix <- gm_title_prefix %||% if (all(franchise_alerts$severity == "warning", na.rm = TRUE)) {
       "ADL Roster Warning"
     } else {
@@ -3561,6 +3573,16 @@ send_commissioner_alert_email <- function(
   write_csv(gm_status, gm_status_path, na = "")
 
   gm_emails_sent <- nrow(gm_status) > 0 && all(gm_status$sent)
+  if (!nrow(digest_alerts)) {
+    return(tibble(
+      sent = gm_emails_sent,
+      reason = if (gm_emails_sent) "sent_gm_only" else paste0("gm_email_failed: ", paste(unique(gm_status$reason[!gm_status$sent]), collapse = ", ")),
+      outbox_path = "", recipients_path = recipients_path,
+      offender_recipients_path = offender_recipient_path,
+      gm_status_path = gm_status_path, recipients = "",
+      gm_emails_sent = sum(gm_status$sent)
+    ))
+  }
   body <- render_commissioner_alert_email(
     alerts,
     season = season,
