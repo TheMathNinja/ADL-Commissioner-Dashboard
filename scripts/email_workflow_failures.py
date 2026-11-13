@@ -12,6 +12,38 @@ import urllib.request
 from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
+from maintenance_failure_links import covered_components
+
+
+def delivered_watchdog_components(state, repo, run, job_list):
+    """Coalesce only the exact dependency check, never a freshness/API failure."""
+    if repo != COMMISSIONER or PurePosixPath(run.get('path', '')).name != 'dashboard_watchdog.yml':
+        return False
+    job = next((j for j in job_list if j['name'] == 'check-dashboard-freshness'), {})
+    if not job.get('id'):
+        return False
+    try:
+        log = subprocess.run(['gh', 'run', 'view', str(run['id']), '--repo', repo,
+            '--job', str(job['id']), '--attempt', str(run.get('run_attempt', 1)), '--log-failed'],
+            capture_output=True, text=True, encoding='utf8', errors='replace', timeout=30, check=True).stdout
+        markers = re.findall(r'MAINTENANCE_FAILURE_EVIDENCE=(\{[^\r\n]+\})', log)
+        if len(markers) != 1 or "Today's daily maintenance has unresolved component failures: " not in log:
+            return False
+        evidence = json.loads(markers[0])
+        if not re.fullmatch(r'\d+', evidence['parent']) or not evidence['unresolved']:
+            return False
+        parent = api(DAILY_REPO, f"actions/runs/{evidence['parent']}/attempts/{int(evidence['attempt'])}")
+        if (PurePosixPath(parent['path']).name != 'daily_adl_league_maintenance.yml' or
+                parent.get('head_branch') != 'main' or str(parent['id']) != evidence['parent'] or
+                parent.get('run_attempt', 1) != evidence['attempt']):
+            return False
+        parent_jobs = jobs(DAILY_REPO, parent)
+        actual = {j['name']: j.get('conclusion') for j in parent_jobs}
+        if any(actual.get(name) != status for name, status in evidence['unresolved'].items()):
+            return False
+        return set(evidence['unresolved']) <= covered_components(state, parent, parent_jobs)
+    except (OSError, subprocess.SubprocessError, RuntimeError, ValueError, KeyError, TypeError):
+        return False
 
 STATE_PATH = 'data/workflow_failure_email_state.json'
 LOOKBACK_DAYS = 7
@@ -566,9 +598,15 @@ def main():
     coverage_errors=[]
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
-    for repo in sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2):
+    ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)
+    passes = [(repo, False) for repo in ordered]
+    if COMMISSIONER in ordered:
+        passes.append((COMMISSIONER, True))
+    for repo, watchdog_only in passes:
         try:
-            history = list(runs(repo))
+            if watchdog_only and repo not in histories:
+                continue
+            history = histories[repo] if watchdog_only else list(runs(repo))
         except (OSError, RuntimeError, ValueError, KeyError):
             coverage_errors.append(repo)
             continue  # A private API outage must not stop public failure reporting.
@@ -581,6 +619,9 @@ def main():
                 run['_audit_report'] = run['updated_at'] >= private_since
         histories[repo]=history
         for latest in reversed(history):
+            is_watchdog = repo == COMMISSIONER and PurePosixPath(latest.get('path', '')).name == 'dashboard_watchdog.yml'
+            if is_watchdog != watchdog_only:
+                continue  # Report underlying child and parent components first.
             impact = production(latest)
             if not impact:
                 continue
@@ -618,6 +659,12 @@ def main():
                     state['checked'][key] = 'cancelled before runner assignment; same-day watchdog already succeeded'
                     continue
                 failed = failures(run, job_list)
+                if failed and delivered_watchdog_components(state, repo, run, job_list):
+                    failed = [line for line in failed if line !=
+                              "check-dashboard-freshness: Check today's maintenance result and alert ownership"]
+                    if not failed:
+                        state['checked'][key] = 'reported by exact maintenance components'
+                        continue
                 audit_parent = private_parent(run) if repo == GUARDIAN else None
                 if audit_parent and failed:
                     parent_id,parent_attempt,kind = audit_parent

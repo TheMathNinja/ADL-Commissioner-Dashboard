@@ -24,6 +24,8 @@ jobs:
           import re
           import sys
           import urllib.request
+          sys.path.insert(0, 'scripts')
+          from maintenance_failure_links import covered_components
           from datetime import datetime, time, timezone
           from zoneinfo import ZoneInfo
 
@@ -137,10 +139,13 @@ jobs:
               # component was already reported. Missing runs and receipts still fail.
               state_file = "data/workflow_failure_email_state.json"
               with open(state_file, encoding="utf8") as handle:
-                  notices = json.load(handle).get("sent", {})
-              notice = notices.get(f"TheMathNinja/ADL-GM-Dashboard:{run['id']}:{run.get('run_attempt',1)}", {})
-              affected = notice.get("affected_jobs", {})
-              if not all(name in affected and affected[name] == jobs_by_name[name].get("conclusion") for name in unresolved):
+                  notices = json.load(handle)
+              print('MAINTENANCE_FAILURE_EVIDENCE=' + json.dumps({
+                  'parent': str(run['id']), 'attempt': run.get('run_attempt', 1),
+                  'unresolved': {name: jobs_by_name[name].get('conclusion') for name in unresolved}
+              }), flush=True)
+              covered = covered_components(notices, run, jobs)
+              if not set(unresolved) <= covered:
                   sys.exit("Today's daily maintenance has unresolved component failures: " + details)
               print("Unresolved but already reported by daily maintenance:", details, run["html_url"])
               with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as summary:

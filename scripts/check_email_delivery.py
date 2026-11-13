@@ -17,7 +17,7 @@ def main():
         if canonical != (guardian / 'scripts' / name).read_text():
             raise SystemExit('Shared delivery policies differ: ' + name + '; do not publish')
     suites = ('test_email_delivery_state.py', 'test_github_email_receipt.py', 'test_email_state_save.py',
-              'test_incident_replay.py', 'test_workflow_failure_email.py',
+              'test_incident_replay.py', 'test_workflow_failure_email.py', 'test_maintenance_failure_links.py',
               'test_alert_transport.py', 'test_weekly_completion_email.py',
               'test_gotw_blurbs.py')
     for suite in suites:
