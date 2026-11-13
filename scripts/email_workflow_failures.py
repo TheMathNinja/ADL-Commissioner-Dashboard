@@ -12,11 +12,11 @@ import urllib.request
 from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
-from maintenance_failure_links import covered_components
+from maintenance_failure_links import covered_components, WATCHDOG_STEP
 
 
-def delivered_watchdog_components(state, repo, run, job_list):
-    """Coalesce only the exact dependency check, never a freshness/API failure."""
+def watchdog_maintenance_evidence(repo, run, job_list):
+    """Identify only the exact dependency check, never a freshness/API failure."""
     if repo != COMMISSIONER or PurePosixPath(run.get('path', '')).name != 'dashboard_watchdog.yml':
         return False
     job = next((j for j in job_list if j['name'] == 'check-dashboard-freshness'), {})
@@ -41,7 +41,7 @@ def delivered_watchdog_components(state, repo, run, job_list):
         actual = {j['name']: j.get('conclusion') for j in parent_jobs}
         if any(actual.get(name) != status for name, status in evidence['unresolved'].items()):
             return False
-        return set(evidence['unresolved']) <= covered_components(state, parent, parent_jobs)
+        return parent, parent_jobs, evidence['unresolved']
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError, KeyError, TypeError):
         return False
 
@@ -659,9 +659,10 @@ def main():
                     state['checked'][key] = 'cancelled before runner assignment; same-day watchdog already succeeded'
                     continue
                 failed = failures(run, job_list)
-                if failed and delivered_watchdog_components(state, repo, run, job_list):
-                    failed = [line for line in failed if line !=
-                              "check-dashboard-freshness: Check today's maintenance result and alert ownership"]
+                watchdog_evidence = watchdog_maintenance_evidence(repo, run, job_list) if failed else None
+                if watchdog_evidence and set(watchdog_evidence[2]) <= covered_components(
+                        state, watchdog_evidence[0], watchdog_evidence[1]):
+                    failed = [line for line in failed if line != WATCHDOG_STEP]
                     if not failed:
                         state['checked'][key] = 'reported by exact maintenance components'
                         continue
@@ -702,9 +703,29 @@ def main():
                                 state['checked'][key]='reported by '+key_parent
                                 break
                     if key in state['checked']:continue
+                    # A watchdog can discover a completed parent before it appears
+                    # in the reporter's workflow listing. Honor that exact receipt.
+                    for entry in state['sent'].values():
+                        if (entry.get('maintenance_parent') != child[0] or
+                                child[1][1] not in entry.get('maintenance_components', {}) or
+                                WATCHDOG_STEP not in entry.get('failed_steps', [])):
+                            continue
+                        parent = dict(id=int(child[0]), run_attempt=entry['maintenance_attempt'],
+                                      path='daily_adl_league_maintenance.yml')
+                        try:
+                            related = next((j for j in jobs(DAILY_REPO, parent) if j['name'] == child[1][1]), {})
+                        except (RuntimeError, OSError):
+                            continue
+                        if (related.get('started_at', '~') <= run['updated_at'] <= related.get('completed_at', '') and
+                                propagated_child(DAILY_REPO, parent, related, child[1][2]) == str(run['id'])):
+                            state['checked'][key] = 'reported by exact maintenance watchdog'
+                            break
+                    if key in state['checked']:continue
                 if failed and repo == DAILY_REPO and 'daily_adl_league_maintenance.yml' in run['path']:
                     by_name = {j['name']:j for j in job_list}
-                    failed = [line for line in failed if not delivered_child(state,repo,run,by_name,line)]
+                    covered = covered_components(state, run, job_list)
+                    failed = [line for line in failed if line.partition(': ')[0] not in covered
+                              and not delivered_child(state,repo,run,by_name,line)]
                     if not failed:
                         state['checked'][key]='reported by exact failed child'
                         continue
@@ -740,6 +761,10 @@ def main():
                 subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
                 if child:
                     body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
+                if watchdog_evidence and WATCHDOG_STEP in failed:
+                    body += (f"\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{watchdog_evidence[0]['id']}"
+                             + '\nUnresolved components: ' + ', '.join(
+                                 f'{name}={status}' for name, status in watchdog_evidence[2].items()))
                 affected={j['name']:j.get('conclusion') for j in job_list if j.get('conclusion') in BAD|{'skipped'}}
                 skipped=[name for name,status in affected.items() if status=='skipped']
                 if run.get('name') == 'Daily ADL League Maintenance':
@@ -769,6 +794,10 @@ def main():
                     state['sent'][key].update(daily_parent=child[0],daily_job=child[1][1])
                 if audit_parent:
                     state['sent'][key].update(audit_parent=audit_parent[0],audit_attempt=audit_parent[1],audit_kind=audit_parent[2])
+                if watchdog_evidence and WATCHDOG_STEP in failed:
+                    state['sent'][key].update(maintenance_parent=str(watchdog_evidence[0]['id']),
+                        maintenance_attempt=watchdog_evidence[0].get('run_attempt', 1),
+                        maintenance_components=watchdog_evidence[2])
                 week_match=re.search(r'(weekly update|correction update) · Week (\d+)',run.get('display_title',''))
                 if week_match:
                     local=datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))

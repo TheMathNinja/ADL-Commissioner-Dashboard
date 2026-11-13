@@ -111,6 +111,17 @@ class MaintenanceLinks(unittest.TestCase):
         self.assertEqual(len(self.replay(child_only=True)[1]), 1)
         self.assertEqual(len(self.replay(child_only=True, independent=True)[1]), 2)
 
+    def test_watchdog_discovers_parent_before_listing_no_later_duplicate(self):
+        state, emails = self.replay(child_only=True, independent=True)
+        self.assertEqual(len(emails), 2)
+        self.assertEqual(self.replay(independent=True, state=state)[1], [])
+
+    def test_watchdog_receipt_before_child_does_not_hide_new_parent_attempt(self):
+        state = {'sent': {'watchdog': dict(maintenance_parent=str(self.parent['id']),
+            maintenance_attempt=1, maintenance_components={DATA: 'failure'}, failed_steps=[m.WATCHDOG_STEP])}, 'checked': {}}
+        self.assertEqual(self.replay(state=state)[1], [])
+        self.assertEqual(links.covered_components(state, dict(self.parent, run_attempt=2), self.parent_jobs, lambda *a: None), set())
+
     def test_exact_identity_and_delivery_required(self):
         record = dict(daily_parent=str(self.parent['id']), daily_job=DATA, failed_at=self.child['updated_at'])
         state = {'sent': {f"{m.COMMISSIONER}:{self.child['id']}:1": record}}

@@ -4,6 +4,7 @@ import subprocess
 
 PARENT_REPO = 'TheMathNinja/ADL-GM-Dashboard'
 CHILD_REPO = 'TheMathNinja/ADL-Commissioner-Dashboard'
+WATCHDOG_STEP = "check-dashboard-freshness: Check today's maintenance result and alert ownership"
 CHILD_STEPS = {
     'Refresh SalAdj and Commissioner data': 'Dispatch Commissioner-owned data refresh',
     'Apply waiver cap corrections': 'Dispatch Commissioner-owned waiver corrections',
@@ -35,6 +36,13 @@ def covered_components(state, parent, job_list, child_link=child_from_log):
     for job in job_list:
         name, status = job['name'], job.get('conclusion')
         if status not in {'failure', 'timed_out', 'cancelled', 'action_required'}:
+            continue
+        if any(entry.get('maintenance_parent') == str(parent['id']) and
+               entry.get('maintenance_attempt') == parent.get('run_attempt', 1) and
+               entry.get('maintenance_components', {}).get(name) == status and
+               WATCHDOG_STEP in entry.get('failed_steps', [])
+               for entry in state.get('sent', {}).values()):
+            covered.add(name)
             continue
         # affected_jobs includes failures that were removed from the email as
         # duplicates; require an actually reported step as well.
