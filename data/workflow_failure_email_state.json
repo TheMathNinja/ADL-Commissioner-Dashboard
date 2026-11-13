@@ -652,6 +652,27 @@
         "check-dashboard-freshness": "failure"
       },
       "failed_at": "2026-11-13T11:59:51Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:43408271069:1": {
+      "sent_at": "2026-11-13T13:50:44.337261+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Daily ADL League Maintenance",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:372682429:Daily ADL League Maintenance:2026-11-13",
+      "failed_steps": [
+        "Refresh rosters, EXT and Salary Cap Manager / refresh: Refresh rosters, EXT and Salary Cap Manager data"
+      ],
+      "cause_codes": {
+        "Refresh SalAdj and Commissioner data": "unclassified",
+        "Refresh rosters, EXT and Salary Cap Manager / refresh": "unclassified",
+        "Verify daily maintenance package": "unclassified"
+      },
+      "affected_jobs": {
+        "Refresh SalAdj and Commissioner data": "failure",
+        "Refresh rosters, EXT and Salary Cap Manager / refresh": "failure",
+        "Apply waiver cap corrections": "skipped",
+        "Verify daily maintenance package": "failure"
+      },
+      "failed_at": "2026-11-13T10:25:55Z"
     }
   },
   "checked": {
