@@ -143,14 +143,15 @@
       "count": 1,
       "observed": "No owner-submitted Week 9 lineup; MFL may have inherited a lineup",
       "detected_at": "2026-11-10T04:09:38.269884+00:00",
-      "status": "watch",
+      "status": "resolved",
       "activity_at": null,
       "notice": {
         "status": "accepted",
         "attempted_at": "2026-11-10T04:09:48.809775+00:00",
         "issued_at": "2026-11-10T04:09:48.809775+00:00"
       },
-      "deadline": "2026-11-15T04:09:48.809775+00:00"
+      "deadline": "2026-11-15T04:09:48.809775+00:00",
+      "resolved_at": "2026-11-13T17:26:00+00:00"
     }
   },
   "counts": {
@@ -298,6 +299,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-13T17:09:40.975018+00:00",
+  "last_checked_at": "2026-11-13T18:00:29.774219+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
