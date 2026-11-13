@@ -331,7 +331,9 @@
       "affected_jobs": {
         "check-dashboard-freshness": "failure"
       },
-      "failed_at": "2026-11-08T11:59:46Z"
+      "failed_at": "2026-11-08T11:59:46Z",
+      "resolved_at": "2026-11-12T11:59:47Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43213876542"
     },
     "TheMathNinja/ADL-Commissioner-Dashboard:42671504712:1": {
       "sent_at": "2026-11-09T19:32:33.247008+00:00",
@@ -1941,7 +1943,10 @@
     "TheMathNinja/ADL-GM-Dashboard:43393925739:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:43398962560:1": "success",
     "TheMathNinja/ADL-Commissioner-Dashboard:43406992940:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:43408525362:1": "success"
+    "TheMathNinja/ADL-Commissioner-Dashboard:43408525362:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43411559472:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43411623678:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43414781435:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -2010,6 +2015,20 @@
         "build-dashboard": "failure"
       },
       "failed_at": "2026-11-13T10:20:28Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43421428617:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog:2026-11-13",
+      "failed_steps": [
+        "check-dashboard-freshness: Check today's maintenance result and alert ownership"
+      ],
+      "cause_codes": {
+        "check-dashboard-freshness": "unclassified"
+      },
+      "affected_jobs": {
+        "check-dashboard-freshness": "failure"
+      },
+      "failed_at": "2026-11-13T11:59:51Z"
     }
   },
   "delivery_receipts": {
@@ -2032,6 +2051,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-13T10:40:15.973397+00:00",
       "accepted_at": "2026-11-13T10:40:18.804619+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:43421428617:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-13T13:49:58.969489+00:00"
     }
   }
 }
