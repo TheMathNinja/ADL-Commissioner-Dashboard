@@ -1,1 +1,22 @@
-No new SalAdj rows were found.
+SalAdj scraper scheduled: 11/13/2026 5:17 a.m. EST
+Run type: Scheduled daily refresh
+Run started: 11/13/2026 8:56 a.m. EST
+Run completed / email prepared: 11/13/2026 8:56 a.m. EST (runtime: 0m 52s)
+
+SalAdj Curator published 3 new row(s) at 11/13/2026 8:56 a.m. EST.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_13_ADLSalAdjCurator.csv
+
+Please enter the following new salary adjustments in the Contract Admin sheet.
+
+NFC
+---
+- Dropped 11/12/2026 10:15:11 ET by ATL | Justin Fields KCC QB: $10.71 / 4 yr / 2024 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 14, 2026
+- Dropped 11/12/2026 22:06:17 ET by DET | Tanner McKee PHI QB: $2.60 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 14, 2026
+
+AFC
+---
+- Dropped 11/12/2026 19:11:54 ET by TEN | DaRon Payne WAS DT: $4.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 14, 2026
+
