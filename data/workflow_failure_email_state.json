@@ -632,6 +632,22 @@
       "failed_at": "2026-11-13T10:20:28Z",
       "daily_parent": "43408271069",
       "daily_job": "Refresh SalAdj and Commissioner data"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43421428617:1": {
+      "sent_at": "2026-11-13T13:50:03.330606+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Dashboard Watchdog",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:303835813:Dashboard Watchdog:2026-11-13",
+      "failed_steps": [
+        "check-dashboard-freshness: Check today's maintenance result and alert ownership"
+      ],
+      "cause_codes": {
+        "check-dashboard-freshness": "unclassified"
+      },
+      "affected_jobs": {
+        "check-dashboard-freshness": "failure"
+      },
+      "failed_at": "2026-11-13T11:59:51Z"
     }
   },
   "checked": {
