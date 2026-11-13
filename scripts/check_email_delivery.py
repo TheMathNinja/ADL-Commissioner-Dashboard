@@ -27,6 +27,8 @@ def main():
     env['PYTHONPATH'] = str(guardian / 'scripts') + os.pathsep + env.get('PYTHONPATH', '')
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_notifications.py'],
                    cwd=guardian, env=env, check=True)
+    subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_guardian_coverage.py'],
+                   cwd=guardian, env=env, check=True)
     subprocess.run(['node', '--test', 'test/warning-delivery.test.js', 'test/warning-days.test.js',
                     'test/notifications.test.js'], cwd=guardian, check=True)
     print('Shared delivery, crash recovery, incident replay, and Guardian warning tests passed.')
