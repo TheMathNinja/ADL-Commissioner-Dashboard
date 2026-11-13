@@ -23,6 +23,13 @@ class FailureReports(unittest.TestCase):
     def test_production_is_limited_to_recurring_or_orchestrated_runs(self):
         self.assertTrue(m.production(self.run))
 
+    def test_missed_check_watchdog_failure_is_monitored_for_both_automatic_triggers(self):
+        run=dict(self.run,path='.github/workflows/guardian-coverage.yml',_private_report=True)
+        for event in ('schedule','workflow_run','workflow_dispatch'):
+            self.assertTrue(m.production(dict(run,event=event)))
+            self.assertFalse(m.production(dict(run,event=event,head_branch='preview')))
+        self.assertFalse(m.production(dict(run,event='pull_request')))
+
     def test_general_recovery_matches_failed_and_dependent_work(self):
         later = dict(self.run, id=2, conclusion='success',
                      created_at='2026-10-01T15:00:00Z', updated_at='2026-10-01T15:10:00Z')

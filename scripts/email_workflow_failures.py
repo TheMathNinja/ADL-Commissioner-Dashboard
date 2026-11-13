@@ -19,6 +19,7 @@ OWNER = 'fili.mikey@gmail.com'
 REPOS = ['TheMathNinja/ADL-GM-Dashboard', 'TheMathNinja/FAFL-GM-Dashboard', 'TheMathNinja/ADL-Commissioner-Dashboard']
 GUARDIAN = 'TheMathNinja/Chicago-Bears-Lineup-Guardian'
 PRIVATE_IMPACT = {
+    'guardian-coverage.yml': 'Verification of required Guardian checks or its notification delivery did not complete. Missed-check coverage may be unavailable.',
     'guardian.yml': 'A Guardian check did not complete; lineup protection may be unavailable.',
     'initial-lineup.yml': 'The initial-lineup safety check did not complete.',
     'delayed-pickup.yml': 'The delayed IR pickup recheck did not complete.',
@@ -181,7 +182,9 @@ def production(run):
     if filename == 'automation-preflight.yml' and not run.get('_audit_report'):
         return None
     if run.get('_private_report'):
-        return PRIVATE_IMPACT.get(filename) if run.get('head_branch') == 'main' and event in {'schedule','workflow_dispatch','push'} else None
+        monitored_event = event in {'schedule','workflow_dispatch','push'} or (
+            filename == 'guardian-coverage.yml' and event == 'workflow_run')
+        return PRIVATE_IMPACT.get(filename) if run.get('head_branch') == 'main' and monitored_event else None
     is_orchestrated_dispatch = event == 'workflow_dispatch' and any(
         pattern.search(title) for pattern in PRODUCTION_DISPATCH_NAMES
     )
