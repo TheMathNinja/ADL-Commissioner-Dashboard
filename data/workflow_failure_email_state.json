@@ -2011,8 +2011,9 @@
       "accepted_at": "2026-11-13T01:00:25.623550+00:00"
     },
     "failure:TheMathNinja/ADL-Commissioner-Dashboard:43408314983:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-13T10:40:15.973397+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-13T10:40:15.973397+00:00",
+      "accepted_at": "2026-11-13T10:40:18.804619+00:00"
     }
   }
 }
