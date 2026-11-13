@@ -553,8 +553,8 @@
       "observed_cause_codes": {
         "guardian": "4b4462a6bac7366e9b25b7e1674f7895214e48e26d05b8b46021d2becf6a8ecb"
       },
-      "last_seen_at": "2026-11-13T01:10:40Z",
-      "latest_run_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/43342769503"
+      "last_seen_at": "2026-11-13T01:16:03Z",
+      "latest_run_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/43343431704"
     },
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43334177943:1": {
       "sent_at": "2026-11-13T00:25:32.241073+00:00",
@@ -1853,7 +1853,10 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43342769503:1": "duplicate notification for TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - gas-20261113-010944-guardian-yml",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43343614860:1": "success",
     "TheMathNinja/ADL-GM-Dashboard:43344054048:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:43344698523:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:43344698523:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43343431704:1": "duplicate notification for TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - gas-20261113-011444-guardian-yml",
+    "TheMathNinja/ADL-GM-Dashboard:43345307772:1": "success",
+    "TheMathNinja/ADL-GM-Dashboard:43345933964:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
