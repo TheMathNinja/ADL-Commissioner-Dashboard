@@ -15,12 +15,13 @@ on:
 name: commissioner-alert-email-test
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   commissioner-alert-email-test:
     runs-on: ubuntu-24.04
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       CURRENT_SEASON: 2026
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_TEST_TO: ${{ github.event.inputs.recipient }}

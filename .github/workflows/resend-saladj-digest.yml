@@ -13,12 +13,13 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   resend:
     runs-on: ubuntu-24.04
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       R_LIBS_USER: ${{ github.workspace }}/_lib
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       CONTRACT_ADMIN_SHEET_ID: 1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw

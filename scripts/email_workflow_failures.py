@@ -388,6 +388,18 @@ def notification_episode(identity, timestamp):
     return identity + ':' + str(timestamp)[:4]
 
 
+def pending_delivery_steps(state, key, repo, run, history, failed, codes):
+    """An unresolved SMTP claim belongs to the incident, not just its run ID."""
+    pending = {}
+    for other, entry in state.get('delivery_incidents', {}).items():
+        if other == key or other in state['sent']:
+            continue
+        status = state.get('delivery_receipts', {}).get('failure:' + other, {}).get('status')
+        if status in ('sending', 'uncertain', 'partial', 'accepted'):
+            pending[other] = entry
+    return unreported_steps({'sent': pending}, repo, run, history, failed, codes)[1]
+
+
 def entry_recovered(repo, run, entry, history):
     """A green title alone cannot reopen an already-notified outage."""
     expected = {}
@@ -667,6 +679,12 @@ def main():
                             record.update(audit_parent=audit_parent[0],audit_attempt=audit_parent[1],audit_kind=audit_parent[2])
                         state.setdefault('linked_reports',{})[key]=record
                     continue
+                available = pending_delivery_steps(state,key,repo,run,history,failed,codes)
+                if available != failed:
+                    coverage_errors.append(key + ': related delivery requires review')
+                    failed = available
+                    if not failed:
+                        continue  # Not delivered or acknowledged; keep the safety net visible.
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
                 subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
@@ -682,7 +700,18 @@ def main():
                 if args.dry_run:
                     print(body + '\n')
                 else:
-                    mail.send_email(subject, body, 'failure:' + key)
+                    state.setdefault('delivery_incidents', {})[key] = {
+                        'incident_key': incident, 'scope': scope, 'failed_steps': failed,
+                        'cause_codes': codes, 'affected_jobs': affected, 'failed_at': run['updated_at']}
+                    try:
+                        mail.deliver_once(state, 'failure:' + key,
+                                          lambda: mail.send_email(subject, body, 'failure:' + key),
+                                          lambda: save(state))
+                    except Exception as error:
+                        # One uncertain delivery must not hide unrelated incidents.
+                        # Do not acknowledge this incident or blindly replay SMTP.
+                        coverage_errors.append(key + ': ' + type(error).__name__)
+                        continue
                 state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
                                       'subject': subject, 'incident_key': incident, 'scope': scope,
                                       'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,'failed_at':run['updated_at']}
@@ -700,7 +729,7 @@ def main():
                     save(state)
                     print('SMTP accepted failure report: ' + key)
     if args.deadlines:
-        check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories)
+        check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories,coverage_errors)
     if not args.dry_run and state != original:
         save(state)
     if coverage_errors:
@@ -716,7 +745,7 @@ def notification_pending(repo, run, now):
     return now - ended < timedelta(minutes=delay)
 
 
-def check_deadlines(state,dry,now,histories=None):
+def check_deadlines(state,dry,now,histories=None,delivery_errors=None):
     local=now.astimezone(ZoneInfo('America/New_York'))
     if local.hour<10:return
     day=local.date();season=day.year-(day.month==1)
@@ -727,7 +756,15 @@ def check_deadlines(state,dry,now,histories=None):
         if key in state['sent']:return
         subject=f'[League automation overdue] {repo.split("/")[-1]}: {capability}'
         if dry:print(subject,detail);return
-        mail.send_email(subject,detail,'failure:'+key)
+        try:
+            mail.deliver_once(state, 'failure:'+key,
+                              lambda: mail.send_email(subject,detail,'failure:'+key),
+                              lambda: save(state))
+        except Exception as error:
+            if delivery_errors is None:
+                raise
+            delivery_errors.append(key + ': ' + type(error).__name__)
+            return
         state['sent'][key]={'subject':subject,'sent_at':now.isoformat()};save(state)
     repo=REPOS[0]
     daily=api(repo,'actions/workflows/daily_adl_league_maintenance.yml/runs?branch=main&per_page=50')['workflow_runs']

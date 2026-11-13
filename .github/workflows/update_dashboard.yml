@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       RAW_CACHE_DIR: cache/raw_league_data
       RAW_CACHE_VERSION: v1
       R_LIBS_USER: ${{ github.workspace }}/_lib

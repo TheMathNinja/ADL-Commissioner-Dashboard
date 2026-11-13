@@ -1,10 +1,14 @@
 import json
+import hashlib
 import os
 import re
 import smtplib
 import ssl
 import sys
 from email.message import EmailMessage
+from email.utils import getaddresses, parseaddr
+from smtp_delivery import send_message_with_retries
+from github_email_receipt import deliver
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -25,6 +29,14 @@ def main() -> None:
     else:
         raise SystemExit("usage: send_plain_email.py SUBJECT RECIPIENT BODY_FILE")
 
+    key = payload.get('delivery_key') or hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        deliver('r-alert:'+key, lambda: send_payload(payload))
+    else:
+        send_payload(payload)
+
+
+def send_payload(payload):
     sender = required("ADL_ALERT_EMAIL_FROM")
     username = required("ADL_SMTP_USERNAME")
     password = required("ADL_SMTP_PASSWORD")
@@ -57,10 +69,9 @@ def main() -> None:
             smtp.auth('LOGIN', smtp.auth_login, initial_response_ok=False)
         else:
             smtp.login(username, password, initial_response_ok=False)
-        refused = smtp.send_message(message)
+        recipients = [address for _, address in getaddresses(payload['to'] + payload.get('cc', [])) if address]
+        send_message_with_retries(smtp, message, parseaddr(sender)[1], recipients)
 
-    if refused:
-        raise RuntimeError("Partial SMTP delivery; review before retrying")
     print("SMTP accepted all recipients")
 
 

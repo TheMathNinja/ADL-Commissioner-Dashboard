@@ -55,6 +55,7 @@ jobs:
   daily-commissioner-alerts:
     runs-on: ubuntu-24.04
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       CURRENT_SEASON: 2026
       ADL_RAW_LEAGUE_DATA_DIR: cache/raw_league_data
       ADL_CAP_ACCOUNTING_DIR: data/cap_accounting

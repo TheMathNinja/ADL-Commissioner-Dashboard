@@ -15,12 +15,13 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   resend:
     runs-on: ubuntu-24.04
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       CURRENT_SEASON: 2026
       R_LIBS_USER: ${{ github.workspace }}/_lib
       ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}

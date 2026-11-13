@@ -145,6 +145,7 @@ class CompletionEmailTest(unittest.TestCase):
         env = dict(WEEKLY_REPORT_EMAIL_TO='owner@example.com', ADL_ALERT_EMAIL_FROM='Sender <sender@example.com>',
                    ADL_SMTP_SERVER='smtp://smtp.example.com:587', ADL_SMTP_USERNAME='user', ADL_SMTP_PASSWORD='test-only')
         with patch.dict(os.environ, env), patch.object(m.smtplib, 'SMTP') as factory:
+            factory.return_value.__enter__.return_value.send_message.return_value = {}
             m.send_email('Report', 'Body', 'key')
             smtp = factory.return_value.__enter__.return_value
             smtp.starttls.assert_called_once()
@@ -153,6 +154,7 @@ class CompletionEmailTest(unittest.TestCase):
             self.assertIsNone(call.args[0]['Cc'])
             self.assertIsNone(call.args[0]['Bcc'])
         with patch.dict(os.environ, env), patch.object(m.smtplib, 'SMTP') as factory:
+            factory.return_value.__enter__.return_value.send_message.return_value = {}
             m.send_email('Report', 'Body', 'key', 'one@example.com,two@example.com')
             call = factory.return_value.__enter__.return_value.send_message.call_args
             self.assertEqual(call.kwargs['to_addrs'], ['one@example.com', 'two@example.com'])

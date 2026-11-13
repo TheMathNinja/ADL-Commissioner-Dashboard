@@ -279,11 +279,13 @@ class FailureReports(unittest.TestCase):
         self.assertEqual(m.unreported_steps(state,repo,later,[],['a','b'])[1],['b'])
         self.assertEqual(m.unreported_steps(state,repo,dict(later,created_at='2026-10-02T14:00:00Z'),[],['a'])[1],[])
 
-    def test_failed_smtp_is_retried_not_recorded_as_sent(self):
-        # Unaccepted mail must not suppress a future delivery attempt.
+    def test_ambiguous_smtp_is_not_recorded_as_sent_or_blindly_retried(self):
         state, _, saved = self.exercise(send_error=RuntimeError('SMTP unavailable'))
         self.assertFalse(state['sent'])
-        self.assertEqual(saved, 0)
+        self.assertEqual(saved, 3)  # Claim, uncertain receipt, then scan checkpoint.
+        self.assertEqual(next(iter(state['delivery_receipts'].values()))['status'], 'uncertain')
+        _, count, _ = self.exercise(state, send_error=RuntimeError('must not send again'))
+        self.assertEqual(count, 0)
 
     def test_missing_dispatch_and_receipts_notify_once_per_delivery(self):
         now=m.datetime.fromisoformat('2026-11-03T16:00:00+00:00')
@@ -291,6 +293,35 @@ class FailureReports(unittest.TestCase):
         with patch.object(m,'api',return_value={'workflow_runs':[]}),patch.object(m.mail,'document',return_value=None),patch.object(m,'save'),patch.object(m.mail,'send_email')as send:
             m.check_deadlines(state,False,now);m.check_deadlines(state,False,now)
             self.assertEqual(send.call_count,3)
+
+    def test_uncertain_deadline_does_not_hide_other_missing_publications(self):
+        now=m.datetime.fromisoformat('2026-11-03T16:00:00+00:00')
+        state={'sent':{}}
+        errors=[]
+        with patch.object(m,'api',return_value={'workflow_runs':[]}),patch.object(m.mail,'document',return_value=None),patch.object(m,'save'),patch.object(m.mail,'send_email',side_effect=[TimeoutError('unknown acceptance'),None,None]) as send:
+            m.check_deadlines(state,False,now,delivery_errors=errors)
+            self.assertEqual(send.call_count,3)
+            self.assertEqual(len(state['sent']),2)
+            self.assertEqual(len(errors),1)
+            self.assertIn('TimeoutError',errors[0])
+            m.check_deadlines(state,False,now,delivery_errors=errors)
+            self.assertEqual(send.call_count,3)
+            self.assertIn('DeliveryUncertain',errors[-1])
+
+    def test_uncertain_delivery_is_not_replayed_under_a_new_run_id(self):
+        repo=m.REPOS[1]
+        old=repo+':1:1'
+        entry={'incident_key':m.incident_key(repo,self.run),'failed_at':self.run['updated_at'],
+               'failed_steps':['refresh: first'],'cause_codes':{'refresh':'same'}}
+        state={'sent':{},'delivery_incidents':{old:entry},
+               'delivery_receipts':{'failure:'+old:{'status':'uncertain'}}}
+        later=dict(self.run,id=2,updated_at='2026-10-01T16:00:00Z')
+        remaining=m.pending_delivery_steps(state,repo+':2:1',repo,later,[],
+                                         ['refresh: first','other: second'],{'refresh':'same'})
+        self.assertEqual(remaining,['other: second'])
+        state['delivery_receipts']['failure:'+old]['status']='rejected'
+        self.assertEqual(m.pending_delivery_steps(state,repo+':2:1',repo,later,[],
+                         ['refresh: first'],{'refresh':'same'}),['refresh: first'])
 
     def test_completed_deliveries_do_not_send_deadline_mail(self):
         now=m.datetime.fromisoformat('2026-11-05T16:00:00+00:00')

@@ -22,6 +22,8 @@ import urllib.request
 from verify_bonus_receipt import validate_bonus_receipt
 from weekly_email_support import ET, mfl, priced_rank, snapshot
 from gotw_blurbs import fetch_context, history_games, make_blurb
+from smtp_delivery import send_message_with_retries
+from email_delivery_state import deliver_once
 
 LEAGUES = {
     'ADL': ('TheMathNinja/ADL-GM-Dashboard', '60206', 'refresh_extension_calculator.yml'),
@@ -528,7 +530,8 @@ def maybe_send_gotw(state, dry_run=False, force=False):
         print(body)
         print(f'Game of the Week timings: inputs/ranking={prepared-started:.3f}s, email preparation={rendered-prepared:.3f}s, total={rendered-started:.3f}s')
         return False
-    send_email(subject, body, key)
+    delivery_key = key + (':manual:' + os.environ['GITHUB_RUN_ID'] if force else '')
+    deliver_once(state, delivery_key, lambda: send_email(subject, body, delivery_key), lambda: save_state(state))
     emailed = time.perf_counter()
     state['sent'][key] = dict(sent_at=datetime.now(timezone.utc).isoformat(), subject=subject)
     save_state(state)
@@ -722,17 +725,6 @@ def send_email(subject, body, key, to=None, cc=None):
         send_message_with_retries(smtp, msg, parseaddr(sender)[1], recipients)
 
 
-def send_message_with_retries(smtp, msg, sender, recipients):
-    # Retry only an explicit temporary DATA rejection, never ambiguous delivery.
-    for attempt in range(3):
-        try:
-            return smtp.send_message(msg, from_addr=sender, to_addrs=recipients)
-        except smtplib.SMTPDataError as error:
-            if not 400 <= error.smtp_code < 500 or attempt == 2:
-                raise
-            time.sleep(2 ** (attempt + 1))
-
-
 def save_state(state):
     repo = os.environ['GITHUB_REPOSITORY']
     url = f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
@@ -823,7 +815,8 @@ def main():
                 continue
             recipient = args.recipient_override or (os.environ['ADL_WEEKLY_REPORT_EMAIL_TO'] if league == 'ADL'
                                                     else os.environ['FAFL_WEEKLY_REPORT_EMAIL_TO'])
-            send_email(subject, body, key, recipient)
+            delivery_key = key + (':manual:' + os.environ['GITHUB_RUN_ID'] if args.force_resend else '')
+            deliver_once(state, delivery_key, lambda: send_email(subject, body, delivery_key, recipient), lambda: save_state(state))
             if not args.force_resend:
                 state['sent'][key] = dict(sent_at=datetime.now(timezone.utc).isoformat(), subject=subject)
                 save_state(state)

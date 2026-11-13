@@ -320,7 +320,8 @@ def main():
             lines += digest_incident_lines(incident,now)
         if summary['coverage']:lines += ['Source coverage requiring review:']+summary['coverage']+['']
         if summary['delivery_problems']:lines += ['Notification delivery requiring review:']+summary['delivery_problems']+['']
-        mail.send_email('FAFL Inactivity Watch - Action Required','\n'.join(lines),'fafl-inactivity-action:'+signature,to=','.join(commissioners))
+        mail.deliver_once(updated, 'fafl-inactivity-action:'+signature,
+                          lambda: mail.send_email('FAFL Inactivity Watch - Action Required','\n'.join(lines),'fafl-inactivity-action:'+signature,to=','.join(commissioners)), save)
         updated['digest_signature']=signature;save()
     print('FAFL inactivity check completed; no roster, lineup, ownership or winnings changes were made')
     if delivery_problems:raise RuntimeError('An inactivity notice needs delivery review; commissioners were notified')
