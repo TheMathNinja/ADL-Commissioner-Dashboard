@@ -1823,8 +1823,9 @@
       "accepted_at": "2026-11-13T00:25:29.983980+00:00"
     },
     "failure:TheMathNinja/Chicago-Bears-Lineup-Guardian:43334180698:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-13T00:25:37.579322+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-13T00:25:37.579322+00:00",
+      "accepted_at": "2026-11-13T00:25:40.401427+00:00"
     }
   }
 }
