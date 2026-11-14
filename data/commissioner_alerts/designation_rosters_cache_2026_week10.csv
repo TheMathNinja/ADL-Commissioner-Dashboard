@@ -861,6 +861,8 @@ AFC,MIA,Miami Dolphins,17207,"Sigle, Marques SFO S","Sigle, Marques",SFO,S,Activ
 AFC,MIA,Miami Dolphins,15261,"Hubbard, Chuba CAR RB","Hubbard, Chuba",CAR,RB,Active,,9.12,1,266.62,2025 oEXT,,hubbard
 AFC,MIA,Miami Dolphins,15898,"Ogbonnia, Otito DAL DT","Ogbonnia, Otito",DAL,DT,Active,,1.2,1,266.62,2026 UFA,,ogbonnia
 AFC,MIA,Miami Dolphins,13806,"Elliott, DeShon PIT S","Elliott, DeShon",PIT,S,Active,,4.94,2,266.62,2026 UFA,,elliott
+AFC,MIA,Miami Dolphins,13832,"Sanders, Jason NYJ PK","Sanders, Jason",NYJ,PK,Active,,1.1,1,266.62,2026 UFA,,sanders
+AFC,MIA,Miami Dolphins,15124,"Pierre, James MIN CB","Pierre, James",MIN,CB,Active,,1.1,1,266.62,2026 UFA,,pierre
 AFC,NEP,New England Patriots,14782,"Love, Jordan GBP QB","Love, Jordan",GBP,QB,Active,,11.5,3,259.69,2023 iEXT,,love
 AFC,NEP,New England Patriots,15753,"Wilson, Garrett NYJ WR","Wilson, Garrett",NYJ,WR,Active,Questionable,12.96,5,259.69,2025 iEXT,,wilson
 AFC,NEP,New England Patriots,14167,"Hines-Allen, Josh JAC DE","Hines-Allen, Josh",JAC,DE,Active,,14.64,1,259.69,2023 B/R,,hines-allen
@@ -1347,6 +1349,7 @@ AFC,TEN,Tennessee Titans,15972,"Mason, Jordan MIN RB","Mason, Jordan",MIN,RB,Act
 AFC,TEN,Tennessee Titans,17544,"Stowers, Eli PHI TE","Stowers, Eli",PHI,TE,Active,R,2.2,4,260.48,2026 2.04,,stowers
 AFC,TEN,Tennessee Titans,14148,"Sweat, Montez CHI DE","Sweat, Montez",CHI,DE,Active,,8.55,2,260.48,2026 UFA,,sweat
 AFC,TEN,Tennessee Titans,12785,"Robinson, Demarcus SFO WR","Robinson, Demarcus",SFO,WR,Active,,1.1,1,260.48,2026 UFA,,robinson
+AFC,TEN,Tennessee Titans,14675,"Tuttle, Shy WAS DT","Tuttle, Shy",WAS,DT,Active,,1.1,1,260.48,2026 UFA,,tuttle
 AFC,TEN,Tennessee Titans,16597,"Brooks, Jonathon CAR RB","Brooks, Jonathon",CAR,RB,INJURED_RESERVE,IR-R,2.86,2,260.48,2024 1.13,,brooks
 AFC,TEN,Tennessee Titans,14867,"Kmet, Cole CHI TE","Kmet, Cole",CHI,TE,INJURED_RESERVE,,1.1,1,260.48,2026 UFA,,kmet
 AFC,TEN,Tennessee Titans,17552,"Howell, Cashius CIN DE","Howell, Cashius",CIN,DE,INJURED_RESERVE,IR,1.44,4,260.48,2026 3.04,,howell
