@@ -1,2 +1,2 @@
 season,run_time_display,last_checked_display,last_changed_display,latest_csv_changed,latest_csv_data_path,latest_archive_data_path,latest_archive_filename,qualifying_rows
-2026,11/13/2026 4:20 p.m. EST,11/13/2026 4:20 p.m. EST,11/13/2026 4:20 p.m. EST,TRUE,data/SalAdjCurator_latest.csv,data/archive/2026_11_13_ADLSalAdjCurator.csv,2026_11_13_ADLSalAdjCurator.csv,161
+2026,11/14/2026 1:12 a.m. EST,11/14/2026 1:12 a.m. EST,11/13/2026 4:20 p.m. EST,FALSE,data/SalAdjCurator_latest.csv,data/archive/2026_11_13_ADLSalAdjCurator.csv,2026_11_13_ADLSalAdjCurator.csv,161
