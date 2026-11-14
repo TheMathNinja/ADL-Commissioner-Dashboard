@@ -1,4 +1,6 @@
 import copy
+import base64
+import json
 import os
 from pathlib import Path
 import sys
@@ -10,6 +12,45 @@ import email_workflow_failures as m
 
 
 class FailureReports(unittest.TestCase):
+    def test_guardian_roster_warning_requires_delivered_exact_run_evidence(self):
+        run = dict(id=43528287932, run_attempt=1, path='.github/workflows/guardian.yml', conclusion='failure')
+        jobs = [dict(name='guardian', conclusion='failure', steps=[dict(name='Run npm run check', conclusion='failure')])]
+        audit_id = '43528287932-1-monitor'
+        message = 'No fully legal lineup can be formed from eligible, unlocked players'
+        audit = dict(id=audit_id, dryRun=False, runMode='monitor', completedAt='2026-11-13T23:36:00Z',
+                     results=[dict(key='ADL', status='idle'), dict(key='FAFL', status='error', message=message)],
+                     snapshots=[dict(league='FAFL', players=[dict(id=str(i),position='LB',rosterStatus='ROSTER',
+                                      unavailable=False,gameLocked=False) for i in range(10)])])
+        notices = [dict(id=audit_id+':0', status='sent', sentAt='2026-11-13T23:36:07Z',
+                        subject='[FAFL Bears] Lineup guardian needs attention', body=message)]
+        def check(a=audit, n=notices, j=jobs, r=run):
+            def api(repo, path):
+                value = a if '/audits/' in path else n
+                return {'content': base64.b64encode(json.dumps(value).encode()).decode()}
+            with patch.object(m, 'api', side_effect=api):
+                return m.delivered_guardian_roster_warning(m.GUARDIAN, r, j)
+        self.assertTrue(check())
+        typed = copy.deepcopy(audit)
+        typed['results'][1].update(status='warning', reason='roster_needs_attention')
+        self.assertTrue(check(a=typed))
+        for change in ({'error':'other failure'}, {'dryRun':True}, {'snapshots':[]},
+                       {'rosterManagement':{'status':'error'}}, {'id':'wrong-attempt'}):
+            self.assertFalse(check(a={**audit, **change}))
+        for change in ({'status':'pending'}, {'status':'failed'}, {'id':'wrong-run:0'}, {'body':'some other warning'}):
+            self.assertFalse(check(n=[{**notices[0], **change}]))
+        bad = copy.deepcopy(audit)
+        bad['results'][0]['status'] = 'error'
+        self.assertFalse(check(a=bad))
+        enough = copy.deepcopy(audit)
+        enough['snapshots'][0]['players'] *= 2
+        self.assertFalse(check(a=enough))
+        extra = copy.deepcopy(jobs)
+        extra[0]['steps'].append(dict(name='Send private Guardian notifications',conclusion='failure'))
+        self.assertFalse(check(j=extra))
+        self.assertFalse(check(r={**run, 'path':'.github/workflows/preflight.yml'}))
+        with patch.object(m, 'api', side_effect=RuntimeError('API unavailable')):
+            self.assertFalse(m.delivered_guardian_roster_warning(m.GUARDIAN,run,jobs))
+
     def setUp(self):
         self.run = dict(id=1, run_attempt=1, workflow_id=10, path='.github/workflows/refresh.yml',
                         head_branch='main', event='workflow_dispatch', status='completed', conclusion='failure',

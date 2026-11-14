@@ -1,5 +1,6 @@
 """Report production failures separately from successful-publication emails."""
 import argparse
+import base64
 import copy
 import hashlib
 import subprocess
@@ -246,6 +247,64 @@ def jobs(repo, run):
         if len(batch) < 100:
             return result
         page += 1
+
+
+def delivered_guardian_roster_warning(repo, run, job_list):
+    """Reclassify only a roster-only check with exact-run, delivered evidence."""
+    if (repo != GUARDIAN or PurePosixPath(run.get('path', '')).name != 'guardian.yml'
+            or run.get('conclusion') != 'failure'):
+        return False
+    failed = [(j.get('name'), s.get('name')) for j in job_list for s in j.get('steps', [])
+              if s.get('conclusion') in BAD]
+    if failed != [('guardian', 'Run npm run check')]:
+        return False
+    if any(j.get('name') != 'guardian' and j.get('conclusion') != 'success' for j in job_list):
+        return False
+    audit_id = f'{run["id"]}-{run.get("run_attempt", 1)}-monitor'
+    try:
+        def read(path):
+            value = api(repo, 'contents/' + path + '?ref=main')
+            return json.loads(base64.b64decode(value['content']))
+        audit = read(f'data/audits/{audit_id}.json')
+        notices = read(f'data/notifications/{audit_id}.json')
+        if (audit.get('id') != audit_id or audit.get('dryRun') is not False
+                or audit.get('runMode') != 'monitor' or not audit.get('completedAt')
+                or audit.get('error') or audit.get('rosterManagement', {}).get('status') == 'error'):
+            return False
+        results = audit.get('results', [])
+        if {r.get('key') for r in results} != {'ADL', 'FAFL'} or len(results) != 2:
+            return False
+        warnings = 0
+        legacy = 'No fully legal lineup can be formed from eligible, unlocked players'
+        for result in results:
+            if result.get('status') in ('ok', 'idle', 'changed'):
+                continue
+            typed = result.get('status') == 'warning' and result.get('reason') == 'roster_needs_attention'
+            old = result.get('status') == 'error' and result.get('message') == legacy
+            if not (typed or old):
+                return False
+            snapshots = [s for s in audit.get('snapshots', []) if s.get('league') == result['key'] and s.get('players')]
+            if not snapshots:
+                return False
+            players = snapshots[-1]['players']
+            # Old generic optimizer exceptions need corroborating roster evidence.
+            # This conservative historical rule handles the confirmed FAFL case.
+            if old:
+                usable = [p for p in players if (p.get('starter') and p.get('gameLocked')) or
+                          (p.get('rosterStatus') == 'ROSTER' and p.get('unavailable') is False and p.get('gameLocked') is False)]
+                defense = [p for p in usable if p.get('position') in ('DT', 'DE', 'LB', 'CB', 'S')]
+                if result['key'] != 'FAFL' or len(defense) >= 12:
+                    return False
+            if not any(n.get('status') == 'sent' and n.get('sentAt')
+                       and str(n.get('id', '')).startswith(audit_id + ':')
+                       and n.get('subject') in (f'[{result["key"]} Bears] Lineup guardian needs attention',
+                                                f'[{result["key"]} Bears] Roster needs attention')
+                       and legacy in n.get('body', '') for n in notices):
+                return False
+            warnings += 1
+        return warnings > 0
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError):
+        return False
 
 
 def failures(run, job_list):
@@ -648,6 +707,9 @@ def main():
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
                 job_list = jobs(repo, run)
+                if delivered_guardian_roster_warning(repo, run, job_list):
+                    state['checked'][key] = 'roster needs attention; exact-run warning delivery verified'
+                    continue
                 recovery = verified_recovery(repo, run, job_list, history)
                 if recovery:
                     state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
