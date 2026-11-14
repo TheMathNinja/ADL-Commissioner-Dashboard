@@ -675,6 +675,22 @@
         "Verify daily maintenance package": "failure"
       },
       "failed_at": "2026-11-13T10:25:55Z"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43528287932:1": {
+      "sent_at": "2026-11-14T03:31:03.411061+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Chicago Bears Lineup Guardian",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian:2026-11-13",
+      "failed_steps": [
+        "guardian: Run npm run check"
+      ],
+      "cause_codes": {
+        "guardian": "unclassified"
+      },
+      "affected_jobs": {
+        "guardian": "failure"
+      },
+      "failed_at": "2026-11-13T23:36:12Z"
     }
   },
   "checked": {
