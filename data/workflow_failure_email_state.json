@@ -2824,7 +2824,10 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758352585:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758382201:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758490286:1": "success",
-    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758546943:1": "success"
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758546943:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758700284:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758843153:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758958650:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -2986,5 +2989,6 @@
     }
   },
   "healthyAt": "2026-11-15T20:34:18.948583+00:00",
-  "healthSchema": 1
+  "healthSchema": 1,
+  "guardian_coverage_groups": {}
 }
