@@ -3076,5 +3076,10 @@
   },
   "healthyAt": "2026-11-15T20:39:02.715561+00:00",
   "healthSchema": 1,
-  "guardian_coverage_groups": {}
+  "guardian_coverage_groups": {
+    "guardian-gap:d1244cdda222b070fb9dc290": [
+      "guardian-coverage:ADL:10:monitor:2026-11-15T20:30:32.702000+00:00",
+      "guardian-coverage:FAFL:10:monitor:2026-11-15T20:30:32.702000+00:00"
+    ]
+  }
 }
