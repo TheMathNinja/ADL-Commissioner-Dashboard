@@ -347,7 +347,9 @@
       ],
       "cause_codes": {},
       "affected_jobs": {},
-      "failed_at": "2026-11-09T18:10:32Z"
+      "failed_at": "2026-11-09T18:10:32Z",
+      "resolved_at": "2026-11-15T22:09:52Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43767690489"
     },
     "TheMathNinja/ADL-GM-Dashboard:43191957893:1": {
       "sent_at": "2026-11-12T09:37:53.005529+00:00",
@@ -2960,7 +2962,8 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43772777834:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43773254003:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43773728157:1": "success",
-    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43774179929:1": "success"
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43774179929:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43774626888:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -3128,6 +3131,20 @@
         "guardian": "failure"
       },
       "failed_at": "2026-11-15T20:35:36Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43773259037:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch:2026-11-15",
+      "failed_steps": [
+        "check: Check FAFL inactivity and deliver scoped notifications"
+      ],
+      "cause_codes": {
+        "check": "1c8ef63a3666e1f952d8b1b082f6df4443ac477c6808b54cade92ba603e276d2"
+      },
+      "affected_jobs": {
+        "check": "failure"
+      },
+      "failed_at": "2026-11-15T23:09:56Z"
     }
   },
   "delivery_receipts": {
@@ -3185,6 +3202,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-15T20:48:14.973757+00:00",
       "accepted_at": "2026-11-15T20:48:18.344898+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:43773259037:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-15T23:28:50.301860+00:00"
     }
   },
   "healthyAt": "2026-11-15T23:24:15.214234+00:00",
