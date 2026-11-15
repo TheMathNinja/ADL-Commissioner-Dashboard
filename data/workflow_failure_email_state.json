@@ -721,6 +721,25 @@
       "audit_parent": "43758110876",
       "audit_attempt": 1,
       "audit_kind": "contracts"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43758110876:1": {
+      "sent_at": "2026-11-15T20:44:23.372920+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Centralize Guardian coverage incidents and record reporter health",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:358304670:Centralize Guardian coverage incidents and record reporter health",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:358304670:Centralize Guardian coverage incidents and record reporter health:2026-11-15",
+      "failed_steps": [
+        "Audit Guardian behavior and both MFL memberships (read-only): Dispatch and verify Guardian read-only audit privately"
+      ],
+      "cause_codes": {
+        "Audit Guardian behavior and both MFL memberships (read-only)": "cd75888f7329edd31245581e0b36fc3807c888685c1f59557c55a5434442abfc",
+        "Verify cross-repository automation contracts": "6a99a31148cc6ef60256ac55b32234e0ec9e143158754faa68809eda86834df7"
+      },
+      "affected_jobs": {
+        "Audit Guardian behavior and both MFL memberships (read-only)": "failure",
+        "Verify cross-repository automation contracts": "failure",
+        "preflight": "skipped"
+      },
+      "failed_at": "2026-11-15T20:28:53Z"
     }
   },
   "checked": {
