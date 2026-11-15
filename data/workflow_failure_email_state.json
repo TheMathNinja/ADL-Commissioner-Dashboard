@@ -740,6 +740,16 @@
         "preflight": "skipped"
       },
       "failed_at": "2026-11-15T20:28:53Z"
+    },
+    "guardian-coverage:ADL:10:monitor:2026-11-15T20:30:32.702000+00:00": {
+      "subject": "[Guardian needs attention] Required lineup protection is missing",
+      "coverage_key": "ADL:10:monitor:2026-11-15T20:30:32.702000+00:00",
+      "group": "guardian-gap:d1244cdda222b070fb9dc290"
+    },
+    "guardian-coverage:FAFL:10:monitor:2026-11-15T20:30:32.702000+00:00": {
+      "subject": "[Guardian needs attention] Required lineup protection is missing",
+      "coverage_key": "FAFL:10:monitor:2026-11-15T20:30:32.702000+00:00",
+      "group": "guardian-gap:d1244cdda222b070fb9dc290"
     }
   },
   "checked": {
