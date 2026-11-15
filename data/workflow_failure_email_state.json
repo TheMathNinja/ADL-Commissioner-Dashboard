@@ -775,6 +775,22 @@
       },
       "last_seen_at": "2026-11-15T20:50:35Z",
       "latest_run_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/43760237046"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43773259037:1": {
+      "sent_at": "2026-11-15T23:28:54.340499+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 FAFL Inactivity Watch",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:401241437:FAFL Inactivity Watch:2026-11-15",
+      "failed_steps": [
+        "check: Check FAFL inactivity and deliver scoped notifications"
+      ],
+      "cause_codes": {
+        "check": "1c8ef63a3666e1f952d8b1b082f6df4443ac477c6808b54cade92ba603e276d2"
+      },
+      "affected_jobs": {
+        "check": "failure"
+      },
+      "failed_at": "2026-11-15T23:09:56Z"
     }
   },
   "checked": {
