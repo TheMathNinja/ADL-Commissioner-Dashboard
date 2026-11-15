@@ -701,6 +701,26 @@
         "guardian": "failure"
       },
       "failed_at": "2026-11-13T23:36:12Z"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758133596:1": {
+      "sent_at": "2026-11-15T20:43:21.583585+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Private league audit - contracts - source 43758110876-1-contracts",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - contracts - source 43758110876-1-contracts",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - contracts - source 43758110876-1-contracts:2026-11-15",
+      "failed_steps": [
+        "contracts: Validate notification delivery and incident recovery"
+      ],
+      "cause_codes": {
+        "contracts": "b1d3c7dc349d9735e787cfad311f28e979f83e15dc79435935e3f8837a9fc118"
+      },
+      "affected_jobs": {
+        "contracts": "failure",
+        "guardian-audit": "skipped"
+      },
+      "failed_at": "2026-11-15T20:27:23Z",
+      "audit_parent": "43758110876",
+      "audit_attempt": 1,
+      "audit_kind": "contracts"
     }
   },
   "checked": {
