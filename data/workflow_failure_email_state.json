@@ -3050,8 +3050,9 @@
       "accepted_at": "2026-11-15T20:43:19.867941+00:00"
     },
     "failure:TheMathNinja/ADL-Commissioner-Dashboard:43758110876:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-15T20:44:18.342850+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-15T20:44:18.342850+00:00",
+      "accepted_at": "2026-11-15T20:44:21.575917+00:00"
     }
   },
   "healthyAt": "2026-11-15T20:39:02.715561+00:00",
