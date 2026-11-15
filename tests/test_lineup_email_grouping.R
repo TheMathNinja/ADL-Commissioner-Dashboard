@@ -37,7 +37,7 @@ stopifnot(grepl("alerts <- filter_lineup_email_days", paste(deparse(body(send_co
 cat("Lineup email weekday policy tests passed.\n")
 
 # Exercise actual delivery routing without network, SMTP, or production files.
-fetch_mfl_franchise_recipients <- function(...) tibble(franchise = c("NYJ", "KCC"), email = c("nyj@example.test", "kcc@example.test"))
+fetch_mfl_franchise_recipients <- function(...) tibble(franchise = c("NYJ", "KCC"), franchise_id = c("0018", "0030"), email = c("nyj@example.test", "kcc@example.test"))
 resolve_commissioner_alert_recipients <- function(...) tibble(email = "commissioner@example.test")
 write_commissioner_alert_recipients <- function(...) tempfile()
 write_commissioner_alert_outbox <- function(...) tempfile()
@@ -54,6 +54,15 @@ status <- send_commissioner_alert_email(alerts, 2026, 10, run_time = friday)
 stopifnot(status$sent, status$gm_emails_sent == 2L, length(delivered) == 2L,
           all(vapply(delivered, function(x) identical(x$cc, ""), logical(1))),
           !any(vapply(delivered, function(x) "commissioner@example.test" %in% x$to, logical(1))))
+stopifnot(grepl("Submit New Lineup:", delivered[[1]]$body, fixed = TRUE),
+          grepl("/2026/lineup?L=60206&F=0018", delivered[[1]]$body, fixed = TRUE),
+          !grepl("F=0030", delivered[[1]]$body, fixed = TRUE),
+          grepl("/2026/lineup?L=60206&F=0030", delivered[[2]]$body, fixed = TRUE))
+stopifnot(is.null(commissioner_submit_lineup_url(tibble(franchise_id = c("0018", "0030")), 2026)),
+          is.null(commissioner_submit_lineup_url(tibble(franchise_id = "bad&F=0030"), 2026)),
+          is.null(commissioner_submit_lineup_url(tibble(), 2026)),
+          identical(commissioner_submit_lineup_url(tibble(franchise_id = c("5", "5")), 2027),
+                    "https://www.myfantasyleague.com/2027/lineup?L=60206&F=0005"))
 delivered <- list()
 status <- send_commissioner_alert_email(mixed, 2026, 10, run_time = friday)
 commissioner_mail <- Filter(function(x) "commissioner@example.test" %in% x$to, delivered)

@@ -3161,7 +3161,18 @@ render_commissioner_alert_email <- function(
   paste(lines, collapse = "\n")
 }
 
-render_commissioner_gm_alert_email <- function(alerts, season = get_current_season(), week = NULL, checked_date = Sys.Date(), title_prefix = "ADL Roster Violation") {
+commissioner_submit_lineup_url <- function(recipients, season) {
+  if (!"franchise_id" %in% names(recipients)) return(NULL)
+  ids <- unique(as.character(recipients$franchise_id))
+  league <- get_env_or_default("ADL_LEAGUE_ID", "60206")
+  if (length(ids) != 1L || is.na(ids) || !grepl("^[0-9]{1,4}$", ids) ||
+      !grepl("^[0-9]+$", league) || length(season) != 1L || is.na(season) ||
+      !grepl("^[0-9]{4}$", as.character(season))) return(NULL)
+  paste0("https://www.myfantasyleague.com/", season, "/lineup?L=", league,
+         "&F=", sprintf("%04d", as.integer(ids)))
+}
+
+render_commissioner_gm_alert_email <- function(alerts, season = get_current_season(), week = NULL, checked_date = Sys.Date(), title_prefix = "ADL Roster Violation", lineup_url = NULL) {
   if (!nrow(alerts)) return("")
   render_season <- as.integer(season[[1]])
   render_checked_date <- as.Date(checked_date[[1]])
@@ -3196,6 +3207,7 @@ render_commissioner_gm_alert_email <- function(alerts, season = get_current_seas
     lines <- c(lines, paste0("**", heading, "**"))
     if (identical(alert_type, "Illegal Lineup")) {
       lines <- c(lines, render_lineup_team_lines(rows))
+      if (!is.null(lineup_url)) lines <- c(lines, "", "Submit New Lineup:", lineup_url, "")
       next
     }
     for (i in seq_len(nrow(rows))) {
@@ -3277,6 +3289,7 @@ normalize_mfl_franchise_email_rows <- function(franchise_tbl, franchises = NULL)
     }
     tibble(
       franchise = row$franchise[[1]],
+      franchise_id = row$franchise_id[[1]],
       franchise_name = row$franchise_name[[1]],
       email = emails,
       source = "ffscrapr::ff_franchises()"
@@ -3520,7 +3533,9 @@ send_commissioner_alert_email <- function(
     } else {
       "ADL Roster Violation"
     }
-    render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = franchise_title_prefix)
+    franchise_recipients <- offender_recipients |> filter(toupper(.data$franchise) == toupper(.env$franchise))
+    render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = franchise_title_prefix,
+      lineup_url = commissioner_submit_lineup_url(franchise_recipients, season))
   }))
   render_commissioner_alert_email(
     alerts, season = season, week = week, checked_date = checked_date,
@@ -3539,7 +3554,8 @@ send_commissioner_alert_email <- function(
     } else {
       "ADL Roster Violation"
     }
-    gm_body <- render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = franchise_title_prefix)
+    gm_body <- render_commissioner_gm_alert_email(franchise_alerts, season = season, week = week, checked_date = checked_date, title_prefix = franchise_title_prefix,
+      lineup_url = commissioner_submit_lineup_url(franchise_recipients, season))
     gm_outbox <- write_commissioner_alert_outbox(
       gm_body,
       season = season,
