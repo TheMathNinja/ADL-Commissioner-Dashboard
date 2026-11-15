@@ -752,6 +752,22 @@
       "subject": "[Guardian needs attention] Required lineup protection is missing",
       "coverage_key": "FAFL:10:monitor:2026-11-15T20:30:32.702000+00:00",
       "group": "guardian-gap:d1244cdda222b070fb9dc290"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758870359:1": {
+      "sent_at": "2026-11-15T20:48:19.951778+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Chicago Bears Lineup Guardian - gas-20261115-203443-guardian-yml",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - gas-20261115-203443-guardian-yml",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - gas-20261115-203443-guardian-yml:2026-11-15",
+      "failed_steps": [
+        "guardian: Run npm test"
+      ],
+      "cause_codes": {
+        "guardian": "unclassified"
+      },
+      "affected_jobs": {
+        "guardian": "failure"
+      },
+      "failed_at": "2026-11-15T20:35:36Z"
     }
   },
   "checked": {
