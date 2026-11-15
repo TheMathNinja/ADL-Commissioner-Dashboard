@@ -2850,7 +2850,9 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758546943:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758700284:1": "success",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758843153:1": "success",
-    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758958650:1": "success"
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43758958650:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43759300464:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43759410538:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -2987,6 +2989,23 @@
         "guardian-audit": "skipped"
       },
       "failed_at": "2026-11-15T20:27:23Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:43758110876:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:358304670:Centralize Guardian coverage incidents and record reporter health",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:358304670:Centralize Guardian coverage incidents and record reporter health:2026-11-15",
+      "failed_steps": [
+        "Audit Guardian behavior and both MFL memberships (read-only): Dispatch and verify Guardian read-only audit privately"
+      ],
+      "cause_codes": {
+        "Audit Guardian behavior and both MFL memberships (read-only)": "cd75888f7329edd31245581e0b36fc3807c888685c1f59557c55a5434442abfc",
+        "Verify cross-repository automation contracts": "6a99a31148cc6ef60256ac55b32234e0ec9e143158754faa68809eda86834df7"
+      },
+      "affected_jobs": {
+        "Audit Guardian behavior and both MFL memberships (read-only)": "failure",
+        "Verify cross-repository automation contracts": "failure",
+        "preflight": "skipped"
+      },
+      "failed_at": "2026-11-15T20:28:53Z"
     }
   },
   "delivery_receipts": {
@@ -3029,6 +3048,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-15T20:43:16.628450+00:00",
       "accepted_at": "2026-11-15T20:43:19.867941+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:43758110876:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-15T20:44:18.342850+00:00"
     }
   },
   "healthyAt": "2026-11-15T20:39:02.715561+00:00",
