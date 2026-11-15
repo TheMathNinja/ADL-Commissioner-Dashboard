@@ -14,6 +14,7 @@ from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
 from maintenance_failure_links import covered_components, WATCHDOG_STEP
+from guardian_incidents import validate_coverage, owned_check_failure, report_missing_checks
 
 
 def watchdog_maintenance_evidence(repo, run, job_list):
@@ -655,6 +656,15 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
+    shared_coverage = None
+    if os.environ.get('GUARDIAN_ALERT_OWNER') == 'commissioner-v1':
+        try:
+            value = api(GUARDIAN, 'contents/data/guardian_coverage.json?ref=main')
+            shared_coverage = json.loads(base64.b64decode(value['content']))
+            validate_coverage(shared_coverage, datetime.now(timezone.utc))
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            shared_coverage = None
+            coverage_errors.append('Guardian coverage: ' + str(error))
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
     ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)
@@ -707,6 +717,17 @@ def main():
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
                 job_list = jobs(repo, run)
+                if shared_coverage and repo == GUARDIAN and PurePosixPath(run.get('path', '')).name in ('guardian.yml', 'initial-lineup.yml'):
+                    mode = 'monitor' if PurePosixPath(run['path']).name == 'guardian.yml' else 'initial'
+                    try:
+                        value = api(repo, f'contents/data/audits/{run["id"]}-{run.get("run_attempt", 1)}-{mode}.json?ref=main')
+                        audit = json.loads(base64.b64decode(value['content']))
+                        if owned_check_failure(run, job_list, audit, shared_coverage):
+                            # No permanent acknowledgement: keep evaluating until the
+                            # shared owner has delivered or the gap has recovered.
+                            continue
+                    except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+                        pass  # Unknown evidence must not suppress a real failure.
                 if delivered_guardian_roster_warning(repo, run, job_list):
                     state['checked'][key] = 'roster needs attention; exact-run warning delivery verified'
                     continue
@@ -871,10 +892,16 @@ def main():
                     print('SMTP accepted failure report: ' + key)
     if args.deadlines:
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories,coverage_errors)
+    if shared_coverage:
+        report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
     if not args.dry_run and state != original:
         save(state)
     if coverage_errors:
         raise RuntimeError('Failure coverage unavailable; native notifications must remain enabled: '+', '.join(coverage_errors))
+    if not args.dry_run:
+        state['healthyAt'] = datetime.now(timezone.utc).isoformat()
+        state['healthSchema'] = 1
+        save(state)
     print('Production failure scan complete.')
 
 

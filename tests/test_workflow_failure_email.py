@@ -225,8 +225,27 @@ class FailureReports(unittest.TestCase):
                     self.run['display_title'] = 'Manual ad hoc run'
                 state, count, saved = self.exercise()
                 self.assertEqual(count, 0)
-                self.assertEqual(saved, 0)
+                self.assertEqual(saved, 1)  # Completed scan heartbeat, not an incident acknowledgement.
                 self.assertFalse(state['sent'])
+                self.assertFalse(state['checked'])
+                self.assertEqual(state['healthSchema'], 1)
+                self.assertIsNotNone(m.datetime.fromisoformat(state['healthyAt']).tzinfo)
+
+    def test_incomplete_scan_does_not_advance_healthy_heartbeat(self):
+        state = {'sent': {}, 'checked': {}, 'healthSchema': 1,
+                 'healthyAt': '2026-10-01T13:00:00+00:00'}
+        original = copy.deepcopy(state)
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER,
+                                     'GITHUB_REPOSITORY': m.COMMISSIONER}), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [m.REPOS[1]]), \
+             patch.object(m, 'runs', side_effect=RuntimeError('GitHub unavailable')), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save') as save:
+            with self.assertRaisesRegex(RuntimeError, 'Failure coverage unavailable'):
+                m.main()
+        self.assertEqual(state, original)
+        send.assert_not_called()
+        save.assert_not_called()
 
     def test_unassigned_watchdog_cancellation_after_same_day_success_is_suppressed(self):
         cancelled = dict(
@@ -304,9 +323,12 @@ class FailureReports(unittest.TestCase):
             return state, send.call_count, save.call_count
 
     def test_send_once_and_dry_run_does_not_acknowledge(self):
-        state, count, _ = self.exercise(dry=True)
+        state, count, saved = self.exercise(dry=True)
         self.assertEqual(count, 0)
+        self.assertEqual(saved, 0)
         self.assertFalse(state['sent'])
+        self.assertNotIn('healthyAt', state)
+        self.assertNotIn('healthSchema', state)
         state, count, _ = self.exercise()
         self.assertEqual(count, 1)
         _, count, _ = self.exercise(state)

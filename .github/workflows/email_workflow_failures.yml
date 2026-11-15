@@ -37,6 +37,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           PRIVATE_FAILURE_REPORTING_SINCE: ${{ vars.PRIVATE_FAILURE_REPORTING_SINCE }}
+          GUARDIAN_ALERT_OWNER: ${{ vars.GUARDIAN_ALERT_OWNER }}
           WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
@@ -45,11 +46,10 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           VERIFY_COVERAGE: ${{ inputs.verify_coverage }}
         run: |
-          args=()
+          args=(--deadlines)
           if [ "$VERIFY_COVERAGE" = true ]; then
             python3 scripts/email_workflow_failures.py --verify-coverage
             exit 0
           fi
-          if [ "${{ github.event_name }}" = schedule ] || [ "$DRY_RUN" = true ]; then args+=(--deadlines); fi
           if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
           python3 scripts/email_workflow_failures.py "${args[@]}"

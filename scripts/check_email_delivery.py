@@ -19,7 +19,7 @@ def main():
     suites = ('test_email_delivery_state.py', 'test_github_email_receipt.py', 'test_email_state_save.py',
               'test_incident_replay.py', 'test_workflow_failure_email.py', 'test_maintenance_failure_links.py',
               'test_alert_transport.py', 'test_weekly_completion_email.py',
-              'test_gotw_blurbs.py')
+              'test_gotw_blurbs.py', 'test_guardian_incidents.py')
     for suite in suites:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', suite],
                        cwd=commissioner, check=True)
@@ -36,7 +36,8 @@ def main():
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_guardian_coverage.py'],
                    cwd=guardian, env=env, check=True)
     subprocess.run(['node', '--test', 'test/warning-delivery.test.js', 'test/warning-days.test.js',
-                    'test/notifications.test.js'], cwd=guardian, check=True)
+                    'test/notifications.test.js', 'test/check-outcome.test.js'], cwd=guardian, check=True)
+    subprocess.run(['node', 'scheduler/test_league_alert_health.cjs'], cwd=guardian, check=True)
     print('Shared delivery, crash recovery, incident replay, and Guardian warning tests passed.')
 
 

@@ -1,0 +1,97 @@
+import copy
+from datetime import datetime, timezone
+import sys
+from pathlib import Path
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+from guardian_incidents import validate_coverage, owned_check_failure, report_missing_checks
+from email_delivery_state import deliver_once, DeliveryUncertain
+
+
+class GuardianIncidents(unittest.TestCase):
+    def setUp(self):
+        self.coverage = {'alertOwner':'commissioner-v1', 'checkedAt':'2026-11-15T17:00:00Z',
+                         'activatedAt':'2026-11-15T16:00:00Z', 'incidents':{}}
+        for league in ('ADL', 'FAFL'):
+            self.coverage['incidents'][league] = {'key':league, 'league':league, 'week':10,
+                'mode':'monitor', 'kickoff':'2026-11-15T18:00:00Z', 'status':'open', 'delivery':'pending'}
+        self.state = {'sent':{}}
+        self.messages = []
+        self.saves = []
+        self.run = {'id':100, 'run_attempt':1, 'path':'.github/workflows/guardian.yml', 'created_at':'2026-11-15T16:58:00Z'}
+        self.jobs = [{'name':'guardian', 'steps':[{'name':'Run npm run check', 'conclusion':'failure'}]}]
+        self.audit = {'id':'100-1-monitor', 'dryRun':False, 'runMode':'monitor', 'completedAt':'2026-11-15T16:59:00Z',
+                      'results':[{'key':'ADL', 'week':10, 'status':'error', 'failureClass':'read_only_check'}]}
+
+    def report(self, sender=None, dry=False):
+        report_missing_checks(self.coverage, self.state, dry, deliver_once,
+                              lambda s:self.saves.append(copy.deepcopy(s)), sender or (lambda *m:self.messages.append(m)))
+
+    def test_both_leagues_one_message_with_durable_claim(self):
+        self.report(); self.report()
+        self.assertEqual(len(self.messages),1)
+        self.assertIn('ADL Week 10', self.messages[0][1])
+        self.assertIn('FAFL Week 10', self.messages[0][1])
+        self.assertEqual(len(self.state['sent']),2)
+        self.assertTrue(any(v['status']=='sending' for s in self.saves for v in s.get('delivery_receipts',{}).values()))
+
+    def test_crash_after_acceptance_does_not_resend(self):
+        self.report()
+        self.state['sent'] = {}
+        self.report()
+        self.assertEqual(len(self.messages),1)
+
+    def test_ambiguous_send_not_retried(self):
+        def fail(*args):
+            self.messages.append(args)
+            raise TimeoutError('SMTP accepted but connection lost')
+        with self.assertRaises(TimeoutError):self.report(fail)
+        with self.assertRaises(DeliveryUncertain):self.report()
+        self.assertEqual(len(self.messages),1)
+
+    def test_recovery_before_scan_and_legacy_delivery(self):
+        self.coverage['incidents']['ADL']['status']='resolved'
+        self.coverage['incidents']['FAFL']['delivery']='sent'
+        self.report()
+        self.assertEqual(self.messages,[])
+        self.assertTrue(self.state['sent']['guardian-coverage:FAFL']['migrated'])
+
+    def test_legacy_uncertainty_not_replayed(self):
+        self.coverage['incidents']['ADL']['delivery']='sending'
+        with self.assertRaises(RuntimeError):self.report()
+        self.assertEqual(self.messages,[])
+
+    def test_dry_run_no_delivery_or_saves(self):
+        self.report(dry=True)
+        self.assertEqual(self.messages,[]); self.assertEqual(self.saves,[])
+
+    def test_stale_unknown_future_ownership_refused(self):
+        now=datetime(2026,11,15,17,5,tzinfo=timezone.utc)
+        self.assertEqual(len(validate_coverage(self.coverage,now)),2)
+        for key,value in [('alertOwner','unknown'),('checkedAt','2026-11-15T16:00:00Z'),('checkedAt','2026-11-15T18:00:00Z')]:
+            with self.subTest(key=key,value=value):
+                with self.assertRaises(RuntimeError):validate_coverage({**self.coverage,key:value},now)
+
+    def test_exact_read_only_failure_owned_by_gap(self):
+        self.assertTrue(owned_check_failure(self.run,self.jobs,self.audit,self.coverage))
+        for change in [{'dryRun':True},{'id':'100-2-monitor'},{'completedAt':None},{'error':'login error'},
+                       {'rosterManagement':{'status':'error'}},{'lineupChanges':[{'league':'ADL'}]}]:
+            with self.subTest(change=change):
+                self.assertFalse(owned_check_failure(self.run,self.jobs,{**self.audit,**change},self.coverage))
+
+    def test_independent_and_unknown_failures_retained(self):
+        for change in [{'failureClass':'write_attempted'},{'failureClass':None},{'week':9},{'key':'other'}]:
+            audit={**self.audit,'results':[{**self.audit['results'][0],**change}]}
+            self.assertFalse(owned_check_failure(self.run,self.jobs,audit,self.coverage))
+        self.jobs[0]['steps'].append({'name':'Send notifications','conclusion':'failure'})
+        self.assertFalse(owned_check_failure(self.run,self.jobs,self.audit,self.coverage))
+
+    def test_unrelated_times_and_resolved_gap_not_claimed(self):
+        for created in ['2026-11-15T15:00:00Z','2026-11-15T19:00:00Z']:
+            self.assertFalse(owned_check_failure({**self.run,'created_at':created},self.jobs,self.audit,self.coverage))
+        self.coverage['incidents']['ADL']['status']='resolved'
+        self.assertFalse(owned_check_failure(self.run,self.jobs,self.audit,self.coverage))
+
+
+if __name__ == '__main__':unittest.main()
