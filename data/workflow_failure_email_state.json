@@ -3486,7 +3486,12 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:43808920742:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43810060170",
     "TheMathNinja/ADL-Commissioner-Dashboard:43809008405:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43810060170",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43811115922:1": "skipped",
-    "TheMathNinja/ADL-Commissioner-Dashboard:43809723893:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811090194"
+    "TheMathNinja/ADL-Commissioner-Dashboard:43809723893:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811090194",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43811662254:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43809720687:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811646749",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43809828542:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811646749",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43809999051:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811646749",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43810002236:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43811646749"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -3837,6 +3842,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-16T05:38:02.438204+00:00"
+    "checkedAt": "2026-11-16T05:42:57.476945+00:00"
   }
 }
