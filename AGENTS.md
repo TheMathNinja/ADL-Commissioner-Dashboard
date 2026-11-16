@@ -1,5 +1,16 @@
 # Automation audit requirements
 
+## Coordinated behavior changes
+
+For shared display labels or thresholds, edit the reviewed, versioned
+`contracts/live_display.json` specification first. Follow `contracts/README.md`
+and run `scripts/sync_live_display_contract.py` against BOTH GM checkouts with
+`--write`. Do not independently hard-code new labels into downstream tests or
+change Guardian business rules for a presentation-only request. Run the complete
+four-repository candidate audit before pushing. Deploy compatible consumer files
+before a checker which requires them. Add explicit shared contracts for new
+cross-repository behaviors instead of making tests accept current output.
+
 A request for a "full audit" includes Chicago-Bears-Lineup-Guardian, even though
 it is a personal tool in a separate repository. Never limit the scope to the GM
 and Commissioner dashboards or treat a cross-repository contract check as a

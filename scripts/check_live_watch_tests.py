@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import yaml
+from sync_live_display_contract import read_contract, synchronize
 
 
 def test_commands(repo):
@@ -37,6 +38,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('repositories', nargs='+', type=Path)
     args = parser.parse_args()
+    contract = read_contract()
+    for repo in args.repositories:
+        synchronize(repo, contract)
     for repo in args.repositories:
         for command in test_commands(repo):
             print(f'{repo.name}: {shlex.join(command)}', flush=True)

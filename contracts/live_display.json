@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "2026-11-15.1",
+  "policy": {
+    "lowCutoff": 0.0005,
+    "highCutoff": 0.9995,
+    "lowLabel": "0.1%",
+    "highLabel": "99.9%",
+    "tieMinimumExclusive": 0.01
+  },
+  "probabilities": [
+    {"value": 0, "done": false, "expected": "0%"},
+    {"value": 1, "done": false, "expected": "100%"},
+    {"value": 0.5, "done": false, "expected": "50.0%"},
+    {"value": 0.0001, "done": false, "expected": "0.1%"},
+    {"value": 0.0005, "done": false, "expected": "0.1%"},
+    {"value": 0.001, "done": false, "expected": "0.1%"},
+    {"value": 0.999, "done": false, "expected": "99.9%"},
+    {"value": 0.9995, "done": false, "expected": "100%"},
+    {"value": 0.9999, "done": false, "expected": "99.9%"},
+    {"value": 0, "done": true, "expected": "0%"},
+    {"value": 1, "done": true, "expected": "100%"},
+    {"value": 0.5, "done": true, "expected": "50.0%"},
+    {"value": 0.0001, "done": true, "expected": "0%"},
+    {"value": 0.9999, "done": true, "expected": "100%"}
+  ],
+  "ties": [
+    {"value": 0, "expected": ""},
+    {"value": 0.0009, "expected": ""},
+    {"value": 0.001, "expected": ""},
+    {"value": 0.01, "expected": ""},
+    {"value": 0.0101, "expected": "<small class=\"gm-h2h-tie\">Tie 1.0%</small>"},
+    {"value": 0.02, "expected": "<small class=\"gm-h2h-tie\">Tie 2.0%</small>"}
+  ]
+}
