@@ -155,8 +155,11 @@ def personal_sync_contract_errors(public_source: str, private_source: str) -> li
         errors.append('Private CHI sync must skip scientific dependency setup when forecast inputs are unchanged')
     if 'forecast-cache.outputs.cache-hit' in private_source:
         errors.append('CHI model publication must not be vetoed by a local cache after the live Site requires an update')
-    if "cron: '0 6 * * *'" not in private_source or 'timezone: America/New_York' not in private_source:
+    if (re.findall(r"^\s+- cron:\s*['\"]([^'\"]+)['\"]", private_source, re.M) != ['0 6 * * *']
+            or 'timezone: America/New_York' not in private_source):
         errors.append('Private CHI sync must run daily at 6 a.m. Eastern, including DST')
+    if re.search(r'^  schedule:', public_source, re.M):
+        errors.append('Public CHI sync wrapper must remain manual-only')
     if 'request_id:' not in private_source or 'scripts/chi_sync_completion.py' not in private_source:
         errors.append('Private CHI sync must acknowledge coalesced owner refresh requests')
     return errors

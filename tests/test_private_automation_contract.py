@@ -56,12 +56,14 @@ class PrivateContracts(unittest.TestCase):
    self.assertIn('ADL/.github/workflows/bad.yml is not UTF-8',errors[0])
  def test_private_handoff_and_private_scientific_gating_are_checked(self):
   public='gh workflow run sync_chi_team_tools.yml --repo TheMathNinja/Chicago-Bears-Lineup-Guardian'
-  private="Check whether forecast inputs changed\nsteps.forecast.outputs.changed == 'true'\nsteps.forecast.outputs.changed == 'true'\ncron: '0 6 * * *'\ntimezone: America/New_York\nrequest_id:\nscripts/chi_sync_completion.py"
+  private="Check whether forecast inputs changed\nsteps.forecast.outputs.changed == 'true'\nsteps.forecast.outputs.changed == 'true'\n    - cron: '0 6 * * *'\n      timezone: America/New_York\nrequest_id:\nscripts/chi_sync_completion.py"
   self.assertEqual(personal_sync_contract_errors(public,private),[])
   self.assertTrue(personal_sync_contract_errors(public,'missing guard'))
   self.assertTrue(personal_sync_contract_errors('no private handoff',private))
   self.assertTrue(personal_sync_contract_errors(public,private.replace('0 6 * * *','*/15 * * * *')))
   self.assertTrue(personal_sync_contract_errors(public,private.replace('America/New_York','UTC')))
+  self.assertTrue(personal_sync_contract_errors(public,private+"\n    - cron: '*/15 * * * *'"))
+  self.assertTrue(personal_sync_contract_errors(public+'\n  schedule:',private))
  def test_live_model_publication_must_not_be_vetoed_by_local_cache(self):
   self.assertTrue(personal_sync_contract_errors('--repo TheMathNinja/Chicago-Bears-Lineup-Guardian','forecast-cache.outputs.cache-hit'))
 if __name__=='__main__':unittest.main()
