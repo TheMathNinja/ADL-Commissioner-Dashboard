@@ -11,11 +11,11 @@ import re
 from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+from guardian_check_policy import GRACE, monitor_missing
 
 REPO = 'TheMathNinja/Chicago-Bears-Lineup-Guardian'
 STATE = 'data/guardian_coverage.json'
 LEDGER = 'data/guardian_health.json'
-GRACE = timedelta(minutes=10)
 
 
 def stamp(value):
@@ -99,7 +99,7 @@ def assess(checks, schedules, now, activated):
             checked = verified('monitor', end)
             recent = [c for c in checked if c >= start]
             last = max(recent, default=max(start, activated))
-            if end - last >= GRACE:
+            if monitor_missing(recent, start, end, activated):
                 episode = max(checked, default=activated).isoformat()
                 problems.append({'key': f'{league}:{week}:monitor:{episode}', 'league': league,
                                  'week': week, 'mode': 'monitor', 'kickoff': kickoff.isoformat(),

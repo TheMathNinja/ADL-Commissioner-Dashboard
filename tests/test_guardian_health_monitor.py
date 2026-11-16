@@ -26,6 +26,22 @@ def schedule(row, now):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_fifteen_minute_reads_are_healthy_but_a_missed_slot_is_not(self):
+        start = datetime(2026, 11, 16, 19, tzinfo=timezone.utc)
+        schedules = {'ADL': {'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
+        checks = [{'league':'ADL','week':10,'mode':'monitor','checkedAt':(start+timedelta(minutes=m,seconds=1)).isoformat()}
+                  for m in range(0, 90, 15)]
+        for minute in range(1, 101):
+            visible = [c for c in checks if monitor.stamp(c['checkedAt']) <= start+timedelta(minutes=minute)]
+            self.assertEqual(monitor.assess(visible, schedules, start+timedelta(minutes=minute), start), [])
+        missing = checks[:1]
+        self.assertEqual(monitor.assess(missing,schedules,start+timedelta(minutes=24),start),[])
+        self.assertEqual(len(monitor.assess(missing,schedules,start+timedelta(minutes=25),start)),1)
+        # The first check never starting is still detected in ten minutes.
+        self.assertEqual(len(monitor.assess([],schedules,start+timedelta(minutes=10),start)),1)
+        # A missed final slot cannot be cleared by earlier healthy checks.
+        self.assertEqual(len(monitor.assess(checks[:-1],schedules,start+timedelta(minutes=90),start)),1)
+
     def test_optional_opaque_input_hash_is_backward_compatible(self):
         value = ledger()
         self.assertIs(monitor.validate(value, NOW), value)
@@ -36,6 +52,31 @@ class MonitorTests(unittest.TestCase):
         value['publicInputs']['ADL']['players'] = ['not allowed']
         with self.assertRaises(ValueError):
             monitor.validate(value, NOW)
+
+    def test_new_cadence_matches_private_engine_and_preserves_old_missed_windows(self):
+        root = os.environ.get('GUARDIAN_TEST_ROOT')
+        if not root:
+            self.skipTest('Private reference is supplied to the full audit')
+        sys.path.insert(0, str(Path(root) / 'scripts'))
+        from check_guardian_coverage import assess as reference
+        from export_health_receipts import export
+        start = datetime(2026,11,16,19,tzinfo=timezone.utc)
+        scopes={'ADL':{'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
+        for missing_slot in (None,0,15,75):
+            audits=[]
+            for minute in range(0,90,15):
+                if minute == missing_slot: continue
+                checked=start+timedelta(minutes=minute,seconds=1)
+                audits.append({'runMode':'monitor','dryRun':False,'completedAt':(checked+timedelta(seconds=2)).isoformat(),
+                               'results':[{'key':'ADL','week':10,'status':'ok','checkedAt':checked.isoformat()}],
+                               'snapshots':[{'league':'ADL','week':10,'players':[1],'capturedAt':(checked+timedelta(seconds=1)).isoformat()}]})
+            for minute in range(0,101):
+                now=start+timedelta(minutes=minute)
+                visible=[a for a in audits if monitor.stamp(a['completedAt']) <= now]
+                checks=export(visible,ledger()['leagues'])['checks']
+                self.assertEqual(monitor.assess(checks,scopes,now,start),reference(visible,scopes,now,start))
+        old_checks=[{'league':'ADL','week':10,'mode':'monitor','checkedAt':NOW.isoformat()}]
+        self.assertEqual(len(monitor.assess(old_checks,{'ADL':schedule({},NOW)},NOW+timedelta(minutes=11),NOW)),1)
     def test_matches_private_deadline_engine(self):
         root = os.environ.get('GUARDIAN_TEST_ROOT')
         if not root:

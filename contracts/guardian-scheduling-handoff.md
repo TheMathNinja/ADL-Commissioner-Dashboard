@@ -55,7 +55,34 @@ Rollback clears the private variable first, restoring the original native backup
 then clears public ownership. Native Google/GitHub safety-net email settings remain
 enabled. GitHub cron is still best-effort, not a guaranteed independent clock SLA.
 
-## Cost Account
+## Fifteen-Minute Precision Ownership
+
+The shared guardian_check_policy.py is identical in public and private checkouts.
+Each kickoff group requires checks at 90, 75, 60, 45, 30 and 15 minutes before
+kickoff. Both leagues share one private worker. The public clocks still wake at
+their existing cadence; a current receipt suppresses duplicate paid workers.
+A required slot without a verified receipt is reportable ten minutes after it
+was due. The initial 6 a.m. safety check retains its own ten-minute deadline.
+Historical windows before the November 16, 18:00 UTC policy cutover retain the
+previous coverage standard, so a cadence change cannot manufacture recovery.
+
+GUARDIAN_PRECISION_OWNER=public-scheduler-v2 can be armed through GitHub after
+the full local four-repository gate and live scheduling verification. Set it on
+Commissioner and private Guardian. Legacy gas-* monitor requests then allocate
+no private runner and use a separate concurrency group, leaving genuine private
+write checks serialized. Queued retired requests cannot suppress a public backup.
+Manual, public-backup, delayed-pickup and the separate initial-lineup worker are
+not disabled. The existing Apps Script reporter timer and native public fallback
+remain the scheduling clocks. No Apps Script editor or new account is required.
+
+The old Apps Script precision trigger may keep submitting acknowledged no-runner
+wakeups. Its Google source has not thereby been redeployed; scheduler/Code.gs
+contains the optional equivalent fifteen-minute policy for a later manual update.
+Rollback clears precision ownership to restore legacy direct monitor dispatches.
+Do not clear it merely to fix an unrelated data issue. Neither GitHub cron nor
+Google timers guarantee punctuality; existing reporter-health monitoring stays on.
+
+## Historical Cost Account
 
 The change removes the configured 144/day private native fallback allocations
 and two/day native initial-lineup allocations when those checks are not due.

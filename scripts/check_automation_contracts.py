@@ -332,6 +332,17 @@ def main() -> int:
                     )
 
         if guardian:
+            policy = (commissioner / 'scripts/guardian_check_policy.py').read_text(encoding='utf-8')
+            if policy != (guardian / 'scripts/guardian_check_policy.py').read_text(encoding='utf-8'):
+                errors.append('Guardian dispatch and deadline policies must be identical across repositories')
+            if 'INTERVAL_MINUTES = 15' not in policy or 'monitorIntervalMinutes: 15' not in (guardian / 'scheduler/Code.gs').read_text(encoding='utf-8'):
+                errors.append('Guardian precision scheduler must match the shared fifteen-minute check policy')
+            for filename in ('guardian_fallback.yml', 'email_workflow_failures.yml'):
+                if 'GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}' not in (commissioner / '.github/workflows' / filename).read_text(encoding='utf-8'):
+                    errors.append('Both public scheduling clocks must honor precision ownership')
+            worker_source = (guardian / '.github/workflows/guardian.yml').read_text(encoding='utf-8')
+            if "!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))" not in worker_source:
+                errors.append('Retired precision wakeups must allocate no private runner after verified handoff')
             errors.extend(personal_sync_contract_errors(
                 (adl / '.github/workflows/sync_chi_team_tools.yml').read_text(encoding='utf-8'),
                 (guardian / '.github/workflows/sync_chi_team_tools.yml').read_text(encoding='utf-8')))

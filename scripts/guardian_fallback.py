@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 from guardian_health_monitor import REPO, LEDGER, STATE, decode, persist, stamp, validate
 from guardian_input_watch import fingerprint
+from guardian_check_policy import monitor_slot
 
 PATH = 'data/guardian_dispatch.json'
 ET = ZoneInfo('America/New_York')
@@ -119,7 +120,8 @@ def decision(ledger, coverage, dispatch_state, observations, now):
                     checks = [stamp(c['checkedAt']) for c in ledger['checks'] if c['league'] == key
                               and c['week'] == schedule['week'] and c['mode'] == 'monitor'
                               and kickoff - timedelta(minutes=90) <= stamp(c['checkedAt']) <= now]
-                    if not checks or now - max(checks) >= timedelta(minutes=5):
+                    required = monitor_slot(kickoff - timedelta(minutes=90), now)
+                    if required is not None and not any(check >= required for check in checks):
                         active.append((key, schedule['week']))
     if initial_due:
         return {'reason': 'initial_safety', 'key': 'initial:' + str(now.astimezone(ET).date()),
@@ -150,6 +152,8 @@ def decision(ledger, coverage, dispatch_state, observations, now):
 
 def recent_inflight(runs, now):
     return any(r.get('status') in ('queued', 'in_progress', 'pending', 'requested', 'waiting')
+               and not (os.environ.get('GUARDIAN_PRECISION_OWNER') == 'public-scheduler-v2'
+                        and ' - gas-' in r.get('display_title', ''))
                and timedelta(0) <= now - stamp(r['created_at']) < LEASE
                and (r.get('event') == 'schedule' or any(tag in r.get('display_title', '') for tag in ('gas-', 'public-backup-')))
                for r in runs)

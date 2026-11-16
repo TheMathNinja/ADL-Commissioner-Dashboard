@@ -44,7 +44,8 @@ class SchedulingTests(unittest.TestCase):
     def test_healthy_primary_suppresses_duplicate_backup(self):
         ledger, coverage, observed = fixtures(NOW, NOW + timedelta(minutes=30))
         self.assertIsNone(gate.decision(ledger, coverage, {}, observed, NOW + timedelta(minutes=4)))
-        self.assertEqual(gate.decision(ledger, coverage, {}, observed, NOW + timedelta(minutes=5))['reason'], 'required_window')
+        self.assertIsNone(gate.decision(ledger, coverage, {}, observed, NOW + timedelta(minutes=14)))
+        self.assertEqual(gate.decision(ledger, coverage, {}, observed, NOW + timedelta(minutes=15))['reason'], 'required_window')
 
     def test_partial_league_success_does_not_hide_missing_other_league(self):
         ledger, coverage, observed = fixtures(NOW, NOW + timedelta(minutes=30))
@@ -172,9 +173,11 @@ class SchedulingTests(unittest.TestCase):
         root = os.environ.get('GUARDIAN_TEST_ROOT')
         if root:
             source = (Path(root) / '.github/workflows/guardian.yml').read_text()
-            self.assertIn("  guardian:\n    if: github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1'", source)
+            self.assertIn("(github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1')", source)
+            self.assertIn("!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))", source)
             self.assertIn('workflow_dispatch:', source)
-            self.assertIn('group: lineup-guardian-writes', source)
+            self.assertIn("|| 'lineup-guardian-writes'", source)
+            self.assertIn("format('retired-gas-{0}', github.run_id)", source)
             self.assertIn('run: npm run check', source)
             self.assertIn('LOOKAHEAD_MINUTES || 90', (Path(root) / 'src/config.js').read_text())
             self.assertIn('lookaheadMinutes: 90', (Path(root) / 'scheduler/Code.gs').read_text())
@@ -183,6 +186,21 @@ class SchedulingTests(unittest.TestCase):
             self.assertIn('use_native_policy:', initial)
         for event, armed, expected in (('schedule', True, False), ('schedule', False, True), ('workflow_dispatch', True, True)):
             self.assertEqual(event != 'schedule' or not armed, expected)
+        for identifier in ('gas-test', 'public-backup-test', 'manual', ''):
+            for owner in ('', 'public-scheduler-v2'):
+                retired = owner == 'public-scheduler-v2' and identifier.startswith('gas-')
+                self.assertEqual(not retired, not (owner == 'public-scheduler-v2' and identifier == 'gas-test'))
+
+    def test_retired_gas_wakeups_cannot_hide_a_never_started_required_check(self):
+        run = {'status':'queued','created_at':NOW.isoformat(),'event':'workflow_dispatch',
+               'display_title':'Chicago Bears Lineup Guardian - gas-test'}
+        with patch.dict(os.environ, GUARDIAN_PRECISION_OWNER='public-scheduler-v2'):
+            self.assertFalse(gate.recent_inflight([run], NOW))
+            self.assertTrue(gate.recent_inflight([dict(run,display_title='Chicago Bears Lineup Guardian - public-backup-test')],NOW))
+        ledger,coverage,observed=fixtures(NOW,NOW+timedelta(minutes=90))
+        ledger['checks']=[]
+        self.assertEqual(gate.decision(ledger,coverage,{},observed,NOW)['reason'],'required_window')
+        self.assertEqual(len(assess([],coverage['schedules'],NOW+timedelta(minutes=10),NOW)),2)
 
     def test_both_public_clocks_use_same_gate_and_reporting_survives_gate_failure(self):
         root = Path(__file__).resolve().parents[1]

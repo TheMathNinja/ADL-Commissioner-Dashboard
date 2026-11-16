@@ -14,7 +14,7 @@ def main():
     commissioner = Path(__file__).resolve().parents[1]
     guardian = args.guardian.resolve()
     test_env = dict(os.environ, GUARDIAN_ALERT_OWNER='', GUARDIAN_TEST_ROOT=str(guardian))
-    for name in ('smtp_delivery.py', 'email_delivery_state.py', 'github_email_receipt.py', 'guardian_input_watch.py'):
+    for name in ('smtp_delivery.py', 'email_delivery_state.py', 'github_email_receipt.py', 'guardian_input_watch.py', 'guardian_check_policy.py'):
         canonical = (commissioner / 'scripts' / name).read_text()
         if canonical != (guardian / 'scripts' / name).read_text():
             raise SystemExit('Shared delivery policies differ: ' + name + '; do not publish')
