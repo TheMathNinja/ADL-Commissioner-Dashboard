@@ -21,6 +21,16 @@ ahead of the late-Monday official cap snapshot. There is no new Sunday-night job
 One reminder per outstanding issue per Monday is allowed; subsequent runs that
 Monday do not repeat it. A still-pending issue may be reminded the next Monday.
 
+An unchecked ENTD? row that fully explains the total difference is a warning,
+not an entry error. A successfully read empty MFL adjustment list counts as $0;
+unavailable entry evidence does not. Signed pending credits follow the same rule.
+After a completed official cap snapshot at or after the row's transaction date,
+an unentered adjustment becomes an overdue-entry error, eligible beyond the
+Monday reminder window. Missing snapshot evidence never invents a missed cutoff.
+Rows marked entered, incorrect amounts/franchises, and unexplained total/formula
+differences remain errors. Do not change a correct summary total to match an MFL
+total that simply lacks a pending entry. No entries or snapshots are auto-repaired.
+
 No notification decision writes Contract Admin or MFL. The existing processed-row
 ledger advances only after successful email delivery or a verified no-mail result.
 Archive publication and email eligibility are separate: a push can publish data

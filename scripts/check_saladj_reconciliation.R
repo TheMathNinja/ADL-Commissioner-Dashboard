@@ -873,14 +873,24 @@ audit_saladj_total_parity <- function(
   season,
   sheet_entries = NULL,
   mfl_entries = NULL,
-  tolerance = 0.01
+  tolerance = 0.01,
+  latest_snapshot_time = as.POSIXct(NA, tz = "UTC")
 ) {
   sheet_entry_totals <- if (is.null(sheet_entries)) {
     tibble(
       franchise = character(), sheet_entry_total = double(), sheet_entered_total = double(),
-      sheet_pending_total = double(), pending_entry_details = character()
+      sheet_pending_total = double(), pending_entry_details = character(), pending_snapshot_missed = logical()
     )
   } else {
+    # ENTD? distinguishes pending work from claimed entries. Only an actual
+    # completed official snapshot can turn an unchecked row into overdue work.
+    sheet_entries$pending_snapshot_missed <- if ("entered_at" %in% names(sheet_entries)) {
+      vapply(seq_len(nrow(sheet_entries)), function(i) {
+        !isTRUE(sheet_entries$is_entered[[i]]) && !is.na(sheet_entries$penalty_amount[[i]]) &&
+          abs(sheet_entries$penalty_amount[[i]]) > tolerance && missing_entry_affected_official_snapshot(
+          parse_saladj_date(sheet_entries$entered_at[[i]], season), latest_snapshot_time)
+      }, logical(1))
+    } else rep(FALSE, nrow(sheet_entries))
     sheet_entries |>
       filter(!is.na(.data$penalty_amount)) |>
       group_by(.data$franchise) |>
@@ -888,6 +898,7 @@ audit_saladj_total_parity <- function(
         sheet_entry_total = round(sum(.data$penalty_amount, na.rm = TRUE), 2),
         sheet_entered_total = round(sum(.data$penalty_amount[.data$is_entered], na.rm = TRUE), 2),
         sheet_pending_total = round(sum(.data$penalty_amount[!.data$is_entered], na.rm = TRUE), 2),
+        pending_snapshot_missed = any(.data$pending_snapshot_missed),
         pending_entry_details = paste(
           paste0(
             .data$player[!.data$is_entered], " ($",
@@ -909,6 +920,9 @@ audit_saladj_total_parity <- function(
   comparison <- full_join(sheet_totals, mfl_totals, by = "franchise") |>
     left_join(sheet_entry_totals, by = "franchise") |>
     left_join(mfl_entry_totals, by = "franchise")
+  # A successfully read, empty MFL entry list has a zero total, not an unknown
+  # total. Keep NULL (unavailable entry evidence) distinct from that valid zero.
+  if (!is.null(mfl_entries)) comparison$mfl_entry_total <- coalesce(comparison$mfl_entry_total, 0)
   mismatches <- comparison |>
     filter(
       is.na(.data$sheet_saladj_total) |
@@ -925,13 +939,14 @@ audit_saladj_total_parity <- function(
         abs(.data$sheet_entry_total - .data$mfl_roster_saladj_total) <= .env$tolerance,
       mfl_entries_match_roster_total = !is.na(.data$mfl_entry_total) & !is.na(.data$mfl_roster_saladj_total) &
         abs(.data$mfl_entry_total - .data$mfl_roster_saladj_total) <= .env$tolerance,
-      pending_entries_explain_difference = !is.na(.data$sheet_pending_total) & .data$sheet_pending_total > .env$tolerance &
+      pending_entries_explain_difference = !is.na(.data$sheet_pending_total) & abs(.data$sheet_pending_total) > .env$tolerance &
         !is.na(.data$sheet_entry_total) &
         abs(.data$sheet_saladj_total - .data$sheet_entry_total) <= .env$tolerance &
         !is.na(.data$sheet_entered_total) & !is.na(.data$mfl_entry_total) &
         abs(.data$sheet_entered_total - .data$mfl_entry_total) <= .env$tolerance &
         .data$mfl_entries_match_roster_total,
       discrepancy_nature = case_when(
+        .data$pending_entries_explain_difference & .data$pending_snapshot_missed ~ "OVERDUE_MFL_ENTRY",
         .data$pending_entries_explain_difference ~ "PENDING_MFL_ENTRY",
         .data$entry_totals_match & .data$sheet_rows_match_mfl_total & .data$mfl_entries_match_roster_total ~
           "CONTRACT_ADMIN_TOTAL_FORMULA",
@@ -940,11 +955,8 @@ audit_saladj_total_parity <- function(
       )
     ) |>
     transmute(
-      issue = if_else(
-        .data$discrepancy_nature == "PENDING_MFL_ENTRY",
-        "PENDING_MFL_ENTRY",
-        "SALADJ_TOTAL_MISMATCH"
-      ),
+      issue = if_else(.data$discrepancy_nature %in% c("PENDING_MFL_ENTRY", "OVERDUE_MFL_ENTRY"),
+                      .data$discrepancy_nature, "SALADJ_TOTAL_MISMATCH"),
       expected_franchise = .data$franchise,
       actual_franchise = .data$franchise,
       player = paste0(season, " ADJ total"),
@@ -954,6 +966,11 @@ audit_saladj_total_parity <- function(
       transaction_date = "",
       mfl_entered_at = "",
       action = case_when(
+        .data$discrepancy_nature == "OVERDUE_MFL_ENTRY" ~ paste0(
+          "An official cap snapshot was taken after one or more unentered adjustments became due: ",
+          .data$pending_entry_details,
+          ". Enter or verify the missing MFL entries, mark ENTD? only after verification, and review the affected snapshot. Do not change the summary total to force agreement."
+        ),
         .data$discrepancy_nature == "PENDING_MFL_ENTRY" ~ paste0(
           "Enter the pending ", .data$franchise, " adjustment(s) in MFL before the next official cap snapshot: ",
           .data$pending_entry_details,
@@ -982,6 +999,7 @@ audit_saladj_total_parity <- function(
       sheet_entered_total,
       sheet_pending_total,
       pending_entry_details,
+      pending_snapshot_missed,
       mfl_entry_total,
       total_difference = round(.data$sheet_saladj_total - .data$mfl_roster_saladj_total, 2)
     )
@@ -1339,7 +1357,7 @@ format_checker_finding <- function(row) {
       ""
     ))
   }
-  is_total_issue <- as.character(row$issue) %in% c("SALADJ_TOTAL_MISMATCH", "PENDING_MFL_ENTRY")
+  is_total_issue <- as.character(row$issue) %in% c("SALADJ_TOTAL_MISMATCH", "PENDING_MFL_ENTRY", "OVERDUE_MFL_ENTRY")
   is_control_issue <- as.character(row$issue) %in% c("WRONG_CONTROL_FLAG", "WRONG_CONTROL_VALUE")
   amount_prefix <- if (is_control_issue) {
     paste0(penalty_season, " calculated penalty")
@@ -1434,7 +1452,7 @@ format_checker_finding <- function(row) {
     } else {
       "difference unavailable"
     }
-    source_detail <- if (identical(discrepancy_nature, "PENDING_MFL_ENTRY")) {
+    source_detail <- if (discrepancy_nature %in% c("PENDING_MFL_ENTRY", "OVERDUE_MFL_ENTRY")) {
       c(
         paste0("Pending Contract Admin rows: ", pending_entry_details),
         paste0(
@@ -1473,7 +1491,9 @@ format_checker_finding <- function(row) {
     }
     return(c(
       if (identical(discrepancy_nature, "PENDING_MFL_ENTRY")) {
-        paste0("Status: Pending MFL entries from ", list_label)
+        paste0("Warning: Pending MFL entries from ", list_label)
+      } else if (identical(discrepancy_nature, "OVERDUE_MFL_ENTRY")) {
+        paste0("Error Type: MFL entries missing by official cap snapshot from ", list_label)
       } else {
         paste0("Error Type: ", checker_error_label(row$issue, list_label))
       },
@@ -2019,7 +2039,7 @@ if (arg_flag("self-test-name-matching")) {
     nrow(pending_finding_test) == 1L,
     pending_finding_test$issue[[1]] == "PENDING_MFL_ENTRY",
     pending_rendered_test[[1]] ==
-      "Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)",
+      "Warning: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)",
     pending_rendered_test[[4]] ==
       "Pending Contract Admin rows: Pending Player ($3.38; NFC Sal Adj row 6)",
     grepl("before the next official cap snapshot", pending_rendered_test[[6]], fixed = TRUE),
@@ -2028,6 +2048,46 @@ if (arg_flag("self-test-name-matching")) {
       "The Commissioner Error Checker found salary adjustments awaiting MFL entry"
     )
   )
+  # TEN regression: no MFL entry rows is a verified zero, not missing evidence.
+  ten_sheet <- tibble(franchise = "TEN", sheet_saladj_total = 2.46,
+                      sheet_tab = "AFC Sal Adj", sheet_total_cell = "V4")
+  ten_roster <- tibble(franchise = "TEN", mfl_roster_saladj_total = 0)
+  ten_entries <- tibble(franchise = "TEN", player = "Pending TEN Player", penalty_amount = 2.46,
+                       is_entered = FALSE, entered_at = "11/15/2026", sheet_tab = "AFC Sal Adj", sheet_row = 9L)
+  empty_mfl <- tibble(franchise = character(), amount = double())
+  ten_check <- function(entries = ten_entries, mfl = empty_mfl, roster = ten_roster,
+                        snapshot = as.POSIXct("2026-11-10 05:00:00", tz = "UTC")) {
+    audit_saladj_total_parity(ten_sheet, roster, 2026, entries, mfl, latest_snapshot_time = snapshot)
+  }
+  ten_pending <- ten_check()
+  stopifnot(identical(ten_pending$issue, "PENDING_MFL_ENTRY"), ten_pending$mfl_entry_total == 0,
+            startsWith(format_checker_finding(ten_pending)[[1]], "Warning:"),
+            !grepl("Error Type:", build_checker_email_body(ten_pending), fixed = TRUE))
+  # Missing snapshot evidence does not invent a missed deadline.
+  stopifnot(ten_check(snapshot = as.POSIXct(NA, tz = "UTC"))$issue == "PENDING_MFL_ENTRY")
+  zero_old <- ten_entries; zero_old$penalty_amount <- 0; zero_old$entered_at <- "10/1/2026"
+  stopifnot(ten_check(entries = bind_rows(ten_entries, zero_old))$issue == "PENDING_MFL_ENTRY")
+  ten_overdue <- ten_check(snapshot = as.POSIXct("2026-11-17 05:00:00", tz = "UTC"))
+  stopifnot(ten_overdue$issue == "OVERDUE_MFL_ENTRY",
+            startsWith(format_checker_finding(ten_overdue)[[1]], "Error Type:"))
+  monday <- as.POSIXct("2026-11-16 11:00:00", tz = "UTC")
+  tuesday <- as.POSIXct("2026-11-17 11:00:00", tz = "UTC")
+  stopifnot(nrow(saladj_checker_email_findings(ten_pending, monday)) == 1L,
+            nrow(saladj_checker_email_findings(ten_pending, tuesday)) == 0L,
+            nrow(saladj_checker_email_findings(ten_overdue, tuesday)) == 1L)
+  # An X claiming entry, unknown evidence, or a wrong entered amount stays an error.
+  ten_entered <- ten_entries; ten_entered$is_entered <- TRUE
+  stopifnot(ten_check(entries = ten_entered)$issue == "SALADJ_TOTAL_MISMATCH",
+            ten_check(mfl = NULL)$issue == "SALADJ_TOTAL_MISMATCH")
+  wrong_ten <- tibble(franchise = "TEN", amount = 1)
+  wrong_roster <- tibble(franchise = "TEN", mfl_roster_saladj_total = 1)
+  stopifnot(ten_check(mfl = wrong_ten, roster = wrong_roster)$issue == "SALADJ_TOTAL_MISMATCH")
+  # Pending signed credits are warnings too; they are not positive penalties.
+  credit_sheet <- ten_sheet; credit_sheet$sheet_saladj_total <- -2.46
+  credit_entries <- ten_entries; credit_entries$penalty_amount <- -2.46
+  stopifnot(audit_saladj_total_parity(credit_sheet, ten_roster, 2026, credit_entries, empty_mfl)$issue == "PENDING_MFL_ENTRY")
+  message("TEN pending-zero, ENTD?, signed credits, snapshot escalation and warning/error delivery regressions passed.")
+
   value_case <- tibble(issue = "WRONG_CONTROL_VALUE", actual_system = "Contract Admin",
     stage = "SalAdj Curator controls -> Contract Admin formula",
     expected_franchise = "NYG", actual_franchise = "NYG", player = "Tyree Wilson (1.XX+)",
@@ -2129,7 +2189,8 @@ saladj_total_error_report <- audit_saladj_total_parity(
   season = season,
   sheet_entries = sheet_entries,
   mfl_entries = mfl_entries,
-  tolerance = tolerance
+  tolerance = tolerance,
+  latest_snapshot_time = latest_snapshot_time
 )
 message(
   "Contract Admin vs MFL roster-page salary-adjustment totals: ",
@@ -2230,7 +2291,7 @@ if (send_email && nrow(email_report)) {
   if (nrow(new_errors)) {
     body <- build_checker_email_body(new_errors)
     subject <- if (all(new_errors$issue == "PENDING_MFL_ENTRY")) {
-      "[ADL Commissioner Alerts] Salary adjustments pending MFL entry"
+      "[ADL Commissioner Alerts] Warning: salary adjustments pending MFL entry"
     } else if (any(new_errors$issue == "PENDING_MFL_ENTRY")) {
       "[ADL Commissioner Alerts] Commissioner cap-entry review"
     } else {
