@@ -3477,7 +3477,8 @@
     "TheMathNinja/FAFL-GM-Dashboard:43778220615:1": "cancelled queued live watch; newer fresh publication verified",
     "TheMathNinja/FAFL-GM-Dashboard:43786062707:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/FAFL-GM-Dashboard/actions/runs/43806815745",
     "TheMathNinja/FAFL-GM-Dashboard:43801404104:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/FAFL-GM-Dashboard/actions/runs/43806815745",
-    "TheMathNinja/FAFL-GM-Dashboard:43803866735:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/FAFL-GM-Dashboard/actions/runs/43806815745"
+    "TheMathNinja/FAFL-GM-Dashboard:43803866735:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/FAFL-GM-Dashboard/actions/runs/43806815745",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43809475304:1": "skipped"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -3828,6 +3829,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-16T05:17:54.333192+00:00"
+    "checkedAt": "2026-11-16T05:23:02.009171+00:00"
   }
 }
