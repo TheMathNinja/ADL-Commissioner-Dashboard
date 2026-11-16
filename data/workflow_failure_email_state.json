@@ -831,6 +831,9 @@
         "guardian-audit": "skipped"
       },
       "failed_at": "2026-11-16T01:08:38Z"
+    },
+    "actions-budget:2026-11": {
+      "subject": "[League automation] Actions budget needs attention"
     }
   },
   "checked": {
