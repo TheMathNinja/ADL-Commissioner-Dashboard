@@ -46,10 +46,13 @@ def validate(ledger, now):
                 or row['mode'] not in {'initial', 'monitor'} or stamp(row['checkedAt']) > now):
             raise ValueError('Invalid health receipt')
     for league, row in ledger.get('publicInputs', {}).items():
-        if (league not in {'ADL', 'FAFL'} or set(row) != {'week', 'checkedAt', 'fingerprint'}
+        if (league not in {'ADL', 'FAFL'} or not {'week', 'checkedAt', 'fingerprint'} <= set(row)
+                or set(row) - {'week', 'checkedAt', 'fingerprint', 'nextCheckAt'}
                 or type(row['week']) is not int or not 1 <= row['week'] <= 18
                 or stamp(row['checkedAt']) > now or not re.fullmatch('[a-f0-9]{64}', row['fingerprint'])):
             raise ValueError('Invalid public-input fingerprint receipt')
+        if row.get('nextCheckAt'):
+            stamp(row['nextCheckAt'])
     return ledger
 
 

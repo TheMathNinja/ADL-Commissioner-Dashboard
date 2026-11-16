@@ -31,6 +31,8 @@ class MonitorTests(unittest.TestCase):
         self.assertIs(monitor.validate(value, NOW), value)
         value['publicInputs'] = {'ADL': {'week': 10, 'checkedAt': NOW.isoformat(), 'fingerprint': 'a' * 64}}
         self.assertIs(monitor.validate(value, NOW), value)
+        value['publicInputs']['ADL']['nextCheckAt'] = (NOW + timedelta(minutes=15)).isoformat()
+        self.assertIs(monitor.validate(value, NOW), value)
         value['publicInputs']['ADL']['players'] = ['not allowed']
         with self.assertRaises(ValueError):
             monitor.validate(value, NOW)
