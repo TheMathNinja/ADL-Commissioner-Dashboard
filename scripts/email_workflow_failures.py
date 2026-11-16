@@ -215,6 +215,8 @@ def api(repo, path):
 
 
 def production(run):
+    if run.get('_account_report'):
+        return 'A GitHub Actions workflow did not complete. Review the failed checks below.'
     filename = PurePosixPath(run.get('path', '').split('@')[0]).name
     event = run.get('event')
     is_scheduled = event == 'schedule'
@@ -238,9 +240,12 @@ def runs(repo):
     start = (datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)).strftime('%Y-%m-%dT%H:%M:%SZ')
     page = 1
     while True:
-        batch = api(repo, f'actions/runs?per_page=20&page={page}&branch=main&created=%3E%3D{start}')['workflow_runs']
+        account = os.environ.get('ACCOUNT_FAILURE_COVERAGE') == 'true'
+        branch = '' if account else '&branch=main'
+        size = 100 if account else 20
+        batch = api(repo, f'actions/runs?per_page={size}&page={page}{branch}&created=%3E%3D{start}')['workflow_runs']
         yield from batch
-        if len(batch) < 20:
+        if len(batch) < size:
             return
         page += 1
 
@@ -408,6 +413,8 @@ def message(repo, run, impact, failed, later_success, publication=None, later_cy
 
 def incident_key(repo, run):
     """Stable identity for repeated dispatches of the same production incident."""
+    if run.get('_account_report'):
+        return f'{repo}:{run.get("workflow_id")}:account-check:{run.get("head_branch", "")}'
     return f'{repo}:{run.get("workflow_id")}:{run.get("display_title") or run.get("name", "")}'
 
 
@@ -514,10 +521,12 @@ def entry_recovered(repo, run, entry, history):
     for name in entry.get('affected_jobs', {}):
         expected.setdefault(name, set())
     for candidate in history:
+        if run.get('_account_report'):
+            candidate = dict(candidate, _account_report=True)
         if (candidate.get('workflow_id') != run.get('workflow_id')
                 or candidate.get('conclusion') != 'success'
                 or candidate.get('status', 'completed') != 'completed'
-                or candidate.get('head_branch', 'main') != 'main'
+                or candidate.get('head_branch', 'main') != (run.get('head_branch') if run.get('_account_report') else 'main')
                 or not entry.get('failed_at','') < candidate.get('updated_at','') < run['updated_at']
                 or notification_episode(incident_key(repo,candidate),candidate.get('created_at','')) !=
                    notification_episode(incident_key(repo,run),run['created_at'])):
@@ -571,6 +580,8 @@ def recovered_inactivity_startup(repo, run, job_list, later):
 
 
 def recovery_scope(repo, run):
+    if run.get('_account_report'):
+        return incident_key(repo, run) + ':' + run['created_at'][:4]
     scope = incident_scope(repo, run)
     if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
         kind = private_audit_kind(run)
@@ -608,6 +619,8 @@ def verified_recovery(repo, run, job_list, history):
     if run.get('conclusion') not in BAD:
         return None
     for later in history:
+        if run.get('_account_report'):
+            later = dict(later, _account_report=True)
         retry = (later.get('id') == run.get('id') and
                  later.get('run_attempt', 1) > run.get('run_attempt', 1))
         if (later.get('status') != 'completed' or later.get('conclusion') != 'success'
@@ -736,6 +749,16 @@ def main():
         except (OSError, RuntimeError, ValueError, KeyError, TypeError):
             coverage_errors.append('Private forecast request monitoring unavailable')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
+    account_coverage = os.environ.get('ACCOUNT_FAILURE_COVERAGE') == 'true'
+    if account_coverage:
+        try:
+            from account_failure_coverage import repositories as account_repositories
+            discovered = account_repositories(mail.get_json)
+            repositories = list(dict.fromkeys(repositories + [GUARDIAN] + discovered))
+            state['accountCoverage'] = {'schema': 1, 'repositories': repositories,
+                                       'checkedAt': datetime.now(timezone.utc).isoformat()}
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            coverage_errors.append('Account repository discovery unavailable')
     ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)
     passes = [(repo, False) for repo in ordered]
     if COMMISSIONER in ordered:
@@ -760,6 +783,10 @@ def main():
         elif repo == COMMISSIONER and private_since:
             for run in history:
                 run['_audit_report'] = run['updated_at'] >= private_since
+        if account_coverage:
+            for run in history:
+                if not production(run):
+                    run['_account_report'] = True
         histories[repo]=history
         for latest in reversed(history):
             is_watchdog = repo == COMMISSIONER and PurePosixPath(latest.get('path', '')).name == 'dashboard_watchdog.yml'
@@ -768,6 +795,9 @@ def main():
             impact = production(latest)
             if not impact:
                 continue
+            if (latest.get('_account_report') and latest.get('conclusion') not in BAD
+                    and latest.get('run_attempt', 1) == 1):
+                continue  # Keep green metadata for recovery; do not fetch its jobs unnecessarily.
             # Inspect earlier attempts; suppress only evidence-backed recoveries.
             for attempt in range(1, latest.get('run_attempt', 1) + 1):
                 key = f'{repo}:{latest["id"]}:{attempt}'
@@ -778,6 +808,8 @@ def main():
                     run['_private_report'] = True
                 elif repo == COMMISSIONER and private_since:
                     run['_audit_report'] = run['updated_at'] >= private_since
+                if latest.get('_account_report'):
+                    run['_account_report'] = True
                 if run['status'] != 'completed':
                     continue
                 if notification_pending(repo,run,datetime.now(timezone.utc)):
