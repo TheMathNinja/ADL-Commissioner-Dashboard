@@ -114,6 +114,11 @@ def decision(ledger, coverage, dispatch_state, observations, now):
                         active.append((key, schedule['week']))
     if active:
         return {'reason': 'required_window', 'key': 'window:' + str(int(now.timestamp() // 300))}
+    pending = [row['nextCheckAt'] for row in ledger.get('publicInputs', {}).values()
+               if row.get('nextCheckAt') and stamp(row['nextCheckAt']) <= now]
+    previous_work = dispatch_state.get('workAttemptedAt')
+    if pending and (not previous_work or now - stamp(previous_work) >= timedelta(minutes=10)):
+        return {'reason': 'pending_private_work', 'key': 'work:' + min(pending)}
     local = now.astimezone(ET)
     morning = local.replace(hour=6, minute=0, second=0, microsecond=0)
     daily_reads = [c for c in ledger['checks'] if morning <= stamp(c['checkedAt']).astimezone(ET) <= local]
@@ -195,6 +200,8 @@ def run(dry=True, now=None):
         saved['daily'] = {'key': wanted['key'], 'attemptedAt': now.isoformat()}
     elif wanted['reason'] == 'schedule_or_inputs_unavailable':
         saved['degradedAt'] = now.isoformat()
+    elif wanted['reason'] == 'pending_private_work':
+        saved['workAttemptedAt'] = now.isoformat()
     try:
         persist(PATH, original, saved)
     except HTTPError as error:

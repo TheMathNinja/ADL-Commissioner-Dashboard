@@ -80,6 +80,15 @@ class SchedulingTests(unittest.TestCase):
         self.assertIsNone(gate.decision(ledger, coverage, state, observed, NOW + timedelta(minutes=20)))
         self.assertEqual(gate.decision(ledger, coverage, state, observed, NOW + timedelta(hours=1))['reason'], 'public_inputs_changed')
 
+    def test_deferred_private_work_is_not_stranded_by_unchanged_inputs(self):
+        ledger, coverage, observed = fixtures()
+        ledger['publicInputs']['FAFL']['nextCheckAt'] = (NOW + timedelta(minutes=15)).isoformat()
+        self.assertIsNone(gate.decision(ledger, coverage, {}, observed, NOW))
+        self.assertEqual(gate.decision(ledger, coverage, {}, observed, NOW + timedelta(minutes=15))['reason'], 'pending_private_work')
+        saved = {'workAttemptedAt': (NOW + timedelta(minutes=15)).isoformat()}
+        self.assertIsNone(gate.decision(ledger, coverage, saved, observed, NOW + timedelta(minutes=20)))
+        self.assertEqual(gate.decision(ledger, coverage, saved, observed, NOW + timedelta(minutes=25))['reason'], 'pending_private_work')
+
     def test_unknown_inputs_do_not_silently_disable_the_worker(self):
         ledger, coverage, observed = fixtures()
         self.assertEqual(gate.decision(ledger, coverage, {}, {}, NOW)['reason'], 'schedule_or_inputs_unavailable')

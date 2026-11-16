@@ -24,6 +24,9 @@ health metadata, never private source, projections or roster-audit payloads.
   hourly private safety check, rather than silently declaring there is no work.
 - Direct Apps Script, manual and delayed-pickup dispatches remain enabled, sharing
   the existing private worker's write concurrency and all acquisition safeguards.
+- Pending private work exports only a next-check timestamp. Due pickups and
+  one-hour IR retry deadlines are checked even without a public-input change;
+  an unverified acquisition attempt never schedules a blind add retry.
 - Scheduling claims never become successful health receipts. The separate
   ten-minute required-check assessment and its single-delivery owner are unchanged.
 
