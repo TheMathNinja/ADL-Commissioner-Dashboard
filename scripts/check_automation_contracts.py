@@ -93,7 +93,11 @@ def local_python_call_errors(root: Path) -> list[str]:
 def unittest_module_errors(repo: str, root: Path) -> list[str]:
     errors = []
     for path in root.glob(".github/workflows/*.yml"):
-        source = path.read_text(encoding="utf-8")
+        try:
+            source = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as error:
+            errors.append(f"{repo}/{path.relative_to(root).as_posix()} is not UTF-8 at byte {error.start}")
+            continue
         for match in re.finditer(r"python(?:3)?\s+-m\s+unittest\s+([^\n]+)", source):
             command = match.group(1).split("#", 1)[0]
             modules = re.findall(r"\b(?:tests|scripts)(?:\.[A-Za-z_][A-Za-z0-9_]*)+\b", command)
@@ -166,6 +170,19 @@ def main() -> int:
     errors = []
     if set(roots) != required:
         errors.append(f"Expected repositories {sorted(required)}, got {sorted(roots)}")
+
+    # Reject encoding damage before any helper attempts to parse the same file.
+    for repo, root in roots.items():
+        for path in root.glob('.github/workflows/*.yml'):
+            try:
+                path.read_text(encoding='utf-8')
+            except UnicodeDecodeError as error:
+                errors.append(f'{repo}/{path.relative_to(root).as_posix()} is not UTF-8 at byte {error.start}')
+    if errors:
+        print('Automation contract audit failed:')
+        for error in errors:
+            print('- ' + error)
+        return 1
 
     workflows: dict[tuple[str, str], set[str]] = {}
     for repo, root in roots.items():

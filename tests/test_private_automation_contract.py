@@ -1,7 +1,11 @@
 import sys,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from check_automation_contracts import personal_sync_contract_errors
+from check_automation_contracts import personal_sync_contract_errors, unittest_module_errors
+import tempfile
+import io
+from contextlib import redirect_stdout
+import check_automation_contracts as contracts
 import json, subprocess
 from unittest.mock import patch
 import run_private_preflight as preflight
@@ -32,6 +36,24 @@ class PrivateAuditPolling(unittest.TestCase):
   with patch.dict(preflight.os.environ,{'GITHUB_RUN_ID':'456'}), patch.object(preflight.subprocess,'check_output',return_value=f'https://github.com/{preflight.REPO}/actions/runs/123'), patch.object(preflight,'read_state',return_value=None), patch.object(preflight.time,'monotonic',side_effect=[0,0,0,421]), patch.object(preflight.time,'sleep'):
    with self.assertRaisesRegex(RuntimeError,'seven minutes'):preflight.run('contracts')
 class PrivateContracts(unittest.TestCase):
+ def test_main_rejects_encoding_before_other_workflow_parsers(self):
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);workflows=root/'.github/workflows';workflows.mkdir(parents=True)
+   (workflows/'bad.yml').write_bytes(b'name: invalid \xb7 encoding\n')
+   names=('ADL-GM-Dashboard','FAFL-GM-Dashboard','ADL-Commissioner-Dashboard','Chicago-Bears-Lineup-Guardian')
+   arguments=['audit']
+   for name in names:arguments+=['--repo',name+'='+directory]
+   output=io.StringIO()
+   with patch.object(sys,'argv',arguments),patch.object(contracts,'unittest_module_errors',side_effect=AssertionError('must not parse invalid sources')),redirect_stdout(output):
+    self.assertEqual(contracts.main(),1)
+   self.assertIn('.github/workflows/bad.yml is not UTF-8',output.getvalue())
+ def test_invalid_workflow_encoding_is_named_not_an_unhandled_decoder_error(self):
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);workflows=root/'.github/workflows';workflows.mkdir(parents=True)
+   (workflows/'bad.yml').write_bytes(b'name: Official update \xb7 Week\n')
+   errors=unittest_module_errors('ADL',root)
+   self.assertEqual(len(errors),1)
+   self.assertIn('ADL/.github/workflows/bad.yml is not UTF-8',errors[0])
  def test_private_handoff_and_private_scientific_gating_are_checked(self):
   public='gh workflow run sync_chi_team_tools.yml --repo TheMathNinja/Chicago-Bears-Lineup-Guardian'
   private="Check whether forecast inputs changed\nsteps.forecast.outputs.changed == 'true'\nsteps.forecast.outputs.changed == 'true'"
