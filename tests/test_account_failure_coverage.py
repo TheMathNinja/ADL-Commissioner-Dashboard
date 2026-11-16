@@ -1,5 +1,8 @@
 import copy
 import io
+import base64
+import json
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import sys
@@ -67,6 +70,42 @@ class AccountCoverage(unittest.TestCase):
         success=dict(old,id=44,conclusion='success',updated_at='2026-11-15T09:00:00Z')
         with patch.object(m,'jobs',return_value=self.job('success')):
             self.assertEqual(m.unreported_steps(state,repo,retry,[success],failed)[1],failed)
+
+    def test_generic_validation_recovery_does_not_require_optional_publication(self):
+        old=self.run_record(_account_report=True)
+        later=self.run_record(id=43,conclusion='success',created_at='2026-11-15T09:00:00Z',updated_at='2026-11-15T09:02:00Z')
+        failed=self.job();failed[0]['steps'].append(dict(name='Optional manual publication',conclusion='skipped'))
+        passed=self.job('success');passed[0]['steps'].append(dict(name='Optional manual publication',conclusion='skipped'))
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertIsNotNone(m.verified_recovery('TheMathNinja/data',old,failed,[later]))
+            core=dict(old,_account_report=False,head_branch='main',event='schedule',path='refresh.yml',display_title='Recurring refresh')
+            newer=dict(core,id=43,conclusion='success',created_at=later['created_at'],updated_at=later['updated_at'])
+            self.assertIsNone(m.verified_recovery(m.REPOS[1],core,failed,[newer]))
+
+    def test_cancelled_queued_watch_requires_fresh_real_publication_not_an_active_job(self):
+        now=datetime(2026,11,16,5,10,tzinfo=timezone.utc)
+        run=self.run_record(path='.github/workflows/live_bonus_watch.yml',conclusion='cancelled')
+        snapshot=dict(league='ADL',season=2026,week=10,fetchedAt='2026-11-16T05:09:00Z',
+            source='MFL fresh live raw stats with liveScoring fallback',teams=[{'id':str(i)} for i in range(32)])
+        def check(value=snapshot, **changes):
+            item={'content':base64.b64encode(json.dumps(value).encode()).decode()}
+            def api(repo,path):
+                return {'object':{'sha':'pinned-head'}} if path.startswith('git/ref/') else item
+            return catalog.recovered_live_watch_cancellation('TheMathNinja/ADL-GM-Dashboard',dict(run,**changes),[],api,now)
+        self.assertTrue(check())
+        for value in (dict(snapshot,league='FAFL'),dict(snapshot,teams=[]),
+                      dict(snapshot,fetchedAt='2026-11-16T04:00:00Z'),dict(snapshot,fetchedAt='2026-11-16T05:11:00Z')):
+            self.assertFalse(check(value))
+        self.assertFalse(check(conclusion='failure'))
+        self.assertFalse(catalog.recovered_live_watch_cancellation('TheMathNinja/ADL-GM-Dashboard',run,self.job(),lambda *_: None,now))
+        def large_api(repo,path):
+            if path.startswith('git/ref/'):
+                return {'object':{'sha':'pinned-head'}}
+            if path == 'contents/live.json?ref=pinned-head':
+                return {'encoding':'none','sha':'exact-large-blob'}
+            self.assertEqual(path,'git/blobs/exact-large-blob')
+            return {'content':base64.b64encode(json.dumps(snapshot).encode()).decode()}
+        self.assertTrue(catalog.recovered_live_watch_cancellation('TheMathNinja/ADL-GM-Dashboard',run,[],large_api,now))
 
     def invoke(self, state, discovery=None, run_reader=None):
         with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE':'true','PRIVATE_FAILURE_REPORTING_SINCE':'',

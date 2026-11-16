@@ -643,7 +643,8 @@ def verified_recovery(repo, run, job_list, history):
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
-        affected = [j for j in job_list if j.get('conclusion') in BAD | {'skipped'}
+        required_status = BAD if run.get('_account_report') else BAD | {'skipped'}
+        affected = [j for j in job_list if j.get('conclusion') in required_status
                     and not inactive_audit_branch(repo, run, j)]
         if not job_list:
             # Startup failures have no step evidence: require a complete execution,
@@ -663,7 +664,7 @@ def verified_recovery(repo, run, job_list, history):
                 recovered = False
                 break
             passed = {s['name'] for s in new.get('steps', []) if s.get('conclusion') == 'success'}
-            required = {s['name'] for s in old.get('steps', []) if s.get('conclusion') in BAD | {'skipped'}}
+            required = {s['name'] for s in old.get('steps', []) if s.get('conclusion') in required_status}
             if not required:
                 required = {s['name'] for s in old.get('steps', [])
                             if s.get('conclusion') != 'skipped'}
@@ -830,6 +831,11 @@ def main():
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
                 job_list = jobs(repo, run)
+                if run.get('_account_report'):
+                    from account_failure_coverage import recovered_live_watch_cancellation
+                    if recovered_live_watch_cancellation(repo, run, job_list, api, datetime.now(timezone.utc)):
+                        state['checked'][key] = 'cancelled queued live watch; newer fresh publication verified'
+                        continue
                 if shared_coverage and repo == GUARDIAN and owned_startup_failure(run, job_list, shared_coverage):
                     # Keep re-evaluating; the durable coverage incident owns delivery.
                     continue
