@@ -697,7 +697,9 @@ def main():
                     state['sent'][key] = {'subject': subject}
                     save(state)
         except (OSError, RuntimeError, ValueError, KeyError, TypeError):
-            coverage_errors.append('Actions budget assessment unavailable')
+            # Financial telemetry is not evidence that lineup protection failed.
+            # Keep failure scanning and its independent health receipt available.
+            print('::warning::Actions budget estimate unavailable; check GitHub billing directly')
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
     ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)

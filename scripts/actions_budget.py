@@ -72,8 +72,11 @@ def collect(api, now, runner_handoff=False):
 def review(api, now, dry=False):
     try:
         original = api(REPO, 'contents/' + PATH + '?ref=main')
-    except OSError as error:
-        if getattr(error, 'code', None) != 404:
+    except (OSError, RuntimeError) as error:
+        cause = error
+        while cause.__cause__ is not None:
+            cause = cause.__cause__
+        if getattr(cause, 'code', None) != 404:
             raise
         original = {'sha': None}
     prior = decode(original) if original.get('sha') else {}
