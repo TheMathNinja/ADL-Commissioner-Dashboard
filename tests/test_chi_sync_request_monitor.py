@@ -66,7 +66,7 @@ class Requests(unittest.TestCase):
                          notification_episode(base+' - request 22222222-2222-4222-8222-222222222222', '2026-11-17'))
 
     def test_later_verified_sync_recovers_prior_request_across_midnight(self):
-        old = dict(id=1, workflow_id=1, path='.github/workflows/sync_chi_team_tools.yml',
+        old = dict(id=1, workflow_id=1, _private_report=True, path='.github/workflows/sync_chi_team_tools.yml',
                    display_title='Sync private CHI Team Tools trades - request old', head_branch='main',
                    event='workflow_dispatch', status='completed', conclusion='failure',
                    created_at='2026-11-16T23:40:00Z', updated_at='2026-11-16T23:41:00Z')
