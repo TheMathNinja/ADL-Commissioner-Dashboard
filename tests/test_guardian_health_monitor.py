@@ -73,7 +73,9 @@ class MonitorTests(unittest.TestCase):
             for minute in range(0,101):
                 now=start+timedelta(minutes=minute)
                 visible=[a for a in audits if monitor.stamp(a['completedAt']) <= now]
-                checks=export(visible,ledger()['leagues'])['checks']
+                with patch('export_health_receipts.datetime', wraps=datetime) as clock:
+                    clock.now.return_value=now
+                    checks=export(visible,ledger()['leagues'])['checks']
                 self.assertEqual(monitor.assess(checks,scopes,now,start),reference(visible,scopes,now,start))
         old_checks=[{'league':'ADL','week':10,'mode':'monitor','checkedAt':NOW.isoformat()}]
         self.assertEqual(len(monitor.assess(old_checks,{'ADL':schedule({},NOW)},NOW+timedelta(minutes=11),NOW)),1)
