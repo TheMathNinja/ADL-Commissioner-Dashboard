@@ -1,4 +1,5 @@
 import copy
+import io
 import os
 from pathlib import Path
 import sys
@@ -102,6 +103,30 @@ class AccountCoverage(unittest.TestCase):
                  patch.object(m,'api',return_value={'workflow_runs':[]}) as api:
                 list(m.runs('TheMathNinja/data'))
             self.assertEqual('branch=main' in api.call_args.args[1],enabled!='true')
+
+    def test_only_completed_exact_attempt_job_evidence_is_reused(self):
+        m.COMPLETED_JOB_EVIDENCE.clear()
+        run=self.run_record()
+        jobs=[dict(self.job('success')[0],status='completed')]
+        with patch.object(m,'api',return_value={'jobs':jobs}) as api:
+            m.jobs('TheMathNinja/data',run);m.jobs('TheMathNinja/data',run)
+            self.assertEqual(api.call_count,1)
+            m.jobs('TheMathNinja/data',dict(run,run_attempt=2))
+            self.assertEqual(api.call_count,2)
+            m.jobs('TheMathNinja/data',dict(run,status='in_progress'))
+            self.assertEqual(api.call_count,3)
+        m.COMPLETED_JOB_EVIDENCE.clear()
+
+    def test_account_reads_use_existing_cross_repository_credential_not_job_quota(self):
+        with patch.dict(os.environ,{'ACCOUNT_FAILURE_COVERAGE':'true','PRIVATE_REPORT_TOKEN':'test-existing-token'}), \
+             patch.object(m.urllib.request,'urlopen',return_value=io.BytesIO(b'{}')) as request:
+            self.assertEqual(m.api('TheMathNinja/data','actions/runs'),{})
+            self.assertEqual(request.call_args.args[0].get_header('Authorization'),'Bearer test-existing-token')
+        with patch.dict(os.environ,{'ACCOUNT_FAILURE_COVERAGE':'true','PRIVATE_REPORT_TOKEN':''}), \
+             patch.object(m.urllib.request,'urlopen') as request:
+            with self.assertRaises(RuntimeError):
+                m.api('TheMathNinja/data','actions/runs')
+            request.assert_not_called()
 
 
 if __name__ == '__main__':

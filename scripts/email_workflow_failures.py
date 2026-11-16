@@ -88,6 +88,7 @@ IMPACT = {
     'email_workflow_failures.yml': 'A failure-report delivery attempt failed. This notice comes from a later reporter run.',
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
+COMPLETED_JOB_EVIDENCE = {}
 COMMISSIONER = 'TheMathNinja/ADL-Commissioner-Dashboard'
 DAILY_REPO = 'TheMathNinja/ADL-GM-Dashboard'
 DAILY_CHILDREN = {
@@ -193,10 +194,10 @@ def api(repo, path):
     error = None
     for attempt in range(5):
         try:
-            if repo == GUARDIAN:
+            if repo == GUARDIAN or os.environ.get('ACCOUNT_FAILURE_COVERAGE') == 'true':
                 token = os.environ.get('PRIVATE_REPORT_TOKEN')
                 if not token:
-                    raise RuntimeError('Private failure-report coverage credential is unavailable')
+                    raise RuntimeError('Account/private failure-report coverage credential is unavailable')
                 req = urllib.request.Request(f'https://api.github.com/repos/{repo}/{path}', headers={
                     'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
                     'User-Agent': 'League-incident-reporter'})
@@ -251,12 +252,17 @@ def runs(repo):
 
 
 def jobs(repo, run):
+    key = (repo, run['id'], run.get('run_attempt', 1))
+    if run.get('status') == 'completed' and key in COMPLETED_JOB_EVIDENCE:
+        return COMPLETED_JOB_EVIDENCE[key]
     result = []
     page = 1
     while True:
         batch = api(repo, f'actions/runs/{run["id"]}/attempts/{run.get("run_attempt", 1)}/jobs?per_page=100&page={page}')['jobs']
         result.extend(batch)
         if len(batch) < 100:
+            if run.get('status') == 'completed' and result and all(j.get('status') == 'completed' for j in result):
+                COMPLETED_JOB_EVIDENCE[key] = result
             return result
         page += 1
 
@@ -670,6 +676,7 @@ def verified_recovery(repo, run, job_list, history):
 
 
 def main():
+    COMPLETED_JOB_EVIDENCE.clear()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--deadlines', action='store_true')
