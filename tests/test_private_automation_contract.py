@@ -11,6 +11,14 @@ from unittest.mock import patch
 import run_private_preflight as preflight
 
 class PrivateAuditPolling(unittest.TestCase):
+ def test_retired_wakeup_exception_cannot_break_actual_write_serialization(self):
+  group="  group: ${{ vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-') && format('retired-gas-{0}', github.run_id) || 'lineup-guardian-writes' }}"
+  guard="!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))"
+  source='concurrency:\n'+group+'\n  cancel-in-progress: false\njobs:\n  guardian:\n    if: '+guard+'\n'
+  self.assertEqual(contracts.guardian_collision_errors({'guardian.yml':source}),[])
+  self.assertTrue(contracts.guardian_collision_errors({'guardian.yml':source.replace(guard,'true')}))
+  self.assertTrue(contracts.guardian_collision_errors({'guardian.yml':source.replace("|| 'lineup-guardian-writes'","|| 'different-group'")}))
+  self.assertTrue(contracts.guardian_collision_errors({'delayed-pickup.yml':source}))
  def error(self, code):
   return subprocess.CalledProcessError(1, ['gh'], stderr=f'gh: error (HTTP {code})')
  def test_transient_status_reads(self):

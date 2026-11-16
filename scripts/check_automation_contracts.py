@@ -134,7 +134,11 @@ def guardian_collision_errors(sources: dict[str, str]) -> list[str]:
     for workflow, source in sources.items():
         block = re.search(r"^concurrency:\s*\n((?:[ \t]+[^\n]*\n|\n)+)", source, re.MULTILINE)
         settings = block.group(1) if block else ""
-        if not re.search(r"^  group: lineup-guardian-writes\s*$", settings, re.MULTILINE):
+        retired_group = "  group: ${{ vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-') && format('retired-gas-{0}', github.run_id) || 'lineup-guardian-writes' }}"
+        retired_guard = "!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))"
+        safe_retired_wakeup = (workflow == 'guardian.yml' and retired_group in settings.splitlines()
+                               and retired_guard in source)
+        if not safe_retired_wakeup and not re.search(r"^  group: lineup-guardian-writes\s*$", settings, re.MULTILINE):
             errors.append(f"Lineup Guardian {workflow} must share the lineup-guardian-writes concurrency group")
         if not re.search(r"^  cancel-in-progress: false\s*$", settings, re.MULTILINE):
             errors.append(f"Lineup Guardian {workflow} must not cancel an in-progress roster/lineup write")
