@@ -794,6 +794,23 @@
         "check": "failure"
       },
       "failed_at": "2026-11-15T23:09:56Z"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43782792510:1": {
+      "sent_at": "2026-11-16T01:08:21.324845+00:00",
+      "subject": "[League automation FAILED] Chicago-Bears-Lineup-Guardian \u2014 Private league audit - contracts - source verify-recovery-43731679111",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - contracts - source verify-recovery-43731679111",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403757311:Private league audit - contracts - source verify-recovery-43731679111:2026-11-15",
+      "failed_steps": [
+        "contracts: Validate both leagues' full Live Bonus Game Watch test suites"
+      ],
+      "cause_codes": {
+        "contracts": "a0a77747cbfe05d51f2c021132346dec99e29de5154338e08597c99236ed07b1"
+      },
+      "affected_jobs": {
+        "contracts": "failure",
+        "guardian-audit": "skipped"
+      },
+      "failed_at": "2026-11-16T00:51:44Z"
     }
   },
   "checked": {
