@@ -11,6 +11,26 @@ EASTERN=ZoneInfo('America/New_York')
 CONFIG=ROOT/'data/fafl_inactivity/config_2026.json'
 STATE_PATH='data/fafl_inactivity/state_2026.json'
 
+def save_watch_state(updated, repo, request, sleep=time.sleep):
+    url=f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
+    old=request(url+'?ref=main')
+    baseline=json.loads(base64.b64decode(old['content'])) if old else None
+    for attempt in range(4):
+        if attempt:
+            sleep(2**attempt)
+            old=request(url+'?ref=main')
+            remote=json.loads(base64.b64decode(old['content'])) if old else None
+            if remote==updated:return
+            if remote!=baseline:
+                raise RuntimeError('Inactivity state changed concurrently; reload before sending notices')
+        payload={'message':'Record FAFL inactivity watch state','branch':'main','content':base64.b64encode((json.dumps(updated,indent=2)+'\n').encode()).decode()}
+        if old:payload['sha']=old['sha']
+        try:
+            request(url,payload,method='PUT')
+            return
+        except urllib.error.HTTPError as error:
+            if error.code not in (409,429,500,502,503,504) or attempt==3:raise
+
 def rows(value):return value if isinstance(value,list) else [value] if isinstance(value,dict) else []
 def iso(value):return value.astimezone(timezone.utc).isoformat()
 def moment(value):
@@ -301,11 +321,7 @@ def main():
                       'incidents':[dict(franchise=i['franchise'],rule=i['rule'],count=i['count'],status=i['status'],observed=i['observed'])for i in updated['incidents'].values()]}))
     if args.dry_run:return
     def save():
-        url=f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
-        old=mail.get_json(url)
-        payload={'message':'Record FAFL inactivity watch state','branch':'main','content':base64.b64encode((json.dumps(updated,indent=2)+'\n').encode()).decode()}
-        if old:payload['sha']=old['sha']
-        mail.get_json(url,payload,method='PUT')
+        save_watch_state(updated,repo,mail.get_json)
     save()
     delivery_problems=deliver_owner_notices(updated,franchises,mail.send_email,save,commissioners=commissioners)
     # Owner warnings already copy commissioners; only unresolved operational or

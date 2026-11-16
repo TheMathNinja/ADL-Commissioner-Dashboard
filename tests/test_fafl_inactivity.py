@@ -6,6 +6,29 @@ import fafl_inactivity as m
 from unittest.mock import Mock,patch
 
 class InactivityTests(unittest.TestCase):
+    def test_state_save_conflict_retries_only_unchanged_state(self):
+        def item(state,sha='old'):
+            return {'sha':sha,'content':m.base64.b64encode(json.dumps(state).encode()).decode()}
+        conflict=m.urllib.error.HTTPError('url',409,'Conflict',{},None)
+        api=Mock(side_effect=[item({}),conflict,item({},'fresh'),{}])
+        m.save_watch_state({'checked':'now'},'owner/repo',api,sleep=Mock())
+        self.assertEqual(api.call_args.args[1]['sha'],'fresh')
+        api=Mock(side_effect=[item({}),conflict,item({'receipt':'another worker'})])
+        with self.assertRaisesRegex(RuntimeError,'changed concurrently'):
+            m.save_watch_state({'checked':'now'},'owner/repo',api,sleep=Mock())
+        self.assertEqual(api.call_count,3)
+
+    def test_state_save_recognizes_accepted_write_and_bounds_conflicts(self):
+        def item(state):return {'sha':'sha','content':m.base64.b64encode(json.dumps(state).encode()).decode()}
+        conflict=m.urllib.error.HTTPError('url',409,'Conflict',{},None)
+        api=Mock(side_effect=[item({}),conflict,item({'checked':'now'})])
+        m.save_watch_state({'checked':'now'},'owner/repo',api,sleep=Mock())
+        self.assertEqual(api.call_count,3)
+        api=Mock(side_effect=[item({}),conflict]*4)
+        with self.assertRaises(m.urllib.error.HTTPError):
+            m.save_watch_state({'checked':'now'},'owner/repo',api,sleep=Mock())
+        self.assertEqual(api.call_count,8)
+
     def test_login_retries_connection_timeout_then_authenticates(self):
         response=Mock();response.__enter__=Mock(return_value=response);response.__exit__=Mock(return_value=False)
         response.read.return_value=b'<status MFL_USER_ID="session"/>'
