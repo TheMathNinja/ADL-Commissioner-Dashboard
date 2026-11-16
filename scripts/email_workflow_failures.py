@@ -715,6 +715,11 @@ def main():
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             shared_coverage = None
             coverage_errors.append('Guardian coverage: ' + str(error))
+    if shared_coverage:
+        try:
+            report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            coverage_errors.append('Guardian incident delivery: ' + type(error).__name__)
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
         try:
             from actions_budget import review
@@ -1014,8 +1019,6 @@ def main():
                     print('SMTP accepted failure report: ' + key)
     if args.deadlines:
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories,coverage_errors)
-    if shared_coverage:
-        report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
     if not args.dry_run and state != original:
         save(state)
     if coverage_errors:

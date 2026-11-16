@@ -107,9 +107,10 @@ class AccountCoverage(unittest.TestCase):
             return {'content':base64.b64encode(json.dumps(snapshot).encode()).decode()}
         self.assertTrue(catalog.recovered_live_watch_cancellation('TheMathNinja/ADL-GM-Dashboard',run,[],large_api,now))
 
-    def invoke(self, state, discovery=None, run_reader=None):
+    def invoke(self, state, discovery=None, run_reader=None, alert_owner=''):
         with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE':'true','PRIVATE_FAILURE_REPORTING_SINCE':'',
-                'GUARDIAN_ALERT_OWNER':'','ACTIONS_BUDGET_MONITOR':'','CHI_FORECAST_REQUEST_MONITOR':'',
+                'GUARDIAN_ALERT_OWNER':alert_owner,'GUARDIAN_COVERAGE_RUNNER':'',
+                'ACTIONS_BUDGET_MONITOR':'','CHI_FORECAST_REQUEST_MONITOR':'',
                 'WEEKLY_REPORT_EMAIL_TO':m.OWNER,'GITHUB_REPOSITORY':m.COMMISSIONER}), \
              patch.object(sys,'argv',['report']),patch.object(m,'REPOS',[]),patch.object(m,'GUARDIAN','TheMathNinja/data'), \
              patch.object(catalog,'repositories',side_effect=discovery or (lambda _: ['TheMathNinja/data'])), \
@@ -127,6 +128,15 @@ class AccountCoverage(unittest.TestCase):
         self.assertEqual(self.invoke(state),0)
         self.assertEqual(state['accountCoverage']['repositories'],['TheMathNinja/data'])
         self.assertTrue(state['healthyAt'])
+
+    def test_required_guardian_delivery_precedes_extended_account_scan(self):
+        order=[]
+        item={'content':base64.b64encode(b'{"alertOwner":"commissioner-v1"}').decode()}
+        with patch.object(m,'api',return_value=item),patch.object(m,'validate_coverage'), \
+             patch.object(m,'report_missing_checks',side_effect=lambda *_: order.append('guardian')):
+            self.invoke({'sent':{},'checked':{}},alert_owner='commissioner-v1',
+                discovery=lambda _: order.append('inventory') or ['TheMathNinja/data'])
+        self.assertEqual(order,['guardian','inventory'])
 
     def test_discovery_and_repository_errors_cannot_claim_healthy_coverage(self):
         for kwargs in ({'discovery':lambda _: (_ for _ in ()).throw(RuntimeError('inventory unavailable'))},
