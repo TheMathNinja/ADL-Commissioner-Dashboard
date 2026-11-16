@@ -126,6 +126,11 @@ def delivered_private_child(state, repo, run, jobs_by_name, line):
     name, _, step = line.partition(': ')
     job = jobs_by_name.get(name,{})
     child_id = private_child_link(repo,run,job,step)
+    if child_id and any(key.startswith(GUARDIAN+':'+child_id+':')
+                        and isinstance(value, str)
+                        and value.startswith('resolved before notification; verified recovery: ')
+                        for key, value in state.get('checked', {}).items()):
+        return True
     return bool(child_id and any(key.startswith(GUARDIAN+':'+child_id+':') and
         entry.get('audit_parent') == str(run['id']) and entry.get('audit_attempt') == run.get('run_attempt',1)
         for key,entry in reported_records(state).items()))

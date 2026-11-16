@@ -167,6 +167,22 @@ class IncidentReplay(unittest.TestCase):
             command.return_value.stdout='Dispatch failed before any child started'
             self.assertFalse(m.delivered_private_child(state,m.COMMISSIONER,parent,{name:job},name+': '+step))
 
+    def test_exact_recovered_child_also_resolves_parent_not_independent_failures(self):
+        parent=dict(self.run,id=43801278899,path='automation-preflight.yml')
+        name,step=m.PRIVATE_PARENT_STEPS['contracts']
+        job=dict(id=50,name=name)
+        key=m.GUARDIAN+':43801293546:1'
+        state={'sent':{},'checked':{key:'resolved before notification; verified recovery: https://github.com/recovered'}}
+        with patch.object(m,'private_child_link',return_value='43801293546'):
+            self.assertTrue(m.delivered_private_child(state,m.COMMISSIONER,parent,{name:job},name+': '+step))
+        with patch.object(m,'private_child_link',return_value='999'):
+            self.assertFalse(m.delivered_private_child(state,m.COMMISSIONER,parent,{name:job},name+': '+step))
+        with patch.object(m,'private_child_link',return_value=None):
+            self.assertFalse(m.delivered_private_child(state,m.COMMISSIONER,parent,{name:job},name+': Authentication failure'))
+        state['checked'][key]='success'
+        with patch.object(m,'private_child_link',return_value='43801293546'):
+            self.assertFalse(m.delivered_private_child(state,m.COMMISSIONER,parent,{name:job},name+': '+step))
+
     def test_read_only_coverage_checks_never_send_or_write_state(self):
         with patch.dict(m.os.environ,{'WEEKLY_REPORT_EMAIL_TO':m.OWNER}), \
              patch.object(sys,'argv',['report','--verify-coverage']), \
