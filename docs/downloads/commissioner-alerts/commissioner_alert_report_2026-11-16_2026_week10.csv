@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,consecutive_days
+2026,10,2026-11-16 10:26:36 UTC,Illegal Lineup Warning,warning,AFC,KCC,Kansas City Chiefs,"Starting lineups require 12 defensive starters, including minimum 2 CB",11 defensive starters (1 CB),Must start 1 additional CB,,
+2026,10,2026-11-16 10:26:36 UTC,Illegal Lineup Warning,warning,AFC,MIA,Miami Dolphins,No inactive players allowed in starting lineup,"Elliott, DeShon PIT S is inactive (O)",,,
+2026,10,2026-11-16 10:26:36 UTC,Illegal Lineup Warning,warning,NFC,LAR,Los Angeles Rams,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,
+2026,10,2026-11-16 10:26:36 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,
