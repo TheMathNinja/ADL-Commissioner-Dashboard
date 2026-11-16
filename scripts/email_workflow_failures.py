@@ -670,12 +670,34 @@ def main():
     shared_coverage = None
     if os.environ.get('GUARDIAN_ALERT_OWNER') == 'commissioner-v1':
         try:
-            value = api(GUARDIAN, 'contents/data/guardian_coverage.json?ref=main')
-            shared_coverage = json.loads(base64.b64decode(value['content']))
+            if os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1':
+                from guardian_health_monitor import refresh
+                shared_coverage = refresh(api, datetime.now(timezone.utc), dry=args.dry_run)
+            else:
+                value = api(GUARDIAN, 'contents/data/guardian_coverage.json?ref=main')
+                shared_coverage = json.loads(base64.b64decode(value['content']))
             validate_coverage(shared_coverage, datetime.now(timezone.utc))
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             shared_coverage = None
             coverage_errors.append('Guardian coverage: ' + str(error))
+    if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
+        try:
+            from actions_budget import review
+            budget = review(api, datetime.now(timezone.utc), dry=args.dry_run)
+            if budget['projectedMonthEnd'] > budget['target']:
+                key = 'actions-budget:' + budget['month']
+                subject = '[League automation] Actions budget needs attention'
+                body = ('Estimated Actions usage is above the reserved monthly target.\n'
+                        f'Estimated used: {budget["estimatedUsed"]} / {budget["allowance"]} minutes.\n'
+                        f'Projected month end: {budget["projectedMonthEnd"]} minutes.\n'
+                        'This is sampled job timing, not GitHub billing; check the billing dashboard.\n'
+                        'No spending limit or lineup protection was changed. One notice per billing month.')
+                if not args.dry_run and key not in state['sent']:
+                    mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+                    state['sent'][key] = {'subject': subject}
+                    save(state)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            coverage_errors.append('Actions budget assessment unavailable')
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
     ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)

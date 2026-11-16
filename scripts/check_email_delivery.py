@@ -12,7 +12,7 @@ def main():
     args = parser.parse_args()
     commissioner = Path(__file__).resolve().parents[1]
     guardian = args.guardian.resolve()
-    test_env = dict(os.environ, GUARDIAN_ALERT_OWNER='')
+    test_env = dict(os.environ, GUARDIAN_ALERT_OWNER='', GUARDIAN_TEST_ROOT=str(guardian))
     for name in ('smtp_delivery.py', 'email_delivery_state.py', 'github_email_receipt.py'):
         canonical = (commissioner / 'scripts' / name).read_text()
         if canonical != (guardian / 'scripts' / name).read_text():
@@ -20,7 +20,8 @@ def main():
     suites = ('test_email_delivery_state.py', 'test_github_email_receipt.py', 'test_email_state_save.py',
               'test_incident_replay.py', 'test_workflow_failure_email.py', 'test_maintenance_failure_links.py',
               'test_alert_transport.py', 'test_weekly_completion_email.py',
-              'test_gotw_blurbs.py', 'test_guardian_incidents.py')
+              'test_gotw_blurbs.py', 'test_guardian_incidents.py',
+              'test_guardian_health_monitor.py', 'test_actions_budget.py')
     for suite in suites:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', suite],
                        cwd=commissioner, env=test_env, check=True)
@@ -35,6 +36,8 @@ def main():
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_notifications.py'],
                    cwd=guardian, env=env, check=True)
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_guardian_coverage.py'],
+                   cwd=guardian, env=env, check=True)
+    subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_health_receipts.py'],
                    cwd=guardian, env=env, check=True)
     # Exercise both deployed ownership settings, not just the developer's environment.
     for owner in ('', 'commissioner-v1'):

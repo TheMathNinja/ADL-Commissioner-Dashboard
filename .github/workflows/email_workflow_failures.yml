@@ -33,12 +33,16 @@ jobs:
           python3 -m unittest discover -s tests -p test_incident_replay.py -v
           python3 -m unittest discover -s tests -p test_maintenance_failure_links.py -v
           python3 -m unittest discover -s tests -p test_guardian_incidents.py -v
+          python3 -m unittest discover -s tests -p test_guardian_health_monitor.py -v
+          python3 -m unittest discover -s tests -p test_actions_budget.py -v
       - name: Report failed league dependencies independently of publication
         env:
           GH_TOKEN: ${{ github.token }}
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           PRIVATE_FAILURE_REPORTING_SINCE: ${{ vars.PRIVATE_FAILURE_REPORTING_SINCE }}
           GUARDIAN_ALERT_OWNER: ${{ vars.GUARDIAN_ALERT_OWNER }}
+          GUARDIAN_COVERAGE_RUNNER: ${{ vars.GUARDIAN_COVERAGE_RUNNER }}
+          ACTIONS_BUDGET_MONITOR: 'true'
           WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
