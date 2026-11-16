@@ -5,11 +5,49 @@ from pathlib import Path
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from guardian_incidents import validate_coverage, owned_check_failure, report_missing_checks
+from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, report_missing_checks
 from email_delivery_state import deliver_once, DeliveryUncertain
 
 
 class GuardianIncidents(unittest.TestCase):
+    def test_nov15_failed_test_runs_and_both_leagues_share_one_delivery(self):
+        self.coverage['activatedAt']='2026-11-15T20:00:00Z'
+        for incident in self.coverage['incidents'].values():
+            incident.update(lastVerified='2026-11-15T20:30:32Z', kickoff='2026-11-15T21:25:00Z')
+        jobs=[{'name':'guardian','steps':[{'name':'Run npm test','conclusion':'failure'},
+              {'name':'Check configuration','conclusion':'skipped'},
+              {'name':'Run npm run check','conclusion':'skipped'},
+              {'name':'Commit audit state','conclusion':'skipped'},
+              {'name':'Archive exact roster checks','conclusion':'success'},
+              {'name':'Publish private roster audit','conclusion':'skipped'},
+              {'name':'Send private Guardian notifications','conclusion':'skipped'},
+              {'name':'Preserve notification delivery receipts','conclusion':'skipped'},
+              {'name':'Post Run actions/checkout@v5','conclusion':'success'},
+              {'name':'Complete job','conclusion':'success'}]}]
+        for run_id, minute in [(43758870359,34),(43759326271,39),(43759782849,44),(43760237046,49)]:
+            run=dict(self.run,id=run_id,conclusion='failure',created_at=f'2026-11-15T20:{minute}:44Z')
+            self.assertTrue(owned_startup_failure(run,jobs,self.coverage))
+            self.report()
+        self.assertEqual(len(self.messages),1)
+        for incident in self.coverage['incidents'].values():
+            incident.update(status='resolved',resolvedAt='2026-11-15T20:56:01Z')
+        self.assertTrue(owned_startup_failure(run,jobs,self.coverage))
+        self.report();self.assertEqual(len(self.messages),1)
+        self.assertFalse(owned_startup_failure(dict(run,created_at='2026-11-15T21:00:00Z'),jobs,self.coverage))
+
+    def test_startup_ownership_never_hides_independent_failure(self):
+        jobs=[{'name':'guardian','steps':[{'name':'Run npm test','conclusion':'failure'},
+              {'name':'Run npm run check','conclusion':'skipped'}]}]
+        run=dict(self.run,conclusion='failure')
+        self.assertTrue(owned_startup_failure(run,jobs,self.coverage))
+        for name in ['Run npm run check','Commit audit state','Send private Guardian notifications']:
+            changed=copy.deepcopy(jobs);changed[0]['steps'][0]['name']=name
+            self.assertFalse(owned_startup_failure(run,changed,self.coverage))
+        changed=copy.deepcopy(jobs);changed[0]['steps'][1]['conclusion']='success'
+        self.assertFalse(owned_startup_failure(run,changed,self.coverage))
+        self.assertFalse(owned_startup_failure(dict(run,path='preflight.yml'),jobs,self.coverage))
+        self.assertFalse(owned_startup_failure(run,jobs,dict(self.coverage,incidents={})))
+
     def setUp(self):
         self.coverage = {'alertOwner':'commissioner-v1', 'checkedAt':'2026-11-15T17:00:00Z',
                          'activatedAt':'2026-11-15T16:00:00Z', 'incidents':{}}

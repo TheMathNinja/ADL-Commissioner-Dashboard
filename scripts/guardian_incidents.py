@@ -47,6 +47,40 @@ def owned_check_failure(run, jobs, audit, coverage):
     return True
 
 
+def owned_startup_failure(run, jobs, coverage):
+    """A failed pre-check gate belongs to its protection gap, not a second email."""
+    mode = {'guardian.yml':'monitor', 'initial-lineup.yml':'initial'}.get(PurePosixPath(run.get('path', '')).name)
+    if not mode or run.get('conclusion') != 'failure':
+        return False
+    expected = 'guardian' if mode == 'monitor' else 'initial-lineup'
+    if len(jobs) != 1 or jobs[0].get('name') != expected:
+        return False
+    steps = jobs[0].get('steps', [])
+    bad = [s for s in steps if s.get('conclusion') not in ('success', 'skipped', None)]
+    if len(bad) != 1 or bad[0].get('name') not in ('Run npm test', 'Check configuration'):
+        return False
+    checks = [s for s in steps if s.get('name') == 'Run npm run check']
+    if len(checks) != 1 or checks[0].get('conclusion') != 'skipped':
+        return False
+    # No effect-producing or notification step may have started after the gate.
+    gate = steps.index(bad[0])
+    if any(s.get('conclusion') not in ('skipped', None) and s.get('name') != 'Archive exact roster checks'
+           and not s.get('name', '').startswith(('Post ', 'Complete job'))
+           for s in steps[gate + 1:]):
+        return False
+    created = stamp(run['created_at'])
+    for incident in coverage['incidents'].values():
+        if incident['mode'] != mode or incident['status'] not in ('open', 'resolved'):
+            continue
+        start = stamp(incident.get('lastVerified') or coverage['activatedAt'])
+        end = stamp(incident.get('resolvedAt') or incident['kickoff'])
+        if mode == 'initial' and not incident.get('resolvedAt'):
+            end += timedelta(hours=1)
+        if start <= created <= end:
+            return True
+    return False
+
+
 def report_missing_checks(coverage, state, dry, deliver, save, send):
     pending = []
     for item in coverage['incidents'].values():

@@ -14,7 +14,7 @@ from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
 from maintenance_failure_links import covered_components, WATCHDOG_STEP
-from guardian_incidents import validate_coverage, owned_check_failure, report_missing_checks
+from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, report_missing_checks
 
 
 def watchdog_maintenance_evidence(repo, run, job_list):
@@ -717,6 +717,9 @@ def main():
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
                 job_list = jobs(repo, run)
+                if shared_coverage and repo == GUARDIAN and owned_startup_failure(run, job_list, shared_coverage):
+                    # Keep re-evaluating; the durable coverage incident owns delivery.
+                    continue
                 if shared_coverage and repo == GUARDIAN and PurePosixPath(run.get('path', '')).name in ('guardian.yml', 'initial-lineup.yml'):
                     mode = 'monitor' if PurePosixPath(run['path']).name == 'guardian.yml' else 'initial'
                     try:

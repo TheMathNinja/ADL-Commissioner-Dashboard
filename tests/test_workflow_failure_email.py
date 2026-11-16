@@ -12,6 +12,34 @@ import email_workflow_failures as m
 
 
 class FailureReports(unittest.TestCase):
+    def test_nov15_startup_runs_and_missed_checks_have_one_reporter_owner(self):
+        from datetime import datetime, timezone
+        from email_delivery_state import deliver_once
+        coverage={'alertOwner':'commissioner-v1','checkedAt':datetime.now(timezone.utc).isoformat(),
+                  'activatedAt':'2026-11-15T20:00:00Z','incidents':{}}
+        for league in ('ADL','FAFL'):
+            coverage['incidents'][league]=dict(key=league,league=league,week=10,mode='monitor',
+                kickoff='2026-11-15T21:25:00Z',lastVerified='2026-11-15T20:30:32Z',status='open',delivery='pending')
+        runs=[dict(self.run,id=id,path='.github/workflows/guardian.yml',name='Chicago Bears Lineup Guardian',
+              display_title='Chicago Bears Lineup Guardian',created_at=f'2026-11-15T20:{minute}:44Z',
+              updated_at=f'2026-11-15T20:{minute+1}:36Z')
+              for id,minute in [(43758870359,34),(43759326271,39),(43759782849,44),(43760237046,49)]]
+        job=[dict(name='guardian',conclusion='failure',steps=[
+            dict(name='Run npm test',conclusion='failure'),dict(name='Run npm run check',conclusion='skipped'),
+            dict(name='Archive exact roster checks',conclusion='success')])]
+        state={'sent':{},'checked':{}}
+        with patch.dict(os.environ,{'WEEKLY_REPORT_EMAIL_TO':m.OWNER,'GITHUB_REPOSITORY':m.COMMISSIONER,
+                    'GUARDIAN_ALERT_OWNER':'commissioner-v1','PRIVATE_FAILURE_REPORTING_SINCE':'2026-11-15T00:00:00Z'}), \
+             patch.object(sys,'argv',['report']),patch.object(m,'REPOS',[]), \
+             patch.object(m,'runs',return_value=runs),patch.object(m,'jobs',return_value=job), \
+             patch.object(m,'api',return_value={'content':base64.b64encode(json.dumps(coverage).encode()).decode()}), \
+             patch.object(m.mail,'document',return_value=state),patch.object(m,'save'), \
+             patch.object(m.mail,'deliver_once',side_effect=deliver_once),patch.object(m.mail,'send_email') as send:
+            m.main();m.main()
+            self.assertEqual(send.call_count,1)
+            self.assertIn('ADL Week 10',send.call_args.args[1])
+            self.assertIn('FAFL Week 10',send.call_args.args[1])
+
     def test_guardian_roster_warning_requires_delivered_exact_run_evidence(self):
         run = dict(id=43528287932, run_attempt=1, path='.github/workflows/guardian.yml', conclusion='failure')
         jobs = [dict(name='guardian', conclusion='failure', steps=[dict(name='Run npm run check', conclusion='failure')])]
