@@ -64,6 +64,7 @@ PRIVATE_IMPACT = {
     'sync_chi_team_tools.yml': 'The private trade synchronization did not complete.',
 }
 IMPACT = {
+    'guardian_fallback.yml': 'The independent Guardian scheduling gate failed; backup dispatch may be unavailable. Required-check receipts remain monitored separately.',
     'automation-preflight.yml': 'The cross-repository or Guardian readiness audit did not complete.',
     'fafl-inactivity-watch.yml': 'FAFL inactivity evidence checks or owner/commissioner notifications did not complete. Existing watch deadlines remain recorded; no ownership changes were made.',
     'daily_adl_league_maintenance.yml': 'The combined morning SalAdj, waiver-correction, roster/Extension, or Commissioner-alert package did not complete.',

@@ -26,7 +26,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - name: Preserve backup dispatch before running the email reporter
+        if: vars.GUARDIAN_NATIVE_FALLBACK == 'public-scheduler-v1' && inputs.dry_run != true && inputs.verify_coverage != true
+        env:
+          PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+        run: python3 scripts/guardian_fallback.py --live
       - name: Test failure gating and owner-only delivery
+        if: always()
         run: |
           python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
           python3 -m unittest discover -s tests -p test_email_state_save.py -v
@@ -37,6 +43,7 @@ jobs:
           python3 -m unittest discover -s tests -p test_actions_budget.py -v
           python3 -m unittest discover -s tests -p test_forecast_request_monitor.py -v
       - name: Report failed league dependencies independently of publication
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}

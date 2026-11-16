@@ -14,7 +14,7 @@ def main():
     commissioner = Path(__file__).resolve().parents[1]
     guardian = args.guardian.resolve()
     test_env = dict(os.environ, GUARDIAN_ALERT_OWNER='', GUARDIAN_TEST_ROOT=str(guardian))
-    for name in ('smtp_delivery.py', 'email_delivery_state.py', 'github_email_receipt.py'):
+    for name in ('smtp_delivery.py', 'email_delivery_state.py', 'github_email_receipt.py', 'guardian_input_watch.py'):
         canonical = (commissioner / 'scripts' / name).read_text()
         if canonical != (guardian / 'scripts' / name).read_text():
             raise SystemExit('Shared delivery policies differ: ' + name + '; do not publish')
@@ -23,7 +23,7 @@ def main():
               'test_alert_transport.py', 'test_weekly_completion_email.py',
               'test_gotw_blurbs.py', 'test_guardian_incidents.py',
               'test_guardian_health_monitor.py', 'test_actions_budget.py',
-              'test_forecast_request_monitor.py', 'test_private_audit_cache.py')
+              'test_forecast_request_monitor.py', 'test_private_audit_cache.py', 'test_guardian_fallback.py')
     for suite in suites:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', suite],
                        cwd=commissioner, env=test_env, check=True)

@@ -17,7 +17,7 @@ REPOS = {key: 'TheMathNinja/' + name for key, name in (
 OPERATIONAL = {
     'guardian': {'data/state.json', 'data/weekly_projection_cache.json', 'data/guardian_coverage.json',
                  'data/guardian_health.json', 'data/actions_budget.json', 'data/chi_forecast_request.json',
-                 'docs/index.html', PATH},
+                 'data/guardian_dispatch.json', 'docs/index.html', PATH},
     'commissioner': {'data/workflow_failure_email_state.json', 'data/weekly_completion_email_state.json'},
 }
 
