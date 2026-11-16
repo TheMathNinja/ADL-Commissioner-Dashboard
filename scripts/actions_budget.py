@@ -26,7 +26,7 @@ def minutes(jobs):
     return total
 
 
-def collect(api, now, runner_handoff=False):
+def collect(api, now, runner_handoff=False, prior=None):
     groups = defaultdict(list)
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     # Daily queries avoid GitHub's 1,000-run search cap during a dispatch storm.
@@ -46,12 +46,17 @@ def collect(api, now, runner_handoff=False):
     estimated = 0
     daily = 0
     details = []
+    previous = {row['workflow']: row for row in (prior or {}).get('workflows', [])}
     for path, runs in groups.items():
         latest = sorted(runs, key=lambda r: (r['created_at'], r['id']), reverse=True)
         samples = [minutes(api(REPO, f'actions/runs/{r["id"]}/jobs?filter=all&per_page=100')['jobs'])
                    for r in latest[:3]]
         average = sum(samples) / len(samples)
         estimate = average * len(runs)
+        # A faster deployment changes future pace, not minutes already consumed.
+        old = previous.get(path) if (prior or {}).get('month') == now.strftime('%Y-%m') else None
+        if old:
+            estimate = old['estimatedMinutes'] + max(0, len(runs) - old['runs']) * average
         estimated += estimate
         recent = sum(stamp(r['created_at']) >= now - timedelta(days=7) for r in runs)
         future_daily = recent / min(7, max(1, (now - start).total_seconds() / 86400)) * average
@@ -83,7 +88,7 @@ def review(api, now, dry=False):
     if prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=24):
         return prior
     import os
-    value = collect(api, now, os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1')
+    value = collect(api, now, os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1', prior)
     if not dry:
         persist(PATH, original, value)
     return value

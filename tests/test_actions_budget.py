@@ -10,6 +10,15 @@ import actions_budget as budget
 
 
 class BudgetTests(unittest.TestCase):
+    def test_faster_jobs_do_not_erase_historical_consumption(self):
+        now = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
+        path = '.github/workflows/refresh_chi_team_tools.yml'
+        previous = {'month': '2026-11', 'workflows': [{'workflow': path, 'runs': 2, 'estimatedMinutes': 180}]}
+        def api(repo, endpoint):
+            if '/jobs?' in endpoint:
+                return {'jobs': [{'started_at': '2026-11-01T00:00:00Z', 'completed_at': '2026-11-01T00:00:01Z'}]}
+            return {'workflow_runs': [{'id': n, 'path': path, 'status': 'completed', 'conclusion': 'success', 'created_at': '2026-11-01T00:00:00Z'} for n in (1, 2, 3)]}
+        self.assertEqual(budget.collect(api, now, prior=previous)['estimatedUsed'], 181)
     def test_first_run_handles_api_wrapped_not_found(self):
         def api(repo, path):
             try:

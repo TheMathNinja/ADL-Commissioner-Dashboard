@@ -78,6 +78,7 @@ jobs:
       - name: Dispatch and verify the complete private contract audit
         env:
           GH_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+          FORCE_PRIVATE_AUDIT: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python3 scripts/run_private_preflight.py contracts
 
   guardian-audit:
@@ -89,6 +90,7 @@ jobs:
       - name: Dispatch and verify Guardian read-only audit privately
         env:
           GH_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+          FORCE_PRIVATE_AUDIT: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python3 scripts/run_private_preflight.py guardian
 
   preflight:

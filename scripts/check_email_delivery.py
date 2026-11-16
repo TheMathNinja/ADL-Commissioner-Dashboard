@@ -9,6 +9,7 @@ import sys
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--guardian', required=True, type=Path)
+    parser.add_argument('--adl', type=Path)
     args = parser.parse_args()
     commissioner = Path(__file__).resolve().parents[1]
     guardian = args.guardian.resolve()
@@ -21,7 +22,8 @@ def main():
               'test_incident_replay.py', 'test_workflow_failure_email.py', 'test_maintenance_failure_links.py',
               'test_alert_transport.py', 'test_weekly_completion_email.py',
               'test_gotw_blurbs.py', 'test_guardian_incidents.py',
-              'test_guardian_health_monitor.py', 'test_actions_budget.py')
+              'test_guardian_health_monitor.py', 'test_actions_budget.py',
+              'test_forecast_request_monitor.py', 'test_private_audit_cache.py')
     for suite in suites:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', suite],
                        cwd=commissioner, env=test_env, check=True)
@@ -32,12 +34,15 @@ def main():
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_alert_transport.py'],
                    cwd=commissioner, env=ci_env, check=True)
     env = dict(os.environ)
-    env['PYTHONPATH'] = str(guardian / 'scripts') + os.pathsep + env.get('PYTHONPATH', '')
+    adl = args.adl.resolve() if args.adl else guardian.parent / 'adl'
+    env['PYTHONPATH'] = os.pathsep.join((str(guardian / 'scripts'), str(adl / 'scripts'), env.get('PYTHONPATH', '')))
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_notifications.py'],
                    cwd=guardian, env=env, check=True)
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_guardian_coverage.py'],
                    cwd=guardian, env=env, check=True)
     subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_health_receipts.py'],
+                   cwd=guardian, env=env, check=True)
+    subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_chi_forecast*.py'],
                    cwd=guardian, env=env, check=True)
     # Exercise both deployed ownership settings, not just the developer's environment.
     for owner in ('', 'commissioner-v1'):

@@ -16,9 +16,22 @@ def read_state(run_id, allow_missing):
             return None
         raise
     return json.loads(output)
-def run(audit):
+def run(audit, use_cache=False):
+    revisions = {}; digest = None
+    if use_cache:
+        from datetime import datetime, timezone
+        import private_audit_cache as cache
+        revisions,digest=cache.inputs()
+        saved,_=cache.load()
+        receipt=saved.get(audit,{})
+        if os.environ.get('FORCE_PRIVATE_AUDIT')!='true' and cache.reusable(receipt,digest,datetime.now(timezone.utc)):
+            verified=read_state(receipt['runId'],False)
+            if verified and verified.get('status')=='completed' and verified.get('conclusion')=='success':
+                print('Reused a verified private '+audit+' audit of identical inputs (less than 24 hours old).');return
     correlation=os.environ['GITHUB_RUN_ID']+'-'+os.environ.get('GITHUB_RUN_ATTEMPT','1')+'-'+audit
-    output=subprocess.check_output(['gh','workflow','run','league-audit.yml','--repo',REPO,'-f','audit='+audit,'-f','source_run_id='+correlation],text=True,timeout=45)
+    command=['gh','workflow','run','league-audit.yml','--repo',REPO,'-f','audit='+audit,'-f','source_run_id='+correlation]
+    if revisions:command+=['-f','repository_revisions='+json.dumps(revisions,separators=(',',':'))]
+    output=subprocess.check_output(command,text=True,timeout=45)
     match=re.search(r'https://github\.com/'+re.escape(REPO)+r'/actions/runs/(\d+)',output)
     if not match:raise RuntimeError('Private audit was dispatched but its run ID could not be confirmed; inspect the private workflow before retrying')
     run_id=match[1];url=match[0];print('Private audit: '+url,flush=True)
@@ -35,8 +48,11 @@ def run(audit):
         seen=True
         if state['status']=='completed':
             if state['conclusion']!='success':raise RuntimeError('Private '+audit+' audit ended with '+str(state['conclusion'])+': '+url)
+            if digest:
+                try:cache.record(audit,digest,revisions,run_id)
+                except (OSError,ValueError,subprocess.SubprocessError):print('::warning::Audit passed; its reuse receipt could not be saved.')
             print('Private '+audit+' audit passed.');return
         time.sleep(10)
     raise RuntimeError('Private audit did not complete within seven minutes: '+url)
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('audit',choices=['contracts','guardian']);run(parser.parse_args().audit)
+    parser=argparse.ArgumentParser();parser.add_argument('audit',choices=['contracts','guardian']);run(parser.parse_args().audit,use_cache=True)

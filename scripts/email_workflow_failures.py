@@ -521,6 +521,8 @@ def entry_recovered(repo, run, entry, history):
             passed = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
         except (OSError, RuntimeError, ValueError, KeyError):
             continue
+        if unverified_forecast_queue(repo, candidate, completed):
+            continue
         full_recovery = (completed and len(passed) == len(completed) and all(
             any(s.get('conclusion') == 'success' and s['name'] not in {'Set up job','Complete job'}
                 for s in j.get('steps', [])) for j in completed))
@@ -583,6 +585,13 @@ def private_audit_kind(run):
     return match[1] if match else None
 
 
+def unverified_forecast_queue(repo, run, completed):
+    return (repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'refresh_chi_team_tools.yml'
+            and not run.get('_forecast_verified') and any(
+                s.get('name') == 'Queue or inspect personal forecast refresh'
+                for job in completed for s in job.get('steps', [])))
+
+
 def inactive_audit_branch(repo, run, job):
     kind = private_audit_kind(run) if repo == GUARDIAN else None
     if not kind:
@@ -609,6 +618,8 @@ def verified_recovery(repo, run, job_list, history):
             completed = jobs(repo, later)
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
+        if unverified_forecast_queue(repo, later, completed):
+            continue  # Queue acceptance is not a verified replacement for a failed forecast.
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
         affected = [j for j in job_list if j.get('conclusion') in BAD | {'skipped'}
                     and not inactive_audit_branch(repo, run, j)]
@@ -701,6 +712,26 @@ def main():
             # Keep failure scanning and its independent health receipt available.
             print('::warning::Actions budget estimate unavailable; check GitHub billing directly')
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
+    forecast_request = None
+    if os.environ.get('CHI_FORECAST_REQUEST_MONITOR') == 'true':
+        try:
+            from forecast_request_monitor import review as review_forecast
+            def report_forecast(request):
+                key = 'chi-forecast:' + request['episode']
+                if key in state['sent']:
+                    return
+                subject = '[CHI Tools needs attention] Forecast refresh remains unverified'
+                body = (f'Personal forecasts and matching acquisition values through Week {request["week"]} '
+                        'have not been verified within their required deadline, or their verifier did not start.\n'
+                        'Please review CHI Tools manually. Guardian continues checking lineups and will not use unverified acquisition values.\n'
+                        'This unresolved episode will not send repeated emails. No lineup or accounting entries were changed.')
+                if not args.dry_run:
+                    mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+                    state['sent'][key] = {'subject': subject}
+                    save(state)
+            forecast_request = review_forecast(api, datetime.now(timezone.utc), args.dry_run, report_forecast)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            coverage_errors.append('Private forecast request monitoring unavailable')
     repositories = REPOS + ([GUARDIAN] if private_since else [])
     ordered = sorted(repositories, key=lambda r: 0 if r == GUARDIAN else 1 if r == COMMISSIONER else 2)
     passes = [(repo, False) for repo in ordered]
@@ -717,6 +748,11 @@ def main():
         if repo == GUARDIAN:
             for run in history:
                 run['_private_report'] = True
+                if forecast_request and forecast_request.get('status') == 'verified' and str(run['id']) in forecast_request.get('managedRuns', {}):
+                    completed_at = datetime.fromisoformat(forecast_request['verifiedAt'].replace('Z', '+00:00'))
+                    if (datetime.fromisoformat(run['created_at'].replace('Z', '+00:00')) <= completed_at <=
+                            datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00'))):
+                        run['_forecast_verified'] = True
             history = [run for run in history if run['updated_at'] >= private_since]
         elif repo == COMMISSIONER and private_since:
             for run in history:
