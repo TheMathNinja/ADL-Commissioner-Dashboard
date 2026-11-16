@@ -11,6 +11,7 @@ source("R/config_helpers.R")
 source("R/commissioner_alerts.R")
 source("R/saladj_contract_admin.R")
 source("R/saladj_notification_policy.R")
+source("R/saladj_action_report.R")
 
 
 arg_value <- function(name, default = NULL) {
@@ -2277,20 +2278,39 @@ message("Wrote commissioner error report: ", error_output_csv)
 message(nrow(error_report), " item-level commissioner review item(s).")
 
 email_report <- saladj_checker_email_findings(error_report)
-if (send_email && nrow(error_report) && !nrow(email_report)) {
+combined_action_email <- Sys.getenv("ADL_SALADJ_COMBINED_ACTION_EMAIL") == "true"
+if (send_email && !combined_action_email && nrow(error_report) && !nrow(email_report)) {
   message("Checker email suppressed: missing Contract Admin rows belong to the digest; pending MFL reminders are Monday morning only.")
 }
-if (send_email && nrow(email_report)) {
+if (send_email && (combined_action_email || nrow(email_report))) {
   issued <- if (file.exists(issued_csv)) {
     readr::read_csv(issued_csv, col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
   } else {
     tibble(issue_key = character(), issued_at = character())
   }
   new_errors <- email_report |> filter(!.data$issue_key %in% issued$issue_key)
+  if (combined_action_email) {
+    action_rows <- readr::read_csv(saladj_csv,
+      col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE)
+    last_emailed_csv <- file.path("data", "SalAdjCurator_last_emailed.csv")
+    prior_emailed <- if (file.exists(last_emailed_csv)) readr::read_csv(last_emailed_csv,
+      col_types = readr::cols(.default = readr::col_character()), show_col_types = FALSE) else action_rows[FALSE, ]
+    action_plan <- prepare_saladj_action_report(action_rows, sheet_entries, error_report,
+      issued, prior_emailed, season)
+    new_errors <- tibble(issue_key = action_plan$new_keys)
+  }
 
   if (nrow(new_errors)) {
-    body <- build_checker_email_body(new_errors)
-    subject <- if (all(new_errors$issue == "PENDING_MFL_ENTRY")) {
+    if (combined_action_email) {
+      meta <- readr::read_csv(file.path("data", "run_metadata.csv"), show_col_types = FALSE)
+      body <- render_saladj_action_report(action_plan, action_rows, season,
+        archive_filename = as.character(meta$latest_archive_filename[[1]]))
+    } else {
+      body <- build_checker_email_body(new_errors)
+    }
+    subject <- if (combined_action_email) {
+      "[ADL Commissioner Alerts] Salary-adjustment action report"
+    } else if (all(new_errors$issue == "PENDING_MFL_ENTRY")) {
       "[ADL Commissioner Alerts] Warning: salary adjustments pending MFL entry"
     } else if (any(new_errors$issue == "PENDING_MFL_ENTRY")) {
       "[ADL Commissioner Alerts] Commissioner cap-entry review"
@@ -2301,6 +2321,9 @@ if (send_email && nrow(email_report)) {
     writeLines(body, file.path("data", "commissioner_alerts", "email_outbox_commissioner_error_checker.txt"))
     recipients <- if (nzchar(email_to)) {
       tibble(email = email_to)
+    } else if (combined_action_email) {
+      # Preserve the entry team's delivery scope when replacing its digest.
+      tibble(email = c("fili.mikey@gmail.com", "wittecarson@gmail.com", "andrewrmast@gmail.com"))
     } else {
       resolve_commissioner_alert_recipients(season = season)
     }
@@ -2319,9 +2342,16 @@ if (send_email && nrow(email_report)) {
       ) |> distinct(.data$issue_key, .keep_all = TRUE)
       dir.create(dirname(issued_csv), recursive = TRUE, showWarnings = FALSE)
       write_csv(issued, issued_csv)
+      if (combined_action_email) write_csv(action_rows, last_emailed_csv, na = "")
       message("Sent commissioner error email for ", nrow(new_errors), " new issue(s).")
     } else {
       warning("Commissioner error email was not sent: ", status$reason, call. = FALSE)
+      if (combined_action_email) {
+        output <- Sys.getenv("GITHUB_OUTPUT")
+        if (Sys.getenv("DEFER_SALADJ_MAIL_FAILURE") != "true" || !nzchar(output))
+          stop("Combined salary-adjustment email delivery was not confirmed.", call. = FALSE)
+        cat("mail_unconfirmed=true\n", file = output, append = TRUE)
+      }
     }
   } else {
     message("No new commissioner errors to email; all current issues were previously reported.")

@@ -289,7 +289,7 @@ run_meta <- tibble::tibble(
 
 readr::write_csv(run_meta, metadata_file)
 
-if (send_email) {
+if (send_email && Sys.getenv("ADL_SALADJ_COMBINED_ACTION_EMAIL") != "true") {
   email_prepared_at <- Sys.time()
   run_audit$completed_display <- format_run_time(email_prepared_at)
   if (!is.na(workflow_started_at)) {
