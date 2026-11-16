@@ -196,6 +196,7 @@ class SchedulingTests(unittest.TestCase):
                'display_title':'Chicago Bears Lineup Guardian - gas-test'}
         with patch.dict(os.environ, GUARDIAN_PRECISION_OWNER='public-scheduler-v2'):
             self.assertFalse(gate.recent_inflight([run], NOW))
+            self.assertTrue(gate.recent_inflight([run], NOW, 'initial-lineup.yml'))
             self.assertTrue(gate.recent_inflight([dict(run,display_title='Chicago Bears Lineup Guardian - public-backup-test')],NOW))
         ledger,coverage,observed=fixtures(NOW,NOW+timedelta(minutes=90))
         ledger['checks']=[]

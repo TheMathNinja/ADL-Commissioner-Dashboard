@@ -150,9 +150,9 @@ def decision(ledger, coverage, dispatch_state, observations, now):
     return None
 
 
-def recent_inflight(runs, now):
+def recent_inflight(runs, now, workflow='guardian.yml'):
     return any(r.get('status') in ('queued', 'in_progress', 'pending', 'requested', 'waiting')
-               and not (os.environ.get('GUARDIAN_PRECISION_OWNER') == 'public-scheduler-v2'
+               and not (workflow == 'guardian.yml' and os.environ.get('GUARDIAN_PRECISION_OWNER') == 'public-scheduler-v2'
                         and ' - gas-' in r.get('display_title', ''))
                and timedelta(0) <= now - stamp(r['created_at']) < LEASE
                and (r.get('event') == 'schedule' or any(tag in r.get('display_title', '') for tag in ('gas-', 'public-backup-')))
@@ -202,7 +202,7 @@ def run(dry=True, now=None):
         print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
         return
     workflow = wanted.get('workflow', 'guardian.yml')
-    if recent_inflight(private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs'], now):
+    if recent_inflight(private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs'], now, workflow):
         print('Guardian scheduling gate: a known live check is already queued or running.')
         return
     if dry:
