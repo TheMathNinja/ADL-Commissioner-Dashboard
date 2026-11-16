@@ -141,4 +141,4 @@ season,check_date_et,last_checked_at_et,snapshot_changed,snapshot_file,run_type
 2026,2026-11-12,11/12/2026 11:59 AM EST,TRUE,saladj_roster_snapshot_2026_20261112_165918.csv,push
 2026,2026-11-13,11/13/2026 10:01 AM EST,TRUE,saladj_roster_snapshot_2026_20261113_150115.csv,push
 2026,2026-11-14,11/14/2026 05:20 AM EST,TRUE,saladj_roster_snapshot_2026_20261114_102040.csv,workflow_dispatch
-2026,2026-11-15,11/15/2026 11:04 PM EST,FALSE,saladj_roster_snapshot_2026_latest.csv,push
+2026,2026-11-15,11/15/2026 11:07 PM EST,TRUE,saladj_roster_snapshot_2026_20261116_040702.csv,push
