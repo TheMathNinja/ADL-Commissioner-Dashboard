@@ -46,11 +46,33 @@ class IncidentReplay(unittest.TestCase):
         passed[0]['conclusion']='success';passed[0]['steps'][0]['conclusion']='success'
         with patch.object(m,'jobs',return_value=passed):
             self.assertEqual(m.verified_recovery(m.GUARDIAN,old,failed,[later]),later)
-            for title in ['Private league audit - contracts - source 43264268292-3-contracts',
-                          'Private league audit - guardian - source 123-3-guardian']:
-                self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[dict(later,display_title=title)]))
+            other_parent=dict(later,display_title='Private league audit - guardian - source 123-3-guardian')
+            self.assertEqual(m.verified_recovery(m.GUARDIAN,old,failed,[other_parent]),other_parent)
+            wrong=dict(later,display_title='Private league audit - contracts - source 43264268292-3-contracts')
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[wrong]))
             extra=failed+[dict(name='required publication',conclusion='skipped',steps=[])]
             self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,extra,[later]))
+        passed[0]['steps'][0]['conclusion']='skipped'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[later]))
+
+    def test_nov15_numeric_parent_contracts_recover_after_midnight(self):
+        old=dict(id=43801293546,workflow_id=123,path='.github/workflows/league-audit.yml',
+            display_title='Private league audit - contracts - source 43801278899-1-contracts',
+            event='workflow_dispatch',head_branch='main',status='completed',conclusion='failure',
+            created_at='2026-11-16T03:58:00Z',updated_at='2026-11-16T03:59:00Z',_private_report=True)
+        step='Verify cross-repository automation contracts'
+        failed=[dict(name='contracts',conclusion='failure',steps=[dict(name=step,conclusion='failure')]),
+                dict(name='guardian-audit',conclusion='skipped',steps=[])]
+        later=dict(old,id=43803873119,conclusion='success',created_at='2026-11-16T05:01:00Z',
+            updated_at='2026-11-16T05:03:00Z',
+            display_title='Private league audit - contracts - source 43803873119-1-contracts')
+        passed=copy.deepcopy(failed)
+        passed[0]['conclusion']='success';passed[0]['steps'][0]['conclusion']='success'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertEqual(m.verified_recovery(m.GUARDIAN,old,failed,[later]),later)
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[dict(later,head_branch='preview')]))
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[dict(later,workflow_id=456)]))
         passed[0]['steps'][0]['conclusion']='skipped'
         with patch.object(m,'jobs',return_value=passed):
             self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[later]))

@@ -567,15 +567,12 @@ def recovered_inactivity_startup(repo, run, job_list, later):
 
 def recovery_scope(repo, run):
     scope = incident_scope(repo, run)
-    parent = private_parent(run) if repo == GUARDIAN else None
-    if parent and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
-        parent_id, attempt, kind = parent
-        scope = scope.replace(f'source {parent_id}-{attempt}-{kind}',
-                              f'source {parent_id}-<attempt>-{kind}')
-    elif repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
+    if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
         kind = private_audit_kind(run)
         if kind:
-            scope = f'{repo}:{run.get("workflow_id")}:diagnostic-audit:{kind}:' + scope.rsplit(':', 1)[-1]
+            # Parent IDs identify dispatches, not the readiness service. Exact
+            # successful job/step evidence is still required by verified_recovery.
+            scope = f'{repo}:{run.get("workflow_id")}:readiness-audit:{kind}:' + run['created_at'][:4]
     return scope
 
 
