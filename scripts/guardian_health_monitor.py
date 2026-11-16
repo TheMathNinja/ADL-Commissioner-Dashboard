@@ -7,6 +7,7 @@ import base64
 import copy
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
@@ -29,7 +30,8 @@ def decode(value):
 
 
 def validate(ledger, now):
-    if set(ledger) != {'schemaVersion', 'generatedAt', 'leagues', 'checks'} or ledger['schemaVersion'] != 1:
+    required = {'schemaVersion', 'generatedAt', 'leagues', 'checks'}
+    if not required <= set(ledger) or set(ledger) - required - {'publicInputs'} or ledger['schemaVersion'] != 1:
         raise ValueError('Unsupported health ledger schema')
     if stamp(ledger['generatedAt']) > now:
         raise ValueError('Future health ledger')
@@ -43,6 +45,11 @@ def validate(ledger, now):
                 or type(row['week']) is not int or not 1 <= row['week'] <= 18
                 or row['mode'] not in {'initial', 'monitor'} or stamp(row['checkedAt']) > now):
             raise ValueError('Invalid health receipt')
+    for league, row in ledger.get('publicInputs', {}).items():
+        if (league not in {'ADL', 'FAFL'} or set(row) != {'week', 'checkedAt', 'fingerprint'}
+                or type(row['week']) is not int or not 1 <= row['week'] <= 18
+                or stamp(row['checkedAt']) > now or not re.fullmatch('[a-f0-9]{64}', row['fingerprint'])):
+            raise ValueError('Invalid public-input fingerprint receipt')
     return ledger
 
 

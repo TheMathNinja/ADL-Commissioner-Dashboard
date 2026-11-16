@@ -26,6 +26,14 @@ def schedule(row, now):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_optional_opaque_input_hash_is_backward_compatible(self):
+        value = ledger()
+        self.assertIs(monitor.validate(value, NOW), value)
+        value['publicInputs'] = {'ADL': {'week': 10, 'checkedAt': NOW.isoformat(), 'fingerprint': 'a' * 64}}
+        self.assertIs(monitor.validate(value, NOW), value)
+        value['publicInputs']['ADL']['players'] = ['not allowed']
+        with self.assertRaises(ValueError):
+            monitor.validate(value, NOW)
     def test_matches_private_deadline_engine(self):
         root = os.environ.get('GUARDIAN_TEST_ROOT')
         if not root:
