@@ -3906,7 +3906,12 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:43934571462:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43937172805",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43938132545:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:43935389196:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938059996",
-    "TheMathNinja/ADL-Commissioner-Dashboard:43936031856:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938059996"
+    "TheMathNinja/ADL-Commissioner-Dashboard:43936031856:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938059996",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43939007534:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43936319796:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938948738",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43936323784:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938948738",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43936446359:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938948738",
+    "TheMathNinja/ADL-Commissioner-Dashboard:43937167574:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/43938948738"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -4257,6 +4262,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-16T19:23:00.746623+00:00"
+    "checkedAt": "2026-11-16T19:28:04.667924+00:00"
   }
 }
