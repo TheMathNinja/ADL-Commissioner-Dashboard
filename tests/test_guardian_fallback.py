@@ -71,6 +71,16 @@ class SchedulingTests(unittest.TestCase):
             self.assertEqual(gate.decision(ledger, coverage, {}, observed, now)['reason'], 'morning_health')
             self.assertIsNone(gate.decision(*fixtures(now)[:2], {}, observed, now))
 
+    def test_initial_safety_is_only_on_first_game_day_and_requires_its_own_receipt(self):
+        now = datetime(2026, 11, 19, 11, tzinfo=timezone.utc)
+        ledger, coverage, observed = fixtures(now, now + timedelta(hours=14))
+        wanted = gate.decision(ledger, coverage, {}, observed, now)
+        self.assertEqual(wanted['reason'], 'initial_safety')
+        self.assertEqual(wanted['workflow'], 'initial-lineup.yml')
+        ledger['checks'] = [dict(c, mode='initial') for c in ledger['checks']]
+        self.assertIsNone(gate.decision(ledger, coverage, {}, observed, now))
+        self.assertIsNone(gate.decision(ledger, coverage, {}, observed, now - timedelta(minutes=1)))
+
     def test_meaningful_background_change_is_checked_and_retries_are_bounded(self):
         ledger, coverage, observed = fixtures()
         observed['FAFL'] = (observed['FAFL'][0], 'b' * 64)
@@ -168,6 +178,9 @@ class SchedulingTests(unittest.TestCase):
             self.assertIn('run: npm run check', source)
             self.assertIn('LOOKAHEAD_MINUTES || 90', (Path(root) / 'src/config.js').read_text())
             self.assertIn('lookaheadMinutes: 90', (Path(root) / 'scheduler/Code.gs').read_text())
+            initial = (Path(root) / '.github/workflows/initial-lineup.yml').read_text()
+            self.assertIn("  initial-lineup:\n    if: github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1'", initial)
+            self.assertIn('use_native_policy:', initial)
         for event, armed, expected in (('schedule', True, False), ('schedule', False, True), ('workflow_dispatch', True, True)):
             self.assertEqual(event != 'schedule' or not armed, expected)
 

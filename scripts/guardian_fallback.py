@@ -90,6 +90,7 @@ def observe(league, now):
 def decision(ledger, coverage, dispatch_state, observations, now):
     """Same roster-week/90-minute rule; independent leagues and cached future games."""
     active = []
+    initial_due = []
     changed = []
     unknown = False
     for league in ledger['leagues']:
@@ -105,6 +106,14 @@ def decision(ledger, coverage, dispatch_state, observations, now):
         else:
             unknown = True
         for schedule in filter(None, schedules):
+            first_day = min(map(stamp, schedule['kickoffs'])).astimezone(ET).date()
+            local = now.astimezone(ET)
+            initial_reads = [c for c in ledger['checks'] if c['league'] == key and c['week'] == schedule['week']
+                             and c['mode'] == 'initial' and stamp(c['checkedAt']) <= now
+                             and stamp(c['checkedAt']).astimezone(ET).date() == first_day
+                             and 6 <= stamp(c['checkedAt']).astimezone(ET).hour < 7]
+            if local.date() == first_day and 6 <= local.hour < 7 and not initial_reads:
+                initial_due.append(key)
             for kickoff in map(stamp, schedule['kickoffs']):
                 if kickoff - timedelta(minutes=90) <= now < kickoff:
                     checks = [stamp(c['checkedAt']) for c in ledger['checks'] if c['league'] == key
@@ -112,6 +121,9 @@ def decision(ledger, coverage, dispatch_state, observations, now):
                               and kickoff - timedelta(minutes=90) <= stamp(c['checkedAt']) <= now]
                     if not checks or now - max(checks) >= timedelta(minutes=5):
                         active.append((key, schedule['week']))
+    if initial_due:
+        return {'reason': 'initial_safety', 'key': 'initial:' + str(now.astimezone(ET).date()),
+                'workflow': 'initial-lineup.yml'}
     if active:
         return {'reason': 'required_window', 'key': 'window:' + str(int(now.timestamp() // 300))}
     pending = [row['nextCheckAt'] for row in ledger.get('publicInputs', {}).values()
@@ -143,9 +155,11 @@ def recent_inflight(runs, now):
                for r in runs)
 
 
-def dispatch(identifier):
+def dispatch(identifier, workflow='guardian.yml'):
+    if workflow not in ('guardian.yml', 'initial-lineup.yml'):
+        raise ValueError('Unrecognized Guardian workflow')
     body = {'ref': 'main', 'inputs': {'live': False, 'use_native_policy': True, 'dispatch_id': identifier}}
-    request = Request(f'https://api.github.com/repos/{REPO}/actions/workflows/guardian.yml/dispatches', method='POST',
+    request = Request(f'https://api.github.com/repos/{REPO}/actions/workflows/{workflow}/dispatches', method='POST',
                       headers={'Authorization': 'Bearer ' + os.environ['PRIVATE_REPORT_TOKEN'], 'Content-Type': 'application/json'},
                       data=json.dumps(body).encode())
     # The durable lease owns ambiguous acceptance; do not resend this POST.
@@ -183,7 +197,8 @@ def run(dry=True, now=None):
     if claim.get('at') and timedelta(0) <= now - stamp(claim['at']) < LEASE:
         print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
         return
-    if recent_inflight(private('actions/workflows/guardian.yml/runs?per_page=10&branch=main')['workflow_runs'], now):
+    workflow = wanted.get('workflow', 'guardian.yml')
+    if recent_inflight(private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs'], now):
         print('Guardian scheduling gate: a known live check is already queued or running.')
         return
     if dry:
@@ -214,7 +229,7 @@ def run(dry=True, now=None):
         print('Guardian scheduling gate: another dispatcher owns the fresh lease.')
         return
     try:
-        dispatch('public-backup-' + str(int(now.timestamp())))
+        dispatch('public-backup-' + str(int(now.timestamp())), workflow)
     except (URLError, TimeoutError) as error:
         if isinstance(error, HTTPError) and error.code not in (408, 429, 500, 502, 503, 504):
             raise

@@ -19,6 +19,9 @@ health metadata, never private source, projections or roster-audit payloads.
 - Keep one morning health read, after 6 a.m. Eastern, for early roster warnings and
   ordinary maintenance. Actual public roster or injury changes can request work
   between morning reads, preserving FAFL IR handling and early warning behavior.
+- On the first game day, route the 6 a.m. safety check to the initial-lineup
+  worker and require its own verified receipt. Off-day native initial-lineup jobs
+  allocate no private runner after the same ownership handoff.
 - A failed background read of the same changed inputs is retried no more than
   hourly. Missing public feeds use cached future kickoff windows and a bounded
   hourly private safety check, rather than silently declaring there is no work.
@@ -54,7 +57,8 @@ enabled. GitHub cron is still best-effort, not a guaranteed independent clock SL
 
 ## Cost Account
 
-The change removes the configured 144/day private native fallback allocations.
+The change removes the configured 144/day private native fallback allocations
+and two/day native initial-lineup allocations when those checks are not due.
 Remaining precision windows imply about 263 jobs through the assumed December 1
 UTC reset, about 17.7/day. Add roughly one morning read/day, plus change-driven
 checks, outage retries and occasional races. Budget about 20/day for Guardian,
@@ -63,5 +67,5 @@ not a guaranteed ceiling.
 Public scheduling and required-check assessment add zero private Actions minutes.
 Unchanged private CHI synchronization is still scheduled 96 times/day. Including
 that configured exposure and other components, the whole system remains roughly
-124/day, not within the reported 13.3/day remaining-cycle allowance. No spending
+122-124/day, not within the reported 13.3/day remaining-cycle allowance. No spending
 increase or paid overage is authorized by this handoff.
