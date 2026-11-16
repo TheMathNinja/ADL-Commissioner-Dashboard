@@ -3,10 +3,11 @@ import sys
 import unittest
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import chi_sync_request_monitor as monitor
 from email_workflow_failures import notification_episode
+import email_workflow_failures as reporter
 
 
 class Requests(unittest.TestCase):
@@ -63,6 +64,25 @@ class Requests(unittest.TestCase):
         base='private:1:Sync private CHI Team Tools trades'
         self.assertEqual(notification_episode(base+' - request '+self.current['id'], '2026-11-16'),
                          notification_episode(base+' - request 22222222-2222-4222-8222-222222222222', '2026-11-17'))
+
+    def test_later_verified_sync_recovers_prior_request_across_midnight(self):
+        old = dict(id=1, workflow_id=1, path='.github/workflows/sync_chi_team_tools.yml',
+                   display_title='Sync private CHI Team Tools trades - request old', head_branch='main',
+                   event='workflow_dispatch', status='completed', conclusion='failure',
+                   created_at='2026-11-16T23:40:00Z', updated_at='2026-11-16T23:41:00Z')
+        later = dict(old, id=2, display_title='Sync private CHI Team Tools trades - request new',
+                     conclusion='success', created_at='2026-11-17T12:00:00Z', updated_at='2026-11-17T12:01:00Z')
+        failed = [{'name':'sync','conclusion':'failure','steps':[
+            {'name':'Read MFL and update private CHI dashboard','conclusion':'failure'},
+            {'name':'Update private Trade Analyzer team model when source inputs change','conclusion':'skipped'}]}]
+        passed = [{'name':'sync','conclusion':'success','steps':[
+            {'name':'Read MFL and update private CHI dashboard','conclusion':'success'},
+            {'name':'Record private sync completion','conclusion':'success'},
+            {'name':'Update private Trade Analyzer team model when source inputs change','conclusion':'skipped'}]}]
+        with patch.object(reporter, 'jobs', return_value=passed):
+            self.assertEqual(reporter.verified_recovery(reporter.GUARDIAN, old, failed, [later]), later)
+        later['conclusion']='failure'
+        self.assertIsNone(reporter.verified_recovery(reporter.GUARDIAN, old, failed, [later]))
 
 
 if __name__ == '__main__': unittest.main()

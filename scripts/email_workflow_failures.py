@@ -419,6 +419,8 @@ def message(repo, run, impact, failed, later_success, publication=None, later_cy
 
 def incident_key(repo, run):
     """Stable identity for repeated dispatches of the same production incident."""
+    if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml':
+        return f'{repo}:{run.get("workflow_id")}:Sync private CHI Team Tools trades'
     if run.get('_account_report'):
         return f'{repo}:{run.get("workflow_id")}:account-check:{run.get("head_branch", "")}'
     return f'{repo}:{run.get("workflow_id")}:{run.get("display_title") or run.get("name", "")}'
@@ -587,6 +589,8 @@ def recovered_inactivity_startup(repo, run, job_list, later):
 
 
 def recovery_scope(repo, run):
+    if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml':
+        return incident_key(repo, run) + ':' + run['created_at'][:4]
     if run.get('_account_report'):
         return incident_key(repo, run) + ':' + run['created_at'][:4]
     scope = incident_scope(repo, run)
@@ -644,7 +648,8 @@ def verified_recovery(repo, run, job_list, history):
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
-        required_status = BAD if run.get('_account_report') else BAD | {'skipped'}
+        private_sync = repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml'
+        required_status = BAD if run.get('_account_report') or private_sync else BAD | {'skipped'}
         affected = [j for j in job_list if j.get('conclusion') in required_status
                     and not inactive_audit_branch(repo, run, j)]
         if not job_list:
