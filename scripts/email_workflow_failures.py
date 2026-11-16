@@ -569,14 +569,25 @@ def recovery_scope(repo, run):
         parent_id, attempt, kind = parent
         scope = scope.replace(f'source {parent_id}-{attempt}-{kind}',
                               f'source {parent_id}-<attempt>-{kind}')
+    elif repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
+        kind = private_audit_kind(run)
+        if kind:
+            scope = f'{repo}:{run.get("workflow_id")}:diagnostic-audit:{kind}:' + scope.rsplit(':', 1)[-1]
     return scope
 
 
+def private_audit_kind(run):
+    if PurePosixPath(run.get('path', '')).name != 'league-audit.yml':
+        return None
+    match = re.fullmatch(r'Private league audit - (guardian|contracts) - source .+', run.get('display_title', ''))
+    return match[1] if match else None
+
+
 def inactive_audit_branch(repo, run, job):
-    parent = private_parent(run) if repo == GUARDIAN else None
-    if not parent or PurePosixPath(run.get('path', '')).name != 'league-audit.yml':
+    kind = private_audit_kind(run) if repo == GUARDIAN else None
+    if not kind:
         return False
-    unused = 'contracts' if parent[2] == 'guardian' else 'guardian-audit'
+    unused = 'contracts' if kind == 'guardian' else 'guardian-audit'
     return job.get('conclusion') == 'skipped' and job['name'] == unused
 
 

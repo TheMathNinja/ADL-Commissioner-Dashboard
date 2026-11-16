@@ -10,6 +10,27 @@ import email_workflow_failures as m
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_nov15_diagnostic_audit_recovery_ignores_labels_not_required_work(self):
+        old=dict(id=43782792510,workflow_id=123,path='.github/workflows/league-audit.yml',
+            display_title='Private league audit - contracts - source verify-recovery-43731679111',
+            event='workflow_dispatch',head_branch='main',status='completed',conclusion='failure',
+            created_at='2026-11-16T00:51:01Z',updated_at='2026-11-16T00:51:44Z',_private_report=True)
+        later=dict(old,id=43783144474,conclusion='success',created_at='2026-11-16T00:54:00Z',
+            updated_at='2026-11-16T00:55:31Z',
+            display_title='Private league audit - contracts - source verify-test-repair-43731679111')
+        step="Validate both leagues' full Live Bonus Game Watch test suites"
+        failed=[dict(name='contracts',conclusion='failure',steps=[dict(name=step,conclusion='failure')]),
+                dict(name='guardian-audit',conclusion='skipped',steps=[])]
+        passed=copy.deepcopy(failed);passed[0]['conclusion']='success';passed[0]['steps'][0]['conclusion']='success'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertEqual(m.verified_recovery(m.GUARDIAN,old,failed,[later]),later)
+            wrong=dict(later,display_title='Private league audit - guardian - source verify-test-repair')
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[wrong]))
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[dict(later,head_branch='preview')]))
+        passed[0]['steps'][0]['conclusion']='skipped'
+        with patch.object(m,'jobs',return_value=passed):
+            self.assertIsNone(m.verified_recovery(m.GUARDIAN,old,failed,[later]))
+
     def test_private_audit_recovery_across_parent_attempts(self):
         old=dict(id=43289997242,workflow_id=123,path='.github/workflows/league-audit.yml',
             display_title='Private league audit - guardian - source 43264268292-2-guardian',
