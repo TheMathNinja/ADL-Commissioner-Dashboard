@@ -857,6 +857,24 @@
       "audit_parent": "43801278899",
       "audit_attempt": 1,
       "audit_kind": "contracts"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:43193643494:1": {
+      "sent_at": "2026-11-12T11:27:04.000Z",
+      "subject": "[TheMathNinja/Chicago-Bears-Lineup-Guardian] Run failed: Refresh private CHI Team Tools forecasts - main (0d11e47)",
+      "transport": "github-native",
+      "provider_message_id": "1a1cf82e894b7020",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403728450:CHI personal forecasts - 9",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:403728450:CHI personal forecasts - 9:2026-11-12",
+      "failed_steps": [
+        "personal: Refresh personal forecasts after both league publications"
+      ],
+      "cause_codes": {
+        "personal": "5f83939f6043e5eddc8d23149e558420fbde1f441e8c93c14afa2235fda751a1"
+      },
+      "affected_jobs": {
+        "personal": "failure"
+      },
+      "failed_at": "2026-11-12T11:26:44Z"
     }
   },
   "checked": {
