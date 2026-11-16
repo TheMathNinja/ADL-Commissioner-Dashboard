@@ -53,6 +53,8 @@ jobs:
           ACTIONS_BUDGET_MONITOR: 'true'
           ACCOUNT_FAILURE_COVERAGE: ${{ vars.ACCOUNT_FAILURE_COVERAGE }}
           CHI_FORECAST_REQUEST_MONITOR: 'true'
+          CHI_SYNC_REQUEST_MONITOR: ${{ vars.CHI_SYNC_REQUEST_MONITOR }}
+          CHI_SITE_SERVICE_TOKEN: ${{ secrets.CHI_SITE_SERVICE_TOKEN }}
           WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
           ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
           ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}

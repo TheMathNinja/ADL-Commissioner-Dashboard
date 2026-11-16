@@ -499,6 +499,7 @@ def notification_episode(identity, timestamp):
     identity = re.sub(r'Daily maintenance \d+ - ', 'Daily maintenance - ', identity)
     identity = re.sub(r'(Private league audit - (?:guardian|contracts)) - source .+', r'\1', identity)
     identity = re.sub(r'(Chicago Bears (?:Lineup Guardian|Initial Lineup Safety Net)) - .+', r'\1', identity)
+    identity = re.sub(r'(Sync private CHI Team Tools trades) - request [-a-zA-Z0-9]+', r'\1', identity)
     return identity + ':' + str(timestamp)[:4]
 
 
@@ -740,6 +741,25 @@ def main():
             # Financial telemetry is not evidence that lineup protection failed.
             # Keep failure scanning and its independent health receipt available.
             print('::warning::Actions budget estimate unavailable; check GitHub billing directly')
+    if os.environ.get('CHI_SYNC_REQUEST_MONITOR') == 'true':
+        try:
+            from chi_sync_request_monitor import review as review_sync
+            def report_sync(request):
+                key = 'chi-sync-request:' + request['episode']
+                if key in state['sent']:
+                    return
+                subject = '[CHI Tools needs attention] Requested refresh did not complete'
+                body = ('Your requested private MFL/model refresh has not been verified within 25 minutes. '
+                        'CHI Tools may show cached data; please inspect it before making a decision. '
+                        'Guardian lineup protection is separate and unchanged. '
+                        'One notice per unresolved refresh episode. No roster changes were made.')
+                if not args.dry_run:
+                    mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+                    state['sent'][key] = {'subject': subject}
+                    save(state)
+            review_sync(api, datetime.now(timezone.utc), args.dry_run, report_sync)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            coverage_errors.append('Private sync request monitoring unavailable')
     private_since = os.environ.get('PRIVATE_FAILURE_REPORTING_SINCE','')
     forecast_request = None
     if os.environ.get('CHI_FORECAST_REQUEST_MONITOR') == 'true':
