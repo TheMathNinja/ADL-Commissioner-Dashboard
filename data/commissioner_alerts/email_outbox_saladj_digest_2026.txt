@@ -1,15 +1,15 @@
-SalAdj scraper scheduled: 11/15/2026 5:17 a.m. EST
+SalAdj scraper scheduled: 11/16/2026 5:17 a.m. EST
 Run type: Scheduled daily refresh
-Run started: 11/15/2026 5:19 a.m. EST
-Run completed / email prepared: 11/15/2026 5:20 a.m. EST (runtime: 0m 44s)
+Run started: 11/16/2026 5:20 a.m. EST
+Run completed / email prepared: 11/16/2026 5:21 a.m. EST (runtime: 0m 58s)
 
-SalAdj Curator published 1 new row(s) at 11/15/2026 5:20 a.m. EST.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_15_ADLSalAdjCurator.csv
+SalAdj Curator published 1 new row(s) at 11/16/2026 5:20 a.m. EST.
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_16_ADLSalAdjCurator.csv
 
 Please enter the following new salary adjustments in the Contract Admin sheet.
 
-AFC
+NFC
 ---
-- Dropped 11/14/2026 16:10:49 ET by DEN | Bradley Chubb BUF DE: $3.75 / 1 yr / 2025 ORFA1
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 16, 2026
+- Dropped 11/15/2026 09:19:59 ET by GBP | Benjamin Morrison TBB CB: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 17, 2026
 

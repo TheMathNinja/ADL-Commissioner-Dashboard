@@ -1,9 +1,17 @@
-The Commissioner Error Checker found salary-adjustment discrepancies.
+The Commissioner Error Checker found salary adjustments awaiting MFL entry before the next official cap snapshot.
 
-Error Type: Incorrect current-season ADJ total in AFC Sal Adj tab (Contract Admin Sheet)
-Contract Admin displayed total: TEN | $2.46
-MFL roster-page total: TEN | $0.00
-Discrepancy includes one or more individual entries; review the entry-level findings in this report.
-Required: Resolve the individual-entry differences listed elsewhere in this report before changing the summary total.
+Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin displayed total: DET | $32.87
+MFL roster-page total: DET | $31.31
+Pending Contract Admin rows: T. McKee ($1.56; NFC Sal Adj row 154)
+Explanation: The $1.56 difference is fully explained by rows whose ENTD? field is not marked.
+Required: Enter the pending DET adjustment(s) in MFL before the next official cap snapshot: T. McKee ($1.56; NFC Sal Adj row 154). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
+
+Status: Pending MFL entries from NFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin displayed total: ATL | $119.73
+MFL roster-page total: ATL | $103.66
+Pending Contract Admin rows: J. Fields ($16.07; NFC Sal Adj row 153)
+Explanation: The $16.07 difference is fully explained by rows whose ENTD? field is not marked.
+Required: Enter the pending ATL adjustment(s) in MFL before the next official cap snapshot: J. Fields ($16.07; NFC Sal Adj row 153). After confirming the MFL entries, mark those Contract Admin rows ENTD?.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
