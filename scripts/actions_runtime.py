@@ -37,7 +37,8 @@ def job_minutes(jobs):
             raise ValueError('Unrecognized hosted runner class')
         # Express mixed-OS usage in standard Linux-minute equivalents.
         rate = 0.062 if 'macos' in labels else 0.010 if 'windows' in labels else (
-            0.002 if 'ubuntu-slim' in labels else 0.005 if 'arm64' in labels else 0.006)
+            0.002 if 'ubuntu-slim' in labels else 0.005 if any(
+                marker in labels for marker in ('arm64', 'aarch64', '-arm')) else 0.006)
         seconds = (stamp(job['completed_at']) - stamp(job['started_at'])).total_seconds()
         if seconds < 0:
             raise ValueError('Negative job duration')

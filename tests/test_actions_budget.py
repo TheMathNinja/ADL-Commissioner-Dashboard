@@ -190,6 +190,8 @@ class BudgetTests(unittest.TestCase):
                    started_at='2026-11-17T00:00:00Z', completed_at='2026-11-17T00:01:01Z')
         self.assertEqual(runtime.job_minutes([job, job]), 4)
         self.assertEqual(runtime.job_minutes([dict(job, runner_id=0)]), 0)
+        self.assertAlmostEqual(runtime.job_minutes([dict(job, labels=['ubuntu-24.04-arm'])]), 2 * 5 / 6)
+        self.assertAlmostEqual(runtime.job_minutes([dict(job, labels=['ubuntu-slim'])]), 2 / 3)
         with self.assertRaises(ValueError):
             runtime.job_minutes([dict(job, labels=['unknown'])])
 
