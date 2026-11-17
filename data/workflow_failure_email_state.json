@@ -986,6 +986,9 @@
       "cause_codes": {},
       "affected_jobs": {},
       "failed_at": "2026-11-17T05:36:24Z"
+    },
+    "mfl-potential-warning:ee3649b41f66748d8c08581eef46fda1bbc656d16044cdc5636bb0c81ea18a11": {
+      "subject": "[ADL warning] MFL potential points below actual points"
     }
   },
   "checked": {
