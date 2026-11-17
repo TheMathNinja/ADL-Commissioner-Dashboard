@@ -4356,7 +4356,11 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44023893815:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:44021757262:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
     "TheMathNinja/ADL-Commissioner-Dashboard:44022135205:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
-    "TheMathNinja/ADL-Commissioner-Dashboard:44022354973:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314"
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022354973:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022483978:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022488202:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022490731:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022564815:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023812314"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -4614,6 +4618,26 @@
         "Roll Live Bonus Game Watch to the upcoming week": "skipped"
       },
       "failed_at": "2026-11-17T05:07:46Z"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:44022410030:1": {
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:374900494:account-check:main",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:374900494:account-check:main:2026-11-17",
+      "failed_steps": [
+        "build: Pull ghcr.io/actions/jekyll-build-pages:v1.0.13",
+        "report-build-status: cancelled",
+        "deploy: cancelled"
+      ],
+      "cause_codes": {
+        "build": "unclassified",
+        "report-build-status": "unclassified",
+        "deploy": "unclassified"
+      },
+      "affected_jobs": {
+        "build": "cancelled",
+        "report-build-status": "cancelled",
+        "deploy": "cancelled"
+      },
+      "failed_at": "2026-11-17T05:12:23Z"
     }
   },
   "delivery_receipts": {
@@ -4701,6 +4725,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-17T05:23:32.800916+00:00",
       "accepted_at": "2026-11-17T05:23:36.077595+00:00"
+    },
+    "failure:TheMathNinja/FAFL-GM-Dashboard:44022410030:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-17T05:28:55.897391+00:00"
     }
   },
   "healthyAt": "2026-11-17T05:27:23.917220+00:00",
@@ -4731,6 +4759,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-17T05:26:24.482306+00:00"
+    "checkedAt": "2026-11-17T05:28:01.015544+00:00"
   }
 }
