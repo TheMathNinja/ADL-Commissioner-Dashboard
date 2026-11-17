@@ -215,8 +215,9 @@
   },
   "delivery_receipts": {
     "preliminary:FAFL-44020402398": {
-      "status": "sending",
-      "attempted_at": "2026-11-17T05:12:44.297767+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-17T05:12:44.297767+00:00",
+      "accepted_at": "2026-11-17T05:12:46.273920+00:00"
     }
   }
 }
