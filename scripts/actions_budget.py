@@ -19,9 +19,19 @@ ALLOWANCE = 2000
 PLAN_PATH = Path(__file__).resolve().parents[1] / 'contracts/actions_budget_plan.json'
 
 
-def configured_projection(now, schedules, plan=None):
+def configured_projection(now, schedules, plan=None, measurements=None):
     """Forward schedule model, independent of expensive historical job averages."""
     plan = plan or json.loads(PLAN_PATH.read_text())
+    measurements = measurements or {}
+    assumptions = []
+    def cost(workflow, fallback):
+        measured = measurements.get(workflow, {}).get('meanRoundedMinutes')
+        if measured is None:
+            assumptions.append(workflow)
+            return fallback
+        if not math.isfinite(measured) or measured <= 0:
+            raise ValueError('Invalid measured job cost')
+        return measured
     if tuple(plan['checkpointOffsetsMinutes']) != CHECK_OFFSETS_MINUTES:
         raise ValueError('Budget plan and Guardian checkpoints disagree')
     zone = ZoneInfo(plan['resetTimezoneAssumption'])
@@ -38,24 +48,38 @@ def configured_projection(now, schedules, plan=None):
         if day.weekday() == plan['weeklyAuditWeekday']:
             audit_dates.append(day.isoformat())
         day += timedelta(days=1)
-    components = {'preKickoff': len(slots) * plan['minutesPerCheckpointJob'],
-                  'weeklyCloudAudits': len(audit_dates) * plan['minutesPerWeeklyAudit']}
+    checkpoint_cost = cost('guardian.yml', plan['minutesPerCheckpointJob'])
+    audit_cost = (cost('league-audit.yml:contracts', 1) + cost('league-audit.yml:guardian', 2))
+    components = {'preKickoff': len(slots) * checkpoint_cost,
+                  'weeklyCloudAudits': len(audit_dates) * audit_cost}
     for name, settings in plan['dailyScheduledComponents'].items():
         scheduled = local.replace(hour=settings['hourEastern'], minute=0, second=0, microsecond=0)
         count = 0
         while scheduled < reset:
             count += scheduled >= now
             scheduled += timedelta(days=1)
-        components[name] = count * math.ceil(settings['minutesPerJob'])
+        workflow = {'morningProtection': 'initial-lineup.yml', 'chiSync': 'sync_chi_team_tools.yml'}[name]
+        components[name] = count * cost(workflow, settings['minutesPerJob'])
     components.update({name: math.ceil(days * rate) for name, rate in plan['dailyAllowances'].items()})
+    # Requests are demand-driven. Observed current-code demand may raise, never
+    # erase, the explicit reserve when the short observation window is quiet.
+    forecast = measurements.get('refresh_chi_team_tools.yml', {})
+    observations = forecast.get('observations', [])
+    if observations and forecast.get('meanRoundedMinutes'):
+        span = max(1, min(14, (now - min(stamp(row['createdAt']) for row in observations)).total_seconds() / 86400))
+        components['forecastRequestsAndInspections'] = max(
+            components['forecastRequestsAndInspections'],
+            math.ceil(days * len(observations) / span * forecast['meanRoundedMinutes']))
     total = sum(components.values())
     return {'version': plan['version'], 'source': 'configured checkpoints and explicit planning allowances; not a cap',
             'resetAtAssumed': reset.isoformat(), 'daysRemaining': round(days, 2),
             'checkpointOffsetsMinutes': list(CHECK_OFFSETS_MINUTES), 'checkpointJobsRemaining': len(slots),
-            'minutesPerCheckpointJob': plan['minutesPerCheckpointJob'],
+            'minutesPerCheckpointJob': checkpoint_cost,
             'componentsThroughReset': components, 'minutesThroughReset': total,
             'projectedDailyMinutes': round(total / max(days, 1), 2),
-            'weeklyAuditDates': audit_dates, 'additionalDemandExcluded': True}
+            'weeklyAuditDates': audit_dates, 'additionalDemandExcluded': True,
+            'unmeasuredScheduledWorkflows': assumptions,
+            'runtimeBasis': 'current-software rounded job means, with explicit fallback allowances'}
 
 
 def upcoming_kickoffs(api, now):
@@ -157,12 +181,46 @@ def review(api, now, dry=False):
         original = {'sha': None}
     prior = decode(original) if original.get('sha') else {}
     plan = json.loads(PLAN_PATH.read_text())
-    if (prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=24)
+    retry_hours = 24 if prior.get('billing', {}).get('status') == 'verified' else 0.5
+    if (prior.get('schemaVersion') == 2 and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
             and prior.get('planProjection', {}).get('version') == plan['version']):
         return prior
-    import os
-    projection = configured_projection(now, upcoming_kickoffs(api, now), plan)
-    value = collect(api, now, os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1', prior, projection)
+    from actions_billing import read, BillingUnavailable
+    from actions_runtime import measure
+    try:
+        billing = read(api, now)
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+        billing = {'status': 'unavailable', 'checkedAt': now.isoformat(),
+                   'reason': str(error) if isinstance(error, BillingUnavailable) else 'billing_read_unavailable'}
+        previous = prior.get('billing', {})
+        billing['firstUnavailableAt'] = previous.get('firstUnavailableAt', now.isoformat())
+        last = previous if previous.get('status') == 'verified' else previous.get('lastVerified')
+        if last:
+            billing['lastVerified'] = last
+    try:
+        measurements = measure(api, now, prior)
+        runtime_status = 'available'
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+        measurements = {}
+        runtime_status = 'unavailable'
+    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements)
+    verified = billing['status'] == 'verified'
+    used = billing['usedLinuxEquivalentMinutes'] if verified else None
+    allowance = billing['includedMinutes'] if verified else ALLOWANCE
+    remaining = billing['remainingLinuxEquivalentMinutes'] if verified else None
+    value = {'schemaVersion': 2, 'checkedAt': now.isoformat(), 'month': now.strftime('%Y-%m'),
+             'source': 'GitHub billing baseline plus measured-runtime forward estimate; not an invoice',
+             'billing': billing, 'runtimeStatus': runtime_status, 'runtimeMeasurements': measurements,
+             'allowance': allowance, 'target': allowance * 0.75, 'estimatedUsed': used,
+             'remainingMinutes': remaining, 'planProjection': projection,
+             'daysRemaining': projection['daysRemaining'],
+             'projectedDailyMinutes': projection['projectedDailyMinutes'],
+             'availableDailyMinutes': round(remaining / max(projection['daysRemaining'], 1), 2) if verified else None,
+             'projectedMonthEnd': round(used + projection['minutesThroughReset'], 2) if verified else None,
+             'forecastVerified': verified and not projection['unmeasuredScheduledWorkflows']
+                                 and not billing.get('nonstandardComputeUSD')}
+    print('Actions budget: billing ' + billing['status'] + '; runtime evidence ' + runtime_status +
+          '; financial details retained privately')
     if not dry:
         persist(PATH, original, value)
     return value
