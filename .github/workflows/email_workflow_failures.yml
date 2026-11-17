@@ -18,7 +18,8 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: league-failure-emails
+  # Read-only previews must not displace the pending production reporter.
+  group: ${{ inputs.dry_run == true && 'league-failure-emails-preview' || 'league-failure-emails' }}
   cancel-in-progress: false
 jobs:
   report:
