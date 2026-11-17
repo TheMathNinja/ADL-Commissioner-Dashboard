@@ -548,6 +548,8 @@ def entry_recovered(repo, run, entry, history):
             continue
         if unverified_forecast_queue(repo, candidate, completed):
             continue
+        if not guardian_live_recovery(repo, run, candidate, completed):
+            continue
         full_recovery = (completed and len(passed) == len(completed) and all(
             any(s.get('conclusion') == 'success' and s['name'] not in {'Set up job','Complete job'}
                 for s in j.get('steps', [])) for j in completed))
@@ -595,6 +597,9 @@ def recovery_scope(repo, run):
     if run.get('_account_report'):
         return incident_key(repo, run) + ':' + run['created_at'][:4]
     scope = incident_scope(repo, run)
+    if repo == GUARDIAN and guardian_operational_run(run):
+        # Dispatch nonces identify attempts, not distinct protection services.
+        scope = f'{repo}:{run.get("workflow_id")}:guardian-worker:{PurePosixPath(run["path"]).name}:' + scope.rsplit(':', 1)[1]
     if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'league-audit.yml':
         kind = private_audit_kind(run)
         if kind:
@@ -602,6 +607,47 @@ def recovery_scope(repo, run):
             # successful job/step evidence is still required by verified_recovery.
             scope = f'{repo}:{run.get("workflow_id")}:readiness-audit:{kind}:' + run['created_at'][:4]
     return scope
+
+
+def guardian_operational_run(run):
+    filename = PurePosixPath(run.get('path', '')).name
+    title = {'guardian.yml': 'Chicago Bears Lineup Guardian',
+             'initial-lineup.yml': 'Chicago Bears Initial Lineup Safety Net'}.get(filename)
+    if not title:
+        return False
+    return bool(re.fullmatch(re.escape(title) + r'(?: - (?:public-backup-\d+|gas-\d{8}-\d{6}-[a-z-]+))?',
+                             run.get('display_title') or ''))
+
+
+def guardian_live_recovery(repo, run, candidate, completed):
+    if repo != GUARDIAN or not guardian_operational_run(run):
+        return True
+    if not guardian_operational_run(candidate):
+        return False
+    required = {'Run npm run check', 'Send private Guardian notifications', 'Preserve notification delivery receipts'}
+    return any(job.get('conclusion') == 'success' and required <= {
+        step['name'] for step in job.get('steps', []) if step.get('conclusion') == 'success'} for job in completed)
+
+
+def reconcile_guardian_delivery(repo, run, history, entry):
+    """Close an already-delivered outage only from verified real-check evidence."""
+    if (repo != GUARDIAN or not guardian_operational_run(run) or entry.get('resolved_at')
+            or run.get('conclusion') not in BAD):
+        return False
+    candidates = [later for later in history if later.get('status') == 'completed'
+                  and later.get('conclusion') == 'success'
+                  and later.get('updated_at', '') > run['updated_at']
+                  and recovery_scope(repo, later) == recovery_scope(repo, run)]
+    if not candidates:
+        return False
+    try:
+        recovery = verified_recovery(repo, run, jobs(repo, run), candidates)
+    except (OSError, RuntimeError, ValueError, KeyError):
+        return False  # Leave the delivered incident unresolved when evidence is unavailable.
+    if not recovery:
+        return False
+    entry.update(resolved_at=recovery['updated_at'], recovery_url=recovery['html_url'])
+    return True
 
 
 def private_audit_kind(run):
@@ -671,6 +717,12 @@ def verified_recovery(repo, run, job_list, history):
             if not deployed_pages_replacement(repo, run, later, completed):
                 continue
         elif not retry and later.get('created_at', '') <= run.get('updated_at', ''):
+            unstarted_backup = (repo == GUARDIAN and guardian_operational_run(run)
+                and run.get('conclusion') == 'cancelled' and all(
+                    not job.get('runner_id') and not job.get('steps') for job in job_list))
+            if not unstarted_backup or later.get('created_at', '') <= run.get('created_at', ''):
+                continue
+        if not guardian_live_recovery(repo, run, later, completed):
             continue
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
@@ -887,7 +939,12 @@ def main():
             # Inspect earlier attempts; suppress only evidence-backed recoveries.
             for attempt in range(1, latest.get('run_attempt', 1) + 1):
                 key = f'{repo}:{latest["id"]}:{attempt}'
-                if key in state['sent'] or key in state['checked']:
+                if key in state['checked']:
+                    continue
+                if key in state['sent']:
+                    if repo == GUARDIAN and guardian_operational_run(latest) and not state['sent'][key].get('resolved_at'):
+                        sent_run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
+                        reconcile_guardian_delivery(repo, sent_run, history, state['sent'][key])
                     continue
                 run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
                 if repo == GUARDIAN:

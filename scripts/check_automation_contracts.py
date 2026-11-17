@@ -130,6 +130,28 @@ def function_signatures(path: Path) -> dict[str, tuple]:
     return signatures
 
 
+def guardian_diagnostic_steps_guarded(source: str) -> bool:
+    """Only the explicitly read-only path may bypass live-write serialization."""
+    jobs = source.split('\njobs:', 1)[-1]
+    if re.findall(r'^  ([\w-]+):\s*$', jobs, re.MULTILINE) != ['guardian']:
+        return False
+    steps = re.split(r'(?=^      - )', jobs, flags=re.MULTILINE)[1:]
+    configured = False
+    for step in steps:
+        if re.search(r'^      - name: Check configuration\s*$', step, re.MULTILINE):
+            first_branch = step.split('elif', 1)[0]
+            configured = ('if [[ "${{ inputs.verify_test_cache }}" == "true" ]]; then' in first_branch
+                          and 'echo "ready=false"' in first_branch)
+            continue
+        if re.search(r'uses: (?:actions/(?:checkout|setup-node)@|\./\.github/actions/verified-guardian-tests\s*$)', step, re.MULTILINE):
+            continue
+        guard = re.search(r'^(?:        |      - )if: (.+)$', step, re.MULTILINE)
+        if not guard or guard[1] not in ("steps.configured.outputs.ready == 'true'",
+                "always() && steps.configured.outputs.ready == 'true'", 'always() && !inputs.verify_test_cache'):
+            return False
+    return configured
+
+
 def guardian_collision_errors(sources: dict[str, str]) -> list[str]:
     errors = []
     for workflow, source in sources.items():
@@ -139,7 +161,10 @@ def guardian_collision_errors(sources: dict[str, str]) -> list[str]:
         retired_guard = "!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))"
         safe_retired_wakeup = (workflow == 'guardian.yml' and retired_group in settings.splitlines()
                                and retired_guard in source)
-        if not safe_retired_wakeup and not re.search(r"^  group: lineup-guardian-writes\s*$", settings, re.MULTILINE):
+        diagnostic_group = retired_group.replace('${{ ', "${{ inputs.verify_test_cache && format('guardian-readonly-{0}', github.run_id) || ", 1)
+        safe_diagnostic = (workflow == 'guardian.yml' and diagnostic_group in settings.splitlines()
+                           and retired_guard in source and guardian_diagnostic_steps_guarded(source))
+        if not safe_retired_wakeup and not safe_diagnostic and not re.search(r"^  group: lineup-guardian-writes\s*$", settings, re.MULTILINE):
             errors.append(f"Lineup Guardian {workflow} must share the lineup-guardian-writes concurrency group")
         if not re.search(r"^  cancel-in-progress: false\s*$", settings, re.MULTILINE):
             errors.append(f"Lineup Guardian {workflow} must not cancel an in-progress roster/lineup write")
