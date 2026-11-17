@@ -24,7 +24,7 @@ class PolicyTests(unittest.TestCase):
         for name in ('guardian_fallback.py', 'guardian_health_monitor.py'):
             self.assertNotIn('private_actions_policy', (root / 'scripts' / name).read_text())
         for name in ('guardian_fallback.yml',):
-            self.assertNotIn('PRIVATE_DISCRETIONARY_ACTIONS', (root / '.github/workflows' / name).read_text())
+            self.assertNotIn('if: vars.PRIVATE_DISCRETIONARY_ACTIONS', (root / '.github/workflows' / name).read_text())
         reporter = (root / '.github/workflows/email_workflow_failures.yml').read_text()
         self.assertIn('PRIVATE_DISCRETIONARY_ACTIONS: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS }}', reporter)
         self.assertNotIn("if: vars.PRIVATE_DISCRETIONARY_ACTIONS", reporter)

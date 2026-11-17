@@ -27,6 +27,28 @@ def fixtures(now=NOW, kickoff=None):
 
 
 class SchedulingTests(unittest.TestCase):
+    def test_coalescing_never_suppresses_required_windows_mornings_or_pending_work(self):
+        with patch.dict(gate.os.environ, {'GUARDIAN_COALESCE_BACKGROUND': 'true'}):
+            ledger, coverage, observed = fixtures()
+            observed['FAFL'] = (observed['FAFL'][0], 'b' * 64)
+            self.assertIsNone(gate.decision(ledger, coverage, {}, observed, NOW))
+            self.assertIsNone(gate.decision(ledger, coverage, {}, {}, NOW))
+            for before in (75, 45, 15):
+                kickoff = NOW + timedelta(minutes=before)
+                ledger, coverage, observed = fixtures(NOW, kickoff)
+                ledger['checks'] = []
+                self.assertEqual(gate.decision(ledger, coverage, {}, observed, NOW)['reason'], 'required_window')
+                self.assertEqual(len(assess([], coverage['schedules'], kickoff - timedelta(minutes=5), NOW - timedelta(hours=1))), 2)
+            morning = datetime(2026, 11, 18, 11, tzinfo=timezone.utc)
+            ledger, coverage, observed = fixtures(morning)
+            ledger['checks'] = []
+            self.assertEqual(gate.decision(ledger, coverage, {}, observed, morning)['reason'], 'morning_health')
+            first = datetime(2026, 11, 19, 11, tzinfo=timezone.utc)
+            ledger, coverage, observed = fixtures(first, first + timedelta(hours=14))
+            self.assertEqual(gate.decision(ledger, coverage, {}, observed, first)['reason'], 'initial_safety')
+            ledger, coverage, observed = fixtures()
+            ledger['publicInputs']['FAFL']['nextCheckAt'] = (NOW - timedelta(minutes=1)).isoformat()
+            self.assertEqual(gate.decision(ledger, coverage, {}, observed, NOW)['reason'], 'pending_private_work')
     def test_three_slot_dispatch_preserves_backup_and_suppresses_intermediate_duplicates(self):
         kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
         start = kickoff - timedelta(minutes=90)

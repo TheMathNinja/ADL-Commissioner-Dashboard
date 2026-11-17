@@ -138,6 +138,10 @@ def decision(ledger, coverage, dispatch_state, observations, now):
     daily_reads = [c for c in ledger['checks'] if morning <= stamp(c['checkedAt']).astimezone(ET) <= local]
     if 6 <= local.hour < 18 and any(not any(c['league'] == key for c in daily_reads) for key in ('ADL', 'FAFL')):
         return {'reason': 'morning_health', 'key': 'daily:' + str(local.date())}
+    if os.environ.get('GUARDIAN_COALESCE_BACKGROUND') == 'true':
+        # Free clocks still observe inputs. Required slots, morning safety and
+        # pending private work above retain priority; only off-hours wakeups wait.
+        return None
     if changed:
         identity = hashlib.sha256(json.dumps(sorted(changed), separators=(',', ':')).encode()).hexdigest()
         previous = dispatch_state.get('background', {})

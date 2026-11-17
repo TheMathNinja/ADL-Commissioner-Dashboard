@@ -40,3 +40,10 @@ after a private compatibility probe and startup-latency check. Its documented
 price is five-sixths of the standard x64 price per rounded minute. A failed real
 check is eligible for the existing independent dispatch on standard x64; this
 does not change native write permissions or serialize writes differently.
+
+During the hold, both public clocks coalesce off-hours input-change and degraded
+feed wakeups into the daily safety assessment. They continue observing feeds and
+cached schedules for free. Kickoff windows, first-game safety, morning checks,
+and pending private acquisition work are evaluated before this coalescing rule.
+Missed-check assessment remains independent and never treats a deferred wakeup
+as a verified check.

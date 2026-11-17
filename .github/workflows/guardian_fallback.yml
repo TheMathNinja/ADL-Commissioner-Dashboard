@@ -26,6 +26,7 @@ jobs:
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           DISPATCH_OWNER: ${{ vars.GUARDIAN_NATIVE_FALLBACK }}
           GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}
+          GUARDIAN_COALESCE_BACKGROUND: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS == 'paused' && 'true' || 'false' }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=()
