@@ -73,8 +73,7 @@ def read(repository_api, now, fetch=None):
             continue
         sku = str(row.get('sku', '')).lower().replace(' ', '_').replace('-', '_')
         if sku not in STANDARD_SKUS:
-            nonstandard += gross
-            continue
+            raise BillingUnavailable('billing_compute_sku_not_verified')
         repository = row.get('repositoryName')
         if not isinstance(repository, str) or not repository:
             raise BillingUnavailable('billing_repository_evidence_missing')
