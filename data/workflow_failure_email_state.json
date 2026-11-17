@@ -4315,7 +4315,9 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44021473692:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44022761700",
     "TheMathNinja/ADL-Commissioner-Dashboard:44021481792:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44022761700",
     "TheMathNinja/ADL-GM-Dashboard:44023299801:1": "success",
-    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44023291446:1": "skipped"
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44023291446:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44021761726:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023579799",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44021939173:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44023579799"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -4554,6 +4556,25 @@
         "guardian-audit": "skipped"
       },
       "failed_at": "2026-11-16T03:59:13Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44020940268:1": {
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Preliminary ADL weekly update \u00b7 Week 10 \u00b7 831f7315567cc833445d2c292a62188eafe9fe8ec19fb4bc485bc55ca4aba62d",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:Preliminary ADL weekly update \u00b7 Week 10 \u00b7 831f7315567cc833445d2c292a62188eafe9fe8ec19fb4bc485bc55ca4aba62d:2026-11-16",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication",
+        "refresh: Require official cap snapshot for preliminary weekly publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Request weekly completion email": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped"
+      },
+      "failed_at": "2026-11-17T05:07:46Z"
     }
   },
   "delivery_receipts": {
@@ -4636,6 +4657,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-16T04:18:37.307046+00:00",
       "accepted_at": "2026-11-16T04:18:39.788593+00:00"
+    },
+    "failure:TheMathNinja/ADL-GM-Dashboard:44020940268:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-17T05:23:32.800916+00:00"
     }
   },
   "healthyAt": "2026-11-17T05:21:51.109897+00:00",
@@ -4666,6 +4691,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-17T05:20:53.330276+00:00"
+    "checkedAt": "2026-11-17T05:22:39.411599+00:00"
   }
 }
