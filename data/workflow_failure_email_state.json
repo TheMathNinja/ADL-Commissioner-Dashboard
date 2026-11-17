@@ -4727,8 +4727,9 @@
       "accepted_at": "2026-11-17T05:23:36.077595+00:00"
     },
     "failure:TheMathNinja/FAFL-GM-Dashboard:44022410030:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-17T05:28:55.897391+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-17T05:28:55.897391+00:00",
+      "accepted_at": "2026-11-17T05:28:58.057432+00:00"
     }
   },
   "healthyAt": "2026-11-17T05:27:23.917220+00:00",
