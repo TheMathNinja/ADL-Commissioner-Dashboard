@@ -735,14 +735,29 @@ def main():
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
         try:
             from actions_budget import review
+            from guardian_health_monitor import stamp
             budget = review(api, datetime.now(timezone.utc), dry=args.dry_run)
-            if budget['projectedMonthEnd'] > budget['target']:
+            unavailable_since = budget.get('billing', {}).get('firstUnavailableAt')
+            if unavailable_since and datetime.now(timezone.utc) - stamp(unavailable_since) >= timedelta(hours=6):
+                key = 'actions-budget-access:' + unavailable_since
+                subject = '[League automation] Budget billing access needs attention'
+                body = ('The budget monitor has been unable to verify GitHub billing for at least six hours. '
+                        'Please check the ACTIONS_BILLING_TOKEN expiry and Plan read permission, and review GitHub billing manually. '
+                        'No balance is being reported as current. Guardian protection and missed-check alerts are unchanged. '
+                        'One notice for this unresolved access issue.')
+                if not args.dry_run and key not in state['sent']:
+                    mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+                    state['sent'][key] = {'subject': subject}
+                    save(state)
+            if budget.get('projectedMonthEnd') is not None and budget['projectedMonthEnd'] > budget['target']:
                 key = 'actions-budget:' + budget['month']
                 subject = '[League automation] Actions budget needs attention'
-                body = ('Estimated Actions usage is above the reserved monthly target.\n'
-                        f'Estimated used: {budget["estimatedUsed"]} / {budget["allowance"]} minutes.\n'
+                body = ('Actions usage is above the reserved monthly target.\n'
+                        f'Billing API usage: {budget["estimatedUsed"]} / {budget["allowance"]} Linux-equivalent minutes.\n'
+                        f'Billing checked: {budget["billing"]["checkedAt"]}; GitHub reporting may lag.\n'
                         f'Projected month end: {budget["projectedMonthEnd"]} minutes.\n'
-                        'This is sampled job timing, not GitHub billing; check the billing dashboard.\n'
+                        f'Unmeasured scheduled workflows: {len(budget["planProjection"]["unmeasuredScheduledWorkflows"])}.\n'
+                        'The forward estimate uses measured rounded runtimes where available and explicit reserves otherwise; additional demand can increase it.\n'
                         'No spending limit or lineup protection was changed. One notice per billing month.')
                 if not args.dry_run and key not in state['sent']:
                     mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
