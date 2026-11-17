@@ -23,7 +23,7 @@ def main():
               'test_alert_transport.py', 'test_weekly_completion_email.py',
               'test_gotw_blurbs.py', 'test_guardian_incidents.py',
               'test_guardian_health_monitor.py', 'test_guardian_check_policy.py', 'test_actions_budget.py',
-              'test_forecast_request_monitor.py', 'test_chi_sync_request_monitor.py', 'test_private_audit_cache.py', 'test_guardian_fallback.py')
+              'test_forecast_request_monitor.py', 'test_chi_sync_request_monitor.py', 'test_private_audit_cache.py', 'test_private_actions_policy.py', 'test_guardian_fallback.py')
     for suite in suites:
         subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', suite],
                        cwd=commissioner, env=test_env, check=True)

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "checkpointOffsetsMinutes": [75, 45, 15],
   "minutesPerCheckpointJob": 1,
   "resetTimezoneAssumption": "America/New_York",
@@ -10,9 +10,9 @@
     "chiSync": {"hourEastern": 6, "minutesPerJob": 1}
   },
   "dailyAllowances": {
-    "forecastRequestsAndInspections": 2.3,
-    "additionalUpgradePreflights": 0.25,
-    "changesRetriesAndColdTestRuns": 1
+    "forecastRequestsAndInspections": 8,
+    "additionalUpgradePreflights": 4,
+    "changesRetriesAndColdTestRuns": 3
   },
   "notes": "Planning allowances, not enforced caps. Additional owner refreshes, upgrades, outages and slower jobs can exceed these estimates. Keep private data and formulas private."
 }

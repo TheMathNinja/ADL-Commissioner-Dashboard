@@ -67,6 +67,23 @@ def load():
     return json.loads(base64.b64decode(original['content'])), original['sha']
 
 
+def existing(audit, digest):
+    """Reuse an identical live/successful run, including after a lost receipt write."""
+    suffix = ' - inputs ' + digest
+    prefix = 'Private league audit - ' + audit + ' - source '
+    now = datetime.now(timezone.utc)
+    response = api(f'repos/{PRIVATE}/actions/workflows/league-audit.yml/runs?per_page=100&branch=main')
+    for run in response['workflow_runs']:
+        title = run.get('display_title', '')
+        age = (now - datetime.fromisoformat(run['created_at'].replace('Z', '+00:00'))).total_seconds()
+        if (run.get('event') != 'workflow_dispatch' or not title.startswith(prefix)
+                or not title.endswith(suffix) or not 0 <= age < 86400):
+            continue
+        if run.get('status') != 'completed' or run.get('conclusion') == 'success':
+            return run
+    return None
+
+
 def reusable(receipt, digest, now):
     try:
         finished = datetime.fromisoformat(receipt['completedAt'].replace('Z', '+00:00'))

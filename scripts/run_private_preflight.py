@@ -17,10 +17,14 @@ def read_state(run_id, allow_missing):
         raise
     return json.loads(output)
 def run(audit, use_cache=False):
+    import private_audit_cache as cache
+    from private_actions_policy import paused
+    if paused(lambda repo, path: cache.api('repos/' + repo + '/' + path)):
+        print('Private cloud audit deferred for budget conservation; this is not a passing audit receipt. The full local publication gate remains mandatory.')
+        return
     revisions = {}; digest = None
     if use_cache:
         from datetime import datetime, timezone
-        import private_audit_cache as cache
         revisions,digest=cache.inputs()
         saved,_=cache.load()
         receipt=saved.get(audit,{})
@@ -29,9 +33,11 @@ def run(audit, use_cache=False):
             if verified and verified.get('status')=='completed' and verified.get('conclusion')=='success':
                 print('Reused a verified private '+audit+' audit of identical inputs (less than 24 hours old).');return
     correlation=os.environ['GITHUB_RUN_ID']+'-'+os.environ.get('GITHUB_RUN_ATTEMPT','1')+'-'+audit
+    existing = cache.existing(audit, digest) if digest else None
     command=['gh','workflow','run','league-audit.yml','--repo',REPO,'-f','audit='+audit,'-f','source_run_id='+correlation]
     if revisions:command+=['-f','repository_revisions='+json.dumps(revisions,separators=(',',':'))]
-    output=subprocess.check_output(command,text=True,timeout=45)
+    if digest:command+=['-f','audit_fingerprint='+digest]
+    output = ('https://github.com/'+REPO+'/actions/runs/'+str(existing['id'])) if existing else subprocess.check_output(command,text=True,timeout=45)
     match=re.search(r'https://github\.com/'+re.escape(REPO)+r'/actions/runs/(\d+)',output)
     if not match:raise RuntimeError('Private audit was dispatched but its run ID could not be confirmed; inspect the private workflow before retrying')
     run_id=match[1];url=match[0];print('Private audit: '+url,flush=True)

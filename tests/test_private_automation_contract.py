@@ -11,6 +11,9 @@ from unittest.mock import patch
 import run_private_preflight as preflight
 
 class PrivateAuditPolling(unittest.TestCase):
+ def setUp(self):
+  policy=patch('private_actions_policy.paused',return_value=False)
+  policy.start();self.addCleanup(policy.stop)
  def test_retired_wakeup_exception_cannot_break_actual_write_serialization(self):
   group="  group: ${{ vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-') && format('retired-gas-{0}', github.run_id) || 'lineup-guardian-writes' }}"
   guard="!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))"

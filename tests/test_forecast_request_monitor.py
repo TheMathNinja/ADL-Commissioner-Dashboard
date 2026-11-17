@@ -16,6 +16,10 @@ def state():
 
 
 class MonitorTests(unittest.TestCase):
+    def setUp(self):
+        policy = patch.object(monitor, 'paused', return_value=False)
+        policy.start()
+        self.addCleanup(policy.stop)
     def test_successful_queue_does_not_claim_forecast_recovery(self):
         import email_workflow_failures as reporter
         run = {'path': '.github/workflows/refresh_chi_team_tools.yml'}
@@ -30,7 +34,8 @@ class MonitorTests(unittest.TestCase):
         self.assertFalse(monitor.problem(value, NOW + timedelta(minutes=10)))
 
     def test_pending_is_not_completion_or_premature_failure(self):
-        self.assertFalse(monitor.problem(state(), NOW + timedelta(minutes=105)))
+        self.assertFalse(monitor.problem(state(), NOW + timedelta(minutes=104)))
+        self.assertTrue(monitor.problem(state(), NOW + timedelta(minutes=105)))
         self.assertTrue(monitor.problem(dict(state(), status='attention'), NOW))
         self.assertFalse(monitor.problem(dict(state(), status='verified'), NOW + timedelta(days=1)))
 
@@ -51,6 +56,15 @@ class MonitorTests(unittest.TestCase):
     def test_malformed_identity_cannot_dispatch(self):
         with self.assertRaises(RuntimeError):
             monitor.validate(dict(state(), signature='unexpected'))
+
+    def test_conservation_never_claims_completion_or_hides_missed_deadline(self):
+        report = Mock()
+        with patch.object(monitor, 'paused', return_value=True), patch.object(monitor, 'read', return_value=(state(), {'sha': 'x'})), patch.object(monitor, 'persist') as persist, patch.object(monitor, 'dispatch') as dispatch:
+            result = monitor.review(Mock(), NOW + timedelta(minutes=106), False, report)
+        self.assertEqual(result['status'], 'pending')
+        report.assert_called_once()
+        persist.assert_not_called()
+        dispatch.assert_not_called()
 
 
 if __name__ == '__main__':

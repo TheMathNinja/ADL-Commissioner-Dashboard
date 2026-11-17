@@ -6,6 +6,7 @@ from datetime import timedelta
 from urllib.request import Request, urlopen
 
 from guardian_health_monitor import REPO, stamp
+from private_actions_policy import paused
 
 URL = 'https://chi-team-tools.fili-mikey.chatgpt.site/api/chi-sync?worker=1'
 WORKFLOW = 'sync_chi_team_tools.yml'
@@ -34,6 +35,9 @@ def review(api, now, dry, report, site=exchange, launch=dispatch):
     request_id = current['id']
     if str(uuid.UUID(request_id)) != request_id or str(uuid.UUID(current['episode'])) != current['episode']:
         raise ValueError('Invalid sync request identity')
+    if current['status'] == 'queued' and paused(api):
+        print('CHI sync intentionally deferred to reserve private minutes for Guardian; request remains queued, not completed.')
+        return current
     due = now >= stamp(current['requestedAt']) + timedelta(minutes=25)
     if current['status'] in ('claimed', 'dispatched'):
         # A failed/completed worker has its own reporter. Never create a second

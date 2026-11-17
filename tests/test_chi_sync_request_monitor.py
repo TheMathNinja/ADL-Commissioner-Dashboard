@@ -12,6 +12,9 @@ import email_workflow_failures as reporter
 
 class Requests(unittest.TestCase):
     def setUp(self):
+        policy = patch.object(monitor, 'paused', return_value=False)
+        policy.start()
+        self.addCleanup(policy.stop)
         self.now = datetime(2026, 11, 16, 15, tzinfo=timezone.utc)
         self.current = dict(id='12345678-1234-4234-8234-123456789abc', episode='12345678-1234-4234-8234-123456789abc',
                             status='queued', requestedAt=self.now.isoformat())
@@ -58,6 +61,22 @@ class Requests(unittest.TestCase):
     def test_dry_run_never_claims_or_launches(self):
         self.review(True)
         self.assertEqual(self.writes, [])
+        self.launch.assert_not_called()
+
+    def test_deliberately_deferred_queue_is_not_a_missed_worker(self):
+        self.current['requestedAt'] = (self.now - timedelta(hours=1)).isoformat()
+        with patch.object(monitor, 'paused', return_value=True):
+            self.review()
+        self.launch.assert_not_called()
+        self.report.assert_not_called()
+        self.assertEqual(self.current['status'], 'queued')
+        self.assertEqual(self.writes, [])
+
+    def test_conservation_still_reports_worker_that_was_claimed_but_never_started(self):
+        self.current.update(status='claimed', requestedAt=(self.now-timedelta(minutes=26)).isoformat())
+        with patch.object(monitor, 'paused', return_value=True):
+            self.review()
+        self.report.assert_called_once()
         self.launch.assert_not_called()
 
     def test_request_nonce_does_not_create_new_worker_outage_email(self):

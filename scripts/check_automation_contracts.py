@@ -370,6 +370,14 @@ def main() -> int:
                 if 'GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}' not in (commissioner / '.github/workflows' / filename).read_text(encoding='utf-8'):
                     errors.append('Both public scheduling clocks must honor precision ownership')
             worker_source = (guardian / '.github/workflows/guardian.yml').read_text(encoding='utf-8')
+            if 'PRIVATE_DISCRETIONARY_ACTIONS' in worker_source or 'PRIVATE_DISCRETIONARY_ACTIONS' in (guardian / '.github/workflows/initial-lineup.yml').read_text():
+                errors.append('Budget conservation must never gate required Guardian workers')
+            for name in ('sync_chi_team_tools.yml', 'league-audit.yml', 'preflight.yml', 'model_contract_preflight.yml'):
+                if "vars.PRIVATE_DISCRETIONARY_ACTIONS != 'paused'" not in (guardian / '.github/workflows' / name).read_text():
+                    errors.append('Discretionary private jobs must enforce conservation before runner allocation: ' + name)
+            for name in ('guardian_fallback.py', 'guardian_health_monitor.py'):
+                if 'private_actions_policy' in (commissioner / 'scripts' / name).read_text():
+                    errors.append('Budget conservation must not disable backup or missed-check coverage')
             if "!(vars.GUARDIAN_PRECISION_OWNER == 'public-scheduler-v2' && startsWith(inputs.dispatch_id, 'gas-'))" not in worker_source:
                 errors.append('Retired precision wakeups must allocate no private runner after verified handoff')
             errors.extend(personal_sync_contract_errors(

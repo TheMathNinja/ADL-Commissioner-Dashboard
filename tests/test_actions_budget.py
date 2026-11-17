@@ -12,6 +12,17 @@ import actions_runtime as runtime
 
 
 class BudgetTests(unittest.TestCase):
+    def test_conservation_keeps_all_required_slots_and_honest_recovery_reserve(self):
+        now = datetime(2026, 11, 17, 6, tzinfo=timezone.utc)
+        kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
+        normal = budget.configured_projection(now, [kickoff])
+        held = budget.configured_projection(now, [kickoff], conservation=True)
+        for key in ('preKickoff', 'morningProtection'):
+            self.assertEqual(normal['componentsThroughReset'][key], held['componentsThroughReset'][key])
+        for key in ('chiSync', 'weeklyCloudAudits', 'additionalUpgradePreflights'):
+            self.assertEqual(held['componentsThroughReset'][key], 0)
+        self.assertEqual(held['componentsThroughReset']['forecastRequestsAndInspections'], 4)
+        self.assertEqual(held['componentsThroughReset']['changesRetriesAndColdTestRuns'], 4)
     def test_faster_jobs_do_not_erase_historical_consumption(self):
         now = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
         path = '.github/workflows/refresh_chi_team_tools.yml'

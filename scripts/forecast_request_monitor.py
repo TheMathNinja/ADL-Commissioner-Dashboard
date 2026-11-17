@@ -7,6 +7,7 @@ from datetime import timedelta
 from urllib.request import Request, urlopen
 
 from guardian_health_monitor import REPO, decode, persist, stamp
+from private_actions_policy import paused
 
 PATH = 'data/chi_forecast_request.json'
 
@@ -43,7 +44,7 @@ def problem(value, now):
     claim, checked = value.get('pollClaimedAt'), value.get('lastCheckedAt')
     missed = (claim and (not checked or stamp(checked) < stamp(claim))
               and now >= stamp(claim) + timedelta(minutes=10))
-    return bool(missed or value['status'] == 'attention')
+    return bool(missed or value['status'] == 'attention' or now >= stamp(value['deadlineAt']))
 
 
 def dispatch(signature, week):
@@ -65,6 +66,9 @@ def review(api, now, dry, report):
     if problem(value, now):
         report(value)
     if value['status'] == 'verified' or now < stamp(value['nextPollAt']):
+        return value
+    if paused(api):
+        print('Private forecast status dispatch deferred for budget conservation; completion and deadlines remain unverified.')
         return value
     claim, checked = value.get('pollClaimedAt'), value.get('lastCheckedAt')
     if claim and (not checked or stamp(checked) < stamp(claim)) and now < stamp(claim) + timedelta(minutes=10):

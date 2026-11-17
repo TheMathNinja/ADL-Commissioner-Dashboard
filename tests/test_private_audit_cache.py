@@ -14,6 +14,10 @@ def trees():
 
 
 class AuditCacheTests(unittest.TestCase):
+    def setUp(self):
+        policy = patch('private_actions_policy.paused', return_value=False)
+        policy.start()
+        self.addCleanup(policy.stop)
     def test_launcher_rechecks_success_and_reuses_without_dispatch(self):
         import run_private_preflight as launcher
         now = datetime.now(timezone.utc)
@@ -55,6 +59,30 @@ class AuditCacheTests(unittest.TestCase):
         value['guardian']['truncated'] = True
         with self.assertRaises(RuntimeError):
             cache.fingerprint(value)
+
+    def test_existing_exact_input_audit_recovers_lost_receipt(self):
+        now = datetime.now(timezone.utc)
+        run = dict(id=123, event='workflow_dispatch', status='in_progress', conclusion=None,
+                   display_title='Private league audit - contracts - source parent - inputs ' + 'a'*64,
+                   created_at=now.isoformat())
+        with patch.object(cache, 'api', return_value={'workflow_runs': [run]}):
+            self.assertEqual(cache.existing('contracts', 'a'*64)['id'], 123)
+            self.assertIsNone(cache.existing('guardian', 'a'*64))
+            self.assertIsNone(cache.existing('contracts', 'b'*64))
+            run.update(status='completed', conclusion='failure')
+            self.assertIsNone(cache.existing('contracts', 'a'*64))
+            run['conclusion'] = 'success'
+            self.assertEqual(cache.existing('contracts', 'a'*64)['id'], 123)
+            run['created_at'] = (now - timedelta(days=2)).isoformat()
+            self.assertIsNone(cache.existing('contracts', 'a'*64))
+
+    def test_paused_launcher_never_dispatches_or_records_a_pass(self):
+        import run_private_preflight as launcher
+        with patch('private_actions_policy.paused', return_value=True), patch.object(cache, 'inputs') as inputs, patch.object(cache, 'record') as record, patch.object(launcher.subprocess, 'check_output') as dispatch:
+            launcher.run('contracts', use_cache=True)
+        inputs.assert_not_called()
+        dispatch.assert_not_called()
+        record.assert_not_called()
 
 
 if __name__ == '__main__':

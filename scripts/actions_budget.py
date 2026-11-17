@@ -5,6 +5,7 @@ they are not an invoice. Never publish financial details into public run output.
 """
 import math
 import json
+import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from collections import defaultdict
@@ -19,7 +20,7 @@ ALLOWANCE = 2000
 PLAN_PATH = Path(__file__).resolve().parents[1] / 'contracts/actions_budget_plan.json'
 
 
-def configured_projection(now, schedules, plan=None, measurements=None):
+def configured_projection(now, schedules, plan=None, measurements=None, conservation=False):
     """Forward schedule model, independent of expensive historical job averages."""
     plan = plan or json.loads(PLAN_PATH.read_text())
     measurements = measurements or {}
@@ -70,6 +71,9 @@ def configured_projection(now, schedules, plan=None, measurements=None):
         components['forecastRequestsAndInspections'] = max(
             components['forecastRequestsAndInspections'],
             math.ceil(days * len(observations) / span * forecast['meanRoundedMinutes']))
+    if conservation:
+        components.update(weeklyCloudAudits=0, chiSync=0, additionalUpgradePreflights=0,
+                          forecastRequestsAndInspections=4, changesRetriesAndColdTestRuns=4)
     total = sum(components.values())
     return {'version': plan['version'], 'source': 'configured checkpoints and explicit planning allowances; not a cap',
             'resetAtAssumed': reset.isoformat(), 'daysRemaining': round(days, 2),
@@ -181,10 +185,12 @@ def review(api, now, dry=False):
         original = {'sha': None}
     prior = decode(original) if original.get('sha') else {}
     plan = json.loads(PLAN_PATH.read_text())
+    conservation = os.environ.get('PRIVATE_DISCRETIONARY_ACTIONS') == 'paused'
     retry_hours = 24 if prior.get('billing', {}).get('status') == 'verified' else 0.5
     if (prior.get('schemaVersion') == 2 and prior.get('month') == now.strftime('%Y-%m')
             and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
-            and prior.get('planProjection', {}).get('version') == plan['version']):
+            and prior.get('planProjection', {}).get('version') == plan['version']
+            and prior.get('discretionaryPaused', False) == conservation):
         return prior
     from actions_billing import read, BillingUnavailable
     from actions_runtime import measure
@@ -204,7 +210,7 @@ def review(api, now, dry=False):
     except (OSError, RuntimeError, ValueError, KeyError, TypeError):
         measurements = {}
         runtime_status = 'unavailable'
-    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements)
+    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements, conservation)
     verified = billing['status'] == 'verified'
     used = billing['usedLinuxEquivalentMinutes'] if verified else None
     allowance = billing['includedMinutes'] if verified else ALLOWANCE
@@ -212,6 +218,7 @@ def review(api, now, dry=False):
     value = {'schemaVersion': 2, 'checkedAt': now.isoformat(), 'month': now.strftime('%Y-%m'),
              'source': 'GitHub billing baseline plus measured-runtime forward estimate; not an invoice',
              'billing': billing, 'runtimeStatus': runtime_status, 'runtimeMeasurements': measurements,
+             'discretionaryPaused': conservation,
              'allowance': allowance, 'target': allowance * 0.75, 'estimatedUsed': used,
              'remainingMinutes': remaining, 'planProjection': projection,
              'daysRemaining': projection['daysRemaining'],
