@@ -221,6 +221,8 @@ def review(api, now, dry=False):
                                  and not billing.get('nonstandardComputeUSD')}
     print('Actions budget: billing ' + billing['status'] + '; runtime evidence ' + runtime_status +
           '; financial details retained privately')
+    if not verified:
+        print('Actions billing read status: ' + billing['reason'])
     if not dry:
         persist(PATH, original, value)
     return value
