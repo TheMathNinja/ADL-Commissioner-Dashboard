@@ -989,6 +989,9 @@
     },
     "mfl-potential-warning:ee3649b41f66748d8c08581eef46fda1bbc656d16044cdc5636bb0c81ea18a11": {
       "subject": "[ADL warning] MFL potential points below actual points"
+    },
+    "chi-forecast:876a892115e47e268215cfaf2e933ef8451c399f44dc452157f7a7275c3ce903": {
+      "subject": "[CHI Tools needs attention] Forecast refresh remains unverified"
     }
   },
   "checked": {
