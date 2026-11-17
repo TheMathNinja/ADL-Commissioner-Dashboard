@@ -173,6 +173,12 @@
         "week": 9,
         "team_a": "Indianapolis Colts",
         "team_b": "Denver Broncos"
+      },
+      {
+        "season": 2026,
+        "week": 10,
+        "team_a": "Washington Commanders",
+        "team_b": "Dallas Cowboys"
       }
     ],
     "FAFL": [
@@ -214,6 +220,12 @@
         "week": 9,
         "team_a": "New York Jets",
         "team_b": "Los Angeles Chargers"
+      },
+      {
+        "season": 2026,
+        "week": 10,
+        "team_a": "New York Giants",
+        "team_b": "Dallas Cowboys"
       }
     ]
   },
@@ -222,6 +234,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-17T05:12:44.297767+00:00",
       "accepted_at": "2026-11-17T05:12:46.273920+00:00"
+    },
+    "gotw:2026:11": {
+      "status": "sending",
+      "attempted_at": "2026-11-17T06:24:16.699909+00:00"
     }
   }
 }
