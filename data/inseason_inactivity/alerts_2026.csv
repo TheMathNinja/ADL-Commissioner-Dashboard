@@ -1,1 +1,3 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
+illegal_lineup|2026|LAR|10,2026,10,2026-11-17 05:26:56 EST,In-Season Inactivity Violation,violation,NFC,LAR,Los Angeles Rams,Illegal Lineup,GM must submit a legal weekly lineup,Week 10 final MFL lineup has a confirmed structural violation: 0 PN,Must start 1 additional PN,inseason
+illegal_lineup|2026|WAS|10,2026,10,2026-11-17 05:26:56 EST,In-Season Inactivity Violation,violation,NFC,WAS,Washington Commanders,Illegal Lineup,GM must submit a legal weekly lineup,Week 10 final MFL lineup has a confirmed structural violation: 0 PN,Must start 1 additional PN,inseason
