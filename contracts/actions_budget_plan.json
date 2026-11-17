@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "checkpointOffsetsMinutes": [75, 45, 15],
   "minutesPerCheckpointJob": 1,
   "resetTimezoneAssumption": "America/New_York",
