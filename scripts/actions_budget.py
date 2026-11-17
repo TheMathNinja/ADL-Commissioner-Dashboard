@@ -4,14 +4,79 @@ GitHub billing is authoritative. Job timing estimates include per-job rounding;
 they are not an invoice. Never publish financial details into public run output.
 """
 import math
+import json
+from pathlib import Path
+from zoneinfo import ZoneInfo
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from calendar import monthrange
 
-from guardian_health_monitor import REPO, decode, persist, stamp
+from guardian_health_monitor import REPO, STATE, decode, persist, stamp
+from guardian_check_policy import CHECK_OFFSETS_MINUTES
 
 PATH = 'data/actions_budget.json'
 ALLOWANCE = 2000
+PLAN_PATH = Path(__file__).resolve().parents[1] / 'contracts/actions_budget_plan.json'
+
+
+def configured_projection(now, schedules, plan=None):
+    """Forward schedule model, independent of expensive historical job averages."""
+    plan = plan or json.loads(PLAN_PATH.read_text())
+    if tuple(plan['checkpointOffsetsMinutes']) != CHECK_OFFSETS_MINUTES:
+        raise ValueError('Budget plan and Guardian checkpoints disagree')
+    zone = ZoneInfo(plan['resetTimezoneAssumption'])
+    local = now.astimezone(zone)
+    reset = local.replace(year=local.year + (local.month == 12), month=local.month % 12 + 1,
+                          day=1, hour=0, minute=0, second=0, microsecond=0)
+    days = (reset - now).total_seconds() / 86400
+    slots = {kickoff - timedelta(minutes=offset) for kickoff in schedules
+             for offset in CHECK_OFFSETS_MINUTES
+             if now <= kickoff - timedelta(minutes=offset) < reset}
+    audit_dates = []
+    day = local.date()
+    while day < reset.date():
+        if day.weekday() == plan['weeklyAuditWeekday']:
+            audit_dates.append(day.isoformat())
+        day += timedelta(days=1)
+    components = {'preKickoff': len(slots) * plan['minutesPerCheckpointJob'],
+                  'weeklyCloudAudits': len(audit_dates) * plan['minutesPerWeeklyAudit']}
+    for name, settings in plan['dailyScheduledComponents'].items():
+        scheduled = local.replace(hour=settings['hourEastern'], minute=0, second=0, microsecond=0)
+        count = 0
+        while scheduled < reset:
+            count += scheduled >= now
+            scheduled += timedelta(days=1)
+        components[name] = count * math.ceil(settings['minutesPerJob'])
+    components.update({name: math.ceil(days * rate) for name, rate in plan['dailyAllowances'].items()})
+    total = sum(components.values())
+    return {'version': plan['version'], 'source': 'configured checkpoints and explicit planning allowances; not a cap',
+            'resetAtAssumed': reset.isoformat(), 'daysRemaining': round(days, 2),
+            'checkpointOffsetsMinutes': list(CHECK_OFFSETS_MINUTES), 'checkpointJobsRemaining': len(slots),
+            'minutesPerCheckpointJob': plan['minutesPerCheckpointJob'],
+            'componentsThroughReset': components, 'minutesThroughReset': total,
+            'projectedDailyMinutes': round(total / max(days, 1), 2),
+            'weeklyAuditDates': audit_dates, 'additionalDemandExcluded': True}
+
+
+def upcoming_kickoffs(api, now):
+    from guardian_fallback import get_json, rows
+    coverage = decode(api(REPO, 'contents/' + STATE + '?ref=main'))
+    weeks = [int(value['week']) for value in coverage['schedules'].values()]
+    if not weeks or not 1 <= min(weeks) <= 18:
+        raise ValueError('No valid active-week budget schedule')
+    # Include a rollover buffer, but avoid fetching the entire season every day.
+    count = math.ceil((monthrange(now.year, now.month)[1] - now.day + 1) / 7) + 2
+    season = now.year if now.month > 2 else now.year - 1
+    result = set()
+    for week in range(min(weeks), min(19, min(weeks) + count)):
+        value = get_json(f'https://api.myfantasyleague.com/{season}/export?TYPE=nflSchedule&W={week}&JSON=1')['nflSchedule']
+        if int(value['week']) != week:
+            raise ValueError('Budget schedule week mismatch')
+        for matchup in rows(value.get('matchup')):
+            result.add(datetime.fromtimestamp(int(matchup['kickoff']), timezone.utc))
+    if not result:
+        raise ValueError('No usable kickoff schedule for budget projection')
+    return result
 
 
 def minutes(jobs):
@@ -26,7 +91,7 @@ def minutes(jobs):
     return total
 
 
-def collect(api, now, runner_handoff=False, prior=None):
+def collect(api, now, runner_handoff=False, prior=None, projection=None):
     groups = defaultdict(list)
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     # Daily queries avoid GitHub's 1,000-run search cap during a dispatch storm.
@@ -66,12 +131,18 @@ def collect(api, now, runner_handoff=False, prior=None):
         details.append({'workflow': path, 'runs': len(runs), 'sampleMinutes': samples,
                         'estimatedMinutes': round(estimate, 1), 'projectedDailyMinutes': round(future_daily, 1)})
     remaining_days = max(0, monthrange(now.year, now.month)[1] - now.day + (24 - now.hour) / 24)
-    return {'schemaVersion': 1, 'checkedAt': now.isoformat(), 'month': now.strftime('%Y-%m'),
+    result = {'schemaVersion': 1, 'checkedAt': now.isoformat(), 'month': now.strftime('%Y-%m'),
             'source': 'sampled rounded job timing; estimate, not GitHub billing',
             'allowance': ALLOWANCE, 'target': 1500, 'estimatedUsed': round(estimated, 1),
             'projectedDailyMinutes': round(daily, 1), 'daysRemaining': round(remaining_days, 1),
             'projectedMonthEnd': round(estimated + daily * remaining_days, 1),
             'coverageHandoffAssumed': runner_handoff, 'workflows': details}
+    if projection:
+        result.update(historicalDailyMinutes=result['projectedDailyMinutes'],
+                      planProjection=projection,
+                      projectedDailyMinutes=projection['projectedDailyMinutes'],
+                      projectedMonthEnd=round(estimated + projection['minutesThroughReset'], 1))
+    return result
 
 
 def review(api, now, dry=False):
@@ -85,10 +156,13 @@ def review(api, now, dry=False):
             raise
         original = {'sha': None}
     prior = decode(original) if original.get('sha') else {}
-    if prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=24):
+    plan = json.loads(PLAN_PATH.read_text())
+    if (prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=24)
+            and prior.get('planProjection', {}).get('version') == plan['version']):
         return prior
     import os
-    value = collect(api, now, os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1', prior)
+    projection = configured_projection(now, upcoming_kickoffs(api, now), plan)
+    value = collect(api, now, os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1', prior, projection)
     if not dry:
         persist(PATH, original, value)
     return value

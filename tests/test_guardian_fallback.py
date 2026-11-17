@@ -27,6 +27,23 @@ def fixtures(now=NOW, kickoff=None):
 
 
 class SchedulingTests(unittest.TestCase):
+    def test_three_slot_dispatch_preserves_backup_and_suppresses_intermediate_duplicates(self):
+        kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
+        start = kickoff - timedelta(minutes=90)
+        ledger, coverage, observed = fixtures(start, kickoff)
+        ledger['checks'] = [dict(c, checkedAt=kickoff.replace(hour=11).isoformat()) for c in ledger['checks']]
+        self.assertIsNone(gate.decision(ledger, coverage, {}, observed, start))
+        for before in (75, 45, 15):
+            now = kickoff - timedelta(minutes=before)
+            before_count = len(ledger['checks'])
+            self.assertEqual(gate.decision(ledger, coverage, {}, observed, now)['reason'], 'required_window')
+            # Dispatch acceptance is not protection. Only completed reads suppress a duplicate.
+            self.assertEqual(len(ledger['checks']), before_count)
+            ledger['checks'] += [dict(c, checkedAt=now.isoformat()) for c in ledger['checks'][:2]]
+            for delay in (1, 10, 15, 29):
+                if now + timedelta(minutes=delay) >= kickoff: continue
+                self.assertIsNone(gate.decision(ledger, coverage, {}, observed, now + timedelta(minutes=delay)))
+
     def test_unchanged_off_hours_start_no_private_job(self):
         for hour in (0, 2, 5, 8, 17, 23):
             now = NOW.replace(hour=hour)
@@ -180,7 +197,7 @@ class SchedulingTests(unittest.TestCase):
             self.assertIn("format('retired-gas-{0}', github.run_id)", source)
             self.assertIn('run: npm run check', source)
             self.assertIn('LOOKAHEAD_MINUTES || 90', (Path(root) / 'src/config.js').read_text())
-            self.assertIn('lookaheadMinutes: 90', (Path(root) / 'scheduler/Code.gs').read_text())
+            self.assertIn('lookaheadMinutes: 75', (Path(root) / 'scheduler/Code.gs').read_text())
             initial = (Path(root) / '.github/workflows/initial-lineup.yml').read_text()
             self.assertIn("  initial-lineup:\n    if: github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1'", initial)
             self.assertIn('use_native_policy:', initial)

@@ -60,11 +60,12 @@ class MonitorTests(unittest.TestCase):
         sys.path.insert(0, str(Path(root) / 'scripts'))
         from check_guardian_coverage import assess as reference
         from export_health_receipts import export
-        start = datetime(2026,11,16,19,tzinfo=timezone.utc)
-        scopes={'ADL':{'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
-        for missing_slot in (None,0,15,75):
+        for start, slots in ((datetime(2026,11,16,19,tzinfo=timezone.utc), range(0,90,15)),
+                             (datetime(2026,11,22,16,30,tzinfo=timezone.utc), (15,45,75))):
+          scopes={'ADL':{'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
+          for missing_slot in (None, *slots):
             audits=[]
-            for minute in range(0,90,15):
+            for minute in slots:
                 if minute == missing_slot: continue
                 checked=start+timedelta(minutes=minute,seconds=1)
                 audits.append({'runMode':'monitor','dryRun':False,'completedAt':(checked+timedelta(seconds=2)).isoformat(),

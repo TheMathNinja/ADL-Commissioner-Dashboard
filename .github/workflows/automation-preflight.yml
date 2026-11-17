@@ -7,8 +7,16 @@ on:
       - ".github/workflows/**"
       - "scripts/CloudPolling.gs"
       - "scripts/check_automation_contracts.py"
+      - "scripts/guardian_check_policy.py"
+      - "scripts/guardian_fallback.py"
+      - "scripts/guardian_health_monitor.py"
+      - "scripts/run_private_preflight.py"
+      - "scripts/private_audit_cache.py"
+      - "contracts/**"
   schedule:
-    - cron: "30 8 * * *"
+    # Full cloud diagnostics weekly; relevant releases still trigger immediately.
+    # Required local four-repository publication gates are never cached or skipped.
+    - cron: "30 8 * * 3"
   workflow_dispatch:
     inputs:
       run_live_mfl_checks:

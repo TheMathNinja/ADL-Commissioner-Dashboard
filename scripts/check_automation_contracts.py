@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 import sys
 from pathlib import Path
@@ -339,8 +340,22 @@ def main() -> int:
             policy = (commissioner / 'scripts/guardian_check_policy.py').read_text(encoding='utf-8')
             if policy != (guardian / 'scripts/guardian_check_policy.py').read_text(encoding='utf-8'):
                 errors.append('Guardian dispatch and deadline policies must be identical across repositories')
-            if 'INTERVAL_MINUTES = 15' not in policy or 'monitorIntervalMinutes: 15' not in (guardian / 'scheduler/Code.gs').read_text(encoding='utf-8'):
-                errors.append('Guardian precision scheduler must match the shared fifteen-minute check policy')
+            scheduler = (guardian / 'scheduler/Code.gs').read_text(encoding='utf-8')
+            if ('CHECK_OFFSETS_MINUTES = (75, 45, 15)' not in policy or
+                    'monitorIntervalMinutes: 30' not in scheduler or 'lookaheadMinutes: 75' not in scheduler):
+                errors.append('Guardian precision scheduler must match the shared 75/45/15-minute check policy')
+            for name in ('guardian.yml', 'initial-lineup.yml'):
+                worker = (guardian / '.github/workflows' / name).read_text(encoding='utf-8')
+                if 'uses: ./.github/actions/verified-guardian-tests' not in worker:
+                    errors.append('Guardian live workers must verify exact-input passing test evidence')
+            plan = json.loads((commissioner / 'contracts/actions_budget_plan.json').read_text())
+            if plan['checkpointOffsetsMinutes'] != [75, 45, 15]:
+                errors.append('The budget forecast must use the deployed Guardian checkpoints')
+            cloud_audit = (commissioner / '.github/workflows/automation-preflight.yml').read_text()
+            if '30 8 * * 3' not in cloud_audit or '30 8 * * *' in cloud_audit:
+                errors.append('Cloud audit cadence must be weekly plus relevant releases, not daily')
+            if re.search(r'^  schedule:', (guardian / '.github/workflows/preflight.yml').read_text(), re.MULTILINE):
+                errors.append('Guardian preflight must not duplicate the independent weekly cross-repository audit')
             for filename in ('guardian_fallback.yml', 'email_workflow_failures.yml'):
                 if 'GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}' not in (commissioner / '.github/workflows' / filename).read_text(encoding='utf-8'):
                     errors.append('Both public scheduling clocks must honor precision ownership')
