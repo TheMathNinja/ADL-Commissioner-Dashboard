@@ -943,7 +943,12 @@
         "Request weekly completion email": "skipped",
         "Personal CHI Team Tools (after league publication)": "skipped"
       },
-      "failed_at": "2026-11-17T05:17:04Z"
+      "failed_at": "2026-11-17T05:17:04Z",
+      "observed_cause_codes": {
+        "refresh": "unclassified"
+      },
+      "last_seen_at": "2026-11-17T05:21:49Z",
+      "latest_run_url": "https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/44023049485"
     }
   },
   "checked": {
@@ -4415,7 +4420,12 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44023208530:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44025052237",
     "TheMathNinja/ADL-Commissioner-Dashboard:44023393844:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44025052237",
     "TheMathNinja/ADL-GM-Dashboard:44025063028:1": "success",
-    "TheMathNinja/ADL-GM-Dashboard:44025150524:1": "success"
+    "TheMathNinja/ADL-GM-Dashboard:44025150524:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44025018908:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44022984420:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44025052237",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44023397696:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44025052237",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44023576768:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44025052237",
+    "TheMathNinja/ADL-GM-Dashboard:44023049485:1": "duplicate notification for TheMathNinja/ADL-GM-Dashboard:279881511:account-check:main"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -4838,6 +4848,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-17T05:34:56.632714+00:00"
+    "checkedAt": "2026-11-17T05:36:32.667452+00:00"
   }
 }
