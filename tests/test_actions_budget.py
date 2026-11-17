@@ -129,6 +129,22 @@ class BudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(billing.BillingUnavailable, 'sku_not_verified'):
             billing.read(lambda *args: {'private': True}, now, lambda path: profile if path == 'user' else report)
 
+    def test_billing_transport_retries_but_credentials_fail_immediately(self):
+        from urllib.error import URLError
+        import io
+        from unittest.mock import MagicMock
+        response = MagicMock()
+        response.__enter__.return_value = io.StringIO('{"ok":true}')
+        with patch.dict('os.environ', ACTIONS_BILLING_TOKEN='test-only'), patch.object(
+                billing, 'urlopen', side_effect=[URLError('temporary'), response]) as request, patch.object(billing.time, 'sleep'):
+            self.assertEqual(billing.get('user'), {'ok': True})
+            self.assertEqual(request.call_count, 2)
+        with patch.dict('os.environ', ACTIONS_BILLING_TOKEN='test-only'), patch.object(
+                billing, 'urlopen', side_effect=HTTPError('https://example.test', 403, 'Forbidden', {}, None)) as request:
+            with self.assertRaisesRegex(billing.BillingUnavailable, 'billing_http_403'):
+                billing.get('user')
+            self.assertEqual(request.call_count, 1)
+
     def test_runtime_rounds_each_allocated_job_before_averaging(self):
         job = dict(runner_id=1, labels=['ubuntu-24.04'], conclusion='success',
                    started_at='2026-11-17T00:00:00Z', completed_at='2026-11-17T00:01:01Z')
