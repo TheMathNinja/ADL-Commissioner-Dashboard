@@ -969,6 +969,18 @@
       "audit_parent": "44024988381",
       "audit_attempt": 1,
       "audit_kind": "guardian"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44025278949:1": {
+      "sent_at": "2026-11-17T05:52:18.108923+00:00",
+      "subject": "[League automation CANCELLED] ADL-Commissioner-Dashboard \u2014 Email league workflow failures",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:372414073:account-check:budget-billing-runtime-verify",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:372414073:account-check:budget-billing-runtime-verify:2026-11-17",
+      "failed_steps": [
+        "Workflow ended with cancelled; detailed step results are unavailable."
+      ],
+      "cause_codes": {},
+      "affected_jobs": {},
+      "failed_at": "2026-11-17T05:36:24Z"
     }
   },
   "checked": {
