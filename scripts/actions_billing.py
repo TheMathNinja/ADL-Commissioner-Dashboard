@@ -2,6 +2,7 @@
 from decimal import Decimal, InvalidOperation
 import json
 import os
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -23,14 +24,21 @@ def get(path):
     request = Request('https://api.github.com/' + path, headers={
         'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2026-03-10', 'User-Agent': 'League-budget-monitor'})
-    try:
-        with urlopen(request, timeout=25) as response:
-            return json.load(response)
-    except HTTPError as error:
-        # Do not log response bodies, financial values, tokens or account details.
-        raise BillingUnavailable('billing_http_' + str(error.code)) from error
-    except (URLError, TimeoutError, ValueError) as error:
-        raise BillingUnavailable('billing_read_unavailable') from error
+    for attempt in range(3):
+        try:
+            with urlopen(request, timeout=60) as response:
+                return json.load(response)
+        except HTTPError as error:
+            # Do not log response bodies, financial values, tokens or account details.
+            code = 'billing_http_' + str(error.code)
+            retry = error.code in (429, 500, 502, 503, 504)
+        except (URLError, TimeoutError):
+            code, retry = 'billing_transport_unavailable', True
+        except ValueError:
+            code, retry = 'billing_invalid_response', True
+        if not retry or attempt == 2:
+            raise BillingUnavailable(code)
+        time.sleep(2 ** attempt)
 
 
 def number(value):
@@ -45,13 +53,18 @@ def number(value):
 
 def read(repository_api, now, fetch=None):
     fetch = fetch or get
-    profile = fetch('user')
+    def stage(path, name):
+        try:
+            return fetch(path)
+        except BillingUnavailable as error:
+            raise BillingUnavailable(name + ':' + str(error)) from error
+    profile = stage('user', 'account_read')
     if profile.get('login', '').lower() != OWNER.lower():
         raise BillingUnavailable('billing_wrong_account')
     plan = profile.get('plan', {}).get('name', '').lower()
     if plan not in PLAN_MINUTES:
         raise BillingUnavailable('billing_plan_not_verified')
-    report = fetch(f'users/{OWNER}/settings/billing/usage?year={now.year}&month={now.month}')
+    report = stage(f'users/{OWNER}/settings/billing/usage?year={now.year}&month={now.month}', 'usage_read')
     rows = report.get('usageItems')
     if not isinstance(rows, list) or report.get('truncated') or report.get('next'):
         raise BillingUnavailable('billing_incomplete_report')
