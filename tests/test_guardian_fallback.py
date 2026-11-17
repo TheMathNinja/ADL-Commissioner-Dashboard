@@ -239,7 +239,8 @@ class SchedulingTests(unittest.TestCase):
             self.assertIn('LOOKAHEAD_MINUTES || 90', (Path(root) / 'src/config.js').read_text())
             self.assertIn('lookaheadMinutes: 75', (Path(root) / 'scheduler/Code.gs').read_text())
             initial = (Path(root) / '.github/workflows/initial-lineup.yml').read_text()
-            self.assertIn("  initial-lineup:\n    if: github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1'", initial)
+            self.assertIn("  initial-lineup:\n    if: (github.event_name != 'schedule' || vars.GUARDIAN_NATIVE_FALLBACK != 'public-scheduler-v1')", initial)
+            self.assertIn("vars.GUARDIAN_BASIC_OWNER != 'public-basic-v1' || inputs.live", initial)
             self.assertIn('use_native_policy:', initial)
         for event, armed, expected in (('schedule', True, False), ('schedule', False, True), ('workflow_dispatch', True, True)):
             self.assertEqual(event != 'schedule' or not armed, expected)

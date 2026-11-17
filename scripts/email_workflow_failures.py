@@ -14,7 +14,7 @@ from pathlib import PurePosixPath
 import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
 from maintenance_failure_links import covered_components, WATCHDOG_STEP
-from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, report_missing_checks
+from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, owned_basic_failure, report_missing_checks
 
 
 def watchdog_maintenance_evidence(repo, run, job_list):
@@ -809,6 +809,9 @@ def main():
     if shared_coverage:
         try:
             report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
+            if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+                from guardian_basic import report
+                report(api, datetime.now(timezone.utc), state, args.dry_run, mail.deliver_once, save, mail.send_email)
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             coverage_errors.append('Guardian incident delivery: ' + type(error).__name__)
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
@@ -966,6 +969,8 @@ def main():
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
                 job_list = jobs(repo, run)
+                if shared_coverage and repo == COMMISSIONER and owned_basic_failure(run, job_list, shared_coverage):
+                    continue  # The durable missed-check incident owns this exact read-only failure.
                 if run.get('_account_report'):
                     from account_failure_coverage import recovered_live_watch_cancellation
                     if recovered_live_watch_cancellation(repo, run, job_list, api, datetime.now(timezone.utc)):

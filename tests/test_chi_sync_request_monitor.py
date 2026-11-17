@@ -79,6 +79,13 @@ class Requests(unittest.TestCase):
         self.report.assert_called_once()
         self.launch.assert_not_called()
 
+    def test_explicit_manual_request_bypasses_hold_without_automatic_unpause(self):
+        self.current['reason'] = 'manual'
+        with patch.object(monitor, 'paused', return_value=True):
+            self.review()
+        self.launch.assert_called_once_with(self.current['id'], owner_requested=True)
+        self.assertEqual([row['action'] for row in self.writes], ['claim', 'dispatched'])
+
     def test_request_nonce_does_not_create_new_worker_outage_email(self):
         base='private:1:Sync private CHI Team Tools trades'
         self.assertEqual(notification_episode(base+' - request '+self.current['id'], '2026-11-16'),

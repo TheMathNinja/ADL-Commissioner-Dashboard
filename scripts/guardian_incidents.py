@@ -81,6 +81,28 @@ def owned_startup_failure(run, jobs, coverage):
     return False
 
 
+def owned_basic_failure(run, jobs, coverage):
+    """Only the migrated, read-only public checker shares missed-check ownership."""
+    activated = coverage.get('basicActivatedAt')
+    if (not activated or PurePosixPath(run.get('path', '')).name != 'guardian_fallback.yml'
+            or run.get('conclusion') not in ('failure', 'cancelled', 'timed_out')
+            or stamp(run['created_at']) < stamp(activated)):
+        return False
+    bad = [step.get('name') for job in jobs for step in job.get('steps', [])
+           if step.get('conclusion') not in ('success', 'skipped', None)]
+    if not bad or any(name not in ('Request only required private Guardian work',) for name in bad):
+        return False  # Test/configuration/reporter failures remain independently reportable.
+    created = stamp(run['created_at'])
+    for item in coverage['incidents'].values():
+        end = stamp(item.get('resolvedAt') or item['kickoff'])
+        if item['mode'] == 'initial' and not item.get('resolvedAt'):
+            end += timedelta(hours=1)
+        if (item['mode'] in ('monitor', 'initial')
+                and stamp(item.get('lastVerified') or coverage['activatedAt']) <= created <= end):
+            return True
+    return False
+
+
 def report_missing_checks(coverage, state, dry, deliver, save, send):
     pending = []
     for item in coverage['incidents'].values():

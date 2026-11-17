@@ -131,7 +131,8 @@ def decision(ledger, coverage, dispatch_state, observations, now):
     pending = [row['nextCheckAt'] for row in ledger.get('publicInputs', {}).values()
                if row.get('nextCheckAt') and stamp(row['nextCheckAt']) <= now]
     previous_work = dispatch_state.get('workAttemptedAt')
-    if pending and (not previous_work or now - stamp(previous_work) >= timedelta(minutes=10)):
+    if (pending and os.environ.get('GUARDIAN_BASIC_OWNER') != 'public-basic-v1'
+            and (not previous_work or now - stamp(previous_work) >= timedelta(minutes=10))):
         return {'reason': 'pending_private_work', 'key': 'work:' + min(pending)}
     local = now.astimezone(ET)
     morning = local.replace(hour=6, minute=0, second=0, microsecond=0)
@@ -184,13 +185,19 @@ def dispatch(identifier, workflow='guardian.yml', force_standard=False):
         response.read()
 
 
-def run(dry=True, now=None):
+def run(dry=True, now=None, verify_basic=False):
+    if verify_basic and os.environ.get('GUARDIAN_BASIC_OWNER') != 'public-basic-v1':
+        raise ValueError('Basic verification requires the public read-only owner')
     fixed_clock = now is not None
     now = now or datetime.now(timezone.utc)
     if now.astimezone(ET).month not in (1, 9, 10, 11, 12):
         print('Guardian scheduling gate: offseason; no private runner requested.')
         return
     ledger, _ = document(LEDGER)
+    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+        from guardian_basic import HEALTH
+        basic, _ = document(HEALTH, optional=True)
+        ledger = basic or ledger
     validate(ledger, now)
     coverage, _ = document(STATE)
     saved, original = document(PATH, optional=True)
@@ -201,11 +208,20 @@ def run(dry=True, now=None):
         except (OSError, ValueError, KeyError, TypeError):
             pass  # Cached kickoff windows still work; uncertainty is never called coverage.
     # A primary run may have completed while the public feeds were being read.
-    latest, _ = document(LEDGER)
+    health_path = LEDGER
+    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+        from guardian_basic import HEALTH
+        basic, _ = document(HEALTH, optional=True)
+        health_path = HEALTH if basic else LEDGER
+    latest, _ = document(health_path)
     if latest['leagues'] != ledger['leagues']:
         raise RuntimeError('League metadata changed during the scheduling assessment')
     now = now if fixed_clock else datetime.now(timezone.utc)
     ledger = validate(latest, now)
+    if verify_basic:
+        from guardian_basic import run as basic_check
+        basic_check(ledger, 'monitor', now, dry, document)
+        return
     wanted = decision(ledger, coverage, saved, observations, now)
     if not wanted:
         print('Guardian scheduling gate: no due work; no private runner requested.')
@@ -215,6 +231,16 @@ def run(dry=True, now=None):
         print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
         return
     workflow = wanted.get('workflow', 'guardian.yml')
+    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+        if wanted['reason'] == 'pending_private_work':
+            # Projection-based acquisitions and replacement ranking stay manual/private.
+            return
+        if not dry:
+            saved['claim'] = {'at': now.isoformat(), 'key': wanted['key'], 'reason': wanted['reason']}
+            persist(PATH, original, saved)
+        from guardian_basic import run as basic_check
+        basic_check(ledger, 'initial' if workflow == 'initial-lineup.yml' else 'monitor', now, dry, document)
+        return
     runs = private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs']
     if recent_inflight(runs, now, workflow):
         print('Guardian scheduling gate: a known live check is already queued or running.')
@@ -262,5 +288,6 @@ def run(dry=True, now=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--live', action='store_true', help='Allow dispatch, not direct roster writes')
+    parser.add_argument('--verify-basic', action='store_true', help='Verify the public read-only worker now; never dispatch a private model')
     args = parser.parse_args()
-    run(dry=not args.live)
+    run(dry=not args.live, verify_basic=args.verify_basic)

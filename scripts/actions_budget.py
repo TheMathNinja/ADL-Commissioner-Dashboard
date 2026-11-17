@@ -20,7 +20,7 @@ ALLOWANCE = 2000
 PLAN_PATH = Path(__file__).resolve().parents[1] / 'contracts/actions_budget_plan.json'
 
 
-def configured_projection(now, schedules, plan=None, measurements=None, conservation=False, runner='ubuntu-24.04'):
+def configured_projection(now, schedules, plan=None, measurements=None, conservation=False, runner='ubuntu-24.04', public_basic=False):
     """Forward schedule model, independent of expensive historical job averages."""
     plan = plan or json.loads(PLAN_PATH.read_text())
     measurements = measurements or {}
@@ -81,6 +81,18 @@ def configured_projection(now, schedules, plan=None, measurements=None, conserva
     if conservation:
         components.update(weeklyCloudAudits=0, chiSync=0, additionalUpgradePreflights=0,
                           forecastRequestsAndInspections=4, changesRetriesAndColdTestRuns=4)
+    if public_basic:
+        components.update(preKickoff=0, morningProtection=0)
+        # Clicked refreshes remain billable and uncapped. This is an allowance,
+        # not a claim that the public checker makes private model work free.
+        manual = measurements.get('sync_chi_team_tools.yml', {})
+        per_job = max(3, manual.get('meanRoundedMinutes') or 0)
+        observations = manual.get('observations', [])
+        rate = 1
+        if observations:
+            span = max(1, min(14, (now - min(stamp(r['createdAt']) for r in observations)).total_seconds() / 86400))
+            rate = max(rate, len(observations) / span)
+        components['manualRefreshes'] = math.ceil(days * rate * per_job)
     total = sum(components.values())
     return {'version': plan['version'], 'source': 'configured checkpoints and explicit planning allowances; not a cap',
             'resetAtAssumed': reset.isoformat(), 'daysRemaining': round(days, 2),
@@ -199,6 +211,7 @@ def review(api, now, dry=False):
             and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
             and prior.get('planProjection', {}).get('version') == plan['version']
             and prior.get('discretionaryPaused', False) == conservation
+            and prior.get('basicPublicOwner', False) == (os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1')
             and prior.get('guardianRunner', 'ubuntu-24.04') == runner):
         return prior
     from actions_billing import read, BillingUnavailable
@@ -219,7 +232,8 @@ def review(api, now, dry=False):
     except (OSError, RuntimeError, ValueError, KeyError, TypeError):
         measurements = {}
         runtime_status = 'unavailable'
-    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements, conservation, runner)
+    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements, conservation, runner,
+                                       public_basic=os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1')
     verified = billing['status'] == 'verified'
     used = billing['usedLinuxEquivalentMinutes'] if verified else None
     allowance = billing['includedMinutes'] if verified else ALLOWANCE
@@ -227,6 +241,7 @@ def review(api, now, dry=False):
     value = {'schemaVersion': 2, 'checkedAt': now.isoformat(), 'month': now.strftime('%Y-%m'),
              'source': 'GitHub billing baseline plus measured-runtime forward estimate; not an invoice',
              'billing': billing, 'runtimeStatus': runtime_status, 'runtimeMeasurements': measurements,
+             'basicPublicOwner': os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1',
              'discretionaryPaused': conservation,
              'guardianRunner': runner,
              'allowance': allowance, 'target': allowance * 0.75, 'estimatedUsed': used,

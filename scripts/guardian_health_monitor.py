@@ -165,9 +165,18 @@ def persist(path, original, value):
 
 
 def refresh(api, now, dry=False):
-    ledger = decode(api(REPO, 'contents/' + LEDGER + '?ref=main'))
+    path = LEDGER
+    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+        from guardian_basic import HEALTH
+        path = HEALTH
+    ledger = decode(api(REPO, 'contents/' + path + '?ref=main'))
     original = api(REPO, 'contents/' + STATE + '?ref=main')
     state = evaluate(ledger, decode(original), now)
+    if path != LEDGER:
+        from guardian_basic import WARNINGS
+        warning = decode(api(REPO, 'contents/' + WARNINGS + '?ref=main'))
+        state.update(checkScope='read-only basic MFL checks; no private rankings or automatic replacements',
+                     basicActivatedAt=warning['activatedAt'])
     if not dry:
         persist(STATE, original, state)
     return state

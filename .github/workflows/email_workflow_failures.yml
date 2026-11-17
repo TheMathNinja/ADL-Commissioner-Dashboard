@@ -32,6 +32,7 @@ jobs:
         env:
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}
+          GUARDIAN_BASIC_OWNER: ${{ vars.GUARDIAN_BASIC_OWNER }}
           GUARDIAN_COALESCE_BACKGROUND: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS == 'paused' && 'true' || 'false' }}
         run: python3 scripts/guardian_fallback.py --live
       - name: Test failure gating and owner-only delivery
@@ -54,6 +55,7 @@ jobs:
           PRIVATE_FAILURE_REPORTING_SINCE: ${{ vars.PRIVATE_FAILURE_REPORTING_SINCE }}
           GUARDIAN_ALERT_OWNER: ${{ vars.GUARDIAN_ALERT_OWNER }}
           GUARDIAN_COVERAGE_RUNNER: ${{ vars.GUARDIAN_COVERAGE_RUNNER }}
+          GUARDIAN_BASIC_OWNER: ${{ vars.GUARDIAN_BASIC_OWNER }}
           ACTIONS_BUDGET_MONITOR: 'true'
           PRIVATE_DISCRETIONARY_ACTIONS: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS }}
           GUARDIAN_RUNNER: ${{ vars.GUARDIAN_RUNNER }}

@@ -8,6 +8,10 @@ on:
         description: Assess eligibility without requesting private jobs
         type: boolean
         default: true
+      verify_basic:
+        description: Verify the public read-only checker now without model work or roster changes
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -26,9 +30,12 @@ jobs:
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
           DISPATCH_OWNER: ${{ vars.GUARDIAN_NATIVE_FALLBACK }}
           GUARDIAN_PRECISION_OWNER: ${{ vars.GUARDIAN_PRECISION_OWNER }}
+          GUARDIAN_BASIC_OWNER: ${{ vars.GUARDIAN_BASIC_OWNER }}
           GUARDIAN_COALESCE_BACKGROUND: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS == 'paused' && 'true' || 'false' }}
           DRY_RUN: ${{ inputs.dry_run }}
+          VERIFY_BASIC: ${{ inputs.verify_basic }}
         run: |
           args=()
           if [ "$DISPATCH_OWNER" = public-scheduler-v1 ] && [ "$DRY_RUN" != true ]; then args+=(--live); fi
+          if [ "$VERIFY_BASIC" = true ]; then args+=(--verify-basic); fi
           python3 scripts/guardian_fallback.py "${args[@]}"

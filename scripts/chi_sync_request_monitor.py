@@ -19,9 +19,10 @@ def exchange(body=None):
         return json.load(response)
 
 
-def dispatch(request_id):
+def dispatch(request_id, owner_requested=False):
     request = Request(f'https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/dispatches',
-                      method='POST', data=json.dumps({'ref': 'main', 'inputs': {'request_id': request_id}}).encode(),
+                      method='POST', data=json.dumps({'ref': 'main', 'inputs': {'request_id': request_id,
+                                                   'owner_requested': owner_requested}}).encode(),
                       headers={'Authorization': 'Bearer ' + os.environ['PRIVATE_REPORT_TOKEN'],
                                'Content-Type': 'application/json'})
     with urlopen(request, timeout=30) as response:
@@ -35,8 +36,8 @@ def review(api, now, dry, report, site=exchange, launch=dispatch):
     request_id = current['id']
     if str(uuid.UUID(request_id)) != request_id or str(uuid.UUID(current['episode'])) != current['episode']:
         raise ValueError('Invalid sync request identity')
-    if current['status'] == 'queued' and paused(api):
-        print('CHI sync intentionally deferred to reserve private minutes for Guardian; request remains queued, not completed.')
+    if current['status'] == 'queued' and current.get('reason') != 'manual' and paused(api):
+        print('Automatic CHI sync intentionally deferred; explicit owner refreshes remain eligible.')
         return current
     due = now >= stamp(current['requestedAt']) + timedelta(minutes=25)
     if current['status'] in ('claimed', 'dispatched'):
@@ -66,6 +67,9 @@ def review(api, now, dry, report, site=exchange, launch=dispatch):
     claimed = site({'action': 'claim', 'id': request_id, 'claimId': claim_id}).get('current', {})
     if claimed.get('claimId') != claim_id or claimed.get('status') != 'claimed':
         return current
-    launch(request_id)
+    if current.get('reason') == 'manual':
+        launch(request_id, owner_requested=True)
+    else:
+        launch(request_id)
     site({'action': 'dispatched', 'id': request_id, 'claimId': claim_id})
     return current

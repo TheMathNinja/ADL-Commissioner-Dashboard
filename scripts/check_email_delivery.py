@@ -22,7 +22,7 @@ def main():
               'test_incident_replay.py', 'test_workflow_failure_email.py', 'test_account_failure_coverage.py', 'test_maintenance_failure_links.py',
               'test_alert_transport.py', 'test_weekly_completion_email.py',
               'test_gotw_blurbs.py', 'test_guardian_incidents.py',
-              'test_guardian_health_monitor.py', 'test_guardian_check_policy.py', 'test_guardian_backup_recovery.py',
+              'test_guardian_health_monitor.py', 'test_guardian_basic.py', 'test_guardian_check_policy.py', 'test_guardian_backup_recovery.py',
               'test_guardian_collision_contract.py', 'test_actions_budget.py',
               'test_forecast_request_monitor.py', 'test_chi_sync_request_monitor.py', 'test_private_audit_cache.py', 'test_private_actions_policy.py', 'test_guardian_fallback.py')
     for suite in suites:
