@@ -293,6 +293,16 @@ def main() -> int:
         }))
 
     adl = roots.get("ADL-GM-Dashboard")
+    if adl and commissioner:
+        contract = json.loads((commissioner/'contracts/mfl_potential_warning.json').read_text())
+        producer = (adl/'scripts/weekly_pairs.py').read_text()
+        consumer = (commissioner/'scripts/mfl_potential_warning.py').read_text()
+        reporter = (commissioner/'scripts/email_workflow_failures.py').read_text()
+        if (contract['policy'] not in producer or contract['policy'] not in consumer
+                or "allow_reported_potential_below_pf=league=='ADL'" not in producer
+                or 'report_warning(state, args.dry_run' not in reporter
+                or "MFL_POTENTIAL_WARNING: 'true'" not in (commissioner/'.github/workflows/email_workflow_failures.yml').read_text()):
+            errors.append('MFL potential warning producer and owner-email consumer must match the reviewed contract')
     fafl = roots.get("FAFL-GM-Dashboard")
     if adl and fafl:
         corrections=(adl/'scripts/score_corrections.py').read_text(encoding='utf-8')

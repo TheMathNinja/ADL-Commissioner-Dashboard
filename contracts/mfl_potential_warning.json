@@ -1,0 +1,13 @@
+{
+  "policyVersion": 1,
+  "policy": "mfl-potential-warning-v1",
+  "producer": "ADL-GM-Dashboard/scripts/weekly_pairs.py",
+  "consumer": "ADL-Commissioner-Dashboard/scripts/mfl_potential_warning.py",
+  "report": "data/mfl_potential_warning.json",
+  "behavior": "ADL reported potential below actual is warning-only. Preserve reported scores. Keep nonfinite, missing, shape and negative simulated PF failures blocking. Owner-only email deduplicates identical affected observations.",
+  "examples": [
+    {"actual": 200, "potential": 190, "result": "warning; retain 200 and 190"},
+    {"actual": 200, "potential": 210, "result": "clear"},
+    {"actual": 200, "potential": null, "result": "blocking error"}
+  ]
+}

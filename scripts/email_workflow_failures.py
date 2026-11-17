@@ -708,6 +708,12 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
+    if os.environ.get('MFL_POTENTIAL_WARNING') == 'true':
+        try:
+            from mfl_potential_warning import report_warning
+            report_warning(state, args.dry_run, mail.document, mail.deliver_once, save, mail.send_email)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            coverage_errors.append('MFL potential warning delivery: ' + type(error).__name__)
     shared_coverage = None
     if os.environ.get('GUARDIAN_ALERT_OWNER') == 'commissioner-v1':
         try:

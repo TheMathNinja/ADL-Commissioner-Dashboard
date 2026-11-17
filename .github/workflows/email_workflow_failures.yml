@@ -36,6 +36,7 @@ jobs:
         if: always()
         run: |
           python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
+          python3 -m unittest discover -s tests -p test_mfl_potential_warning.py -v
           python3 -m unittest discover -s tests -p test_email_state_save.py -v
           python3 -m unittest discover -s tests -p test_incident_replay.py -v
           python3 -m unittest discover -s tests -p test_maintenance_failure_links.py -v
@@ -52,6 +53,7 @@ jobs:
           GUARDIAN_ALERT_OWNER: ${{ vars.GUARDIAN_ALERT_OWNER }}
           GUARDIAN_COVERAGE_RUNNER: ${{ vars.GUARDIAN_COVERAGE_RUNNER }}
           ACTIONS_BUDGET_MONITOR: 'true'
+          MFL_POTENTIAL_WARNING: 'true'
           ACCOUNT_FAILURE_COVERAGE: ${{ vars.ACCOUNT_FAILURE_COVERAGE }}
           CHI_FORECAST_REQUEST_MONITOR: 'true'
           CHI_SYNC_REQUEST_MONITOR: ${{ vars.CHI_SYNC_REQUEST_MONITOR }}
