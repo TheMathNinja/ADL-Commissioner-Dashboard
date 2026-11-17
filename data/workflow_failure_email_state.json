@@ -994,6 +994,18 @@
     },
     "chi-forecast:876a892115e47e268215cfaf2e933ef8451c399f44dc452157f7a7275c3ce903": {
       "subject": "[CHI Tools needs attention] Forecast refresh remains unverified"
+    },
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44131638199:1": {
+      "sent_at": "2026-11-17T17:13:33.518643+00:00",
+      "subject": "[League automation CANCELLED] Chicago-Bears-Lineup-Guardian \u2014 Chicago Bears Lineup Guardian - public-backup-1794934653",
+      "incident_key": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - public-backup-1794934653",
+      "scope": "TheMathNinja/Chicago-Bears-Lineup-Guardian:374767975:Chicago Bears Lineup Guardian - public-backup-1794934653:2026-11-17",
+      "failed_steps": [
+        "Workflow ended with cancelled; detailed step results are unavailable."
+      ],
+      "cause_codes": {},
+      "affected_jobs": {},
+      "failed_at": "2026-11-17T17:02:42Z"
     }
   },
   "checked": {
