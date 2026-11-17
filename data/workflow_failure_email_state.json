@@ -875,6 +875,33 @@
         "personal": "failure"
       },
       "failed_at": "2026-11-12T11:26:44Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44020940268:1": {
+      "sent_at": "2026-11-17T05:23:37.860463+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Preliminary ADL weekly update \u00b7 Week 10 \u00b7",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:Preliminary ADL weekly update \u00b7 Week 10 \u00b7 831f7315567cc833445d2c292a62188eafe9fe8ec19fb4bc485bc55ca4aba62d",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:Preliminary ADL weekly update \u00b7 Week 10 \u00b7 831f7315567cc833445d2c292a62188eafe9fe8ec19fb4bc485bc55ca4aba62d:2026-11-16",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication",
+        "refresh: Require official cap snapshot for preliminary weekly publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Request weekly completion email": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped"
+      },
+      "failed_at": "2026-11-17T05:07:46Z",
+      "delivery": [
+        "TheMathNinja/ADL-GM-Dashboard",
+        "2026-11-17",
+        "preliminary",
+        10
+      ]
     }
   },
   "checked": {
