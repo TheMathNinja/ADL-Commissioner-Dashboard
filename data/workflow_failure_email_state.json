@@ -902,6 +902,28 @@
         "preliminary",
         10
       ]
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:44022410030:1": {
+      "sent_at": "2026-11-17T05:28:59.249705+00:00",
+      "subject": "[League automation CANCELLED] FAFL-GM-Dashboard \u2014 pages build and deployment",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:374900494:account-check:main",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:374900494:account-check:main:2026-11-17",
+      "failed_steps": [
+        "build: Pull ghcr.io/actions/jekyll-build-pages:v1.0.13",
+        "report-build-status: cancelled",
+        "deploy: cancelled"
+      ],
+      "cause_codes": {
+        "build": "unclassified",
+        "report-build-status": "unclassified",
+        "deploy": "unclassified"
+      },
+      "affected_jobs": {
+        "build": "cancelled",
+        "report-build-status": "cancelled",
+        "deploy": "cancelled"
+      },
+      "failed_at": "2026-11-17T05:12:23Z"
     }
   },
   "checked": {
