@@ -924,6 +924,26 @@
         "deploy": "cancelled"
       },
       "failed_at": "2026-11-17T05:12:23Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44022475071:1": {
+      "sent_at": "2026-11-17T05:32:44.127854+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 ADL manual preview",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:account-check:main:2026-11-17",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Request weekly completion email": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped"
+      },
+      "failed_at": "2026-11-17T05:17:04Z"
     }
   },
   "checked": {
