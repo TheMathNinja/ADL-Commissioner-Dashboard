@@ -182,7 +182,8 @@ def review(api, now, dry=False):
     prior = decode(original) if original.get('sha') else {}
     plan = json.loads(PLAN_PATH.read_text())
     retry_hours = 24 if prior.get('billing', {}).get('status') == 'verified' else 0.5
-    if (prior.get('schemaVersion') == 2 and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
+    if (prior.get('schemaVersion') == 2 and prior.get('month') == now.strftime('%Y-%m')
+            and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
             and prior.get('planProjection', {}).get('version') == plan['version']):
         return prior
     from actions_billing import read, BillingUnavailable

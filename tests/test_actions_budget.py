@@ -213,6 +213,20 @@ class BudgetTests(unittest.TestCase):
         self.assertIsNone(value['remainingMinutes'])
         self.assertIsNone(value['projectedMonthEnd'])
 
+    def test_new_billing_month_invalidates_daily_cache(self):
+        now = datetime(2026, 12, 1, 6, tzinfo=timezone.utc)
+        prior = dict(schemaVersion=2, month='2026-11', checkedAt='2026-11-30T23:59:00Z',
+                     planProjection={'version': 3}, billing={'status': 'verified'})
+        actual = dict(status='verified', checkedAt=now.isoformat(), includedMinutes=2000,
+                      usedLinuxEquivalentMinutes=0, remainingLinuxEquivalentMinutes=2000)
+        with patch.object(budget, 'decode', return_value=prior), patch.object(
+                billing, 'read', return_value=actual) as read, patch.object(runtime, 'measure', return_value={}), patch.object(
+                budget, 'upcoming_kickoffs', return_value=[]):
+            value = budget.review(lambda *args: {'sha': 'old'}, now, dry=True)
+        read.assert_called_once()
+        self.assertEqual(value['month'], '2026-12')
+        self.assertEqual(value['estimatedUsed'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
