@@ -4663,6 +4663,24 @@
         "deploy": "cancelled"
       },
       "failed_at": "2026-11-17T05:12:23Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44022475071:1": {
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:279881511:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:279881511:account-check:main:2026-11-17",
+      "failed_steps": [
+        "refresh: Require synchronized quarterly forecasts before publication",
+        "refresh: Require a successful playoff forecast publication"
+      ],
+      "cause_codes": {
+        "refresh": "unclassified"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Request weekly completion email": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped"
+      },
+      "failed_at": "2026-11-17T05:17:04Z"
     }
   },
   "delivery_receipts": {
@@ -4755,6 +4773,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-17T05:28:55.897391+00:00",
       "accepted_at": "2026-11-17T05:28:58.057432+00:00"
+    },
+    "failure:TheMathNinja/ADL-GM-Dashboard:44022475071:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-17T05:32:40.460357+00:00"
     }
   },
   "healthyAt": "2026-11-17T05:31:19.441714+00:00",
@@ -4785,6 +4807,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-17T05:30:24.577571+00:00"
+    "checkedAt": "2026-11-17T05:31:52.103442+00:00"
   }
 }
