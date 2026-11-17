@@ -159,10 +159,19 @@ def recent_inflight(runs, now, workflow='guardian.yml'):
                for r in runs)
 
 
-def dispatch(identifier, workflow='guardian.yml'):
+def standard_fallback(runs, now):
+    return any(run.get('status') == 'completed' and run.get('conclusion') in ('failure', 'timed_out', 'cancelled')
+               and (run.get('event') == 'schedule' or 'public-backup-' in run.get('display_title', ''))
+               and timedelta(0) <= now - stamp(run['created_at']) < timedelta(minutes=15)
+               for run in runs)
+
+
+def dispatch(identifier, workflow='guardian.yml', force_standard=False):
     if workflow not in ('guardian.yml', 'initial-lineup.yml'):
         raise ValueError('Unrecognized Guardian workflow')
     body = {'ref': 'main', 'inputs': {'live': False, 'use_native_policy': True, 'dispatch_id': identifier}}
+    if force_standard:
+        body['inputs']['force_standard_runner'] = True
     request = Request(f'https://api.github.com/repos/{REPO}/actions/workflows/{workflow}/dispatches', method='POST',
                       headers={'Authorization': 'Bearer ' + os.environ['PRIVATE_REPORT_TOKEN'], 'Content-Type': 'application/json'},
                       data=json.dumps(body).encode())
@@ -202,7 +211,8 @@ def run(dry=True, now=None):
         print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
         return
     workflow = wanted.get('workflow', 'guardian.yml')
-    if recent_inflight(private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs'], now, workflow):
+    runs = private(f'actions/workflows/{workflow}/runs?per_page=10&branch=main')['workflow_runs']
+    if recent_inflight(runs, now, workflow):
         print('Guardian scheduling gate: a known live check is already queued or running.')
         return
     if dry:
@@ -233,7 +243,10 @@ def run(dry=True, now=None):
         print('Guardian scheduling gate: another dispatcher owns the fresh lease.')
         return
     try:
-        dispatch('public-backup-' + str(int(now.timestamp())), workflow)
+        if standard_fallback(runs, now):
+            dispatch('public-backup-' + str(int(now.timestamp())), workflow, force_standard=True)
+        else:
+            dispatch('public-backup-' + str(int(now.timestamp())), workflow)
     except (URLError, TimeoutError) as error:
         if isinstance(error, HTTPError) and error.code not in (408, 429, 500, 502, 503, 504):
             raise

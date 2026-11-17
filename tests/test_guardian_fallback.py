@@ -174,6 +174,24 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual(payload['inputs']['live'], False)
         self.assertEqual(payload['inputs']['use_native_policy'], True)
 
+    def test_recent_failed_real_check_uses_standard_runner_backup(self):
+        run = dict(status='completed', conclusion='failure', event='workflow_dispatch',
+                   display_title='Chicago Bears Lineup Guardian - public-backup-real', created_at=NOW.isoformat())
+        self.assertTrue(gate.standard_fallback([run], NOW))
+        self.assertFalse(gate.standard_fallback([run], NOW + timedelta(minutes=15)))
+        self.assertFalse(gate.standard_fallback([dict(run, display_title='budget-slim-readonly')], NOW))
+        self.assertFalse(gate.standard_fallback([dict(run, conclusion='success')], NOW))
+
+    def test_standard_backup_does_not_change_write_policy(self):
+        from unittest.mock import MagicMock
+        with patch.dict(gate.os.environ, {'PRIVATE_REPORT_TOKEN': 'test'}), patch.object(gate, 'urlopen', return_value=MagicMock()) as send:
+            gate.dispatch('public-backup-test', force_standard=True)
+        import json
+        payload = json.loads(send.call_args.args[0].data)['inputs']
+        self.assertTrue(payload['force_standard_runner'])
+        self.assertFalse(payload['live'])
+        self.assertTrue(payload['use_native_policy'])
+
     def test_ambiguous_dispatch_is_not_replayed_and_never_creates_coverage(self):
         ledger, coverage, observed = fixtures(NOW, NOW + timedelta(minutes=30))
         ledger['checks'] = []
