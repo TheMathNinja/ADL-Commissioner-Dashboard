@@ -121,6 +121,14 @@ class BudgetTests(unittest.TestCase):
             with self.assertRaises(billing.BillingUnavailable):
                 billing.number(value)
 
+    def test_unknown_compute_sku_never_becomes_a_false_zero_balance(self):
+        now = datetime(2026, 11, 17, tzinfo=timezone.utc)
+        profile = {'login': 'TheMathNinja', 'plan': {'name': 'free'}}
+        report = {'usageItems': [dict(product='Actions', date='2026-11-01', sku='new runner',
+                    grossAmount=11, netAmount=0, unitType='minutes', repositoryName='private')]}
+        with self.assertRaisesRegex(billing.BillingUnavailable, 'sku_not_verified'):
+            billing.read(lambda *args: {'private': True}, now, lambda path: profile if path == 'user' else report)
+
     def test_runtime_rounds_each_allocated_job_before_averaging(self):
         job = dict(runner_id=1, labels=['ubuntu-24.04'], conclusion='success',
                    started_at='2026-11-17T00:00:00Z', completed_at='2026-11-17T00:01:01Z')
