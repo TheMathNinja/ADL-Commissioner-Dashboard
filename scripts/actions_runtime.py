@@ -16,7 +16,7 @@ def fingerprint(tree, workflow):
     inputs = sorted((row['path'], row['sha'], row.get('mode')) for row in tree['tree']
                     if row['type'] == 'blob' and (
                         row['path'] == '.github/workflows/' + workflow or
-                        row['path'].startswith(('src/', 'scripts/', 'test/', 'scheduler/', 'config/', '.github/actions/')) or
+                        row['path'].startswith(('src/', 'scripts/', 'test/', 'scheduler/', 'config/', '.github/')) or
                         row['path'] in ('package.json', 'package-lock.json', FIXTURE)))
     if not inputs:
         raise ValueError('Empty runtime input metadata')
