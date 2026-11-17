@@ -191,6 +191,7 @@ PRODUCTION_DISPATCH_NAMES = (
 
 
 def api(repo, path):
+    url = f'https://api.github.com/repos/{repo}' + ('/' + path if path else '')
     error = None
     for attempt in range(5):
         try:
@@ -198,13 +199,13 @@ def api(repo, path):
                 token = os.environ.get('PRIVATE_REPORT_TOKEN')
                 if not token:
                     raise RuntimeError('Account/private failure-report coverage credential is unavailable')
-                req = urllib.request.Request(f'https://api.github.com/repos/{repo}/{path}', headers={
+                req = urllib.request.Request(url, headers={
                     'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
                     'User-Agent': 'League-incident-reporter'})
                 with urllib.request.urlopen(req, timeout=45) as response:
                     value = json.load(response)
             else:
-                value = mail.get_json(f'https://api.github.com/repos/{repo}/{path}')
+                value = mail.get_json(url)
             if value is None:
                 raise RuntimeError(f'GitHub resource unavailable: {repo}/{path}')
             return value
