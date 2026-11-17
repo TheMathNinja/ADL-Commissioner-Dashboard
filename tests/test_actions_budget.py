@@ -145,6 +145,17 @@ class BudgetTests(unittest.TestCase):
                 billing.get('user')
             self.assertEqual(request.call_count, 1)
 
+    def test_repository_visibility_uses_root_endpoint_without_trailing_slash(self):
+        import email_workflow_failures as reporter
+        import io
+        from unittest.mock import MagicMock
+        response = MagicMock()
+        response.__enter__.return_value = io.StringIO('{"private":true}')
+        with patch.dict('os.environ', PRIVATE_REPORT_TOKEN='test-only'), patch.object(
+                reporter.urllib.request, 'urlopen', return_value=response) as request:
+            self.assertTrue(reporter.api(reporter.GUARDIAN, '')['private'])
+        self.assertEqual(request.call_args.args[0].full_url, 'https://api.github.com/repos/' + reporter.GUARDIAN)
+
     def test_runtime_rounds_each_allocated_job_before_averaging(self):
         job = dict(runner_id=1, labels=['ubuntu-24.04'], conclusion='success',
                    started_at='2026-11-17T00:00:00Z', completed_at='2026-11-17T00:01:01Z')
