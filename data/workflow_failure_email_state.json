@@ -4978,8 +4978,9 @@
       "accepted_at": "2026-11-17T05:52:16.365182+00:00"
     },
     "mfl-potential-warning:ee3649b41f66748d8c08581eef46fda1bbc656d16044cdc5636bb0c81ea18a11": {
-      "status": "sending",
-      "attempted_at": "2026-11-17T06:27:39.091628+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-17T06:27:39.091628+00:00",
+      "accepted_at": "2026-11-17T06:27:41.486745+00:00"
     }
   },
   "healthyAt": "2026-11-17T06:23:58.062449+00:00",
