@@ -27,3 +27,10 @@ failed, changed, stale and future-dated runs cannot be reused as passes.
 Current billing, projected demand and balances are retained only in private
 records. If required work and incident reserves exceed the remaining balance,
 do not claim a demonstrated fit, suppress protection or authorize paid overage.
+
+`GUARDIAN_RUNNER=ubuntu-slim` is a separate opt-in after a successful private
+read-only compatibility probe. It changes compute class, not check cadence or
+test requirements. The budget reserves two rounded slim minutes per required
+job, and raises that estimate when measured jobs exceed it. Mirror the runner
+selection in Commissioner for accounting. Clearing the variable restores the
+standard runner without changing required checks or the discretionary hold.

@@ -20,7 +20,7 @@ ALLOWANCE = 2000
 PLAN_PATH = Path(__file__).resolve().parents[1] / 'contracts/actions_budget_plan.json'
 
 
-def configured_projection(now, schedules, plan=None, measurements=None, conservation=False):
+def configured_projection(now, schedules, plan=None, measurements=None, conservation=False, runner='ubuntu-24.04'):
     """Forward schedule model, independent of expensive historical job averages."""
     plan = plan or json.loads(PLAN_PATH.read_text())
     measurements = measurements or {}
@@ -49,7 +49,10 @@ def configured_projection(now, schedules, plan=None, measurements=None, conserva
         if day.weekday() == plan['weeklyAuditWeekday']:
             audit_dates.append(day.isoformat())
         day += timedelta(days=1)
-    checkpoint_cost = cost('guardian.yml', plan['minutesPerCheckpointJob'])
+    fallback_cost = 2 / 3 if runner == 'ubuntu-slim' else plan['minutesPerCheckpointJob']
+    checkpoint_cost = cost('guardian.yml', fallback_cost)
+    if runner == 'ubuntu-slim':
+        checkpoint_cost = max(2 / 3, checkpoint_cost)
     audit_cost = (cost('league-audit.yml:contracts', 1) + cost('league-audit.yml:guardian', 2))
     components = {'preKickoff': len(slots) * checkpoint_cost,
                   'weeklyCloudAudits': len(audit_dates) * audit_cost}
@@ -60,7 +63,10 @@ def configured_projection(now, schedules, plan=None, measurements=None, conserva
             count += scheduled >= now
             scheduled += timedelta(days=1)
         workflow = {'morningProtection': 'initial-lineup.yml', 'chiSync': 'sync_chi_team_tools.yml'}[name]
-        components[name] = count * cost(workflow, settings['minutesPerJob'])
+        scheduled_cost = cost(workflow, 2 / 3 if runner == 'ubuntu-slim' and name == 'morningProtection' else settings['minutesPerJob'])
+        if runner == 'ubuntu-slim' and name == 'morningProtection':
+            scheduled_cost = max(2 / 3, scheduled_cost)
+        components[name] = count * scheduled_cost
     components.update({name: math.ceil(days * rate) for name, rate in plan['dailyAllowances'].items()})
     # Requests are demand-driven. Observed current-code demand may raise, never
     # erase, the explicit reserve when the short observation window is quiet.
@@ -186,11 +192,13 @@ def review(api, now, dry=False):
     prior = decode(original) if original.get('sha') else {}
     plan = json.loads(PLAN_PATH.read_text())
     conservation = os.environ.get('PRIVATE_DISCRETIONARY_ACTIONS') == 'paused'
+    runner = os.environ.get('GUARDIAN_RUNNER') or 'ubuntu-24.04'
     retry_hours = 24 if prior.get('billing', {}).get('status') == 'verified' else 0.5
     if (prior.get('schemaVersion') == 2 and prior.get('month') == now.strftime('%Y-%m')
             and prior.get('checkedAt') and now - stamp(prior['checkedAt']) < timedelta(hours=retry_hours)
             and prior.get('planProjection', {}).get('version') == plan['version']
-            and prior.get('discretionaryPaused', False) == conservation):
+            and prior.get('discretionaryPaused', False) == conservation
+            and prior.get('guardianRunner', 'ubuntu-24.04') == runner):
         return prior
     from actions_billing import read, BillingUnavailable
     from actions_runtime import measure
@@ -210,7 +218,7 @@ def review(api, now, dry=False):
     except (OSError, RuntimeError, ValueError, KeyError, TypeError):
         measurements = {}
         runtime_status = 'unavailable'
-    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements, conservation)
+    projection = configured_projection(now, upcoming_kickoffs(api, now), plan, measurements, conservation, runner)
     verified = billing['status'] == 'verified'
     used = billing['usedLinuxEquivalentMinutes'] if verified else None
     allowance = billing['includedMinutes'] if verified else ALLOWANCE
@@ -219,6 +227,7 @@ def review(api, now, dry=False):
              'source': 'GitHub billing baseline plus measured-runtime forward estimate; not an invoice',
              'billing': billing, 'runtimeStatus': runtime_status, 'runtimeMeasurements': measurements,
              'discretionaryPaused': conservation,
+             'guardianRunner': runner,
              'allowance': allowance, 'target': allowance * 0.75, 'estimatedUsed': used,
              'remainingMinutes': remaining, 'planProjection': projection,
              'daysRemaining': projection['daysRemaining'],

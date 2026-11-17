@@ -12,6 +12,16 @@ import actions_runtime as runtime
 
 
 class BudgetTests(unittest.TestCase):
+    def test_slim_keeps_check_count_and_reserves_two_rounded_minutes_per_check(self):
+        now = datetime(2026, 11, 17, 6, tzinfo=timezone.utc)
+        kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
+        value = budget.configured_projection(now, [kickoff], conservation=True, runner='ubuntu-slim')
+        self.assertEqual(value['checkpointJobsRemaining'], 3)
+        self.assertEqual(value['componentsThroughReset']['preKickoff'], 2)
+        self.assertAlmostEqual(value['componentsThroughReset']['morningProtection'], 14 * 2 / 3)
+        slower = budget.configured_projection(now, [kickoff], runner='ubuntu-slim',
+                    measurements={'guardian.yml': {'meanRoundedMinutes': 1.5}})
+        self.assertEqual(slower['componentsThroughReset']['preKickoff'], 4.5)
     def test_conservation_keeps_all_required_slots_and_honest_recovery_reserve(self):
         now = datetime(2026, 11, 17, 6, tzinfo=timezone.utc)
         kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
