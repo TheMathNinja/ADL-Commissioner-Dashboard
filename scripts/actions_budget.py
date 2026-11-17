@@ -49,10 +49,11 @@ def configured_projection(now, schedules, plan=None, measurements=None, conserva
         if day.weekday() == plan['weeklyAuditWeekday']:
             audit_dates.append(day.isoformat())
         day += timedelta(days=1)
-    fallback_cost = 2 / 3 if runner == 'ubuntu-slim' else plan['minutesPerCheckpointJob']
+    runner_floor = {'ubuntu-slim': 2 / 3, 'ubuntu-24.04-arm': 5 / 6}.get(runner)
+    fallback_cost = runner_floor if runner_floor is not None else plan['minutesPerCheckpointJob']
     checkpoint_cost = cost('guardian.yml', fallback_cost)
-    if runner == 'ubuntu-slim':
-        checkpoint_cost = max(2 / 3, checkpoint_cost)
+    if runner_floor is not None:
+        checkpoint_cost = max(runner_floor, checkpoint_cost)
     audit_cost = (cost('league-audit.yml:contracts', 1) + cost('league-audit.yml:guardian', 2))
     components = {'preKickoff': len(slots) * checkpoint_cost,
                   'weeklyCloudAudits': len(audit_dates) * audit_cost}
@@ -63,9 +64,9 @@ def configured_projection(now, schedules, plan=None, measurements=None, conserva
             count += scheduled >= now
             scheduled += timedelta(days=1)
         workflow = {'morningProtection': 'initial-lineup.yml', 'chiSync': 'sync_chi_team_tools.yml'}[name]
-        scheduled_cost = cost(workflow, 2 / 3 if runner == 'ubuntu-slim' and name == 'morningProtection' else settings['minutesPerJob'])
-        if runner == 'ubuntu-slim' and name == 'morningProtection':
-            scheduled_cost = max(2 / 3, scheduled_cost)
+        scheduled_cost = cost(workflow, runner_floor if runner_floor is not None and name == 'morningProtection' else settings['minutesPerJob'])
+        if runner_floor is not None and name == 'morningProtection':
+            scheduled_cost = max(runner_floor, scheduled_cost)
         components[name] = count * scheduled_cost
     components.update({name: math.ceil(days * rate) for name, rate in plan['dailyAllowances'].items()})
     # Requests are demand-driven. Observed current-code demand may raise, never

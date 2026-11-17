@@ -22,6 +22,14 @@ class BudgetTests(unittest.TestCase):
         slower = budget.configured_projection(now, [kickoff], runner='ubuntu-slim',
                     measurements={'guardian.yml': {'meanRoundedMinutes': 1.5}})
         self.assertEqual(slower['componentsThroughReset']['preKickoff'], 4.5)
+
+    def test_standard_arm_runner_uses_actual_price_without_removing_checks(self):
+        now = datetime(2026, 11, 17, 6, tzinfo=timezone.utc)
+        kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)
+        value = budget.configured_projection(now, [kickoff], conservation=True, runner='ubuntu-24.04-arm')
+        self.assertEqual(value['checkpointJobsRemaining'], 3)
+        self.assertEqual(value['componentsThroughReset']['preKickoff'], 2.5)
+        self.assertAlmostEqual(value['componentsThroughReset']['morningProtection'], 14 * 5 / 6)
     def test_conservation_keeps_all_required_slots_and_honest_recovery_reserve(self):
         now = datetime(2026, 11, 17, 6, tzinfo=timezone.utc)
         kickoff = datetime(2026, 11, 22, 18, tzinfo=timezone.utc)

@@ -34,3 +34,9 @@ test requirements. The budget reserves two rounded slim minutes per required
 job, and raises that estimate when measured jobs exceed it. Mirror the runner
 selection in Commissioner for accounting. Clearing the variable restores the
 standard runner without changing required checks or the discretionary hold.
+
+The standard two-core ARM runner (`ubuntu-24.04-arm`) is another opt-in, only
+after a private compatibility probe and startup-latency check. Its documented
+price is five-sixths of the standard x64 price per rounded minute. A failed real
+check is eligible for the existing independent dispatch on standard x64; this
+does not change native write permissions or serialize writes differently.
