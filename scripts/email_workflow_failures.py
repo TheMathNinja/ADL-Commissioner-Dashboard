@@ -626,6 +626,26 @@ def inactive_audit_branch(repo, run, job):
     return job.get('conclusion') == 'skipped' and job['name'] == unused
 
 
+def deployed_pages_replacement(repo, run, later, completed):
+    """A deployed descendant can supersede a Pages build before it stops."""
+    if (run.get('path') != 'dynamic/pages/pages-build-deployment'
+            or run.get('conclusion') != 'cancelled'
+            or run.get('head_branch') != 'main' or later.get('head_branch') != 'main'
+            or later.get('created_at', '') < run.get('created_at', '')
+            or not all(re.fullmatch('[a-f0-9]{40}', value or '')
+                       for value in (run.get('head_sha'), later.get('head_sha')))):
+        return False
+    if not any(job.get('name') == 'deploy' and job.get('conclusion') == 'success' and any(
+            step.get('name') == 'Deploy to GitHub Pages' and step.get('conclusion') == 'success'
+            for step in job.get('steps', [])) for job in completed):
+        return False
+    try:
+        comparison = api(repo, 'compare/' + run['head_sha'] + '...' + later['head_sha'])
+        return comparison.get('status') in ('ahead', 'identical') and comparison.get('behind_by') == 0
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+        return False
+
+
 def verified_recovery(repo, run, job_list, history):
     """Suppress historical alerts only when the same production work passed."""
     if run.get('conclusion') not in BAD:
@@ -639,13 +659,19 @@ def verified_recovery(repo, run, job_list, history):
                 or not production(later)
                 or later.get('path') != run.get('path')
                 or recovery_scope(repo, later) != recovery_scope(repo, run)
-                or later.get('updated_at', '') <= run.get('updated_at', '')
-                or (not retry and later.get('created_at', '') <= run.get('updated_at', ''))):
+                or later.get('updated_at', '') <= run.get('updated_at', '')):
             continue
         try:
             completed = jobs(repo, later)
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
+        cancelled_pages = (run.get('path') == 'dynamic/pages/pages-build-deployment'
+                           and run.get('conclusion') == 'cancelled')
+        if cancelled_pages:
+            if not deployed_pages_replacement(repo, run, later, completed):
+                continue
+        elif not retry and later.get('created_at', '') <= run.get('updated_at', ''):
+            continue
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}

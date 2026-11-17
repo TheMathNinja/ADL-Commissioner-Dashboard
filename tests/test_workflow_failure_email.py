@@ -142,6 +142,37 @@ class FailureReports(unittest.TestCase):
         send.assert_not_called()
         self.assertIn('verified recovery', state['checked'][m.REPOS[1] + ':1:1'])
 
+    def test_nov17_overlapping_pages_replacement_requires_deployed_descendant(self):
+        old = dict(self.run, id=44022410030, _account_report=True, conclusion='cancelled',
+                   path='dynamic/pages/pages-build-deployment', name='pages build and deployment',
+                   created_at='2026-11-17T05:12:09Z', updated_at='2026-11-17T05:12:23Z',
+                   head_sha='b850e7b0c1482531b82807d984594b2043044b42')
+        new = dict(old, id=44022429020, conclusion='success', created_at='2026-11-17T05:12:19Z',
+                   updated_at='2026-11-17T05:13:02Z', head_sha='a7cff9a5081a5e95f4067531f1dc0a1752dc1067')
+        failed = [dict(name='build', conclusion='cancelled', steps=[
+                      dict(name='Pull Jekyll', conclusion='cancelled')]),
+                  dict(name='report-build-status', conclusion='cancelled', steps=[]),
+                  dict(name='deploy', conclusion='cancelled', steps=[])]
+        completed = [dict(name='build', conclusion='success', steps=[dict(name='Pull Jekyll', conclusion='success')]),
+                     dict(name='report-build-status', conclusion='success', steps=[dict(name='Report Build Status', conclusion='success')]),
+                     dict(name='deploy', conclusion='success', steps=[dict(name='Deploy to GitHub Pages', conclusion='success')])]
+        with patch.object(m, 'jobs', return_value=completed), patch.object(
+                m, 'api', return_value={'status': 'ahead', 'behind_by': 0}):
+            self.assertEqual(m.verified_recovery(m.REPOS[1], old, failed, [new]), new)
+            for changes in ({'conclusion': 'failure'}, {'head_branch': 'preview'}, {'head_sha': None},
+                            {'created_at': '2026-11-17T05:12:21Z'}, {'path': '.github/workflows/other.yml'}):
+                self.assertIsNone(m.verified_recovery(m.REPOS[1], dict(old, **changes), failed, [new]))
+            skipped = copy.deepcopy(completed)
+            skipped[-1]['steps'][0]['conclusion'] = 'skipped'
+            with patch.object(m, 'jobs', return_value=skipped):
+                self.assertIsNone(m.verified_recovery(m.REPOS[1], old, failed, [new]))
+        with patch.object(m, 'jobs', return_value=completed):
+            for comparison in ({'status': 'diverged', 'behind_by': 1}, {'status': 'behind', 'behind_by': 1}, {}):
+                with patch.object(m, 'api', return_value=comparison):
+                    self.assertIsNone(m.verified_recovery(m.REPOS[1], old, failed, [new]))
+            with patch.object(m, 'api', side_effect=RuntimeError('visibility unavailable')):
+                self.assertIsNone(m.verified_recovery(m.REPOS[1], old, failed, [new]))
+
     def test_recovered_inactivity_startup_requires_live_same_day_check(self):
         run = dict(self.run, id=42671504712, path='fafl-inactivity-watch.yml',
                    display_title='FAFL Inactivity Watch', created_at='2026-11-09T18:09:31Z',
