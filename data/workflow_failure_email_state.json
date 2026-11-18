@@ -1032,6 +1032,22 @@
       "failed_at": "2026-11-18T10:28:35Z",
       "daily_parent": "44284311740",
       "daily_job": "Run Commissioner alerts"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44285461301:1": {
+      "sent_at": "2026-11-18T10:48:56.682415+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Deploy GM Dashboard",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:360282250:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:360282250:account-check:main:2026-11-18",
+      "failed_steps": [
+        "deploy: Verify EXT publication regression cases"
+      ],
+      "cause_codes": {
+        "deploy": "unclassified"
+      },
+      "affected_jobs": {
+        "deploy": "failure"
+      },
+      "failed_at": "2026-11-18T10:32:43Z"
     }
   },
   "checked": {
