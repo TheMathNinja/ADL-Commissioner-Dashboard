@@ -1070,7 +1070,12 @@
       },
       "failed_at": "2026-11-18T20:07:16Z",
       "daily_parent": "44284311740",
-      "daily_job": "Run Commissioner alerts"
+      "daily_job": "Run Commissioner alerts",
+      "observed_cause_codes": {
+        "daily-commissioner-alerts": "e6532b4a169b7fe34615fc085d0d0449d88e8bb5a7273c67e46dd50113e4ed5f"
+      },
+      "last_seen_at": "2026-11-18T20:20:44Z",
+      "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44388917182"
     }
   },
   "checked": {
@@ -5870,7 +5875,10 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44390698531:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:44387928871:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44390020860",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44391564052:1": "skipped",
-    "TheMathNinja/ADL-Commissioner-Dashboard:44389383332:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391674192"
+    "TheMathNinja/ADL-Commissioner-Dashboard:44389383332:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391674192",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44392449670:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44388917182:1": "duplicate notification for TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44284311740 - Commissioner alerts",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44389685012:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44392346476"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -5905,6 +5913,11 @@
     },
     "TheMathNinja/ADL-Commissioner-Dashboard:44383911214:1": {
       "failed_at": "2026-11-18T19:54:37Z",
+      "daily_parent": "44284311740",
+      "daily_job": "Run Commissioner alerts"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44388917182:1": {
+      "failed_at": "2026-11-18T20:20:44Z",
       "daily_parent": "44284311740",
       "daily_job": "Run Commissioner alerts"
     }
@@ -6421,6 +6434,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-18T20:32:44.524348+00:00"
+    "checkedAt": "2026-11-18T20:37:44.010183+00:00"
   }
 }
