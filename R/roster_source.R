@@ -428,6 +428,15 @@ load_current_rosters <- function(
   dir.create(dirname(cache_path), recursive = TRUE, showWarnings = FALSE)
   source <- match.arg(source, c("auto", "live", "cache", "snapshot"))
 
+  run_cache <- getOption("adl_alert_run_rosters")
+  share_live <- isTRUE(force_live) && source %in% c("auto", "live") && is.environment(run_cache)
+  run_key <- if (share_live) digest::digest(list(season = as.integer(season), week = as.integer(week),
+    path = cache_path, league = get_env_or_default("ADL_LEAGUE_ID", "60206"),
+    user = get_env_or_default("MFL_USERNAME"), password = get_env_or_default("MFL_PASSWORD")), algo = "sha256") else NULL
+  captured <- if (share_live) run_cache[[run_key]] else NULL
+  age <- if (!is.null(captured)) as.numeric(Sys.time()) - captured$at else Inf
+  if (!is.null(captured) && is.finite(age) && age >= 0 && age < 300) return(captured$data)
+
   if (!force_live && source %in% c("auto", "cache") && cache_is_fresh(cache_path, cache_minutes)) {
     return(read_csv(cache_path, show_col_types = FALSE))
   }
@@ -436,6 +445,7 @@ load_current_rosters <- function(
     live <- tryCatch(fetch_live_rosters(season = season, week = week), error = identity)
     if (!inherits(live, "error")) {
       write_roster_cache(live, cache_path, "ffscrapr::ff_rosters()", season)
+      if (share_live) run_cache[[run_key]] <- list(at = as.numeric(Sys.time()), data = live)
       return(live)
     }
     if (source == "live") stop(live)

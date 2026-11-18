@@ -5,7 +5,7 @@ create <- function(...) { calls <<- calls + 1L; list(marker = calls) }
 clock <- 1000
 now <- function() clock
 args <- list(season = 2026, league_id = 60206, user_agent = "offline-test",
-  rate_limit_number = 3, rate_limit_seconds = 6, user_name = "fixture", password = "fixture")
+  rate_limit_number = 1, rate_limit_seconds = 6, user_name = "fixture", password = "fixture")
 get_connection <- function(config = args, factory = create) connection_env$cached_adl_mfl_connection(config, create = factory, now = now)
 first <- get_connection()
 stopifnot(identical(first, get_connection()), calls == 1L)
@@ -30,4 +30,8 @@ stopifnot(inherits(try(get_connection(failed, function(...) stop("simulated logi
 before <- calls
 get_connection(failed); stopifnot(calls == before + 1L)
 stopifnot(all(grepl("^[a-f0-9]{64}$", ls(connection_env$.adl_mfl_connection_cache))))
+connection_env$get_env_or_default <- function(name, default = "") default
+connection_env$cached_adl_mfl_connection <- function(args) { production_args <<- args; list(marker = 0L) }
+connection_env$connect_adl_mfl(2026L)
+stopifnot(production_args$rate_limit_number == 1, production_args$rate_limit_seconds == 6)
 cat("PASS: one connection/limiter per config across callers, bounded cookie lifetime, credential/season isolation, failed-login recovery and opaque in-memory cache keys.\n")

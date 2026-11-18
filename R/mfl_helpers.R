@@ -39,7 +39,7 @@ connect_adl_mfl <- function(season = get_current_season()) {
     season = season,
     league_id = league_id,
     user_agent = user_agent,
-    rate_limit_number = 3,
+    rate_limit_number = 1,
     rate_limit_seconds = 6
   )
   

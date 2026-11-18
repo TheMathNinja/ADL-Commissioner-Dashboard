@@ -119,7 +119,9 @@ if (identical(mode, "cutdown")) {
 
 include_offseason <- mode %in% c("check", "offseason")
 include_inseason <- mode %in% c("check", "inseason") && !is.na(week)
+options(adl_alert_run_rosters = new.env(parent = emptyenv()))
 
+message("Checking current roster, cap, lineup and readiness evidence.")
 alerts <- build_commissioner_alerts(
   season = season,
   week = if (is.na(week)) NULL else week,
@@ -130,6 +132,7 @@ alerts <- build_commissioner_alerts(
 )
 
 if (include_inseason && exists("evaluate_lineup_submission_warnings", mode = "function")) {
+  message("Checking current lineup submission warnings.")
   submission_warnings <- evaluate_lineup_submission_warnings(
     season = season,
     week = week,
@@ -151,6 +154,7 @@ if (include_inseason && exists("evaluate_lineup_submission_warnings", mode = "fu
   }
 }
 if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts", mode = "function")) {
+  message("Checking confirmed inactivity and completed lineup submission evidence.")
   inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live, run_time = checked_at)
   inactivity_alerts <- omit_inactivity_rows_covered_by_roster_cap(inactivity_alerts, alerts)
   if (nrow(inactivity_alerts)) {
