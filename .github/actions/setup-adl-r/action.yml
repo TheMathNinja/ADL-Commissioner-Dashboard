@@ -66,3 +66,7 @@ runs:
         if (length(still_missing) > 0) {
           stop("R packages still not installed: ", paste(still_missing, collapse = ", "))
         }
+
+    - name: Verify declared R dependencies
+      shell: bash
+      run: Rscript tests/test_r_dependencies.R

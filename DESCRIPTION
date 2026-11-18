@@ -8,6 +8,7 @@ License: What license is it under?
 Encoding: UTF-8
 Imports:
     curl,
+    digest,
     dplyr,
     ffscrapr,
     googlesheets4,
