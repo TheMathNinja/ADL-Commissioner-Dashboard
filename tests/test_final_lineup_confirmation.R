@@ -46,3 +46,48 @@ stopifnot(requested_week == 8L, submission$week == "8", nrow(submission) == 1L)
 read_nfl_team_kickoffs <- function(...) tibble()
 stopifnot(fails(evaluate_lineup_submission_inactivity(2026, TRUE, now)))
 cat("Final lineup confirmation regressions passed.\n")
+
+# ADL V-A: a reviewed missed acquisition opportunity, not zero points, establishes this rule.
+commissioner_alert_status_week <- function(...) 11L
+now <- as.POSIXct("2026-11-17 12:00:00", tz = "UTC")
+opportunity <- read_backup_lineup_opportunities(2026)
+opportunity <- opportunity |> filter(franchise == "MIN", week == "10")
+stopifnot(nrow(opportunity) == 1L)
+auctions <- tibble(
+  type = c("AUCTION_INIT", "AUCTION_BID", "AUCTION_WON"),
+  franchise = "0011",
+  timestamp = c("1794345430", "1794359977", "1794433293"),
+  transaction = c("17038|1.10|", "17038|2|Tampa Bay Buccaneers forced bid increase", "17038|2|")
+)
+final_min <- tibble(franchise = "MIN", player_id = "16152")
+backup_check <- function(history = auctions, final = final_min, evidence = opportunity,
+  schedule = tibble(kickoff_at = now - 3600)) {
+  evaluate_backup_lineup_inactivity(2026, now, evidence,
+    fetch_transactions = function(...) history, fetch_lineups = function(...) final,
+    fetch_kickoffs = function(...) schedule)
+}
+stopifnot(nrow(backup_check()) == 1L,
+  backup_check()$violation_key == "illegal_lineup|2026|MIN|10")
+# Any documented attempt is conservatively exempt, including a losing proxy bid.
+bid <- auctions[2, ]; bid$franchise <- "0008"
+stopifnot(nrow(backup_check(bind_rows(auctions, bid))) == 0L)
+proxy <- auctions; proxy$transaction[2] <- "17038|2|Minnesota Vikings forced bid increase"
+stopifnot(nrow(backup_check(proxy)) == 0L)
+proxy$transaction[2] <- "17038|2|Minnesota Vikings bid (unrecognized annotation)"
+stopifnot(nrow(backup_check(proxy)) == 0L)
+# Repair, wrong week and unknown role evidence must not create hindsight penalties.
+stopifnot(nrow(backup_check(final = mutate(final_min, player_id = "17038"))) == 0L)
+future <- opportunity; future$week <- "11"
+stopifnot(nrow(backup_check(evidence = future)) == 0L)
+stopifnot(nrow(backup_check(evidence = opportunity[0, ])) == 0L)
+stopifnot(nrow(backup_check(schedule = tibble(kickoff_at = now + 3600))) == 0L)
+stopifnot(fails(backup_check(auctions[-1, ])), fails(backup_check(auctions[-3, ])),
+  fails(backup_check(final = final_min[0, ])), fails(backup_check(schedule = tibble())))
+cross <- opportunity; cross$auction_franchise_id <- "0024"
+stopifnot(fails(backup_check(evidence = cross)))
+invalid <- auctions; invalid$timestamp[2] <- "not-a-date"
+stopifnot(fails(backup_check(invalid)))
+# Same weekly key as structural/submission checks: one incident, not one per player or alternative.
+both <- bind_rows(backup_check(), backup_check())
+stopifnot(nrow(collapse_inseason_inactivity_candidates(both)) == 1L)
+cat("Backup acquisition-attempt regressions passed.\n")

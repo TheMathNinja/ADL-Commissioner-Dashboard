@@ -4,6 +4,7 @@ library(tibble)
 
 source("R/commissioner_alerts.R")
 source("R/emergency_adds.R")
+source("R/backup_lineup_inactivity.R")
 
 inseason_inactivity_dir <- function() {
   Sys.getenv("ADL_INSEASON_INACTIVITY_DIR", unset = file.path("data", "inseason_inactivity"))
@@ -801,6 +802,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
         evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
         evaluate_repeated_roster_violations(season, run_time = run_time),
         evaluate_confirmed_illegal_lineup_inactivity(season, run_time = run_time),
+        evaluate_backup_lineup_inactivity(season, run_time = run_time),
         evaluate_lineup_submission_inactivity(season = season, force_live = force_live, run_time = run_time),
         evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
       ),
