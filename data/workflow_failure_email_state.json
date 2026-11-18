@@ -1014,6 +1014,24 @@
       "failed_at": "2026-11-17T17:02:42Z",
       "resolved_at": "2026-11-17T17:08:14Z",
       "recovery_url": "https://github.com/TheMathNinja/Chicago-Bears-Lineup-Guardian/actions/runs/44133514245"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44285522059:1": {
+      "sent_at": "2026-11-18T10:48:27.007709+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Daily maintenance 44284311740 - Commissioner alerts",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44284311740 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44284311740 - Commissioner alerts:2026-11-18",
+      "failed_steps": [
+        "daily-commissioner-alerts: Test Commissioner recipient resolution"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "unclassified"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-18T10:28:35Z",
+      "daily_parent": "44284311740",
+      "daily_job": "Run Commissioner alerts"
     }
   },
   "checked": {
