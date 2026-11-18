@@ -4,6 +4,7 @@ library(tibble)
 
 source("R/roster_source.R")
 source("R/cash_trade_limits.R")
+source("R/roster_readiness.R")
 
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
@@ -2821,6 +2822,14 @@ build_commissioner_alerts <- function(
       kickoffs = kickoffs,
       checked_at = checked_at
     )
+    if (isTRUE(force_live)) {
+      roles <- fetch_readiness_depth_charts(season, checked_at)
+      dir.create(commissioner_alert_report_dir(), recursive = TRUE, showWarnings = FALSE)
+      write_csv(attr(roles, "source_health"), file.path(commissioner_alert_report_dir(),
+        paste0("readiness_source_health_", season, "_week", week, ".csv")))
+      alerts$roster_readiness <- evaluate_roster_readiness(rosters, lineups, roles, kickoffs,
+        read_bye_weeks(season), week, checked_at)
+    }
   }
 
   result <- bind_rows(alerts) |>
@@ -3097,7 +3106,7 @@ render_lineup_team_lines <- function(rows) {
 
 commissioner_digest_alerts <- function(alerts) {
   # Final prior-week lineup violations arrive through the inactivity monitor.
-  alerts[!(alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning")), , drop = FALSE]
+  alerts[!(alerts$alert_type %in% c("Illegal Lineup", "Illegal Lineup Warning", roster_readiness_type)), , drop = FALSE]
 }
 
 render_commissioner_alert_email <- function(
@@ -3411,7 +3420,7 @@ conference_cc_email <- function(conference) {
   ""
 }
 
-send_alert_mail <- function(subject, body, to, cc = character(), html_body = NULL) {
+send_alert_mail <- function(subject, body, to, cc = character(), html_body = NULL, delivery_key = NULL) {
   to <- unique(trimws(to[nzchar(trimws(to))]))
   cc <- unique(trimws(cc[nzchar(trimws(cc))]))
   from <- Sys.getenv("ADL_ALERT_EMAIL_FROM", unset = "")
@@ -3421,7 +3430,7 @@ send_alert_mail <- function(subject, body, to, cc = character(), html_body = NUL
     return(list(sent = FALSE, reason = "email_not_configured"))
   }
   source("R/alert_transport.R", local = TRUE)
-  deliver_alert(subject, body, to, cc, html_body)
+  deliver_alert(subject, body, to, cc, html_body, delivery_key = delivery_key)
 
   list(sent = TRUE, reason = "sent")
 }
@@ -3447,6 +3456,12 @@ send_commissioner_alert_email <- function(
   run_time = Sys.time()
 ) {
   alerts <- filter_lineup_email_days(alerts, run_time)
+  readiness <- alerts[alerts$alert_type == roster_readiness_type, , drop = FALSE]
+  if (nrow(readiness)) {
+    readiness_status <- send_roster_readiness_email(readiness, season, week, run_time)
+    alerts <- alerts[alerts$alert_type != roster_readiness_type, , drop = FALSE]
+    if (!nrow(alerts) && !send_empty) return(readiness_status)
+  }
   digest_alerts <- commissioner_digest_alerts(alerts)
   checked_date <- as.Date(run_time, tz = "America/New_York")
   date_label <- commissioner_alert_date_label(checked_date)
