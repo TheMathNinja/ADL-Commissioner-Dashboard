@@ -54,29 +54,7 @@ franchise_code_from_name <- function(x) {
   )
 }
 
-connect_adl_mfl <- function(season = get_current_season()) {
-  if (!requireNamespace("ffscrapr", quietly = TRUE)) {
-    stop("Package ffscrapr is required for live roster refresh.")
-  }
-
-  league_id <- as.integer(get_env_or_default("ADL_LEAGUE_ID", "60206"))
-  if (is.na(league_id)) stop("ADL_LEAGUE_ID must be numeric when provided.")
-
-  args <- list(
-    season = season,
-    league_id = league_id,
-    user_agent = get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard"),
-    rate_limit_number = 3,
-    rate_limit_seconds = 6
-  )
-
-  user_name <- get_env_or_default("MFL_USERNAME")
-  password <- get_env_or_default("MFL_PASSWORD")
-  if (nzchar(user_name)) args$user_name <- user_name
-  if (nzchar(password)) args$password <- password
-
-  do.call(ffscrapr::mfl_connect, args)
-}
+source("R/mfl_helpers.R", local = TRUE)
 
 coalesce_col <- function(df, names, default = NA_character_) {
   found <- names[names %in% colnames(df)]

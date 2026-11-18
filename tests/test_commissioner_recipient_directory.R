@@ -37,4 +37,5 @@ stopifnot(nrow(shared) == 2L, setequal(shared$franchise, c("CHI", "KCC")))
 stopifnot(identical(shared$franchise_id, c("0005", "0030")))
 stopifnot(nrow(dplyr::filter(shared, .data$franchise == "KCC")) == 1L)
 
+source("tests/test_mfl_connection_cache.R")
 cat("Commissioner recipient-directory regression test passed.\n")

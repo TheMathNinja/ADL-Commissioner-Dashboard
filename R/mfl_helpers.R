@@ -4,6 +4,22 @@
 
 library(ffscrapr)
 
+if (!exists(".adl_mfl_connection_cache", inherits = FALSE)) {
+  .adl_mfl_connection_cache <- new.env(parent = emptyenv())
+}
+
+cached_adl_mfl_connection <- function(args, create = ffscrapr::mfl_connect, now = Sys.time) {
+  key <- digest::digest(args, algo = "sha256")
+  clock <- as.numeric(now())
+  saved <- .adl_mfl_connection_cache[[key]]
+  if (!is.null(saved) && clock >= saved$at && clock - saved$at < 1800)
+    return(saved$connection)
+  # Reconnecting resets ffscrapr's process-wide limiter and repeats MFL login.
+  connection <- do.call(create, args)
+  .adl_mfl_connection_cache[[key]] <- list(at = clock, connection = connection)
+  connection
+}
+
 get_env_or_default <- function(name, default = "") {
   value <- Sys.getenv(name, unset = default)
   if (is.na(value) || !nzchar(value)) default else value
@@ -30,5 +46,5 @@ connect_adl_mfl <- function(season = get_current_season()) {
   if (nzchar(user_name)) args$user_name <- user_name
   if (nzchar(password)) args$password <- password
   
-  do.call(ffscrapr::mfl_connect, args)
+  cached_adl_mfl_connection(args)
 }
