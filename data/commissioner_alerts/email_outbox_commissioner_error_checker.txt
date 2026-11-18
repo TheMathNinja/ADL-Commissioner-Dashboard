@@ -1,18 +1,31 @@
 Salary-adjustment action report
 This is the complete current worklist. Previously reported items are included for context, not as new errors. Unchecked ENTD? entries are warnings until a completed official snapshot is missed.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_17_ADLSalAdjCurator.csv
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_18_ADLSalAdjCurator.csv
 
 1. Items to Enter into Contract Admin and MFL
 Enter these missing source contracts in Contract Admin and verify the calculated adjustment. Compare with MFL first: add only missing adjustments, correct incorrect existing entries, and never enter a duplicate. After confirming MFL, mark ENTD?. Contract salary below is not the penalty amount.
-New entry request:
+Previously reported; still outstanding:
 - Dropped 11/17/2026 00:24:07 ET by NEP | Daniel Jones IND QB: $6.38 / 1 yr / 2025 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 18, 2026
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+New entry request:
+- Dropped 11/17/2026 10:19:56 ET by LAC | Robert Spears-Jennings PIT S: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 19, 2026
+New entry request:
+- Dropped 11/17/2026 12:41:34 ET by CLE | Michael Dickson SEA PN: $4.73 / 1 yr / 2024 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 19, 2026
 Previously reported; still outstanding:
 - Dropped 8/26/2026 08:41:41 ET by NOS | Cash Trade: $-0.05
   Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
 Previously reported; still outstanding:
 - Dropped 8/26/2026 08:41:41 ET by WAS | Cash Trade: $0.05
   Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
+New entry request:
+- Dropped 11/17/2026 17:29:30 ET by WAS | Rashan Gary DAL DE: $3.30 / 1 yr / 2024 iEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 19, 2026
+New entry request:
+- Dropped 11/17/2026 17:38:16 ET by NOS | Cash Trade: $-3.80
+New entry request:
+- Dropped 11/17/2026 17:38:16 ET by SEA | Cash Trade: $3.80
 
 2. Items in Contract Admin to be Entered into MFL
 None outstanding.
