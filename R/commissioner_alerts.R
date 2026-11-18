@@ -2824,11 +2824,18 @@ build_commissioner_alerts <- function(
     )
     if (isTRUE(force_live)) {
       roles <- fetch_readiness_depth_charts(season, checked_at)
+      pending <- tryCatch(fetch_readiness_pending_auctions(season, rosters, checked_at), error = identity)
+      pending_verified <- !inherits(pending, "error") && !is.null(current_designations)
+      source_health <- bind_rows(attr(roles, "source_health"), tibble(team = "auction_history",
+        status = if (pending_verified) "verified" else "unverified",
+        detail = if (inherits(pending, "error")) conditionMessage(pending) else if (is.null(current_designations)) "Current player statuses unavailable" else ""))
+      if (!pending_verified) pending <- tibble()
       dir.create(commissioner_alert_report_dir(), recursive = TRUE, showWarnings = FALSE)
-      write_csv(attr(roles, "source_health"), file.path(commissioner_alert_report_dir(),
+      write_csv(source_health, file.path(commissioner_alert_report_dir(),
         paste0("readiness_source_health_", season, "_week", week, ".csv")))
       alerts$roster_readiness <- evaluate_roster_readiness(rosters, lineups, roles, kickoffs,
-        read_bye_weeks(season), week, checked_at)
+        read_bye_weeks(season), week, checked_at, pending_auctions = pending,
+        pending_verified = pending_verified, current_designations = current_designations)
     }
   }
 

@@ -32,6 +32,16 @@ No new workflow, timer, private job or paid service was added. Existing public
 standard-runner daily processing does the work. Manual CHI refresh, Guardian
 checks, missed-check alerts and safety-net settings are unchanged.
 
+Pending acquisition protection: an open nomination, bid or named losing proxy
+bid by the GM suppresses that position's acquisition warning if the candidate
+is expected to play, is not out/on bye, and the auction's 24-hour high-bidder
+clock expires before kickoff. Another franchise's nomination alone does not
+count. Closed, cancelled, expired and wrong-conference auctions do not count;
+same-leader proxy raises do not reset the clock. Unverified auction/status
+evidence defers acquisition warnings, with source health recorded. This does
+not suppress a later lineup-submission warning after a player is acquired,
+nor does it turn a losing auction into an inactivity violation.
+
 ## In-season Coverage
 
 | Bylaw | Current coverage | Remaining gap / ownership |

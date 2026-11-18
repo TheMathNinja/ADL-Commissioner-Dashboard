@@ -67,7 +67,76 @@ fetch_readiness_depth_charts <- function(season, checked_at = Sys.time()) {
   result
 }
 
-evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_weeks, week, checked_at = Sys.time()) {
+pending_readiness_auctions <- function(transactions, franchises, checked_at) {
+  required <- c("type", "timestamp", "franchise", "transaction")
+  if (!all(required %in% names(transactions))) stop("Unverified readiness auction history.")
+  tx <- transactions[grepl("^AUCTION_", transactions$type), required]
+  empty <- tibble(franchise = character(), player_id = character(), closes_at = as.POSIXct(character(), tz = "UTC"))
+  if (!nrow(tx)) return(empty)
+  tx$time <- as.POSIXct(suppressWarnings(as.numeric(tx$timestamp)), origin = "1970-01-01", tz = "UTC")
+  if (anyNA(tx$time) || anyNA(tx$franchise) || anyNA(tx$transaction)) stop("Invalid readiness auction history.")
+  tx <- tx[tx$time <= checked_at, ]
+  tx$player_id <- vapply(strsplit(tx$transaction, "|", fixed = TRUE), `[[`, character(1), 1L)
+  tx <- tx |> left_join(franchises |> select(.data$franchise_id, .data$conference), by = c("franchise" = "franchise_id"))
+  if (anyNA(tx$conference)) stop("Unknown auction franchise/conference.")
+  result <- list()
+  for (key in unique(paste(tx$conference, tx$player_id, sep = "|"))) {
+    history <- tx[paste(tx$conference, tx$player_id, sep = "|") == key, ]
+    history <- history[order(history$time), ]
+    starts <- which(history$type == "AUCTION_INIT")
+    if (!length(starts)) next
+    history <- history[seq.int(tail(starts, 1L), nrow(history)), ]
+    if (any(!history$type %in% c("AUCTION_INIT", "AUCTION_BID"))) next
+    leader <- history$franchise[[1]]
+    clock <- history$time[[1]]
+    participants <- character()
+    for (i in seq_len(nrow(history))) {
+      event <- history[i, ]
+      if (event$franchise != leader) { leader <- event$franchise; clock <- event$time[[1]] }
+      participants <- c(participants, event$franchise)
+      parts <- strsplit(event$transaction, "|", fixed = TRUE)[[1]]
+      if (length(parts) >= 3L) {
+        annotation <- trimws(paste(parts[-c(1L, 2L)], collapse = "|"))
+        proxy <- franchises$franchise_id[franchises$conference == event$conference &
+          paste(franchises$franchise_name, "forced bid increase") == annotation]
+        participants <- c(participants, proxy)
+      }
+    }
+    closes_at <- clock + 86400
+    if (closes_at <= checked_at) next
+    for (id in unique(participants)) {
+      franchise <- franchises$franchise[franchises$franchise_id == id]
+      result[[length(result) + 1L]] <- tibble(franchise = franchise, conference = history$conference[[1]],
+        player_id = history$player_id[[1]], closes_at = closes_at)
+    }
+  }
+  if (length(result)) bind_rows(result) else empty
+}
+
+fetch_readiness_pending_auctions <- function(season, rosters, checked_at) {
+  conn <- connect_adl_mfl(season)
+  raw <- ffscrapr::mfl_getendpoint(conn, "transactions")[["content"]]
+  if (is.null(raw$transactions) || !is.null(raw$error)) stop("Readiness auction feed unavailable.")
+  records <- list_records(raw$transactions$transaction, c("type", "timestamp", "franchise", "transaction"))
+  tx <- as_tibble(setNames(lapply(c("type", "timestamp", "franchise", "transaction"), function(field) {
+    vapply(records, record_field, character(1), name = field)
+  }), c("type", "timestamp", "franchise", "transaction")))
+  league <- ffscrapr::mfl_getendpoint(conn, "league")[["content"]][["league"]]
+  identities <- list_records(league$franchises$franchise, c("id", "name"))
+  franchises <- tibble(franchise_id = vapply(identities, record_field, character(1), name = "id"),
+    franchise_name = vapply(identities, record_field, character(1), name = "name")) |>
+    left_join(rosters |> distinct(.data$franchise, .data$franchise_name, .data$conference), by = "franchise_name")
+  if (nrow(franchises) != 32L || anyDuplicated(franchises$franchise_id) || anyNA(franchises$conference)) {
+    stop("Readiness auction franchise identities unavailable.")
+  }
+  pending <- pending_readiness_auctions(tx, franchises, checked_at)
+  if (nrow(pending)) pending <- pending |> anti_join(rosters |> distinct(.data$conference, .data$player_id),
+    by = c("conference", "player_id"))
+  pending
+}
+
+evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_weeks, week, checked_at = Sys.time(),
+  pending_auctions = tibble(), pending_verified = TRUE, current_designations = NULL) {
   findings <- list()
   unavailable_roles <- rosters |> group_by(.data$player_id) |>
     summarize(role_unavailable = all(inactive_designation(.data$player_status)), .groups = "drop")
@@ -79,6 +148,16 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
       mutate(expected = !.data$role_unavailable & .data$depth_rank ==
         if (any(!.data$role_unavailable)) min(.data$depth_rank[!.data$role_unavailable]) else Inf) |> ungroup()
   } else roles$expected <- roles$depth_rank == 1L & !roles$role_unavailable
+  pending <- tibble()
+  if (nrow(pending_auctions) && !is.null(current_designations)) {
+    injuries <- current_designations |> group_by(.data$player_id) |>
+      summarize(pending_unavailable = any(inactive_designation(.data$player_status)), .groups = "drop")
+    pending <- pending_auctions |> inner_join(roles, by = "player_id") |>
+      left_join(injuries, by = "player_id") |> left_join(kickoffs, by = "player_team") |>
+      filter(.data$expected, !coalesce(.data$pending_unavailable, FALSE),
+        !is.na(.data$kickoff_at), .data$closes_at > .env$checked_at, .data$closes_at < .data$kickoff_at,
+        is.na(bye_weeks[.data$player_team]) | bye_weeks[.data$player_team] != .env$week)
+  }
   roster <- rosters |> filter(.data$player_pos %in% c("QB", "PK", "PN")) |>
     mutate(player_id = as.character(.data$player_id))
   for (franchise in unique(rosters$franchise)) {
@@ -101,6 +180,8 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
       if (nrow(fit) && any(selected$player_id %in% fit$player_id)) next
       # Early-week mail is for acquiring missing personnel, not ordinary lineup editing.
       if (nrow(fit) && as.POSIXlt(checked_at, tz = "America/New_York")$wday %in% c(2L, 3L)) next
+      if (!nrow(fit) && !isTRUE(pending_verified)) next
+      if (!nrow(fit) && nrow(pending) && any(pending$franchise == franchise & pending$player_pos == position)) next
       # Unknown role data must never be converted into an accusation of having no starter.
       if (any(active & !unavailable & is.na(owned$depth_rank))) next
       replacement <- if (nrow(fit)) paste(fit$player_name, collapse = " or ") else NULL

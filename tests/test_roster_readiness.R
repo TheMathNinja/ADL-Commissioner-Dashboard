@@ -8,8 +8,10 @@ roles <- tibble(player_id = c("16152", "15694", "17038", "k", "p"),
   depth_rank = c(2L, 1L, 1L, 1L, 1L), source = "https://www.espn.com")
 lineups <- rosters |> filter(player_id != "15694")
 kickoffs <- tibble(player_team = c("IND", "MIA"), kickoff_at = now + 4 * 86400)
-check <- function(roster = rosters, selected = lineups, depth = roles, schedule = kickoffs, byes = c(IND = 7, MIA = 8), when = now) {
-  evaluate_roster_readiness(roster, selected, depth, schedule, byes, 10, when)
+check <- function(roster = rosters, selected = lineups, depth = roles, schedule = kickoffs, byes = c(IND = 7, MIA = 8), when = now,
+  pending = tibble(), verified = TRUE, statuses = tibble(player_id = character(), player_status = character())) {
+  evaluate_roster_readiness(roster, selected, depth, schedule, byes, 10, when,
+    pending_auctions = pending, pending_verified = verified, current_designations = statuses)
 }
 warning <- check()
 stopifnot(nrow(warning) == 1L, warning$severity == "warning",
@@ -77,3 +79,43 @@ stopifnot(!"delivery_key" %in% names(transport$payload))
 transport$deliver_alert("test", "body", "min@example.test", delivery_key = sent[[1]]$key)
 stopifnot(identical(transport$payload$delivery_key, sent[[1]]$key))
 cat("Roster readiness, early-week routing, identity, unknown evidence and stable delivery-key regressions passed.\n")
+
+franchises <- tibble(franchise_id = c("0008", "0011", "0012", "0024"),
+  franchise = c("MIN", "NOS", "TBB", "PIT"), conference = c("NFC", "NFC", "NFC", "AFC"),
+  franchise_name = c("Minnesota Vikings", "New Orleans Saints", "Tampa Bay Buccaneers", "Pittsburgh Steelers"))
+events <- tibble(type = "AUCTION_INIT", franchise = "0008", timestamp = as.character(as.numeric(now - 3600)), transaction = "17038|1.10|")
+pending <- pending_readiness_auctions(events, franchises, now)
+pending_roles <- roles |> mutate(player_team = c("IND", "MIA", "MIA", "IND", "IND"),
+  player_pos = c("QB", "QB", "QB", "PK", "PN"))
+pending_roles <- bind_rows(pending_roles, tibble(player_id = "QB1", depth_rank = 1L,
+  source = "https://www.espn.com", player_team = "IND", player_pos = "QB"))
+stopifnot(nrow(check(depth = pending_roles, pending = pending)) == 0L)
+# Only a qualifying candidate finishing before kickoff covers the acquisition need.
+bad <- tibble(player_id = "17038", player_status = "Out")
+stopifnot(nrow(check(depth = pending_roles, pending = pending, statuses = bad)) == 1L,
+  nrow(check(depth = pending_roles, pending = pending, byes = c(IND = 7, MIA = 10))) == 1L,
+  nrow(check(depth = pending_roles, pending = pending, schedule = mutate(kickoffs, kickoff_at = now + 7200))) == 1L)
+wrong <- pending_roles; wrong$player_pos[wrong$player_id == "17038"] <- "PN"
+stopifnot(nrow(check(depth = wrong, pending = pending)) == 1L)
+stopifnot(nrow(check(verified = FALSE)) == 0L)
+# Another GM's nomination is not this GM's attempt; proxy annotations do count.
+events$franchise <- "0011"
+stopifnot(!"MIN" %in% pending_readiness_auctions(events, franchises, now)$franchise)
+proxy <- events; proxy$type <- "AUCTION_BID"; proxy$timestamp <- as.character(as.numeric(now - 60))
+proxy$transaction <- "17038|2|Minnesota Vikings forced bid increase"
+with_proxy <- pending_readiness_auctions(bind_rows(events, proxy), franchises, now)
+stopifnot("MIN" %in% with_proxy$franchise,
+  all(with_proxy$closes_at == now - 3600 + 86400))
+# Changing high bidder restarts the clock; proxy raises by the same leader do not.
+proxy$franchise <- "0008"; proxy$transaction <- "17038|2|"
+changed <- pending_readiness_auctions(bind_rows(events, proxy), franchises, now)
+stopifnot(all(changed$closes_at == now - 60 + 86400))
+closed <- proxy; closed$type <- "AUCTION_WON"
+stopifnot(nrow(pending_readiness_auctions(bind_rows(events, closed), franchises, now)) == 0L)
+expired <- events; expired$timestamp <- as.character(as.numeric(now - 86401))
+stopifnot(nrow(pending_readiness_auctions(expired, franchises, now)) == 0L)
+cancelled <- proxy; cancelled$type <- "AUCTION_CANCEL"
+stopifnot(nrow(pending_readiness_auctions(bind_rows(events, cancelled), franchises, now)) == 0L)
+other <- events; other$franchise <- "0024"
+stopifnot(!"MIN" %in% pending_readiness_auctions(other, franchises, now)$franchise)
+cat("Pending nomination, bid/proxy, expiry, conference and qualifying-player regressions passed.\n")
