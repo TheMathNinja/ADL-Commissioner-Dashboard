@@ -74,16 +74,23 @@ unknown <- check(depth = promoted, verified = FALSE)
 stopifnot(!"position:QB" %in% attr(unknown, "resolved")$key)
 # Preserve existing message hashes when no explicit issue key is supplied.
 transport <- new.env(parent = globalenv())
+transport$shQuote <- function(path) {
+  transport$payload_path <- path
+  base::shQuote(path, type = transport$quote_type)
+}
 transport$system2 <- function(command, args) {
-  path <- gsub('^"|"$', "", args[[3]])
-  transport$payload <- jsonlite::fromJSON(path)
+  stopifnot(identical(args[[3]], base::shQuote(transport$payload_path, type = transport$quote_type)))
+  transport$payload <- jsonlite::fromJSON(transport$payload_path)
   0L
 }
 sys.source("R/alert_transport.R", envir = transport)
-transport$deliver_alert("test", "body", "min@example.test")
-stopifnot(!"delivery_key" %in% names(transport$payload))
-transport$deliver_alert("test", "body", "min@example.test", delivery_key = sent[[1]]$key)
-stopifnot(identical(transport$payload$delivery_key, sent[[1]]$key))
+for (quote_type in c("sh", "cmd")) {
+  transport$quote_type <- quote_type
+  transport$deliver_alert("test", "body", "min@example.test")
+  stopifnot(!"delivery_key" %in% names(transport$payload))
+  transport$deliver_alert("test", "body", "min@example.test", delivery_key = sent[[1]]$key)
+  stopifnot(identical(transport$payload$delivery_key, sent[[1]]$key))
+}
 cat("Roster readiness, early-week routing, identity, unknown evidence and stable delivery-key regressions passed.\n")
 
 franchises <- tibble(franchise_id = c("0008", "0011", "0012", "0024"),
