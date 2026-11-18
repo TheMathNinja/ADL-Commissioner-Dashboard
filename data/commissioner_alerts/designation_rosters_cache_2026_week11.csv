@@ -338,7 +338,6 @@ NFC,MIN,Minnesota Vikings,17512,"Williams, Antonio WAS WR","Williams, Antonio",W
 NFC,MIN,Minnesota Vikings,17507,"Branch, Zachariah ATL WR","Branch, Zachariah",ATL,WR,Active,Questionable,1.34,4,265.12,2026 3.08,,branch
 NFC,MIN,Minnesota Vikings,12676,"Henry, Hunter NEP TE","Henry, Hunter",NEP,TE,Active,,3,1,265.12,2026 UFA,,henry
 NFC,MIN,Minnesota Vikings,15836,"Hill, Daxton CIN CB","Hill, Daxton",CIN,CB,Active,,2,1,265.12,2026 UFA,,hill
-NFC,MIN,Minnesota Vikings,15832,"Stingley Jr., Derek HOU CB","Stingley Jr., Derek",HOU,CB,Active,,2.25,3,265.12,2026 UFA,,stingley jr.
 NFC,MIN,Minnesota Vikings,17607,"Raridon, Eli NEP TE","Raridon, Eli",NEP,TE,Active,R,1.03,4,265.12,2026 4.17,,raridon
 NFC,MIN,Minnesota Vikings,17643,"Demmings, Charles MIN CB","Demmings, Charles",MIN,CB,Active,R,0.94,3,265.12,2026 UDFA,,demmings
 NFC,MIN,Minnesota Vikings,14925,"Uche, Josh MIA DE","Uche, Josh",MIA,DE,Active,,1.1,1,265.12,2026 UFA,,uche
@@ -358,6 +357,7 @@ NFC,MIN,Minnesota Vikings,15350,"Parsons, Micah GBP DE","Parsons, Micah",GBP,DE,
 NFC,MIN,Minnesota Vikings,14924,"Johnson, Jaylon CHI CB","Johnson, Jaylon",CHI,CB,Active,,1.1,1,265.12,2026 R/F,,johnson
 NFC,MIN,Minnesota Vikings,16152,"Richardson, Anthony IND QB","Richardson, Anthony",IND,QB,Active,,1.1,1,265.12,2026 UFA,,richardson
 NFC,MIN,Minnesota Vikings,13952,"Luvu, Frankie WAS LB","Luvu, Frankie",WAS,LB,Active,,2,1,265.12,2026 UFA,,luvu
+NFC,MIN,Minnesota Vikings,17038,"McCord, Kyle MIA QB","McCord, Kyle",MIA,QB,Active,,2,1,265.12,2026 UFA,,mccord
 NFC,ATL,Atlanta Falcons,15721,"White, Rachaad WAS RB","White, Rachaad",WAS,RB,Active,,3.75,1,264.87,2025 ORFA3,,white
 NFC,ATL,Atlanta Falcons,16582,"Nix, Bo DEN QB","Nix, Bo",DEN,QB,Active,,1.69,2,264.87,2024 2.12,,nix
 NFC,ATL,Atlanta Falcons,17120,"Green, Mike BAL DE","Green, Mike",BAL,DE,Active,,1.57,3,264.87,2025 2.16,,green
@@ -487,6 +487,7 @@ NFC,NOS,New Orleans Saints,16680,"Little, Cam JAC PK","Little, Cam",JAC,PK,Activ
 NFC,NOS,New Orleans Saints,14909,"Winfield, Antoine TBB S","Winfield, Antoine",TBB,S,Active,Questionable,2.9,1,265.19,2026 UFA,,winfield
 NFC,NOS,New Orleans Saints,15253,"Etienne, Travis NOS RB","Etienne, Travis",NOS,RB,Active,,12.5,2,265.19,2026 iEXT,,etienne
 NFC,NOS,New Orleans Saints,10700,"Cousins, Kirk MIN QB","Cousins, Kirk",MIN,QB,Active,Doubtful,3.6,1,265.19,2026 UFA,,cousins
+NFC,NOS,New Orleans Saints,15832,"Stingley Jr., Derek HOU CB","Stingley Jr., Derek",HOU,CB,Active,,2.25,3,265.19,2026 UFA,,stingley jr.
 NFC,NOS,New Orleans Saints,15872,"Bryant, Coby CHI S","Bryant, Coby",CHI,S,INJURED_RESERVE,IR,4.02,3,265.19,2026 oEXT,,bryant
 NFC,NOS,New Orleans Saints,13146,"Conner, James ARI RB","Conner, James",ARI,RB,INJURED_RESERVE,IR-R,1.1,1,265.19,2026 UFA,,conner
 NFC,NOS,New Orleans Saints,17514,"Stribling, De'Zhaun SFO WR","Stribling, De'Zhaun",SFO,WR,INJURED_RESERVE,IR,2.2,4,265.19,2026 2.04,,stribling
@@ -498,7 +499,6 @@ NFC,NOS,New Orleans Saints,16645,"All, Erick CIN TE","All, Erick",CIN,TE,INJURED
 NFC,NOS,New Orleans Saints,14899,"Kinlaw, Javon WAS DT","Kinlaw, Javon",WAS,DT,INJURED_RESERVE,IR,2.09,3,265.19,2026 oEXT,,kinlaw
 NFC,NOS,New Orleans Saints,15351,"Owusu-Koramoah, Jeremiah CLE LB","Owusu-Koramoah, Jeremiah",CLE,LB,INJURED_RESERVE,IR-PUP,6.55,3,265.19,2025 B/R,,owusu-koramoah
 NFC,NOS,New Orleans Saints,16671,"Arnold, Terrion SEA CB","Arnold, Terrion",SEA,CB,Taxi,Suspended,1.1,1,265.19,2026 UFA,,arnold
-NFC,NOS,New Orleans Saints,17038,"McCord, Kyle MIA QB","McCord, Kyle",MIA,QB,Taxi,,2,1,265.19,2026 UFA,,mccord
 NFC,NOS,New Orleans Saints,16697,"Smith, Maason ATL DT","Smith, Maason",ATL,DT,Taxi,,2,1,265.19,2026 UFA,,smith
 NFC,NOS,New Orleans Saints,13228,"Hooker, Malik DAL S","Hooker, Malik",DAL,S,Taxi,,1.1,1,265.19,2026 UFA,,hooker
 NFC,TBB,Tampa Bay Buccaneers,14167,"Hines-Allen, Josh JAC DE","Hines-Allen, Josh",JAC,DE,Active,,16.45,1,252.92,2022 iEXT,,hines-allen
