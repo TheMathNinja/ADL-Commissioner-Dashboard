@@ -6033,8 +6033,9 @@
       "accepted_at": "2026-11-18T10:48:25.204698+00:00"
     },
     "failure:TheMathNinja/ADL-GM-Dashboard:44285461301:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-18T10:48:52.467186+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-18T10:48:52.467186+00:00",
+      "accepted_at": "2026-11-18T10:48:54.950642+00:00"
     }
   },
   "healthyAt": "2026-11-18T10:43:44.021208+00:00",
