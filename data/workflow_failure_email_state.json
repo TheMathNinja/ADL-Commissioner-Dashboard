@@ -5535,7 +5535,11 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44287463154:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:44284953006:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44287387843",
     "TheMathNinja/ADL-Commissioner-Dashboard:44285033223:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44287387843",
-    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44288230776:1": "skipped"
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44288230776:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44285749136:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44288124229",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44285788008:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44288124229",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44286069469:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44288124229",
+    "TheMathNinja/ADL-GM-Dashboard:44284311740:1": "reported by exact failed child"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -5886,6 +5890,20 @@
         "daily-commissioner-alerts": "failure"
       },
       "failed_at": "2026-11-18T10:28:35Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44285461301:1": {
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:360282250:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:360282250:account-check:main:2026-11-18",
+      "failed_steps": [
+        "deploy: Verify EXT publication regression cases"
+      ],
+      "cause_codes": {
+        "deploy": "unclassified"
+      },
+      "affected_jobs": {
+        "deploy": "failure"
+      },
+      "failed_at": "2026-11-18T10:32:43Z"
     }
   },
   "delivery_receipts": {
@@ -6013,6 +6031,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-18T10:48:22.243150+00:00",
       "accepted_at": "2026-11-18T10:48:25.204698+00:00"
+    },
+    "failure:TheMathNinja/ADL-GM-Dashboard:44285461301:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-18T10:48:52.467186+00:00"
     }
   },
   "healthyAt": "2026-11-18T10:43:44.021208+00:00",
