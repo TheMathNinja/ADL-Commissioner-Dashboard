@@ -10,14 +10,14 @@ alerts <- tibble::tibble(
   observed = c("Kittle on Bye", "Reese on Bye", "Brown on Bye", "Bullock on Bye", "0 PK, 0 PN"),
   details = c(rep("", 4), "Must start 1 additional PK and 1 additional PN")
 )
-count <- function(text, pattern) sum(gregexpr(pattern, text, fixed = TRUE)[[1]] > 0)
+count_text <- function(text, pattern) sum(gregexpr(pattern, text, fixed = TRUE)[[1]] > 0)
 digest <- render_commissioner_alert_email(alerts, 2026, 8, as.Date("2026-11-01"))
-stopifnot(count(digest, "**Illegal Lineup**") == 0L,
-          count(digest, "New York Jets") == 0L,
-          count(digest, "Rule: No starters on bye") == 0L,
+stopifnot(count_text(digest, "**Illegal Lineup**") == 0L,
+          count_text(digest, "New York Jets") == 0L,
+          count_text(digest, "Rule: No starters on bye") == 0L,
           !grepl("Illegal Lineup Warning", digest, fixed = TRUE))
 gm <- render_commissioner_gm_alert_email(alerts[1:4, ], 2026, 8)
-stopifnot(count(gm, "Rule: No starters on bye") == 1L)
+stopifnot(count_text(gm, "Rule: No starters on bye") == 1L)
 for (player in c("Kittle", "Reese", "Brown", "Bullock")) stopifnot(grepl(player, gm, fixed = TRUE))
 stopifnot(identical(alerts$alert_type[[1]], "Illegal Lineup Warning"))
 cat("Lineup email grouping tests passed.\n")
@@ -52,7 +52,7 @@ send_alert_mail <- function(subject, body, to, cc = "", ...) {
 friday <- as.POSIXct("2026-11-13 05:25:00", tz = "America/New_York")
 status <- send_commissioner_alert_email(alerts, 2026, 10, run_time = friday)
 stopifnot(status$sent, status$gm_emails_sent == 2L, length(delivered) == 2L,
-          all(vapply(delivered, function(x) identical(x$cc, ""), logical(1))),
+          all(vapply(delivered, function(x) length(x$cc) == 0L || identical(x$cc, ""), logical(1))),
           !any(vapply(delivered, function(x) "commissioner@example.test" %in% x$to, logical(1))))
 stopifnot(grepl("Submit New Lineup:", delivered[[1]]$body, fixed = TRUE),
           grepl("/2026/lineup?L=60206&F=0018", delivered[[1]]$body, fixed = TRUE),

@@ -182,7 +182,8 @@ if (send_email) {
     alerts,
     season = season,
     week = if (is.na(week)) NULL else week,
-    send_empty = send_empty
+    send_empty = send_empty,
+    run_time = checked_at
   )
   message("Email status: ", email_status$reason[[1]])
   message("Outbox: ", email_status$outbox_path[[1]])

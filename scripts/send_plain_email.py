@@ -29,6 +29,12 @@ def main() -> None:
     else:
         raise SystemExit("usage: send_plain_email.py SUBJECT RECIPIENT BODY_FILE")
 
+    if 'lineup_entries' in payload:
+        if os.environ.get('GITHUB_ACTIONS') != 'true':
+            raise RuntimeError('Coordinated lineup mail requires durable Actions receipts')
+        from lineup_warning_delivery import deliver_lineup
+        deliver_lineup(payload, send_payload)
+        return
     key = payload.get('delivery_key') or hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     if os.environ.get('GITHUB_ACTIONS') == 'true':
         deliver('r-alert:'+key, lambda: send_payload(payload))

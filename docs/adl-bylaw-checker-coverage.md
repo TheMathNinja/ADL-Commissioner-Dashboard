@@ -24,10 +24,22 @@ unknown roles remain a documented coverage limitation and retry next daily run.
 
 These warnings run Tuesday/Wednesday too, so an auction can be pursued before
 Thursday. They are GM-only, never commissioner CC/digest. They use the existing
-durable GitHub delivery receipt bridge, with a stable season/week/franchise/
-position/recipient key: one readiness message per weekly positional issue,
-not another message each day or retry. A new week or different positional need
-is a separate action. The individual Submit New Lineup link is included.
+durable GitHub delivery receipt bridge. Readiness and ordinary lineup warnings
+now share a season/week/franchise/recipient incident record and explicit issue
+identities: a missing PN, a bye PN and an unready PN use the same positional
+root rather than sending three messages. Only new, unnotified issues are sent,
+combined into one GM message per check. The individual lineup link is included.
+
+A verified healthy starter selected in the lineup closes a critical-position
+episode. A recurrence can then notify again. Pending auctions, incomplete
+evidence, empty reports and dispatches do not prove recovery. New independent
+positions/players can notify while other issues stay unresolved, even when an
+older delivery is uncertain. Such uncertain deliveries are not blindly retried.
+The previous readiness sender's accepted receipts are imported only using their
+exact recipient/season/week/position key and verified accepted status. Unknown
+or merely dispatched legacy messages are never marked delivered. The existing
+commissioner digest still receives only independently confirmed violations,
+not these current-week GM warnings.
 No new workflow, timer, private job or paid service was added. Existing public
 standard-runner daily processing does the work. Manual CHI refresh, Guardian
 checks, missed-check alerts and safety-net settings are unchanged.

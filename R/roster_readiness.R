@@ -1,4 +1,39 @@
 roster_readiness_type <- "Roster Readiness Warning"
+lineup_issue_keys <- function(keys) as.character(jsonlite::toJSON(sort(unique(keys)), auto_unbox = FALSE))
+
+verified_lineup_repairs <- function(lineups, rosters, current_designations, kickoffs, bye_weeks, week) {
+  repairs <- list()
+  for (franchise in unique(lineups$franchise)) {
+    selected <- lineups |> filter(.data$franchise == .env$franchise)
+    if (!nrow(selected) || anyDuplicated(selected$player_id) || anyNA(selected$player_pos)) next
+    positions <- lineup_position_status(selected$franchise_id[[1]], lineups)
+    filled <- positions$player_pos[!positions$player_pos %in% c("QB", "PK", "PN") &
+      positions$starter_count >= positions$min_starters & positions$starter_count <= positions$max_starters]
+    keys <- if (length(filled)) paste0("position:", filled) else character()
+    if (nrow(selected) == 21L) keys <- c(keys, "structure:total")
+    if (!nrow(lineup_starter_count_alert_rows(selected$franchise_id[[1]], nrow(selected), lineups))) keys <- c(keys, "lineup:empty")
+    groups <- adl_lineup_group_rules()
+    for (i in seq_len(nrow(groups))) {
+      group <- as.character(groups$lineup_group[[i]])
+      if (sum(positions$starter_count[positions$lineup_group == group]) == groups$required_starters[[i]]) {
+        keys <- c(keys, paste0("group:", group), paste0("excess:", group))
+      }
+    }
+    if (!is.null(current_designations)) {
+      healthy <- selected |> filter(!.data$player_pos %in% c("QB", "PK", "PN")) |>
+        select(.data$player_id) |> inner_join(rosters |> filter(.data$franchise == .env$franchise), by = "player_id")
+      if (nrow(healthy)) {
+        bad_ids <- current_designations$player_id[inactive_designation(current_designations$player_status)]
+        healthy <- healthy |> filter(!inactive_designation(.data$player_status), !.data$player_id %in% bad_ids,
+          .data$roster_status %in% c("Active", "ROSTER"), .data$player_team %in% kickoffs$player_team,
+          is.na(bye_weeks[.data$player_team]) | bye_weeks[.data$player_team] != .env$week)
+        if (nrow(healthy)) keys <- c(keys, paste0("player:", healthy$player_id))
+      }
+    }
+    repairs[[length(repairs) + 1L]] <- tibble(franchise = franchise, key = unique(keys))
+  }
+  if (length(repairs)) bind_rows(repairs) else tibble(franchise = character(), key = character())
+}
 readiness_team <- function(team) mfl_player_team(dplyr::recode(toupper(team), LV = "LVR", WSH = "WAS"))
 
 parse_readiness_depth_chart <- function(chart, players, season, team, checked_at) {
@@ -138,6 +173,19 @@ fetch_readiness_pending_auctions <- function(season, rosters, checked_at) {
 evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_weeks, week, checked_at = Sys.time(),
   pending_auctions = tibble(), pending_verified = TRUE, current_designations = NULL) {
   findings <- list()
+  resolved <- list()
+  held <- list()
+  if (!is.null(current_designations) && nrow(current_designations)) {
+    statuses <- current_designations |> group_by(.data$player_id) |>
+      summarize(current_status = {
+        values <- as.character(.data$player_status)
+        bad <- values[inactive_designation(values)]
+        if (length(bad)) bad[[1]] else first(values)
+      }, .groups = "drop")
+    rosters <- rosters |> left_join(statuses, by = "player_id") |>
+      mutate(player_status = coalesce(na_if(.data$current_status, ""), .data$player_status)) |>
+      select(-current_status)
+  }
   unavailable_roles <- rosters |> group_by(.data$player_id) |>
     summarize(role_unavailable = all(inactive_designation(.data$player_status)), .groups = "drop")
   roles <- roles |> left_join(unavailable_roles, by = "player_id") |>
@@ -177,11 +225,17 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
       selected <- lineups |> filter(.data$franchise == .env$franchise, .data$player_pos == .env$position)
       # A legal locked starter has already filled this week's slot.
       if (any(selected$player_id %in% owned$player_id[!unavailable & !is.na(owned$kickoff_at) & owned$kickoff_at <= checked_at])) next
-      if (nrow(fit) && any(selected$player_id %in% fit$player_id)) next
+      if (nrow(fit) && any(selected$player_id %in% fit$player_id)) {
+        if (isTRUE(pending_verified)) resolved[[length(resolved) + 1L]] <- tibble(franchise = franchise, key = paste0("position:", position))
+        next
+      }
       # Early-week mail is for acquiring missing personnel, not ordinary lineup editing.
       if (nrow(fit) && as.POSIXlt(checked_at, tz = "America/New_York")$wday %in% c(2L, 3L)) next
-      if (!nrow(fit) && !isTRUE(pending_verified)) next
-      if (!nrow(fit) && nrow(pending) && any(pending$franchise == franchise & pending$player_pos == position)) next
+      if (!nrow(fit) && (!isTRUE(pending_verified) ||
+          (nrow(pending) && any(pending$franchise == franchise & pending$player_pos == position)))) {
+        held[[length(held) + 1L]] <- tibble(franchise = franchise, key = paste0("position:", position))
+        next
+      }
       # Unknown role data must never be converted into an accusation of having no starter.
       if (any(active & !unavailable & is.na(owned$depth_rank))) next
       replacement <- if (nrow(fit)) paste(fit$player_name, collapse = " or ") else NULL
@@ -195,26 +249,60 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
         " (", ifelse(unavailable, "unavailable/bye", ifelse(is.na(owned$depth_rank), "role unverified", paste0("depth ", owned$depth_rank))), ")"), collapse = "; "), ".")
       findings[[length(findings) + 1L]] <- tibble(alert_type = roster_readiness_type, severity = "warning",
         conference = team$conference, franchise = franchise, franchise_name = team$franchise_name,
+        lineup_issue_keys = lineup_issue_keys(paste0("position:", position)),
         rule = paste0("Roster readiness: expected starting ", position, " (ADL V-A)"), observed = observed, details = details)
     }
   }
-  bind_rows(findings)
+  result <- bind_rows(findings)
+  empty_state <- tibble(franchise = character(), key = character())
+  attr(result, "resolved") <- if (length(resolved)) bind_rows(resolved) else empty_state
+  attr(result, "held") <- if (length(held)) bind_rows(held) else empty_state
+  result
 }
 
-send_roster_readiness_email <- function(alerts, season, week, checked_at) {
-  directory <- fetch_mfl_franchise_recipients(season = season)
-  for (i in seq_len(nrow(alerts))) {
-    row <- alerts[i, ]
-    recipients <- directory |> filter(.data$franchise == row$franchise[[1]])
-    body <- render_commissioner_gm_alert_email(row, season, week, as.Date(checked_at, tz = "America/New_York"),
-      title_prefix = "ADL Roster Needs Attention", lineup_url = commissioner_submit_lineup_url(recipients, season))
-    lineup_url <- commissioner_submit_lineup_url(recipients, season)
-    if (!is.null(lineup_url)) body <- paste(body, "", "Submit New Lineup:", lineup_url, sep = "\n")
-    key <- paste("roster-readiness", season, week, row$franchise, row$rule,
-      paste(sort(unique(recipients$email)), collapse = ","), sep = "|")
-    status <- send_alert_mail(paste0("ADL Roster Needs Attention - ", row$franchise_name, " - Week ", week),
-      body, to = recipients$email, cc = character(), delivery_key = key)
-    if (!isTRUE(status$sent)) stop("Roster-readiness email delivery not confirmed: ", status$reason)
+send_coordinated_lineup_email <- function(alerts, season, week, checked_at, snapshot = NULL, directory = NULL) {
+  failure <- function(reason) tibble(sent = FALSE, reason = reason, outbox_path = "", gm_emails_sent = 0L)
+  if (nrow(alerts) && any(is.na(alerts$franchise) | !nzchar(alerts$franchise))) return(failure("offender_franchise_not_found"))
+  if (is.null(directory)) directory <- tryCatch(fetch_mfl_franchise_recipients(season = season), error = identity)
+  if (inherits(directory, "error")) return(failure("offender_recipient_lookup_failed"))
+  snapshot_keys <- function(field, franchise) {
+    rows <- snapshot[[field]]
+    if (!is.null(rows) && nrow(rows)) unique(rows$key[rows$franchise == franchise]) else character()
   }
-  tibble(sent = TRUE, reason = "sent", outbox_path = "", gm_emails_sent = nrow(alerts))
+  resolved_teams <- if (!is.null(snapshot$resolved) && nrow(snapshot$resolved)) snapshot$resolved$franchise else character()
+  held_teams <- if (!is.null(snapshot$held) && nrow(snapshot$held)) snapshot$held$franchise else character()
+  teams <- unique(c(alerts$franchise, resolved_teams, held_teams))
+  messages <- lapply(teams, function(franchise) {
+    rows <- alerts |> filter(.data$franchise == .env$franchise)
+    recipients <- directory |> filter(.data$franchise == .env$franchise)
+    if (!nrow(recipients) || !any(nzchar(recipients$email))) return(list(error = "offender_email_not_found"))
+    label <- if (nrow(rows)) rows$franchise_name[[1]] else franchise
+    subject <- paste0("ADL Roster Needs Attention - ", label, " - Week ", week)
+    entries <- lapply(seq_len(nrow(rows)), function(i) {
+      row <- rows[i, ]
+      encoded <- if ("lineup_issue_keys" %in% names(row)) row$lineup_issue_keys[[1]] else NA_character_
+      keys <- if (!is.na(encoded) && nzchar(encoded)) jsonlite::fromJSON(encoded) else paste0("detail:",
+        digest::digest(paste(row$rule, row$observed, sep = "|"), algo = "sha256", serialize = FALSE))
+      list(keys = as.list(keys), body = paste(c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed), row$details), collapse = "\n"))
+    })
+    url <- commissioner_submit_lineup_url(recipients, season)
+    footer <- if (!is.null(url)) paste("Submit New Lineup:", url, sep = "\n") else ""
+    legacy <- setNames(lapply(c("QB", "PK", "PN"), function(position) paste("roster-readiness", season, week, franchise,
+      paste0("Roster readiness: expected starting ", position, " (ADL V-A)"),
+      paste(sort(unique(recipients$email)), collapse = ","), sep = "|")), paste0("position:", c("QB", "PK", "PN")))
+    payload <- list(lineup_season = season, lineup_week = week, lineup_franchise = franchise,
+      lineup_checked_at = as.numeric(checked_at),
+      lineup_entries = entries, lineup_header = subject, lineup_footer = footer,
+      lineup_resolved = as.list(snapshot_keys("resolved", franchise)),
+      lineup_held = as.list(snapshot_keys("held", franchise)), lineup_legacy = legacy)
+    preview <- paste(c(subject, vapply(entries, `[[`, character(1), "body"), footer), collapse = "\n\n")
+    list(subject = subject, body = preview, to = recipients$email, payload = payload, has_alerts = nrow(rows) > 0L)
+  })
+  errors <- vapply(messages, function(message) message$error %||% "", character(1))
+  if (any(nzchar(errors))) return(failure(paste(unique(errors[nzchar(errors)]), collapse = ",")))
+  statuses <- lapply(messages, function(message) send_alert_mail(message$subject, message$body,
+    to = message$to, cc = character(), lineup_payload = message$payload))
+  ok <- all(vapply(statuses, function(status) isTRUE(status$sent), logical(1)))
+  tibble(sent = ok, reason = if (ok) "sent_gm_only" else "gm_email_failed", outbox_path = "",
+    gm_emails_sent = sum(vapply(messages, `[[`, logical(1), "has_alerts")))
 }

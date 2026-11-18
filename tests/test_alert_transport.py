@@ -64,3 +64,13 @@ class TransportTest(unittest.TestCase):
                 patch.object(mail, 'deliver', side_effect=AssertionError('Unexpected receipt access')):
             mail.main()
             send.assert_called_once_with(payload)
+
+    def test_lineup_payload_uses_shared_coordinator_not_generic_message_receipt(self):
+        payload = dict(subject='GM warning', body='preview', to=['gm@example.test'], lineup_entries=[])
+        with patch.dict(os.environ, GITHUB_ACTIONS='true', GITHUB_REPOSITORY='test/offline'), \
+                patch.object(sys, 'argv', ['sender', '--payload', 'fixture.json']), \
+                patch.object(mail.Path, 'read_text', return_value=json.dumps(payload)), \
+                patch('lineup_warning_delivery.deliver_lineup') as coordinated, \
+                patch.object(mail, 'deliver', side_effect=AssertionError('Duplicate generic sender')):
+            mail.main()
+            coordinated.assert_called_once_with(payload, mail.send_payload)

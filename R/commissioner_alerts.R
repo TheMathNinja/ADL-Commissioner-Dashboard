@@ -1984,6 +1984,8 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
     return(tibble(
       rule = paste0("Starting lineups require ", expected_starters, " total starters"),
       observed = "No starting lineup submitted",
+      lineup_issue_keys = lineup_issue_keys(c("lineup:empty", "structure:total",
+        paste0("position:", position_status$player_pos), paste0("group:", group_rules$lineup_group))),
       details = paste0(
         "Must submit a full starting lineup: 1 QB, 1-2 RB, 2-4 WR, 1-2 TE, ",
         "1 PK, 1 PN, 2-3 DT, 2-3 DE, 1-3 LB, 2-4 CB and 2-3 S"
@@ -2017,6 +2019,7 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
         "Starting lineups require minimum ",
         format_and_list(paste(special_minimum$min_starters, special_minimum$player_pos))
       ),
+      lineup_issue_keys = lineup_issue_keys(paste0("position:", special_minimum$player_pos)),
       observed = paste0(
         paste(paste0(special_minimum$starter_count, " ", special_minimum$player_pos), collapse = ", ")
       ),
@@ -2112,6 +2115,18 @@ lineup_starter_count_alert_rows <- function(franchise_id, starter_count, lineups
     tibble(rule = character(), observed = character(), details = character())
   }
 
+  if (nrow(group_alerts)) {
+    group_alerts$lineup_issue_keys <- vapply(seq_len(nrow(group_alerts)), function(i) {
+      group <- as.character(group_status$lineup_group[[i]])
+      short <- group_status$short[[i]]
+      missing <- below_minimum |> filter(.data$lineup_group == .env$group)
+      keys <- if (nrow(missing)) paste0("position:", missing$player_pos) else character()
+      if (short < 0) keys <- paste0("excess:", group)
+      else if (short > sum(missing$short)) keys <- c(keys, paste0("group:", group))
+      lineup_issue_keys(keys)
+    }, character(1))
+  }
+  if (nrow(total_alerts)) total_alerts$lineup_issue_keys <- lineup_issue_keys("structure:total")
   bind_rows(special_alerts, group_alerts, total_alerts)
 }
 
@@ -2508,6 +2523,8 @@ evaluate_illegal_lineup_alerts <- function(
       franchise,
       franchise_name,
       rule = "No inactive players allowed in starting lineup",
+      lineup_issue_keys = vapply(ifelse(.data$player_pos %in% c("QB", "PK", "PN"),
+        paste0("position:", .data$player_pos), paste0("player:", .data$player_id)), lineup_issue_keys, character(1)),
       observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
       details = ""
     )
@@ -2525,6 +2542,8 @@ evaluate_illegal_lineup_alerts <- function(
       franchise,
       franchise_name,
       rule = "No inactive players allowed in starting lineup",
+      lineup_issue_keys = vapply(ifelse(.data$player_pos %in% c("QB", "PK", "PN"),
+        paste0("position:", .data$player_pos), paste0("player:", .data$player_id)), lineup_issue_keys, character(1)),
       observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
       details = ""
     )
@@ -2541,6 +2560,8 @@ evaluate_illegal_lineup_alerts <- function(
         franchise,
         franchise_name,
         rule = "No starters on bye",
+        lineup_issue_keys = vapply(ifelse(.data$player_pos %in% c("QB", "PK", "PN"),
+          paste0("position:", .data$player_pos), paste0("player:", .data$player_id)), lineup_issue_keys, character(1)),
         observed = mapply(
           bye_replacement_observed,
           .data$player_name,
@@ -2836,6 +2857,10 @@ build_commissioner_alerts <- function(
       alerts$roster_readiness <- evaluate_roster_readiness(rosters, lineups, roles, kickoffs,
         read_bye_weeks(season), week, checked_at, pending_auctions = pending,
         pending_verified = pending_verified, current_designations = current_designations)
+      options(adl_lineup_notification_snapshot = list(season = season, week = week,
+        checked_at = as.numeric(checked_at), resolved = bind_rows(attr(alerts$roster_readiness, "resolved"),
+          verified_lineup_repairs(lineups, rosters, current_designations, kickoffs, read_bye_weeks(season), week)),
+        held = attr(alerts$roster_readiness, "held")))
     }
   }
 
@@ -3427,7 +3452,7 @@ conference_cc_email <- function(conference) {
   ""
 }
 
-send_alert_mail <- function(subject, body, to, cc = character(), html_body = NULL, delivery_key = NULL) {
+send_alert_mail <- function(subject, body, to, cc = character(), html_body = NULL, delivery_key = NULL, lineup_payload = NULL) {
   to <- unique(trimws(to[nzchar(trimws(to))]))
   cc <- unique(trimws(cc[nzchar(trimws(cc))]))
   from <- Sys.getenv("ADL_ALERT_EMAIL_FROM", unset = "")
@@ -3437,7 +3462,7 @@ send_alert_mail <- function(subject, body, to, cc = character(), html_body = NUL
     return(list(sent = FALSE, reason = "email_not_configured"))
   }
   source("R/alert_transport.R", local = TRUE)
-  deliver_alert(subject, body, to, cc, html_body, delivery_key = delivery_key)
+  deliver_alert(subject, body, to, cc, html_body, delivery_key = delivery_key, lineup_payload = lineup_payload)
 
   list(sent = TRUE, reason = "sent")
 }
@@ -3463,11 +3488,26 @@ send_commissioner_alert_email <- function(
   run_time = Sys.time()
 ) {
   alerts <- filter_lineup_email_days(alerts, run_time)
-  readiness <- alerts[alerts$alert_type == roster_readiness_type, , drop = FALSE]
-  if (nrow(readiness)) {
-    readiness_status <- send_roster_readiness_email(readiness, season, week, run_time)
-    alerts <- alerts[alerts$alert_type != roster_readiness_type, , drop = FALSE]
-    if (!nrow(alerts) && !send_empty) return(readiness_status)
+  lineup_types <- c(roster_readiness_type, "Illegal Lineup", "Illegal Lineup Warning")
+  lineup_warnings <- alerts[alerts$alert_type %in% lineup_types, , drop = FALSE]
+  recipient_directory <- NULL
+  directory_loaded <- FALSE
+  get_directory <- function() {
+    if (!directory_loaded) {
+      recipient_directory <<- tryCatch(fetch_mfl_franchise_recipients(season = season), error = identity)
+      directory_loaded <<- TRUE
+    }
+    recipient_directory
+  }
+  snapshot <- getOption("adl_lineup_notification_snapshot")
+  if (!is.null(snapshot) && (!identical(as.integer(snapshot$season), as.integer(season)) ||
+      !identical(as.integer(snapshot$week), as.integer(week)) || snapshot$checked_at != as.numeric(run_time))) snapshot <- NULL
+  if (nrow(lineup_warnings) || !is.null(snapshot)) {
+    recipient_directory <- get_directory()
+    lineup_status <- send_coordinated_lineup_email(lineup_warnings, season, week, run_time, snapshot, recipient_directory)
+    if (!isTRUE(lineup_status$sent)) return(lineup_status)
+    alerts <- alerts[!alerts$alert_type %in% lineup_types, , drop = FALSE]
+    if (!nrow(alerts) && !send_empty) return(lineup_status)
   }
   digest_alerts <- commissioner_digest_alerts(alerts)
   checked_date <- as.Date(run_time, tz = "America/New_York")
@@ -3493,13 +3533,7 @@ send_commissioner_alert_email <- function(
   # Fetch the MFL franchise directory once for both digest and offender mail.
   # A second immediate ff_franchises() request can cross MFL's rate limit even
   # when the first request succeeds.
-  recipient_directory <- tryCatch(
-    fetch_mfl_franchise_recipients(season = season),
-    error = function(e) {
-      attr(e, "recipient_lookup_failed") <- TRUE
-      e
-    }
-  )
+  recipient_directory <- get_directory()
   recipients <- resolve_commissioner_alert_recipients(
     season = season,
     mfl_recipients = recipient_directory

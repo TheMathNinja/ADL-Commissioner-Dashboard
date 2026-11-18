@@ -58,14 +58,20 @@ stopifnot(fails(parse_readiness_depth_chart(stale, ids, 2026, "IND", now)),
 # Use the existing durable receipt bridge; no new mailer or commissioner CC.
 fetch_mfl_franchise_recipients <- function(...) tibble(franchise = "MIN", franchise_id = "0008", email = "min@example.test")
 sent <- list()
-send_alert_mail <- function(subject, body, to, cc, delivery_key) {
-  sent[[length(sent) + 1L]] <<- list(key = delivery_key, body = body, cc = cc, to = to)
+send_alert_mail <- function(subject, body, to, cc, lineup_payload) {
+  sent[[length(sent) + 1L]] <<- list(key = lineup_payload$lineup_legacy[["position:QB"]], body = body, cc = cc, to = to,
+    payload = lineup_payload)
   list(sent = TRUE)
 }
-send_roster_readiness_email(warning, 2026, 10, now)
-send_roster_readiness_email(warning, 2026, 10, now + 86400)
+send_coordinated_lineup_email(warning, 2026, 10, now)
+send_coordinated_lineup_email(warning, 2026, 10, now + 86400)
 stopifnot(identical(sent[[1]]$key, sent[[2]]$key), length(sent[[1]]$cc) == 0L,
   grepl("F=0008", sent[[1]]$body, fixed = TRUE))
+stopifnot(identical(unlist(sent[[1]]$payload$lineup_entries[[1]]$keys), "position:QB"))
+healthy <- check(depth = promoted)
+stopifnot("position:QB" %in% attr(healthy, "resolved")$key)
+unknown <- check(depth = promoted, verified = FALSE)
+stopifnot(!"position:QB" %in% attr(unknown, "resolved")$key)
 # Preserve existing message hashes when no explicit issue key is supplied.
 transport <- new.env(parent = globalenv())
 transport$system2 <- function(command, args) {
@@ -119,3 +125,20 @@ stopifnot(nrow(pending_readiness_auctions(bind_rows(events, cancelled), franchis
 other <- events; other$franchise <- "0024"
 stopifnot(!"MIN" %in% pending_readiness_auctions(other, franchises, now)$franchise)
 cat("Pending nomination, bid/proxy, expiry, conference and qualifying-player regressions passed.\n")
+
+# The ordinary missing-punter alert and readiness alert identify the same root.
+positions <- c("QB", "RB", rep("WR", 4), "TE", "PK", rep("DT", 2), rep("DE", 3), rep("LB", 3), rep("CB", 2), rep("S", 2))
+short_lineup <- tibble(franchise_id = "0008", player_id = as.character(seq_along(positions)), player_pos = positions)
+structural <- lineup_starter_count_alert_rows("0008", nrow(short_lineup), short_lineup)
+stopifnot(any(vapply(structural$lineup_issue_keys, function(key) "position:PN" %in% jsonlite::fromJSON(key), logical(1))))
+short_lineup$franchise <- "MIN"
+snapshot_rosters <- short_lineup |> mutate(player_status = "", roster_status = "Active", player_team = "IND")
+repairs <- verified_lineup_repairs(short_lineup, snapshot_rosters, tibble(player_id = character(), player_status = character()), kickoffs, c(IND = 7), 10)
+stopifnot(!"structure:total" %in% repairs$key, !"lineup:empty" %in% repairs$key,
+  "position:WR" %in% repairs$key, "player:3" %in% repairs$key)
+new_bad <- tibble(player_id = "3", player_status = "Out")
+repairs <- verified_lineup_repairs(short_lineup, snapshot_rosters, new_bad, kickoffs, c(IND = 7), 10)
+stopifnot(!"player:3" %in% repairs$key)
+full_lineup <- bind_rows(short_lineup, tibble(franchise_id = "0008", franchise = "MIN", player_id = "punter", player_pos = "PN"))
+repairs <- verified_lineup_repairs(full_lineup, snapshot_rosters, NULL, kickoffs, c(IND = 7), 10)
+stopifnot(all(c("lineup:empty", "structure:total") %in% repairs$key), !"player:3" %in% repairs$key)
