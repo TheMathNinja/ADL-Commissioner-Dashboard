@@ -293,7 +293,7 @@ send_coordinated_lineup_email <- function(alerts, season, week, checked_at, snap
       encoded <- if ("lineup_issue_keys" %in% names(row)) row$lineup_issue_keys[[1]] else NA_character_
       keys <- if (!is.na(encoded) && nzchar(encoded)) jsonlite::fromJSON(encoded) else paste0("detail:",
         digest::digest(paste(row$rule, row$observed, sep = "|"), algo = "sha256", serialize = FALSE))
-      list(keys = as.list(keys), body = paste(c(paste0("Rule: ", row$rule), paste0("Observed: ", row$observed), row$details), collapse = "\n"))
+      list(keys = as.list(keys), body = paste0("Rule: ", row$rule, "\nObserved: ", row$observed))
     })
     url <- commissioner_submit_lineup_url(recipients, season)
     footer <- if (!is.null(url)) paste("Submit New Lineup:", url, sep = "\n") else ""

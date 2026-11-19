@@ -68,6 +68,23 @@ send_coordinated_lineup_email(warning, 2026, 10, now + 86400)
 stopifnot(identical(sent[[1]]$key, sent[[2]]$key), length(sent[[1]]$cc) == 0L,
   grepl("F=0008", sent[[1]]$body, fixed = TRUE))
 stopifnot(identical(unlist(sent[[1]]$payload$lineup_entries[[1]]$keys), "position:QB"))
+# The email and its durable delivery payload contain facts, not lineup advice.
+violation <- needed
+violation$rule <- "Starting lineups require 7 offensive starters, including minimum 1 QB"
+violation$observed <- "6 offensive starters (0 QB, 6 RB/WR/TE)"
+violation$details <- "Must start 1 additional QB"
+send_coordinated_lineup_email(bind_rows(violation, needed), 2026, 10, now)
+preview <- sent[[3]]$body
+entries <- sent[[3]]$payload$lineup_entries
+stopifnot(
+  grepl(violation$rule, preview, fixed = TRUE),
+  grepl(violation$observed, preview, fixed = TRUE),
+  grepl(needed$observed, preview, fixed = TRUE),
+  grepl("Submit New Lineup:", preview, fixed = TRUE),
+  !grepl("Kyle McCord|Must start|Roster evidence:", preview),
+  identical(vapply(entries, `[[`, character(1), "body"),
+    paste0("Rule: ", c(violation$rule, needed$rule), "\nObserved: ", c(violation$observed, needed$observed)))
+)
 healthy <- check(depth = promoted)
 stopifnot("position:QB" %in% attr(healthy, "resolved")$key)
 unknown <- check(depth = promoted, verified = FALSE)
