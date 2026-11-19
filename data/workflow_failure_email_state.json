@@ -1076,6 +1076,33 @@
       },
       "last_seen_at": "2026-11-18T20:20:44Z",
       "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44388917182"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:44496962231:1": {
+      "sent_at": "2026-11-19T09:47:26.828568+00:00",
+      "subject": "[League automation FAILED] FAFL-GM-Dashboard \u2014 Official FAFL correction update \u00b7 Week 10 \u00b7",
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 10 \u00b7 81cde0b3929ed8b6a16b475608f9223143cf8f4e7214b56059a146a093645d6b",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 10 \u00b7 81cde0b3929ed8b6a16b475608f9223143cf8f4e7214b56059a146a093645d6b:2026-11-19",
+      "failed_steps": [
+        "refresh: Install dependencies and validate",
+        "refresh: Require a verified Payouts publication for every refresh",
+        "refresh: Require official MFL Bonus Games verification"
+      ],
+      "cause_codes": {
+        "refresh": "a0e9f6b6ddab678f99b18e2a30b48ae10a56768cb4460a5590c8319dd5162837"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Request weekly completion email": "skipped"
+      },
+      "failed_at": "2026-11-19T09:31:14Z",
+      "delivery": [
+        "TheMathNinja/FAFL-GM-Dashboard",
+        "2026-11-19",
+        "corrections",
+        10
+      ]
     }
   },
   "checked": {
