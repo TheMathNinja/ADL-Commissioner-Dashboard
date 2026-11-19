@@ -192,6 +192,62 @@ class Basic(unittest.TestCase):
         basic.report(api, self.now-timedelta(hours=4), state, False, deliver, save, send)
         send.assert_not_called()
 
+    def test_digest_groups_both_leagues_and_preserves_exact_delivery_after_a_crash(self):
+        from base64 import b64encode
+        from email_delivery_state import deliver_once
+
+        warning = basic.record_warnings({}, 'ADL', 12,
+                                        {'starter:1': 'Check Player A.', 'starter:2': 'Check Player B.'}, self.now)
+        warning = basic.record_warnings(warning, 'FAFL', 12,
+                                        {'starter:1': 'Check Player C.'}, self.now)
+        ledger = copy.deepcopy(self.ledger)
+        ledger['checks'] = [dict(league=lg, week=12, checkedAt=self.now.isoformat()) for lg in ('ADL', 'FAFL')]
+        schedule = dict(week=12, kickoffs=[(self.now + timedelta(hours=1)).isoformat()])
+        coverage = dict(schedules={lg: schedule for lg in ('ADL', 'FAFL')})
+        def api(repo, path):
+            value = warning if basic.WARNINGS in path else coverage if health.STATE in path else ledger
+            return {'content': b64encode(json.dumps(value).encode()).decode()}
+
+        send, state, durable = Mock(), {'sent': {}}, {}
+        def crash_on_ack(value):
+            if value['sent']:
+                raise OSError('interrupted before final per-warning save')
+            durable.update(copy.deepcopy(value))
+
+        with self.assertRaises(OSError):
+            basic.report(api, self.now, state, False, deliver_once, crash_on_ack, send)
+        send.assert_called_once()
+        body = send.call_args.args[1]
+        for detail in ('ADL | Week 12', 'FAFL | Week 12', 'Check Player A.', 'Check Player B.',
+                       'Check Player C.', 'L=12345', 'L=67890'):
+            self.assertIn(detail, body)
+        self.assertEqual(body.count('Submit New Lineup:'), 2)
+        self.assertEqual(durable['sent'], {})
+
+        # A legacy individual receipt or an accepted digest must never be resent.
+        state = copy.deepcopy(durable)
+        opened = self.now.isoformat()
+        state['delivery_receipts']['guardian-basic:ADL:12:starter:3:' + opened] = dict(
+            status='accepted', accepted_at=opened)
+        warning = basic.record_warnings(warning, 'ADL', 12, {
+            'starter:1': 'Check Player A.', 'starter:2': 'Check Player B.',
+            'starter:3': 'Previously delivered.', 'starter:4': 'New injury.'}, self.now)
+        basic.report(api, self.now, state, False, deliver_once, Mock(), send)
+        self.assertEqual(send.call_count, 2)
+        self.assertIn('New injury.', send.call_args.args[1])
+        self.assertNotIn('Previously delivered.', send.call_args.args[1])
+        self.assertNotIn('Check Player A.', send.call_args.args[1])
+        self.assertEqual(len(state['sent']), 5)
+
+        # Uncertain SMTP delivery also protects all included warnings from resends.
+        state = copy.deepcopy(durable)
+        next(iter(state['delivery_receipts'].values()))['status'] = 'uncertain'
+        send.reset_mock()
+        with self.assertRaisesRegex(RuntimeError, 'manual review'):
+            basic.report(api, self.now, state, False, deliver_once, Mock(), send)
+        send.assert_called_once()
+        self.assertNotIn('Check Player A.', send.call_args.args[1])
+
     def test_manual_verification_cannot_fall_back_to_a_private_job(self):
         import guardian_fallback as gate
         def document(path, optional=False):

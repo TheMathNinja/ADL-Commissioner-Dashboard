@@ -5,6 +5,7 @@ private health store; stdout contains no roster details. Delivery belongs to the
 central reporter, not this checker. A warning is a completed check, not a crash.
 """
 import copy
+import hashlib
 import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
@@ -185,11 +186,41 @@ def report(api, now, state, dry, deliver, save, send):
     from guardian_health_monitor import REPO, STATE
     warning = decode(api(REPO, 'contents/' + WARNINGS + '?ref=main'))
     coverage = decode(api(REPO, 'contents/' + STATE + '?ref=main'))
-    for key, item in warning.get('incidents', {}).items():
+    subject = '[Bears] Lineup needs attention'
+    receipts = state.get('delivery_receipts', {})
+    groups = state.get('guardian_basic_digests', {})
+    held, uncertain_members, pending = set(), set(), {}
+    uncertain = False
+    changed = False
+    health = None
+    # Preserve the exact membership across a crash after SMTP accepts a digest.
+    for group, members in groups.items():
+        receipt = receipts.get(group, {})
+        status = receipt.get('status')
+        if status == 'accepted':
+            for member in members:
+                if member not in state['sent'] and not dry:
+                    state['sent'][member] = dict(subject=subject, sent_at=receipt['accepted_at'])
+                    changed = True
+                held.add(member)
+        elif status in ('sending', 'uncertain', 'partial'):
+            uncertain_members.update(members)
+    if changed:
+        save(state)
+    for key, item in sorted(warning.get('incidents', {}).items()):
         if item['status'] != 'open':
             continue
         receipt = 'guardian-basic:' + key + ':' + item['openedAt']
-        if receipt in state['sent']:
+        if receipt in state['sent'] or receipt in held:
+            continue
+        previous = receipts.get(receipt, {})
+        if receipt in uncertain_members or previous.get('status') in ('sending', 'uncertain', 'partial'):
+            uncertain = True
+            continue
+        if previous.get('status') == 'accepted':
+            if not dry:
+                state['sent'][receipt] = dict(subject=subject, sent_at=previous['accepted_at'])
+                save(state)
             continue
         legacy = item.get('legacyDelivery')
         if legacy:
@@ -215,15 +246,32 @@ def report(api, now, state, dry, deliver, save, send):
         if not morning and not any(timedelta(0) < kickoff - now <= timedelta(minutes=90) for kickoff in kickoffs):
             continue  # No off-hours mail flood on handoff or routine daily reads.
         # Do not email a stale warning when no current read could confirm it.
-        health = decode(api(REPO, 'contents/' + HEALTH + '?ref=main'))
+        if health is None:
+            health = decode(api(REPO, 'contents/' + HEALTH + '?ref=main'))
         if not any(r['league'] == item['league'] and r['week'] == item['week']
                    and timedelta(0) <= now - stamp(r['checkedAt']) <= timedelta(minutes=15) for r in health['checks']):
             continue
         league = next(r for r in health['leagues'] if r['key'] == item['league'])
-        subject = f'[{item["league"]} Bears] Lineup needs attention'
-        link = submit_link(league, item['week'], now)
-        body = item['detail'] + '\n\nSubmit New Lineup: ' + link + '\n\nRead-only check: no roster changes were made. Projections and replacement rankings remain in private CHI Tools.'
-        if not dry:
-            deliver(state, receipt, lambda: send(subject, body, receipt), lambda: save(state))
-            state['sent'][receipt] = {'subject': subject, 'sent_at': now.isoformat()}
-            save(state)
+        pending[receipt] = (league, item)
+
+    if pending and not dry:
+        sections = {}
+        for league, item in pending.values():
+            sections.setdefault((league['key'], item['week'], submit_link(league, item['week'], now)), []).append(item['detail'])
+        body = '\n\n'.join(
+            f'{league} | Week {week}\n' +
+            '\n'.join('- ' + detail.replace('\n', '\n  ') for detail in details) +
+            f'\nSubmit New Lineup: {link}'
+            for (league, week, link), details in sorted(sections.items())
+        )
+        body += '\n\nRead-only check: no roster changes were made. Projections and replacement rankings remain in private CHI Tools.'
+        members = sorted(pending)
+        digest = 'guardian-basic-digest:' + hashlib.sha256('\n'.join(members).encode()).hexdigest()
+        state.setdefault('guardian_basic_digests', {})[digest] = members
+        save(state)
+        deliver(state, digest, lambda: send(subject, body, digest), lambda: save(state))
+        for member in members:
+            state['sent'][member] = dict(subject=subject, sent_at=now.isoformat())
+        save(state)
+    if uncertain:
+        raise RuntimeError('Guardian lineup warning delivery requires manual review')
