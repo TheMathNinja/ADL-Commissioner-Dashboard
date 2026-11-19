@@ -7035,7 +7035,10 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44613393775:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:44610810796:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44613295860",
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44614206995:1": "skipped",
-    "TheMathNinja/ADL-Commissioner-Dashboard:44611625298:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44614116929"
+    "TheMathNinja/ADL-Commissioner-Dashboard:44611625298:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44614116929",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44615067231:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44612491998:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44614989930",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44613063478:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44614989930"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -7669,6 +7672,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-19T21:02:50.941984+00:00"
+    "checkedAt": "2026-11-19T21:07:40.523633+00:00"
   }
 }
