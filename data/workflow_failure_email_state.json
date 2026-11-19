@@ -302,7 +302,9 @@
       "daily_job": "Run Commissioner alerts",
       "observed_cause_codes": {
         "daily-commissioner-alerts": "3696ee8350189cd3e10e77397a77debc6617d976a24084dfcaeab03764fbb25c"
-      }
+      },
+      "resolved_at": "2026-11-18T20:43:40Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391801866"
     },
     "TheMathNinja/ADL-Commissioner-Dashboard:42471397260:1": {
       "sent_at": "2026-11-08T10:28:33.548564+00:00",
@@ -323,7 +325,9 @@
       "daily_job": "Run Commissioner alerts",
       "observed_cause_codes": {
         "daily-commissioner-alerts": "fbc685e97657c48586fba974bcbecaa519a990bf7a2015d53b9385347bc3f11b"
-      }
+      },
+      "resolved_at": "2026-11-18T20:43:40Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391801866"
     },
     "TheMathNinja/ADL-Commissioner-Dashboard:42478139390:1": {
       "sent_at": "2026-11-08T19:42:00.448904+00:00",
@@ -1036,7 +1040,9 @@
         "daily-commissioner-alerts": "9ac3b10c3ff51730780644aec4b7deb6b64720c56f13d9d8331856592bb443cb"
       },
       "last_seen_at": "2026-11-18T19:54:37Z",
-      "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44383911214"
+      "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44383911214",
+      "resolved_at": "2026-11-18T20:43:40Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391801866"
     },
     "TheMathNinja/ADL-GM-Dashboard:44285461301:1": {
       "sent_at": "2026-11-18T10:48:56.682415+00:00",
@@ -1075,7 +1081,9 @@
         "daily-commissioner-alerts": "e6532b4a169b7fe34615fc085d0d0449d88e8bb5a7273c67e46dd50113e4ed5f"
       },
       "last_seen_at": "2026-11-18T20:20:44Z",
-      "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44388917182"
+      "latest_run_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44388917182",
+      "resolved_at": "2026-11-18T20:43:40Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44391801866"
     },
     "TheMathNinja/FAFL-GM-Dashboard:44496962231:1": {
       "sent_at": "2026-11-19T09:47:26.828568+00:00",
@@ -6450,7 +6458,8 @@
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:44510688350:1": "skipped",
     "TheMathNinja/ADL-Commissioner-Dashboard:44508372835:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44510612488",
     "TheMathNinja/ADL-Commissioner-Dashboard:44508761070:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44510612488",
-    "TheMathNinja/FAFL-GM-Dashboard:44510704187:1": "success"
+    "TheMathNinja/FAFL-GM-Dashboard:44510704187:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44511461904:1": "skipped"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -6858,6 +6867,20 @@
         "Request weekly completion email": "skipped"
       },
       "failed_at": "2026-11-19T09:31:14Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44508268176:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44504601359 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44504601359 - Commissioner alerts:2026-11-19",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "1584a46452ecaacceae05da266741fe163e7a1fe6812c348a7436ea285c2630e"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-19T10:49:27Z"
     }
   },
   "delivery_receipts": {
@@ -7035,6 +7058,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-19T11:01:29.636711+00:00",
       "accepted_at": "2026-11-19T11:01:32.370413+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:44508268176:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-19T11:06:14.780001+00:00"
     }
   },
   "healthyAt": "2026-11-19T11:04:16.899564+00:00",
@@ -7065,6 +7092,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-19T11:03:09.058336+00:00"
+    "checkedAt": "2026-11-19T11:05:30.573211+00:00"
   }
 }
