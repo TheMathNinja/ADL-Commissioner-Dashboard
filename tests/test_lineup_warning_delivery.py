@@ -1,7 +1,11 @@
 import copy
+import base64
+import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from lineup_warning_delivery import coordinate, deliver_lineup, accepted_legacy, digest
@@ -92,6 +96,43 @@ class CoordinationTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             coordinate({}, payload('position:PN'), self.sent.append,
                        lambda: (_ for _ in ()).throw(RuntimeError('CAS conflict')))
+        self.assertEqual(self.sent, [])
+
+    @patch.dict('os.environ', GITHUB_REPOSITORY='test/offline')
+    @patch('lineup_warning_delivery.time.sleep')
+    def test_branch_conflicts_before_and_after_smtp_retry_without_duplicate(self, sleep):
+        stored, attempts = None, set()
+        def request(url, update=None):
+            nonlocal stored
+            if update is None:
+                return stored
+            status = next(iter(json.loads(base64.b64decode(update['content']))['delivery_receipts'].values()))['status']
+            if status not in attempts:
+                attempts.add(status)
+                raise HTTPError(url, 409, 'Branch advanced', {}, None)
+            self.assertEqual(update.get('sha'), stored['sha'] if stored else None)
+            stored = dict(sha=status, content=update['content'])
+            return {'content': {'sha': status}}
+
+        self.assertTrue(deliver_lineup(payload('position:PN'), self.sent.append, request))
+        self.assertFalse(deliver_lineup(payload('position:PN'), self.sent.append, request))
+        self.assertEqual(attempts, {'sending', 'accepted'})
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(len(self.sent), 1)
+
+    @patch.dict('os.environ', GITHUB_REPOSITORY='test/offline')
+    @patch('lineup_warning_delivery.time.sleep')
+    def test_same_receipt_conflict_does_not_overwrite_or_send(self, sleep):
+        writes = []
+        def request(url, update=None):
+            if update is None:
+                return {'sha': 'other-sender'} if writes else None
+            writes.append(update)
+            raise HTTPError(url, 409, 'Receipt advanced', {}, None)
+
+        with self.assertRaises(HTTPError):
+            deliver_lineup(payload('position:PN'), self.sent.append, request)
+        self.assertEqual(len(writes), 1)
         self.assertEqual(self.sent, [])
 
     def test_accepted_delivery_is_not_replayed_if_final_bookkeeping_crashed(self):
