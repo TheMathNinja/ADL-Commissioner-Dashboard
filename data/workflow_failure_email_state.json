@@ -6824,7 +6824,10 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44568432591:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44571212223",
     "TheMathNinja/FAFL-GM-Dashboard:44568649789:1": "duplicate notification for TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 10 \u00b7 81cde0b3929ed8b6a16b475608f9223143cf8f4e7214b56059a146a093645d6b",
     "TheMathNinja/FAFL-GM-Dashboard:44571352962:1": "success",
-    "TheMathNinja/ADL-Commissioner-Dashboard:44568972917:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44571782600"
+    "TheMathNinja/ADL-Commissioner-Dashboard:44568972917:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44571782600",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44572238261:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44569426155:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44572137945",
+    "TheMathNinja/FAFL-GM-Dashboard:44572254854:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -7458,6 +7461,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-19T16:57:42.102309+00:00"
+    "checkedAt": "2026-11-19T17:00:33.886916+00:00"
   }
 }
