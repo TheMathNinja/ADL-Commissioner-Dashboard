@@ -6298,7 +6298,12 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44496643228:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44498811589",
     "TheMathNinja/ADL-Commissioner-Dashboard:44496830184:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44498811589",
     "TheMathNinja/ADL-GM-Dashboard:44499190685:1": "success",
-    "TheMathNinja/FAFL-GM-Dashboard:44499201740:1": "success"
+    "TheMathNinja/FAFL-GM-Dashboard:44499201740:1": "success",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44499178939:1": "skipped",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44499278647:1": "success",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44496202783:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44499110012",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44497016467:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44498870586",
+    "TheMathNinja/ADL-GM-Dashboard:44496180368:1": "success"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -6687,6 +6692,25 @@
         "daily-commissioner-alerts": "failure"
       },
       "failed_at": "2026-11-18T20:07:16Z"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:44496962231:1": {
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 10 \u00b7 81cde0b3929ed8b6a16b475608f9223143cf8f4e7214b56059a146a093645d6b",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:360714455:Official FAFL correction update \u00b7 Week 10 \u00b7 81cde0b3929ed8b6a16b475608f9223143cf8f4e7214b56059a146a093645d6b:2026-11-19",
+      "failed_steps": [
+        "refresh: Install dependencies and validate",
+        "refresh: Require a verified Payouts publication for every refresh",
+        "refresh: Require official MFL Bonus Games verification"
+      ],
+      "cause_codes": {
+        "refresh": "a0e9f6b6ddab678f99b18e2a30b48ae10a56768cb4460a5590c8319dd5162837"
+      },
+      "affected_jobs": {
+        "refresh": "failure",
+        "Roll Live Bonus Game Watch to the upcoming week": "skipped",
+        "Personal CHI Team Tools (after league publication)": "skipped",
+        "Request weekly completion email": "skipped"
+      },
+      "failed_at": "2026-11-19T09:31:14Z"
     }
   },
   "delivery_receipts": {
@@ -6824,6 +6848,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-18T20:23:30.081341+00:00",
       "accepted_at": "2026-11-18T20:23:33.081552+00:00"
+    },
+    "failure:TheMathNinja/FAFL-GM-Dashboard:44496962231:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-19T09:47:19.721523+00:00"
     }
   },
   "healthyAt": "2026-11-19T09:45:35.418408+00:00",
@@ -6854,6 +6882,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-19T09:44:21.524170+00:00"
+    "checkedAt": "2026-11-19T09:45:57.084639+00:00"
   }
 }
