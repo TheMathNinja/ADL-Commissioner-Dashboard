@@ -252,6 +252,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-17T06:25:25.817607+00:00",
       "accepted_at": "2026-11-17T06:25:27.948399+00:00"
+    },
+    "corrections:ADL-44496180368": {
+      "status": "sending",
+      "attempted_at": "2026-11-19T09:46:18.584488+00:00"
     }
   }
 }
