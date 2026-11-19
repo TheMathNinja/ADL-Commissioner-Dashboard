@@ -263,8 +263,9 @@
       "accepted_at": "2026-11-19T09:46:20.891010+00:00"
     },
     "corrections:FAFL-44568649789": {
-      "status": "sending",
-      "attempted_at": "2026-11-19T17:57:42.826496+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-19T17:57:42.826496+00:00",
+      "accepted_at": "2026-11-19T17:57:48.246614+00:00"
     }
   }
 }
