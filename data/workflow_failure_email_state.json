@@ -1144,6 +1144,24 @@
     "guardian-basic:FAFL:11:starter:14247:2026-11-19T11:00:32.378598+00:00": {
       "subject": "[FAFL Bears] Lineup needs attention",
       "sent_at": "2026-11-19T11:00:45.270433+00:00"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44508268176:1": {
+      "sent_at": "2026-11-19T11:06:19.565457+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Daily maintenance 44504601359 - Commissioner alerts",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44504601359 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44504601359 - Commissioner alerts:2026-11-19",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "1584a46452ecaacceae05da266741fe163e7a1fe6812c348a7436ea285c2630e"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-19T10:49:27Z",
+      "daily_parent": "44504601359",
+      "daily_job": "Run Commissioner alerts"
     }
   },
   "checked": {
