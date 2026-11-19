@@ -1,4 +1,5 @@
 # NFL Realism Report: immutable historical roster snapshots and explicit estimates.
+source("R/nfl_teams.R")
 nfl_realism_positions <- function() c("QB", "RB", "WR", "TE", "PK", "PN", "DT", "DE", "LB", "CB", "S", "OL", "LS", "UNMAPPED")
 
 map_nfl_realism_position <- function(position, depth_chart_position) {
@@ -22,6 +23,9 @@ map_nfl_realism_position <- function(position, depth_chart_position) {
 }
 
 summarize_nfl_realism <- function(rosters, schedules, seasons = 2021:2025) {
+  rosters$team <- mfl_player_team(rosters$team)
+  schedules$home_team <- mfl_player_team(schedules$home_team, strict = TRUE)
+  schedules$away_team <- mfl_player_team(schedules$away_team, strict = TRUE)
   required <- c("season", "team", "week", "game_type", "gsis_id", "full_name", "position", "depth_chart_position", "status", "status_description_abbr")
   stopifnot(all(required %in% names(rosters)))
   games <- schedules |>
@@ -87,6 +91,8 @@ publish_nfl_realism <- function(data_dir = "data/nfl_realism", docs_dir = "docs"
   types <- readr::cols(season = readr::col_character())
   summary <- readr::read_csv(file.path(data_dir, "summary.csv"), col_types = types, guess_max = Inf, show_col_types = FALSE)
   totals <- readr::read_csv(file.path(data_dir, "totals.csv"), col_types = types, show_col_types = FALSE)
+  summary$team <- mfl_player_team(summary$team)
+  totals$team <- mfl_player_team(totals$team)
   manifest <- jsonlite::read_json(file.path(data_dir, "manifest.json"), simplifyVector = TRUE)
   adl_summary <- adl_team_year <- NULL
   if(file.exists(file.path(data_dir,"adl_summary.csv"))) {
@@ -94,6 +100,7 @@ publish_nfl_realism <- function(data_dir = "data/nfl_realism", docs_dir = "docs"
     adl_team_year <- readr::read_csv(file.path(data_dir,"adl_team_year.csv"),show_col_types=FALSE)
     league <- readr::read_csv(file.path(data_dir,"nfl_adl_window_summary.csv"),col_types=types,show_col_types=FALSE) |> dplyr::mutate(team="NFL")
     teams <- readr::read_csv(file.path(data_dir,"nfl_adl_window_team_year.csv"),col_types=types,show_col_types=FALSE)
+    teams$team <- mfl_player_team(teams$team)
     summary <- dplyr::bind_rows(league,teams)
     totals <- summary |> dplyr::group_by(season,team) |> dplyr::summarise(
       act=sum(mean_players[status=="ACT"]),ina=sum(mean_players[status=="INA"]),observed_roster=sum(mean_players),

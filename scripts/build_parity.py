@@ -1,6 +1,7 @@
 """Head-to-head parity and franchise mobility; no player-level data published."""
 import collections, csv, datetime, itertools, json, math, statistics
 from pathlib import Path
+from nfl_teams import mfl_team
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'data/parity'
@@ -192,8 +193,9 @@ def build(matched_weeks=False):
             if int(r['week'])>nfl_max:continue
             if not r['home_score'] or not r['away_score']:nfl_missing+=1;continue
             a,b=float(r['home_score']),float(r['away_score'])
-            games.append({'season':year,'week':int(r['week']),'league':'NFL','team_a':r['home_team'],'team_b':r['away_team'],
-                          'name_a':r['home_team'],'name_b':r['away_team'],'score_a':a,'score_b':b,'outcome':(a>b)-(a<b)})
+            home,away=mfl_team(r['home_team'],strict=True),mfl_team(r['away_team'],strict=True)
+            games.append({'season':year,'week':int(r['week']),'league':'NFL','team_a':home,'team_b':away,
+                          'name_a':home,'name_b':away,'score_a':a,'score_b':b,'outcome':(a>b)-(a<b)})
         scopes.append({'season':year,'adl_max_week':adl_max,'nfl_max_week':nfl_max,'adl_regular_season_end':12,'mfl_reported_regular_season_end':int(league['lastRegularSeasonWeek']),'provisional':year==2026,'nfl_unscored_games_excluded':nfl_missing})
     summaries=[];teams=[]
     for year in range(2021,2027):

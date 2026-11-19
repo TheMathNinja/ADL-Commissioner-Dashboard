@@ -34,7 +34,7 @@ verified_lineup_repairs <- function(lineups, rosters, current_designations, kick
   }
   if (length(repairs)) bind_rows(repairs) else tibble(franchise = character(), key = character())
 }
-readiness_team <- function(team) mfl_player_team(dplyr::recode(toupper(team), LV = "LVR", WSH = "WAS"))
+readiness_team <- function(team) mfl_player_team(team, strict = TRUE)
 
 parse_readiness_depth_chart <- function(chart, players, season, team, checked_at) {
   stamp <- suppressWarnings(as.POSIXct(chart$timestamp, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
@@ -77,12 +77,12 @@ fetch_readiness_depth_charts <- function(season, checked_at = Sys.time()) {
     inner_join(players |> select(-espn_id), by = "player_id")
   players <- bind_rows(players, crosswalk) |>
     filter(!is.na(.data$espn_id), nzchar(.data$espn_id), .data$espn_id != "0") |> distinct()
-  teams <- c("ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET", "GB",
-    "HOU", "IND", "JAX", "KC", "LAC", "LAR", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WSH")
+  teams <- mfl_team_codes()
   health <- list()
   result <- bind_rows(lapply(teams, function(team) {
     tryCatch({
-    url <- paste0("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/", tolower(team), "/depthcharts")
+    url <- paste0("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/",
+      tolower(mfl_team_to_provider(team, "espn")), "/depthcharts")
     response <- httr::GET(url, httr::timeout(8), httr::user_agent("ADLCommissionerDashboard"))
     httr::stop_for_status(response)
     chart <- jsonlite::fromJSON(httr::content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
@@ -175,6 +175,10 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
   findings <- list()
   resolved <- list()
   held <- list()
+  rosters$player_team <- mfl_player_team(rosters$player_team)
+  kickoffs$player_team <- mfl_player_team(kickoffs$player_team, strict = TRUE)
+  names(bye_weeks) <- mfl_player_team(names(bye_weeks), strict = TRUE)
+  if ("player_team" %in% names(roles)) roles$player_team <- mfl_player_team(roles$player_team)
   if (!is.null(current_designations) && nrow(current_designations)) {
     statuses <- current_designations |> group_by(.data$player_id) |>
       summarize(current_status = {
@@ -238,6 +242,12 @@ evaluate_roster_readiness <- function(rosters, lineups, roles, kickoffs, bye_wee
       }
       # Unknown role data must never be converted into an accusation of having no starter.
       if (any(active & !unavailable & is.na(owned$depth_rank))) next
+      # Missing schedule evidence is not evidence that a GM lacks a starter.
+      if (any(active & !unavailable & is.na(owned$kickoff_at))) {
+        held[[length(held) + 1L]] <- tibble(franchise = franchise, key = paste0("position:", position))
+        warning("Readiness schedule unverified for ", franchise, " ", position, call. = FALSE)
+        next
+      }
       replacement <- if (nrow(fit)) paste(fit$player_name, collapse = " or ") else NULL
       observed <- if (nrow(fit)) paste0("Your ", position, " slot does not contain an expected available NFL starter.") else
         paste0("No expected available NFL starting ", position, " was identified on your Active roster for Week ", week, ".")

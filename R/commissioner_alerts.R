@@ -1323,26 +1323,6 @@ supplement_roster_player_statuses <- function(rosters, season = get_current_seas
     select(-supplement_player_status)
 }
 
-mfl_player_team <- function(team) {
-  team <- toupper(trimws(as.character(team %||% "")))
-  dplyr::recode(
-    team,
-    ARZ = "ARI",
-    JAX = "JAC",
-    KC = "KCC",
-    GB = "GBP",
-    NO = "NOS",
-    NE = "NEP",
-    SF = "SFO",
-    TB = "TBB",
-    LA = "LAR",
-    STL = "LAR",
-    OAK = "LVR",
-    SD = "LAC",
-    .default = team
-  )
-}
-
 nfl_schedule_type_col <- function(schedule) {
   dplyr::case_when(
     "season_type" %in% names(schedule) ~ "season_type",
@@ -1426,8 +1406,8 @@ read_nfl_team_kickoffs <- function(season = get_current_season(), week) {
   }
 
   bind_rows(
-    games |> transmute(player_team = mfl_player_team(.data$home_team), kickoff_at),
-    games |> transmute(player_team = mfl_player_team(.data$away_team), kickoff_at)
+    games |> transmute(player_team = mfl_player_team(.data$home_team, strict = TRUE), kickoff_at),
+    games |> transmute(player_team = mfl_player_team(.data$away_team, strict = TRUE), kickoff_at)
   ) |>
     filter(!is.na(.data$kickoff_at), nzchar(.data$player_team)) |>
     distinct(.data$player_team, .keep_all = TRUE)
@@ -2226,7 +2206,7 @@ read_bye_weeks <- function(season = get_current_season()) {
   path <- Sys.getenv("ADL_BYE_WEEKS_CSV", unset = file.path("data", paste0("nfl_bye_weeks_", season, ".csv")))
   if (file.exists(path)) {
     byes <- read_csv(path, show_col_types = FALSE)
-    return(setNames(as.integer(byes$week), as.character(byes$team)))
+    return(setNames(as.integer(byes$week), mfl_player_team(byes$team, strict = TRUE)))
   }
 
   if (season == 2026L) {

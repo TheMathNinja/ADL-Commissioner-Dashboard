@@ -24,13 +24,13 @@ class Basic(unittest.TestCase):
         self.fixtures = {
             'rosters': {'rosters': {'franchise': {'id': '0005', 'week': '12', 'player': [{'id': '1', 'status': 'ROSTER'}]}}},
             'weeklyResults': {'weeklyResults': {'week': '12', 'matchup': {'franchise': {'id': '0005', 'starters': '1,'}}}},
-            'players': {'players': {'player': {'id': '1', 'name': 'Test Starter', 'position': 'QB', 'team': 'X'}}},
+            'players': {'players': {'player': {'id': '1', 'name': 'Test Starter', 'position': 'QB', 'team': 'LVR'}}},
             'league': {'league': {'starters': {'count': '1', 'iop_starters': '1', 'idp_starters': '0',
                                              'position': {'name': 'QB', 'limit': '1'}}}},
             'injuries': {'injuries': {'week': '12', 'injury': []}},
             'nflByeWeeks': {'nflByeWeeks': {'team': []}},
             'nflSchedule': {'nflSchedule': {'week': '12', 'matchup': {'kickoff': str(int((self.now+timedelta(hours=1)).timestamp())),
-                                                                  'team': {'id': 'X'}}}},
+                                                                  'team': {'id': 'LV'}}}},
         }
         self.read = Mock(side_effect=lambda year, kind, **kw: copy.deepcopy(self.fixtures[kind]))
 

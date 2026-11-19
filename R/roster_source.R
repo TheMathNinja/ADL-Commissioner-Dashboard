@@ -1,6 +1,7 @@
 library(dplyr)
 library(readr)
 library(tibble)
+source("R/nfl_teams.R")
 
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
@@ -32,7 +33,7 @@ franchise_code_from_name <- function(x) {
     x == "Green Bay Packers" ~ "GBP",
     x == "Houston Texans" ~ "HOU",
     x == "Indianapolis Colts" ~ "IND",
-    x == "Jacksonville Jaguars" ~ "JAX",
+    x == "Jacksonville Jaguars" ~ "JAC",
     x == "Kansas City Chiefs" ~ "KCC",
     x == "Los Angeles Chargers" ~ "LAC",
     x == "Los Angeles Rams" ~ "LAR",
@@ -60,26 +61,6 @@ coalesce_col <- function(df, names, default = NA_character_) {
   found <- names[names %in% colnames(df)]
   if (length(found) == 0) return(rep(default, nrow(df)))
   df[[found[1]]]
-}
-
-mfl_player_team <- function(team) {
-  team <- toupper(trimws(as.character(team)))
-  dplyr::recode(
-    team,
-    ARZ = "ARI",
-    JAX = "JAC",
-    KC = "KCC",
-    GB = "GBP",
-    NO = "NOS",
-    NE = "NEP",
-    SF = "SFO",
-    TB = "TBB",
-    LA = "LAR",
-    STL = "LAR",
-    OAK = "LVR",
-    SD = "LAC",
-    .default = team
-  )
 }
 
 roster_source_safe_file_slug <- function(x) {

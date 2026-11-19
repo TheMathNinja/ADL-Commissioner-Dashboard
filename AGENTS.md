@@ -1,5 +1,9 @@
 # Automation audit requirements
 
+## NFL Team Identity
+
+Use MFL three-letter NFL teams internally, including JAC, GBP, KCC, LVR, NEP, NOS, SFO and TBB. FA is a free-agent sentinel. Use config/nfl_teams.json and R/nfl_teams.R or scripts/nfl_teams.py; external provider aliases belong only at named I/O boundaries. Do not add ad hoc maps. Preserve historical raw sources and franchise IDs. Run scripts/check_nfl_team_codes.py with all four repository paths and the full contract gate for every release. Unknown schedule identity is unverified data, never a GM violation. Changes to shared mappings require synchronized copies and all-32-team/provider round-trip tests.
+
 ## Coordinated behavior changes
 
 For shared display labels or thresholds, edit the reviewed, versioned

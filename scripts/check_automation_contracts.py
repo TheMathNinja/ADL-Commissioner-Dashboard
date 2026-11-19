@@ -195,6 +195,7 @@ def personal_sync_contract_errors(public_source: str, private_source: str) -> li
     return errors
 
 def main() -> int:
+    from check_nfl_team_codes import audit_team_contracts
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", action="append", required=True, metavar="NAME=PATH")
     args = parser.parse_args()
@@ -207,6 +208,10 @@ def main() -> int:
     errors = []
     if set(roots) != required:
         errors.append(f"Expected repositories {sorted(required)}, got {sorted(roots)}")
+    elif all((root / 'config/nfl_teams.json').is_file() for root in roots.values()):
+        errors.extend(audit_team_contracts(roots))
+    else:
+        errors.append('Every league repository must install the shared MFL NFL team contract')
 
     # Reject encoding damage before any helper attempts to parse the same file.
     for repo, root in roots.items():

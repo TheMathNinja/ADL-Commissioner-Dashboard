@@ -39,4 +39,5 @@ stopifnot(nrow(dplyr::filter(shared, .data$franchise == "KCC")) == 1L)
 
 source("tests/test_mfl_connection_cache.R")
 source("tests/test_roster_capture_cache.R")
+source("tests/test_nfl_teams.R")
 cat("Commissioner recipient-directory regression test passed.\n")

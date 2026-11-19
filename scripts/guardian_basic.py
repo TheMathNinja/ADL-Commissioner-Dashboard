@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from guardian_health_monitor import LEDGER, decode, persist, public_json, stamp, validate
+from nfl_teams import mfl_team
 
 HEALTH = 'data/guardian_basic_health.json'
 WARNINGS = 'data/guardian_basic_warnings.json'
@@ -97,18 +98,18 @@ def inspect(league, now, read=feed):
         raise ValueError('Injury week mismatch')
     injuries = {str(x['id']): str(x['status']).upper().strip().strip('()')
                 for x in rows(injury_feed.get('injury'))}
-    byes = {x['id'] for x in rows(read(season, 'nflByeWeeks', W=week)['nflByeWeeks'].get('team'))}
+    byes = {mfl_team(x['id'], strict=True) for x in rows(read(season, 'nflByeWeeks', W=week)['nflByeWeeks'].get('team'))}
     schedule = read(season, 'nflSchedule', W=week)['nflSchedule']
     if int(schedule['week']) != week:
         raise ValueError('Schedule week mismatch')
     games = rows(schedule['matchup'])
-    kickoffs = {t['id']: datetime.fromtimestamp(int(g['kickoff']), timezone.utc)
+    kickoffs = {mfl_team(t['id'], strict=True): datetime.fromtimestamp(int(g['kickoff']), timezone.utc)
                 for g in games for t in rows(g['team'])}
     if not kickoffs:
         raise ValueError('Missing kickoff evidence')
     for identity in ids:
         player = players[identity]
-        team_id, status = player['team'], injuries.get(identity, '')
+        team_id, status = mfl_team(player['team'], strict=True), injuries.get(identity, '')
         if team_id not in byes and team_id not in kickoffs:
             raise ValueError('Starter has no verified game or bye')
         # Already locked starters cannot be replaced; do not suggest an impossible move.

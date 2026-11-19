@@ -1,4 +1,5 @@
 # Exclude reserve, suspended and holdout designations even on ADL Active Roster.
+source("R/nfl_teams.R")
 adl_realism_excluded <- function(designation) {
   status <- toupper(trimws(ifelse(is.na(designation), "", designation)))
   status %in% c("S", "SUSPENDED", "H", "HOLDOUT", "I", "INJURED RESERVE", "INJURED_RESERVE") | grepl("^IR($|[- /])", status)
@@ -15,18 +16,16 @@ build_adl_realism <- function(history_dir = "data/nfl_realism/adl_history", nfl_
   positions <- setdiff(nfl_realism_positions(), c("OL", "LS"))
   mfl <- readr::read_csv(file.path(out, "source_mfl_players.csv"), col_types = readr::cols(.default=readr::col_character(),season=readr::col_integer()),show_col_types=FALSE)
   nfl <- readr::read_csv(file.path(out,"player_snapshots.csv.gz"), col_types=readr::cols(.default=readr::col_character(),season=readr::col_integer(),week=readr::col_integer()),show_col_types=FALSE)
-  schedule <- readRDS(file.path(out,"source_schedules_2021_2025.rds")) |> filter(game_type=="REG")
-  injury <- readRDS(nfl_injury_path) |> filter(game_type=="REG")
+  schedule <- readRDS(file.path(out,"source_schedules_2021_2025.rds")) |> filter(game_type=="REG") |>
+    mutate(home_team=mfl_player_team(home_team),away_team=mfl_player_team(away_team))
+  injury <- readRDS(nfl_injury_path) |> filter(game_type=="REG") |> mutate(team=mfl_player_team(team))
+  nfl$team <- mfl_player_team(nfl$team)
   # Stable identity link from the matched NFL player audit plus frozen crosswalk.
   cross <- readRDS(file.path(out,"source_id_crosswalk.rds"))
   id_index <- bind_rows(nfl |> select(mfl_id,gsis_id), cross |> transmute(mfl_id=as.character(mfl_id),gsis_id=as.character(gsis_id))) |>
     filter(!is.na(mfl_id),nzchar(mfl_id),!is.na(gsis_id),nzchar(gsis_id)) |>
     distinct() |> group_by(gsis_id) |> filter(n_distinct(mfl_id)==1) |> ungroup()
   injury <- injury |> left_join(id_index,by="gsis_id",relationship="many-to-many")
-  map_team <- function(x) {
-    aliases <- c(KCC="KC",GBP="GB",NOS="NO",NEP="NE",SFO="SF",TBB="TB",LAR="LA",LVR="LV",JAC="JAX",ARZ="ARI",OAK="LV",STL="LA",SD="LAC")
-    ifelse(x %in% names(aliases),unname(aliases[x]),x)
-  }
   # Prefer contemporaneous NFL roster observations, then nearest earlier/next week.
   nfl_team <- nfl |> filter(!is.na(mfl_id),nzchar(mfl_id)) |>
     mutate(priority=match(status,c("ACT","INA","RES","DEV","PUP","SUS","CUT","RET"))) |>
@@ -36,7 +35,7 @@ build_adl_realism <- function(history_dir = "data/nfl_realism/adl_history", nfl_
     league <- jsonlite::fromJSON(file.path(history_dir,sprintf("%d_league.json",year)))$league
     weeks <- seq.int(as.integer(league$startWeek),as.integer(league$endWeek))
     franchises <- league$franchises$franchise |> transmute(franchise_id=id,franchise_name=name)
-    annual <- mfl |> filter(season==year) |> transmute(player_id=id,player_name=name,adl_position=position,annual_nfl_team=map_team(team))
+    annual <- mfl |> filter(season==year) |> transmute(player_id=id,player_name=name,adl_position=position,annual_nfl_team=mfl_player_team(team))
     for (week in weeks) {
       r <- jsonlite::fromJSON(file.path(history_dir,sprintf("%d_rosters_week%02d.json",year,week)))$rosters$franchise
       rows <- bind_rows(lapply(seq_len(nrow(r)),function(i) {
