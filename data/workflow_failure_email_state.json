@@ -7782,6 +7782,20 @@
         "watch": "failure"
       },
       "failed_at": "2026-11-20T05:31:24Z"
+    },
+    "TheMathNinja/FAFL-GM-Dashboard:44665296259:1": {
+      "incident_key": "TheMathNinja/FAFL-GM-Dashboard:388846694:account-check:main",
+      "scope": "TheMathNinja/FAFL-GM-Dashboard:388846694:account-check:main:2026-11-19",
+      "failed_steps": [
+        "watch: Refresh public MFL live scores"
+      ],
+      "cause_codes": {
+        "watch": "f569606fcf3c6fc6738a6e2d493b38567db2f11a8374098793d7d0bb87f2d4fc"
+      },
+      "affected_jobs": {
+        "watch": "failure"
+      },
+      "failed_at": "2026-11-20T05:31:38Z"
     }
   },
   "delivery_receipts": {
@@ -7969,6 +7983,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-20T05:48:37.428981+00:00",
       "accepted_at": "2026-11-20T05:48:40.213063+00:00"
+    },
+    "failure:TheMathNinja/FAFL-GM-Dashboard:44665296259:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-20T05:48:53.938595+00:00"
     }
   },
   "healthyAt": "2026-11-20T05:43:35.082945+00:00",
