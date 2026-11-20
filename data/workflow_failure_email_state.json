@@ -7481,7 +7481,12 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44701532998:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44703010969",
     "TheMathNinja/ADL-GM-Dashboard:44701586707:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/44701690322",
     "TheMathNinja/ADL-GM-Dashboard:44701609299:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/44701690322",
-    "TheMathNinja/ADL-GM-Dashboard:44701633852:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/44701690322"
+    "TheMathNinja/ADL-GM-Dashboard:44701633852:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-GM-Dashboard/actions/runs/44701690322",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44703626405:1": "skipped",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44701676686:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44703349133",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44701715038:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44703349133",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44701847437:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44703772062",
+    "TheMathNinja/ADL-Commissioner-Dashboard:44702019935:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44703772062"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -8183,6 +8188,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-20T08:34:17.912266+00:00"
+    "checkedAt": "2026-11-20T08:37:40.921091+00:00"
   }
 }
