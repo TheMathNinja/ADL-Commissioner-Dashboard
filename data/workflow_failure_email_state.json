@@ -1206,6 +1206,18 @@
       "cause_codes": {},
       "affected_jobs": {},
       "failed_at": "2026-11-20T07:10:47Z"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44701662668:1": {
+      "sent_at": "2026-11-20T08:35:13.798978+00:00",
+      "subject": "[League automation CANCELLED] ADL-GM-Dashboard \u2014 Refresh Rosters",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:283602398:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:283602398:account-check:main:2026-11-20",
+      "failed_steps": [
+        "Workflow ended with cancelled; detailed step results are unavailable."
+      ],
+      "cause_codes": {},
+      "affected_jobs": {},
+      "failed_at": "2026-11-20T08:20:05Z"
     }
   },
   "checked": {
