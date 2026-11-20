@@ -1161,7 +1161,9 @@
       },
       "failed_at": "2026-11-19T10:49:27Z",
       "daily_parent": "44504601359",
-      "daily_job": "Run Commissioner alerts"
+      "daily_job": "Run Commissioner alerts",
+      "resolved_at": "2026-11-19T18:05:05Z",
+      "recovery_url": "https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44582114155"
     },
     "TheMathNinja/ADL-GM-Dashboard:44665076018:1": {
       "sent_at": "2026-11-20T05:48:42.293416+00:00",
@@ -7581,7 +7583,8 @@
     "TheMathNinja/ADL-Commissioner-Dashboard:44720262813:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44721688753",
     "TheMathNinja/ADL-Commissioner-Dashboard:44720267049:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44721688753",
     "TheMathNinja/ADL-Commissioner-Dashboard:44720271104:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44721688753",
-    "TheMathNinja/ADL-Commissioner-Dashboard:44720275063:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44721688753"
+    "TheMathNinja/ADL-Commissioner-Dashboard:44720275063:1": "resolved before notification; verified recovery: https://github.com/TheMathNinja/ADL-Commissioner-Dashboard/actions/runs/44721688753",
+    "TheMathNinja/Chicago-Bears-Lineup-Guardian:44722461189:1": "skipped"
   },
   "linked_reports": {
     "TheMathNinja/Chicago-Bears-Lineup-Guardian:43264461487:1": {
@@ -8051,6 +8054,20 @@
       "cause_codes": {},
       "affected_jobs": {},
       "failed_at": "2026-11-20T08:20:05Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44719398863:1": {
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44718254300 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44718254300 - Commissioner alerts:2026-11-20",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "1584a46452ecaacceae05da266741fe163e7a1fe6812c348a7436ea285c2630e"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-20T10:34:15Z"
     }
   },
   "delivery_receipts": {
@@ -8253,6 +8270,10 @@
       "status": "accepted",
       "attempted_at": "2026-11-20T08:35:08.602694+00:00",
       "accepted_at": "2026-11-20T08:35:11.940742+00:00"
+    },
+    "failure:TheMathNinja/ADL-Commissioner-Dashboard:44719398863:1": {
+      "status": "sending",
+      "attempted_at": "2026-11-20T10:53:25.968693+00:00"
     }
   },
   "healthyAt": "2026-11-20T10:49:22.513748+00:00",
@@ -8283,6 +8304,6 @@
       "TheMathNinja/nflverse-pbp",
       "TheMathNinja/themathninja.github.io"
     ],
-    "checkedAt": "2026-11-20T10:47:51.684468+00:00"
+    "checkedAt": "2026-11-20T10:52:43.519260+00:00"
   }
 }
