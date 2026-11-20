@@ -7985,8 +7985,9 @@
       "accepted_at": "2026-11-20T05:48:40.213063+00:00"
     },
     "failure:TheMathNinja/FAFL-GM-Dashboard:44665296259:1": {
-      "status": "sending",
-      "attempted_at": "2026-11-20T05:48:53.938595+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-20T05:48:53.938595+00:00",
+      "accepted_at": "2026-11-20T05:48:56.735480+00:00"
     }
   },
   "healthyAt": "2026-11-20T05:43:35.082945+00:00",
