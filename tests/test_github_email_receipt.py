@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import Mock, patch
+from urllib.error import HTTPError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from github_email_receipt import deliver
 from email_delivery_state import DeliveryUncertain
@@ -58,6 +59,23 @@ class ReceiptTests(unittest.TestCase):
         with self.assertRaises(DeliveryUncertain):
             deliver('same report', send, self.api)
         self.assertEqual(send.call_count, 1)
+
+    @patch.dict(os.environ, GITHUB_REPOSITORY='owner/repo')
+    @patch('github_email_receipt.time.sleep')
+    def test_unrelated_branch_conflicts_retry_claim_and_acceptance(self, sleep):
+        send = Mock()
+        conflicted = set()
+        def request(url, payload=None):
+            if payload is not None and self.revision not in conflicted:
+                conflicted.add(self.revision)
+                raise HTTPError(url, 409, 'Branch advanced', {}, None)
+            return self.api(url, payload)
+
+        self.assertTrue(deliver('same report', send, request))
+        self.assertFalse(deliver('same report', send, request))
+        send.assert_called_once()
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(self.revision, 2)
 
 
 if __name__ == '__main__':

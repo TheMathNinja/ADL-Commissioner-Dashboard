@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from email_delivery_state import deliver_once
@@ -26,6 +27,20 @@ def api(url, payload=None):
         raise
 
 
+def put_receipt(url, payload, request=api):
+    for attempt in range(4):
+        try:
+            return request(url, payload)
+        except urllib.error.HTTPError as error:
+            if error.code != 409 or attempt == 3:
+                raise
+            time.sleep(0.25 * (attempt + 1))
+            latest = request(url + '?ref=main')
+            # Retry branch contention, never overwrite another sender's receipt.
+            if (latest['sha'] if latest else None) != payload.get('sha'):
+                raise
+
+
 def deliver(key, send, request=api):
     repo = os.environ['GITHUB_REPOSITORY']
     digest = hashlib.sha256(key.encode()).hexdigest()
@@ -42,7 +57,7 @@ def deliver(key, send, request=api):
                    'content': base64.b64encode((json.dumps(state, sort_keys=True)+'\n').encode()).decode()}
         if sha:
             payload['sha'] = sha
-        result = request(url, payload)
+        result = put_receipt(url, payload, request)
         sha = result['content']['sha']
 
     return deliver_once(state, digest, send, save)

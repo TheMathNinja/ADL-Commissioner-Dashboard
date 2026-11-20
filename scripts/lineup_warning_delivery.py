@@ -3,11 +3,9 @@ import base64
 import hashlib
 import json
 import os
-import time
-from urllib.error import HTTPError
 
 from email_delivery_state import deliver_once, DeliveryUncertain
-from github_email_receipt import api
+from github_email_receipt import api, put_receipt
 
 
 def digest(value):
@@ -106,18 +104,7 @@ def deliver_lineup(payload, send, request=api):
                       content=base64.b64encode((serialized + '\n').encode()).decode())
         if sha:
             update['sha'] = sha
-        for attempt in range(4):
-            try:
-                result = request(url, update)
-                break
-            except HTTPError as error:
-                if error.code != 409 or attempt == 3:
-                    raise
-                time.sleep(0.25 * (attempt + 1))
-                latest = request(url + '?ref=main')
-                # Retry branch contention, never overwrite another sender's receipt.
-                if (latest['sha'] if latest else None) != sha:
-                    raise
+        result = put_receipt(url, update, request)
         sha = result['content']['sha']
         previous = serialized
 

@@ -99,7 +99,7 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(self.sent, [])
 
     @patch.dict('os.environ', GITHUB_REPOSITORY='test/offline')
-    @patch('lineup_warning_delivery.time.sleep')
+    @patch('github_email_receipt.time.sleep')
     def test_branch_conflicts_before_and_after_smtp_retry_without_duplicate(self, sleep):
         stored, attempts = None, set()
         def request(url, update=None):
@@ -121,7 +121,7 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(len(self.sent), 1)
 
     @patch.dict('os.environ', GITHUB_REPOSITORY='test/offline')
-    @patch('lineup_warning_delivery.time.sleep')
+    @patch('github_email_receipt.time.sleep')
     def test_same_receipt_conflict_does_not_overwrite_or_send(self, sleep):
         writes = []
         def request(url, update=None):
