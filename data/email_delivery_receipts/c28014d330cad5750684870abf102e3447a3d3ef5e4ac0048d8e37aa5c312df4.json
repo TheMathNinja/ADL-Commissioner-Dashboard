@@ -1,1 +1,1 @@
-{"delivery_receipts": {"c28014d330cad5750684870abf102e3447a3d3ef5e4ac0048d8e37aa5c312df4": {"attempted_at": "2026-11-20T10:33:39.428323+00:00", "status": "sending"}}}
+{"delivery_receipts": {"c28014d330cad5750684870abf102e3447a3d3ef5e4ac0048d8e37aa5c312df4": {"accepted_at": "2026-11-20T10:33:42.489639+00:00", "attempted_at": "2026-11-20T10:33:39.428323+00:00", "recovered_from_run": "44719398863", "status": "accepted"}}}
