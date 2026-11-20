@@ -1162,6 +1162,22 @@
       "failed_at": "2026-11-19T10:49:27Z",
       "daily_parent": "44504601359",
       "daily_job": "Run Commissioner alerts"
+    },
+    "TheMathNinja/ADL-GM-Dashboard:44665076018:1": {
+      "sent_at": "2026-11-20T05:48:42.293416+00:00",
+      "subject": "[League automation FAILED] ADL-GM-Dashboard \u2014 Live Bonus Game Watch",
+      "incident_key": "TheMathNinja/ADL-GM-Dashboard:388846649:account-check:main",
+      "scope": "TheMathNinja/ADL-GM-Dashboard:388846649:account-check:main:2026-11-19",
+      "failed_steps": [
+        "watch: Refresh public MFL live scores"
+      ],
+      "cause_codes": {
+        "watch": "f569606fcf3c6fc6738a6e2d493b38567db2f11a8374098793d7d0bb87f2d4fc"
+      },
+      "affected_jobs": {
+        "watch": "failure"
+      },
+      "failed_at": "2026-11-20T05:31:24Z"
     }
   },
   "checked": {
