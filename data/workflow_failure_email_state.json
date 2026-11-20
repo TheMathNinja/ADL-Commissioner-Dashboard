@@ -1220,6 +1220,24 @@
       "cause_codes": {},
       "affected_jobs": {},
       "failed_at": "2026-11-20T08:20:05Z"
+    },
+    "TheMathNinja/ADL-Commissioner-Dashboard:44719398863:1": {
+      "sent_at": "2026-11-20T10:53:30.951452+00:00",
+      "subject": "[League automation FAILED] ADL-Commissioner-Dashboard \u2014 Daily maintenance 44718254300 - Commissioner alerts",
+      "incident_key": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44718254300 - Commissioner alerts",
+      "scope": "TheMathNinja/ADL-Commissioner-Dashboard:346977160:Daily maintenance 44718254300 - Commissioner alerts:2026-11-20",
+      "failed_steps": [
+        "daily-commissioner-alerts: Run commissioner alerts"
+      ],
+      "cause_codes": {
+        "daily-commissioner-alerts": "1584a46452ecaacceae05da266741fe163e7a1fe6812c348a7436ea285c2630e"
+      },
+      "affected_jobs": {
+        "daily-commissioner-alerts": "failure"
+      },
+      "failed_at": "2026-11-20T10:34:15Z",
+      "daily_parent": "44718254300",
+      "daily_job": "Run Commissioner alerts"
     }
   },
   "checked": {
