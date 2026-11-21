@@ -4,35 +4,45 @@ rosters <- tibble(conference = "NFC", franchise = "MIN", franchise_name = "Minne
   player_id = c("16152", "15694", "k", "p"), player_name = c("Anthony Richardson", "Malik Willis", "Kicker", "Punter"),
   player_team = c("IND", "MIA", "IND", "IND"), player_pos = c("QB", "QB", "PK", "PN"),
   roster_status = "Active", player_status = c("", "IR", "", ""))
-roles <- tibble(player_id = c("16152", "15694", "17038", "k", "p"),
-  depth_rank = c(2L, 1L, 1L, 1L, 1L), source = "https://www.espn.com")
+roles <- tibble(player_id = c("16152", "15694", "17038", "k", "p", "QB1"),
+  player_team = c("IND", "MIA", "MIA", "IND", "IND", "IND"), player_pos = c("QB","QB","QB","PK","PN","QB"),
+  depth_rank = c(2L, 1L, 2L, 1L, 1L, 1L), source = "verified chart")
 lineups <- rosters |> filter(player_id != "15694")
 kickoffs <- tibble(player_team = c("IND", "MIA"), kickoff_at = now + 4 * 86400)
-check <- function(roster = rosters, selected = lineups, depth = roles, schedule = kickoffs, byes = c(IND = 7, MIA = 8), when = now,
-  pending = tibble(), verified = TRUE, statuses = tibble(player_id = character(), player_status = character())) {
+no_designations <- tibble(player_id = character(), player_status = character())
+check <- function(roster = rosters, selected = lineups, depth = roles, schedule = kickoffs,
+  byes = c(IND = 7, MIA = 8), when = now, submitted = "MIN", statuses = no_designations) {
   evaluate_roster_readiness(roster, selected, depth, schedule, byes, 10, when,
-    pending_auctions = pending, pending_verified = verified, current_designations = statuses)
+    submitted_franchises = submitted, current_designations = statuses)
 }
 warning <- check()
 stopifnot(nrow(warning) == 1L, warning$severity == "warning",
-  grepl("starting QB", warning$observed), grepl("acquire", warning$details),
-  grepl("Anthony Richardson", warning$details), grepl("Malik Willis", warning$details),
-  nrow(commissioner_digest_alerts(warning)) == 0L,
+  grepl("Your submitted QB, Anthony Richardson, is not a projected NFL starter. Please remedy.", warning$observed, fixed = TRUE),
+  identical(warning$details, ""), nrow(commissioner_digest_alerts(warning)) == 0L,
   nrow(filter_lineup_email_days(warning, now)) == 1L)
-# Not every backup is inactive; a starter injury may change the expected role.
-promoted <- roles; promoted$depth_rank[1] <- 1L
+stopifnot(nrow(check(submitted = character())) == 0L,
+  nrow(check(statuses = NULL)) == 0L,
+  nrow(check(depth = filter(roles, player_id != "16152"))) == 0L,
+  nrow(check(schedule = filter(kickoffs, player_team != "IND"))) == 0L,
+  nrow(check(schedule = mutate(kickoffs, kickoff_at = now - 1))) == 0L,
+  nrow(check(byes = c(IND = 10L))) == 0L,
+  nrow(check(statuses = tibble(player_id = "16152", player_status = "OUT"))) == 0L)
+# Empty slots and unsubmitted carryovers are not projected-role findings.
+stopifnot(nrow(check(selected = filter(lineups, player_pos != "QB"))) == 0L)
+for (pos in c("PK", "PN")) {
+  id <- rosters$player_id[rosters$player_pos == pos]
+  depth <- mutate(roles, depth_rank = if_else(player_id == id, 2L, depth_rank))
+  depth <- bind_rows(depth, tibble(player_id = paste0(pos, "1"), player_team = "IND",
+    player_pos = pos, depth_rank = 1L, source = "verified chart"))
+  result <- check(depth = depth)
+  stopifnot(any(grepl(paste0("Your submitted ", pos), result$observed, fixed = TRUE)))
+}
+promoted <- filter(roles, player_id != "QB1")
 stopifnot(nrow(check(depth = promoted)) == 0L)
-uncertain <- roles |> filter(player_id != "16152")
-stopifnot(nrow(check(depth = uncertain)) == 0L)
-stopifnot(nrow(check(schedule = mutate(kickoffs, kickoff_at = now - 1))) == 0L)
-replacement <- rosters[2, ]; replacement$player_id <- "17038"; replacement$player_status <- ""
-replacement$player_name <- "Kyle McCord"
-with_starter <- bind_rows(rosters, replacement)
-stopifnot(nrow(check(roster = with_starter)) == 0L)
-needed <- check(roster = with_starter, when = now + 86400)
-stopifnot(nrow(needed) == 1L, grepl("starting Kyle McCord", needed$details))
-stopifnot(nrow(check(with_starter, bind_rows(lineups |> filter(player_pos != "QB"), replacement))) == 0L)
-stopifnot(nrow(check(roster = rosters |> filter(player_pos != "PN"))) == 2L)
+audit <- tibble(franchise = c("MIN", "NYJ", "DAL", "PIT", "CLE"),
+  submission_status = c("submitted", "not_submitted", "unknown", "submitted", "submitted"),
+  submitted_at = c(rep("2026-11-11 04:00:00 EST", 3), NA, "2026-11-11 07:00:00 EST"))
+stopifnot(identical(verified_role_submissions(audit, now), "MIN"))
 stopifnot(identical(readiness_team(c("LV", "WSH", "JAX")), c("LVR", "WAS", "JAC")))
 
 # Structured charts use stable IDs, require current season/freshness and mapped starters.
@@ -67,9 +77,10 @@ send_coordinated_lineup_email(warning, 2026, 10, now)
 send_coordinated_lineup_email(warning, 2026, 10, now + 86400)
 stopifnot(identical(sent[[1]]$key, sent[[2]]$key), length(sent[[1]]$cc) == 0L,
   grepl("F=0008", sent[[1]]$body, fixed = TRUE))
-stopifnot(identical(unlist(sent[[1]]$payload$lineup_entries[[1]]$keys), "position:QB"))
+stopifnot(identical(unlist(sent[[1]]$payload$lineup_entries[[1]]$keys), "starter-role:QB"))
 # The email and its durable delivery payload contain facts, not lineup advice.
-violation <- needed
+needed <- warning
+violation <- warning
 violation$rule <- "Starting lineups require 7 offensive starters, including minimum 1 QB"
 violation$observed <- "6 offensive starters (0 QB, 6 RB/WR/TE)"
 violation$details <- "Must start 1 additional QB"
@@ -86,9 +97,9 @@ stopifnot(
     paste0("Rule: ", c(violation$rule, needed$rule), "\nObserved: ", c(violation$observed, needed$observed)))
 )
 healthy <- check(depth = promoted)
-stopifnot("position:QB" %in% attr(healthy, "resolved")$key)
-unknown <- check(depth = promoted, verified = FALSE)
-stopifnot(!"position:QB" %in% attr(unknown, "resolved")$key)
+stopifnot("starter-role:QB" %in% attr(healthy, "resolved")$key)
+unknown <- check(depth = promoted, submitted = character())
+stopifnot(!"starter-role:QB" %in% attr(unknown, "resolved")$key)
 # Preserve existing message hashes when no explicit issue key is supplied.
 transport <- new.env(parent = globalenv())
 transport$shQuote <- function(path) {
@@ -110,47 +121,7 @@ for (quote_type in c("sh", "cmd")) {
 }
 cat("Roster readiness, early-week routing, identity, unknown evidence and stable delivery-key regressions passed.\n")
 
-franchises <- tibble(franchise_id = c("0008", "0011", "0012", "0024"),
-  franchise = c("MIN", "NOS", "TBB", "PIT"), conference = c("NFC", "NFC", "NFC", "AFC"),
-  franchise_name = c("Minnesota Vikings", "New Orleans Saints", "Tampa Bay Buccaneers", "Pittsburgh Steelers"))
-events <- tibble(type = "AUCTION_INIT", franchise = "0008", timestamp = as.character(as.numeric(now - 3600)), transaction = "17038|1.10|")
-pending <- pending_readiness_auctions(events, franchises, now)
-pending_roles <- roles |> mutate(player_team = c("IND", "MIA", "MIA", "IND", "IND"),
-  player_pos = c("QB", "QB", "QB", "PK", "PN"))
-pending_roles <- bind_rows(pending_roles, tibble(player_id = "QB1", depth_rank = 1L,
-  source = "https://www.espn.com", player_team = "IND", player_pos = "QB"))
-stopifnot(nrow(check(depth = pending_roles, pending = pending)) == 0L)
-# Only a qualifying candidate finishing before kickoff covers the acquisition need.
-bad <- tibble(player_id = "17038", player_status = "Out")
-stopifnot(nrow(check(depth = pending_roles, pending = pending, statuses = bad)) == 1L,
-  nrow(check(depth = pending_roles, pending = pending, byes = c(IND = 7, MIA = 10))) == 1L,
-  nrow(check(depth = pending_roles, pending = pending, schedule = mutate(kickoffs, kickoff_at = now + 7200))) == 1L)
-wrong <- pending_roles; wrong$player_pos[wrong$player_id == "17038"] <- "PN"
-stopifnot(nrow(check(depth = wrong, pending = pending)) == 1L)
-stopifnot(nrow(check(verified = FALSE)) == 0L)
-# Another GM's nomination is not this GM's attempt; proxy annotations do count.
-events$franchise <- "0011"
-stopifnot(!"MIN" %in% pending_readiness_auctions(events, franchises, now)$franchise)
-proxy <- events; proxy$type <- "AUCTION_BID"; proxy$timestamp <- as.character(as.numeric(now - 60))
-proxy$transaction <- "17038|2|Minnesota Vikings forced bid increase"
-with_proxy <- pending_readiness_auctions(bind_rows(events, proxy), franchises, now)
-stopifnot("MIN" %in% with_proxy$franchise,
-  all(with_proxy$closes_at == now - 3600 + 86400))
-# Changing high bidder restarts the clock; proxy raises by the same leader do not.
-proxy$franchise <- "0008"; proxy$transaction <- "17038|2|"
-changed <- pending_readiness_auctions(bind_rows(events, proxy), franchises, now)
-stopifnot(all(changed$closes_at == now - 60 + 86400))
-closed <- proxy; closed$type <- "AUCTION_WON"
-stopifnot(nrow(pending_readiness_auctions(bind_rows(events, closed), franchises, now)) == 0L)
-expired <- events; expired$timestamp <- as.character(as.numeric(now - 86401))
-stopifnot(nrow(pending_readiness_auctions(expired, franchises, now)) == 0L)
-cancelled <- proxy; cancelled$type <- "AUCTION_CANCEL"
-stopifnot(nrow(pending_readiness_auctions(bind_rows(events, cancelled), franchises, now)) == 0L)
-other <- events; other$franchise <- "0024"
-stopifnot(!"MIN" %in% pending_readiness_auctions(other, franchises, now)$franchise)
-cat("Pending nomination, bid/proxy, expiry, conference and qualifying-player regressions passed.\n")
-
-# The ordinary missing-punter alert and readiness alert identify the same root.
+# Ordinary missing-slot episodes still have their own independent keys.
 positions <- c("QB", "RB", rep("WR", 4), "TE", "PK", rep("DT", 2), rep("DE", 3), rep("LB", 3), rep("CB", 2), rep("S", 2))
 short_lineup <- tibble(franchise_id = "0008", player_id = as.character(seq_along(positions)), player_pos = positions)
 structural <- lineup_starter_count_alert_rows("0008", nrow(short_lineup), short_lineup)

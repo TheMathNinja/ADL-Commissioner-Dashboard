@@ -2793,6 +2793,15 @@ build_commissioner_alerts <- function(
 
   if (include_inseason) {
     if (is.null(week) || is.na(week)) stop("week is required for in-season lineup alerts.", call. = FALSE)
+    # Confirm submission before reading the starter list; a default copy is not a GM submission.
+    submissions <- if (isTRUE(force_live)) tryCatch(
+      lineup_submission_audit(season = season, week = week),
+      error = function(e) {
+        warning("Submission evidence unavailable; projected-starter warnings withheld.", call. = FALSE)
+        tibble()
+      }
+    ) else tibble()
+    submitted_franchises <- verified_role_submissions(submissions, checked_at)
     lineups <- cache_lineups_snapshot(season = season, week = week, force_live = force_live)
     kickoffs <- read_nfl_team_kickoffs(season = season, week = week)
     designation_snapshot <- if (isTRUE(force_live)) {
@@ -2824,19 +2833,18 @@ build_commissioner_alerts <- function(
       checked_at = checked_at
     )
     if (isTRUE(force_live)) {
-      roles <- fetch_readiness_depth_charts(season, checked_at)
-      pending <- tryCatch(fetch_readiness_pending_auctions(season, rosters, checked_at), error = identity)
-      pending_verified <- !inherits(pending, "error") && !is.null(current_designations)
-      source_health <- bind_rows(attr(roles, "source_health"), tibble(team = "auction_history",
-        status = if (pending_verified) "verified" else "unverified",
-        detail = if (inherits(pending, "error")) conditionMessage(pending) else if (is.null(current_designations)) "Current player statuses unavailable" else ""))
-      if (!pending_verified) pending <- tibble()
+      roles <- if (length(submitted_franchises) && !is.null(current_designations)) {
+        fetch_readiness_depth_charts(season, checked_at)
+      } else tibble()
+      source_health <- bind_rows(attr(roles, "source_health"), tibble(team = "lineup_submissions",
+        status = if (length(submitted_franchises)) "verified" else "unverified",
+        detail = paste(length(submitted_franchises), "timestamped submissions confirmed")))
       dir.create(commissioner_alert_report_dir(), recursive = TRUE, showWarnings = FALSE)
       write_csv(source_health, file.path(commissioner_alert_report_dir(),
         paste0("readiness_source_health_", season, "_week", week, ".csv")))
       alerts$roster_readiness <- evaluate_roster_readiness(rosters, lineups, roles, kickoffs,
-        read_bye_weeks(season), week, checked_at, pending_auctions = pending,
-        pending_verified = pending_verified, current_designations = current_designations)
+        read_bye_weeks(season), week, checked_at, submitted_franchises = submitted_franchises,
+        current_designations = current_designations)
       options(adl_lineup_notification_snapshot = list(season = season, week = week,
         checked_at = as.numeric(checked_at), resolved = bind_rows(attr(alerts$roster_readiness, "resolved"),
           verified_lineup_repairs(lineups, rosters, current_designations, kickoffs, read_bye_weeks(season), week)),
