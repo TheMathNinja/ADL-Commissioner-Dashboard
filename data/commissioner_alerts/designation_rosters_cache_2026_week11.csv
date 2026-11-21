@@ -267,7 +267,7 @@ NFC,DET,Detroit Lions,17510,"Burks, Deion IND WR","Burks, Deion",IND,WR,Active,R
 NFC,DET,Detroit Lions,16352,"Hellams, DeMarcco ATL S","Hellams, DeMarcco",ATL,S,Active,,1.1,1,266.44,2026 UFA,,hellams
 NFC,DET,Detroit Lions,15805,"Hutchinson, Aidan DET DE","Hutchinson, Aidan",DET,DE,Active,IR,10.78,4,266.44,2025 iEXT,,hutchinson
 NFC,DET,Detroit Lions,17226,"Hassanein, Ahmed DET DE","Hassanein, Ahmed",DET,DE,Active,,1.1,1,266.44,2026 UFA,,hassanein
-NFC,DET,Detroit Lions,16594,"Benson, Trey ARI RB","Benson, Trey",ARI,RB,INJURED_RESERVE,IR,2.46,2,266.44,2024 1.16,,benson
+NFC,DET,Detroit Lions,16714,"Jones, Jarrian JAC CB","Jones, Jarrian",JAC,CB,Active,,1.1,1,266.44,2026 UFA,,jones
 NFC,DET,Detroit Lions,16654,"Elliss, Jonah DEN DE","Elliss, Jonah",DEN,DE,INJURED_RESERVE,IR,1.1,2,266.44,2024 4.23,,elliss
 NFC,GBP,Green Bay Packers,15284,"Waddle, Jaylen DEN WR","Waddle, Jaylen",DEN,WR,Active,,16.36,4,266.62,2025 oEXT,,waddle
 NFC,GBP,Green Bay Packers,15711,"Walker III, Kenneth KCC RB","Walker III, Kenneth",KCC,RB,Active,Out,10.8,3,266.62,2026 oEXT,,walker iii
@@ -278,7 +278,6 @@ NFC,GBP,Green Bay Packers,16614,"Harrison Jr., Marvin HOU WR","Harrison Jr., Mar
 NFC,GBP,Green Bay Packers,16080,"Shaheed, Rashid SEA WR","Shaheed, Rashid",SEA,WR,Active,,5.96,2,266.62,2025 oEXT,,shaheed
 NFC,GBP,Green Bay Packers,17135,"Ezeiruaku, Donovan DAL DE","Ezeiruaku, Donovan",DAL,DE,Active,,1.39,3,266.62,2025 3.07,,ezeiruaku
 NFC,GBP,Green Bay Packers,17099,"Gadsden, Oronde LAC TE","Gadsden, Oronde",LAC,TE,Active,,1.04,3,266.62,2025 5.10,,gadsden
-NFC,GBP,Green Bay Packers,13635,"Moore, D.J. BUF WR","Moore, D.J.",BUF,WR,Active,,22.26,1,266.62,2025 UFA,,moore
 NFC,GBP,Green Bay Packers,12741,"Jones, Chris KCC DT","Jones, Chris",KCC,DT,Active,,5.64,1,266.62,2025 UFA,,jones
 NFC,GBP,Green Bay Packers,15355,"Bolton, Nick KCC LB","Bolton, Nick",KCC,LB,Active,,7.43,1,266.62,2025 UFA,,bolton
 NFC,GBP,Green Bay Packers,16729,"Still, Tarheeb LAC CB","Still, Tarheeb",LAC,CB,Active,Questionable,3.34,1,266.62,2025 UFA,,still
@@ -299,7 +298,6 @@ NFC,GBP,Green Bay Packers,15923,"Lake, Quentin LAR S","Lake, Quentin",LAR,S,Acti
 NFC,GBP,Green Bay Packers,15835,"Brisker, Jaquan PIT S","Brisker, Jaquan",PIT,S,Active,,2.09,2,266.62,2026 UFA,,brisker
 NFC,GBP,Green Bay Packers,14235,"Tranquill, Drue KCC LB","Tranquill, Drue",KCC,LB,Active,,2.1,1,266.62,2026 UFA,,tranquill
 NFC,GBP,Green Bay Packers,17664,"Eckley, Ryan BAL PN","Eckley, Ryan",BAL,PN,Active,R,0.99,4,266.62,2026 5.05,,eckley
-NFC,GBP,Green Bay Packers,17185,"Buchanan, Teddye BAL LB","Buchanan, Teddye",BAL,LB,Active,,0.99,2,266.62,2025 UDFA,,buchanan
 NFC,GBP,Green Bay Packers,15894,"Woolen, Tariq PHI CB","Woolen, Tariq",PHI,CB,Active,,1.1,1,266.62,2026 R/F,,woolen
 NFC,GBP,Green Bay Packers,16677,"Bullard, Javon GBP S","Bullard, Javon",GBP,S,Active,,1.3,2,266.62,2024 3.13,,bullard
 NFC,GBP,Green Bay Packers,17165,"Caldwell, Jamaree LAC DT","Caldwell, Jamaree",LAC,DT,Active,,2.3,1,266.62,2026 UFA,,caldwell
@@ -314,9 +312,12 @@ NFC,GBP,Green Bay Packers,16692,"Newton, Jer'Zhan WAS DT","Newton, Jer'Zhan",WAS
 NFC,GBP,Green Bay Packers,17137,"Harmon, Derrick PIT DT","Harmon, Derrick",PIT,DT,Active,,1.91,3,266.62,2025 2.08,,harmon
 NFC,GBP,Green Bay Packers,13192,"Njoku, David LAC TE","Njoku, David",LAC,TE,Active,,2,1,266.62,2026 UFA,,njoku
 NFC,GBP,Green Bay Packers,16846,"Bates, Jake DET PK","Bates, Jake",DET,PK,Active,,1.1,1,266.62,2026 UFA,,bates
+NFC,GBP,Green Bay Packers,11150,"Smith, Geno NYJ QB","Smith, Geno",NYJ,QB,Active,,8.36,1,266.62,2025 B/R,,smith
+NFC,GBP,Green Bay Packers,17185,"Buchanan, Teddye BAL LB","Buchanan, Teddye",BAL,LB,Active,,0.99,2,266.62,2025 UDFA,,buchanan
 NFC,GBP,Green Bay Packers,17159,"Martin, Nick SFO LB","Martin, Nick",SFO,LB,INJURED_RESERVE,IR,1.16,3,266.62,2025 4.03,,martin
 NFC,GBP,Green Bay Packers,14168,"White, Devin DET LB","White, Devin",DET,LB,INJURED_RESERVE,IR,1.1,1,266.62,2026 UFA,,white
 NFC,GBP,Green Bay Packers,12764,"Hargrave, Javon GBP DT","Hargrave, Javon",GBP,DT,INJURED_RESERVE,IR,2.1,1,266.62,2026 UFA,,hargrave
+NFC,GBP,Green Bay Packers,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,INJURED_RESERVE,IR,2.1,1,266.62,2026 UFA,,palmer
 NFC,MIN,Minnesota Vikings,15346,"Rousseau, Gregory BUF DE","Rousseau, Gregory",BUF,DE,Active,,12.67,1,265.12,2024 iEXT,,rousseau
 NFC,MIN,Minnesota Vikings,16187,"Downs, Josh KCC WR","Downs, Josh",KCC,WR,Active,,4.65,4,265.12,2026 iEXT,,downs
 NFC,MIN,Minnesota Vikings,16689,"Murphy, Byron SEA DT","Murphy, Byron",SEA,DT,Active,,1.98,2,265.12,2024 2.06,,murphy
@@ -642,7 +643,6 @@ NFC,LAR,Los Angeles Rams,14888,"Chaisson, K'Lavon WAS DE","Chaisson, K'Lavon",WA
 NFC,LAR,Los Angeles Rams,15752,"Burks, Treylon WAS WR","Burks, Treylon",WAS,WR,Active,Questionable,1.1,1,254.03,2026 UFA,,burks
 NFC,LAR,Los Angeles Rams,17192,"Watkins, Jordan SFO WR","Watkins, Jordan",SFO,WR,Active,,1.1,1,254.03,2026 UFA,,watkins
 NFC,LAR,Los Angeles Rams,15833,"Gardner, Sauce IND CB","Gardner, Sauce",IND,CB,Active,Out,2,1,254.03,2026 UFA,,gardner
-NFC,LAR,Los Angeles Rams,11150,"Smith, Geno NYJ QB","Smith, Geno",NYJ,QB,Active,,8.36,1,254.03,2025 B/R,,smith
 NFC,LAR,Los Angeles Rams,15259,"Stevenson, Rhamondre NEP RB","Stevenson, Rhamondre",NEP,RB,Active,,5.28,1,254.03,2026 oEXT,,stevenson
 NFC,LAR,Los Angeles Rams,16192,"Washington, Parker JAC WR","Washington, Parker",JAC,WR,Active,,12,4,254.03,2026 SRFA,,washington
 NFC,LAR,Los Angeles Rams,12735,"Rankins, Sheldon HOU DT","Rankins, Sheldon",HOU,DT,Active,,1.1,1,254.03,2026 UFA,,rankins
@@ -651,6 +651,7 @@ NFC,LAR,Los Angeles Rams,16255,"Banks, Deonte NYG CB","Banks, Deonte",NYG,CB,Act
 NFC,LAR,Los Angeles Rams,17130,"Amos, Trey WAS CB","Amos, Trey",WAS,CB,Active,,0.99,2,254.03,2025 UDFA,,amos
 NFC,LAR,Los Angeles Rams,16684,"Washington, Malik MIA WR","Washington, Malik",MIA,WR,Active,,1.09,2,254.03,2024 5.04,,washington
 NFC,LAR,Los Angeles Rams,13431,"Sanchez, Rigoberto IND PN","Sanchez, Rigoberto",IND,PN,Active,,1.1,1,254.03,2026 UFA,,sanchez
+NFC,LAR,Los Angeles Rams,13635,"Moore, D.J. BUF WR","Moore, D.J.",BUF,WR,Active,,22.26,1,254.03,2025 UFA,,moore
 NFC,LAR,Los Angeles Rams,16622,"Pearsall, Ricky SFO WR","Pearsall, Ricky",SFO,WR,INJURED_RESERVE,IR,2.57,2,254.03,2024 1.15,,pearsall
 NFC,LAR,Los Angeles Rams,17119,"Scourton, Nic CAR DE","Scourton, Nic",CAR,DE,INJURED_RESERVE,IR,1.09,3,254.03,2025 4.13,,scourton
 NFC,LAR,Los Angeles Rams,17594,"Clark, Bud SEA S","Clark, Bud",SEA,S,INJURED_RESERVE,IR,1.1,4,254.03,2026 4.07,,clark
@@ -660,7 +661,6 @@ NFC,LAR,Los Angeles Rams,17127,"Johnson, Will ARI CB","Johnson, Will",ARI,CB,INJ
 NFC,LAR,Los Angeles Rams,16167,"Achane, De'Von MIA RB","Achane, De'Von",MIA,RB,INJURED_RESERVE,IR,17.18,3,254.03,2026 iEXT,,achane
 NFC,LAR,Los Angeles Rams,16696,"Cooper, Edgerrin GBP LB","Cooper, Edgerrin",GBP,LB,INJURED_RESERVE,IR,1.58,2,254.03,2024 2.15,,cooper
 NFC,LAR,Los Angeles Rams,17585,"Miller, Christen NOS DT","Miller, Christen",NOS,DT,INJURED_RESERVE,IR,1.05,4,254.03,2026 4.14,,miller
-NFC,LAR,Los Angeles Rams,15319,"Palmer, Joshua BUF WR","Palmer, Joshua",BUF,WR,INJURED_RESERVE,IR,2.1,1,254.03,2026 UFA,,palmer
 NFC,LAR,Los Angeles Rams,17177,"West, CJ SFO DT","West, CJ",SFO,DT,INJURED_RESERVE,IR-R,0.99,2,254.03,2025 UDFA,,west
 NFC,SFO,San Francisco 49ers,15287,"St. Brown, Amon-Ra DET WR","St. Brown, Amon-Ra",DET,WR,Active,,37.66,3,266.62,2024 iEXT,,st. brown
 NFC,SFO,San Francisco 49ers,15845,"McDuffie, Trent LAR CB","McDuffie, Trent",LAR,CB,Active,,3.51,1,266.62,2024 oEXT,,mcduffie
@@ -1291,12 +1291,11 @@ AFC,JAC,Jacksonville Jaguars,15797,"Dulcich, Greg MIA TE","Dulcich, Greg",MIA,TE
 AFC,JAC,Jacksonville Jaguars,16291,"Adebawore, Adetomiwa IND DT","Adebawore, Adetomiwa",IND,DT,Active,,1.1,1,260.59,2026 UFA,,adebawore
 AFC,JAC,Jacksonville Jaguars,16145,"McMillian, Ja'Quan DEN CB","McMillian, Ja'Quan",DEN,CB,Active,,1.1,1,260.59,2026 UFA,,mcmillian
 AFC,JAC,Jacksonville Jaguars,17078,"Bech, Jack LVR WR","Bech, Jack",LVR,WR,Active,,2.1,3,260.59,2025 2.05,,bech
-AFC,JAC,Jacksonville Jaguars,15032,"Fox, Jack DET PN","Fox, Jack",DET,PN,Active,,1.1,1,260.59,2026 UFA,,fox
 AFC,JAC,Jacksonville Jaguars,15398,"Jones, Patrick CAR DE","Jones, Patrick",CAR,DE,Active,,1.1,1,260.59,2026 UFA,,jones
 AFC,JAC,Jacksonville Jaguars,16513,"London, LaCale ATL DT","London, LaCale",ATL,DT,Active,,1.1,1,260.59,2026 UFA,,london
 AFC,JAC,Jacksonville Jaguars,14217,"Barton, Cody TEN LB","Barton, Cody",TEN,LB,Active,,2.1,1,260.59,2026 UFA,,barton
+AFC,JAC,Jacksonville Jaguars,17152,"Norman-Lott, Omarr KCC DT","Norman-Lott, Omarr",KCC,DT,Active,,1.03,3,260.59,2025 5.17,,norman-lott
 AFC,JAC,Jacksonville Jaguars,13146,"Conner, James ARI RB","Conner, James",ARI,RB,INJURED_RESERVE,IR-R,3.69,3,260.59,2026 B/R,,conner
-AFC,JAC,Jacksonville Jaguars,17152,"Norman-Lott, Omarr KCC DT","Norman-Lott, Omarr",KCC,DT,INJURED_RESERVE,,1.03,3,260.59,2025 5.17,,norman-lott
 AFC,JAC,Jacksonville Jaguars,16733,"Bertrand, JD ATL LB","Bertrand, JD",ATL,LB,INJURED_RESERVE,,1.13,2,260.59,2024 4.14,,bertrand
 AFC,JAC,Jacksonville Jaguars,17127,"Johnson, Will ARI CB","Johnson, Will",ARI,CB,INJURED_RESERVE,IR,1.12,3,260.59,2025 4.05,,johnson
 AFC,JAC,Jacksonville Jaguars,14252,"Jackson, Michael CAR CB","Jackson, Michael",CAR,CB,INJURED_RESERVE,,1.1,1,260.59,2025 R/F,,jackson
