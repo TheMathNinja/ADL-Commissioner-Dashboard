@@ -55,7 +55,7 @@ class Basic(unittest.TestCase):
         rules['count'] = '2'
         rules['position'] = [rules['position'], {'name': 'PN', 'limit': '1'}]
         _, issues = basic.inspect(self.league, self.now, self.read)
-        self.assertIn('PN: requires 1-1; currently 0', issues['lineup-rules'])
+        self.assertIn('PN: requires 1-1; currently 0', issues['lineup-rules'].detail)
         self.assertEqual(len(issues), 1)
 
     def test_locked_starter_does_not_get_impossible_replacement_instruction(self):
@@ -72,10 +72,10 @@ class Basic(unittest.TestCase):
     def test_taxi_starter_gets_an_exact_activation_instruction_without_ranking(self):
         self.fixtures['rosters']['rosters']['franchise']['player'][0]['status'] = 'TAXI_SQUAD'
         _, issues = basic.inspect(self.league, self.now, self.read)
-        self.assertIn('from Taxi to Active', issues['starter:1'])
+        self.assertIn('from Taxi to Active', issues['starter:1'].detail)
 
     def test_incomplete_reads_never_count_or_resolve_existing_warning(self):
-        before = basic.record_warnings({}, 'ADL', 12, {'starter:1': 'remove'}, self.now)
+        before = basic.record_warnings({}, 'ADL', 12, {'starter:1': basic.Finding('remove')}, self.now)
         self.read.side_effect = OSError('not logged')
         ledger, after = basic.check(self.ledger, before, 'monitor', self.now, self.read)
         self.assertEqual(ledger['checks'], [])
@@ -95,13 +95,14 @@ class Basic(unittest.TestCase):
         self.assertEqual({r['league'] for r in state['incidents'].values()}, {'FAFL'})
 
     def test_warning_deduplicates_until_verified_recovery_then_reopens(self):
-        first = basic.record_warnings({}, 'ADL', 12, {'starter:1': 'remove'}, self.now)
+        issues = {'starter:1': basic.Finding('remove')}
+        first = basic.record_warnings({}, 'ADL', 12, issues, self.now)
         later = self.now + timedelta(minutes=10)
-        repeated = basic.record_warnings(first, 'ADL', 12, {'starter:1': 'remove'}, later)
+        repeated = basic.record_warnings(first, 'ADL', 12, issues, later)
         self.assertEqual(first, repeated)
         recovered = basic.record_warnings(first, 'ADL', 12, {}, later)
         self.assertEqual(recovered['incidents']['ADL:12:starter:1']['status'], 'resolved')
-        reopened = basic.record_warnings(recovered, 'ADL', 12, {'starter:1': 'remove'}, later)
+        reopened = basic.record_warnings(recovered, 'ADL', 12, issues, later)
         self.assertNotEqual(first['incidents']['ADL:12:starter:1']['openedAt'], reopened['incidents']['ADL:12:starter:1']['openedAt'])
 
     def test_projection_and_private_endpoint_are_not_allowed(self):
@@ -170,7 +171,8 @@ class Basic(unittest.TestCase):
 
     def test_warning_delivery_is_once_and_dry_run_never_acknowledges(self):
         from base64 import b64encode
-        warning = basic.record_warnings({}, 'ADL', 12, {'lineup-rules': 'Add an eligible PN.'}, self.now)
+        warning = basic.record_warnings({}, 'ADL', 12,
+                                        {'lineup-rules': basic.Finding('Add an eligible PN.')}, self.now)
         ledger = copy.deepcopy(self.ledger)
         ledger['checks'] = [dict(league='ADL', week=12, mode='monitor', checkedAt=self.now.isoformat())]
         def api(repo, path):
@@ -192,14 +194,67 @@ class Basic(unittest.TestCase):
         basic.report(api, self.now-timedelta(hours=4), state, False, deliver, save, send)
         send.assert_not_called()
 
+    def test_report_sends_out_once_after_delivered_legacy_questionable_warning(self):
+        from base64 import b64encode
+
+        start = self.now
+        league = self.ledger['leagues'][1]
+        health_state = copy.deepcopy(self.ledger)
+        coverage = dict(schedules={'FAFL': dict(week=12, kickoffs=[(start+timedelta(hours=1)).isoformat()])})
+        state, send, save = {'sent': {}}, Mock(), Mock()
+        deliver = Mock(side_effect=lambda s, k, callback, persist: callback())
+        warning = {}
+
+        def api(repo, path):
+            value = warning if basic.WARNINGS in path else coverage if health.STATE in path else health_state
+            return {'content': b64encode(json.dumps(value).encode()).decode()}
+
+        def observe(status, minutes):
+            nonlocal warning
+            now = start + timedelta(minutes=minutes)
+            self.fixtures['injuries']['injuries']['injury'] = {'id': '1', 'status': status}
+            week, issues = basic.inspect(league, now, self.read)
+            warning = basic.record_warnings(warning, 'FAFL', week, issues, now)
+            health_state['checks'] = [dict(league='FAFL', week=12, checkedAt=now.isoformat())]
+            return now
+
+        question = observe('QUESTIONABLE', 0)
+        del warning['incidents']['FAFL:12:starter:1']['severity']  # pre-upgrade warning
+        basic.report(api, question, state, False, deliver, save, send)
+        self.assertEqual(send.call_count, 1)
+        self.assertIn('QUESTIONABLE', send.call_args.args[1])
+        advisory_receipt = next(iter(state['sent']))
+
+        observe('O', 10)
+        corrected = observe('Q', 11)
+        basic.report(api, corrected, state, False, deliver, save, send)
+        self.assertEqual(send.call_count, 1)  # Do not consume the Out receipt with Q text.
+        for status, minutes in [('OUT', 12), ('O', 14), ('Q', 15), ('OUT', 17)]:
+            at = observe(status, minutes)
+            basic.report(api, at, state, False, deliver, save, send)
+        self.assertEqual(send.call_count, 2)
+        self.assertIn('Remove Test Starter (QB; OUT)', send.call_args.args[1])
+        self.assertEqual(len(state['sent']), 2)
+        self.assertIn(advisory_receipt, state['sent'])
+        self.assertIn('guardian-basic:FAFL:12:starter:1:' + (start+timedelta(minutes=10)).isoformat(), state['sent'])
+
+    def test_legacy_confirmed_warning_does_not_reopen_on_upgrade(self):
+        key = 'ADL:12:starter:1'
+        warning = {'incidents': {key: dict(league='ADL', week=12, status='open',
+                                          openedAt=self.now.isoformat(), detail='Remove Starter (QB; OUT).')}}
+        later = self.now + timedelta(minutes=5)
+        result = basic.record_warnings(warning, 'ADL', 12, {'starter:1': basic.Finding('Remove Starter.')}, later)
+        self.assertEqual(result['incidents'][key]['openedAt'], self.now.isoformat())
+
     def test_digest_groups_both_leagues_and_preserves_exact_delivery_after_a_crash(self):
         from base64 import b64encode
         from email_delivery_state import deliver_once
 
         warning = basic.record_warnings({}, 'ADL', 12,
-                                        {'starter:1': 'Check Player A.', 'starter:2': 'Check Player B.'}, self.now)
+                                        {'starter:1': basic.Finding('Check Player A.'),
+                                         'starter:2': basic.Finding('Check Player B.')}, self.now)
         warning = basic.record_warnings(warning, 'FAFL', 12,
-                                        {'starter:1': 'Check Player C.'}, self.now)
+                                        {'starter:1': basic.Finding('Check Player C.')}, self.now)
         ledger = copy.deepcopy(self.ledger)
         ledger['checks'] = [dict(league=lg, week=12, checkedAt=self.now.isoformat()) for lg in ('ADL', 'FAFL')]
         schedule = dict(week=12, kickoffs=[(self.now + timedelta(hours=1)).isoformat()])
@@ -230,8 +285,8 @@ class Basic(unittest.TestCase):
         state['delivery_receipts']['guardian-basic:ADL:12:starter:3:' + opened] = dict(
             status='accepted', accepted_at=opened)
         warning = basic.record_warnings(warning, 'ADL', 12, {
-            'starter:1': 'Check Player A.', 'starter:2': 'Check Player B.',
-            'starter:3': 'Previously delivered.', 'starter:4': 'New injury.'}, self.now)
+            'starter:1': basic.Finding('Check Player A.'), 'starter:2': basic.Finding('Check Player B.'),
+            'starter:3': basic.Finding('Previously delivered.'), 'starter:4': basic.Finding('New injury.')}, self.now)
         basic.report(api, self.now, state, False, deliver_once, Mock(), send)
         self.assertEqual(send.call_count, 2)
         self.assertIn('New injury.', send.call_args.args[1])
@@ -266,7 +321,7 @@ class Basic(unittest.TestCase):
 
     def test_exact_legacy_delivery_migrates_without_resending_and_dispatch_is_not_delivery(self):
         from base64 import b64encode
-        warning = basic.record_warnings({}, 'ADL', 12, {'starter:1': 'remove'}, self.now)
+        warning = basic.record_warnings({}, 'ADL', 12, {'starter:1': basic.Finding('remove')}, self.now)
         proof = dict(source='verified-local-smtp-migration', file='data/notifications/123-1-monitor.json',
                      id='123-1-monitor:0', status='sent', sentAt=(self.now-timedelta(hours=1)).isoformat(),
                      receiptHash='a'*64, inputsFingerprint='b'*64)

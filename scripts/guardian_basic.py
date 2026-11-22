@@ -8,6 +8,7 @@ import copy
 import hashlib
 import re
 from datetime import datetime, timedelta, timezone
+from typing import NamedTuple
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
@@ -17,6 +18,11 @@ from nfl_teams import mfl_team
 HEALTH = 'data/guardian_basic_health.json'
 WARNINGS = 'data/guardian_basic_warnings.json'
 FEEDS = {'league', 'rosters', 'weeklyResults', 'players', 'injuries', 'nflSchedule', 'nflByeWeeks'}
+
+
+class Finding(NamedTuple):
+    detail: str
+    severity: str = 'confirmed'
 
 
 def submit_link(league, week, now):
@@ -121,17 +127,21 @@ def inspect(league, now, read=feed):
         roster_status = rostered[identity]['status'] if identity in rostered else 'NOT_ON_ROSTER'
         if unavailable or roster_status != 'ROSTER':
             reason = 'BYE' if team_id in byes else status if unavailable else roster_status
-            issues['starter:' + identity] = (f'Remove {player["name"]} ({player["position"]}; {reason}) from the starting lineup. '
+            issues['starter:' + identity] = Finding(
+                f'Remove {player["name"]} ({player["position"]}; {reason}) from the starting lineup. '
                 'Select an eligible replacement in private CHI Tools, then submit the revised lineup before the replacement locks.')
             if roster_status == 'TAXI_SQUAD' and not unavailable:
-                issues['starter:' + identity] = (f'Move {player["name"]} ({player["position"]}) from Taxi to Active before starting him, '
+                issues['starter:' + identity] = Finding(
+                    f'Move {player["name"]} ({player["position"]}) from Taxi to Active before starting him, '
                     'or replace him with an eligible active player selected in private CHI Tools. Submit the revised lineup before kickoff.')
         elif status in {'Q', 'QUESTIONABLE', 'D', 'DOUBTFUL'}:
-            issues['starter:' + identity] = (f'{player["name"]} ({player["position"]}) is {status}. '
-                'Check availability before kickoff and review replacement options in private CHI Tools; no replacement has been ranked here.')
+            issues['starter:' + identity] = Finding(
+                f'{player["name"]} ({player["position"]}) is {status}. '
+                'Check availability before kickoff and review replacement options in private CHI Tools; no replacement has been ranked here.',
+                'advisory')
     rule_findings = [issues.pop(k) for k in list(issues) if k.startswith('rule:')]
     if rule_findings:
-        issues['lineup-rules'] = '\n'.join(rule_findings)
+        issues['lineup-rules'] = Finding('\n'.join(rule_findings))
     return week, issues
 
 
@@ -142,13 +152,28 @@ def record_warnings(previous, league, week, issues, now):
     for key, item in incidents.items():
         if item['league'] == league and item['status'] == 'open' and key not in {prefix + k for k in issues}:
             item.update(status='resolved', resolvedAt=now.isoformat())
-    for kind, detail in issues.items():
+    for kind, finding in issues.items():
         key = prefix + kind
         existing = incidents.get(key, {})
-        if existing.get('status') != 'open':
-            incidents[key] = dict(league=league, week=week, status='open', openedAt=now.isoformat(), detail=detail)
+        # Only recognize the exact legacy advisory template; never replay an
+        # existing confirmed warning merely because it predates the severity field.
+        previous = existing.get('severity')
+        if previous is None and re.search(
+                r'\) is (Q|QUESTIONABLE|D|DOUBTFUL)\. Check availability before kickoff ',
+                existing.get('detail', '')):
+            previous = 'advisory'
+        escalation = previous == 'advisory' and finding.severity == 'confirmed'
+        if existing.get('status') != 'open' or escalation:
+            incidents[key] = dict(league=league, week=week, status='open', openedAt=now.isoformat(),
+                                  detail=finding.detail, severity=finding.severity)
         else:
-            incidents[key]['detail'] = detail
+            existing['detail'] = finding.detail
+            # A feed correction to Q does not re-arm an already confirmed warning.
+            existing['severity'] = previous or 'confirmed'
+            if finding.severity != existing['severity']:
+                existing['currentSeverity'] = finding.severity
+            else:
+                existing.pop('currentSeverity', None)
     return value
 
 
@@ -208,7 +233,7 @@ def report(api, now, state, dry, deliver, save, send):
     if changed:
         save(state)
     for key, item in sorted(warning.get('incidents', {}).items()):
-        if item['status'] != 'open':
+        if item['status'] != 'open' or item.get('currentSeverity') == 'advisory':
             continue
         receipt = 'guardian-basic:' + key + ':' + item['openedAt']
         if receipt in state['sent'] or receipt in held:
