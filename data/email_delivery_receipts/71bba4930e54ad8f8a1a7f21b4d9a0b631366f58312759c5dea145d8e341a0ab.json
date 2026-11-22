@@ -1,1 +1,1 @@
-{"delivery_receipts": {"71bba4930e54ad8f8a1a7f21b4d9a0b631366f58312759c5dea145d8e341a0ab": {"attempted_at": "2026-11-22T10:22:48.951091+00:00", "status": "sending"}}}
+{"delivery_receipts": {"71bba4930e54ad8f8a1a7f21b4d9a0b631366f58312759c5dea145d8e341a0ab": {"accepted_at": "2026-11-22T10:22:51.763510+00:00", "attempted_at": "2026-11-22T10:22:48.951091+00:00", "status": "accepted"}}}
