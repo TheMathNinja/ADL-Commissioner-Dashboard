@@ -162,14 +162,15 @@
       "count": 2,
       "observed": "Last league access: Nov 10, 2026 at 02:19 PM EST",
       "detected_at": "2026-11-17T20:09:38.315339+00:00",
-      "status": "watch",
+      "status": "resolved",
       "activity_at": "2026-11-10T19:19:26+00:00",
       "notice": {
         "status": "accepted",
         "attempted_at": "2026-11-17T20:09:43.137977+00:00",
         "issued_at": "2026-11-17T20:09:43.137977+00:00"
       },
-      "deadline": "2026-11-22T20:09:43.137977+00:00"
+      "deadline": "2026-11-22T20:09:43.137977+00:00",
+      "resolved_at": "2026-11-22T17:53:13+00:00"
     },
     "0024:bcc3d4ff500357cc7c1e:login:1794590760": {
       "franchise_id": "0024",
@@ -336,6 +337,6 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-22T17:09:38.345118+00:00",
+  "last_checked_at": "2026-11-22T18:00:22.650731+00:00",
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5"
 }
