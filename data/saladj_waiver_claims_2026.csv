@@ -1,4 +1,5 @@
 drop_row_key,player_id,player,conference,drop_franchise_id,dropped_at_utc,claimed_at_utc,claiming_franchise_id,salary,contract
+txn=|fr=0006|pl=16594|ts=2026-11-21 01:31:45|ty=FREE_AGENT|td=dropped|cm=NA,16594,Trey Benson,NFC,0006,2026-11-21 01:31:45,2026-11-22 10:00:00,0009,2.46,2024 1.16
 txn=|fr=0029|pl=17761|ts=2026-11-17 20:38:02|ty=FREE_AGENT|td=dropped|cm=NA,17761,Brett Thorson,AFC,0029,2026-11-17 20:38:02,2026-11-19 10:00:00,0019,1.1,2026 UFA
 txn=|fr=0003|pl=13848|ts=2026-11-17 11:59:12|ty=FREE_AGENT|td=dropped|cm=NA,13848,Cam Johnston,NFC,0003,2026-11-17 11:59:12,2026-11-19 10:00:00,0001,1.1,2026 UFA
 txn=|fr=0009|pl=16216|ts=2026-11-13 14:24:39|ty=FREE_AGENT|td=dropped|cm=NA,16216,Darnell Washington,NFC,0009,2026-11-13 14:24:39,2026-11-15 10:00:00,0003,1.1,2026 R/F

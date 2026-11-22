@@ -1,6 +1,6 @@
 Salary-adjustment action report
 This is the complete current worklist. Previously reported items are included for context, not as new errors. Unchecked ENTD? entries are warnings until a completed official snapshot is missed.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_21_ADLSalAdjCurator.csv
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_22_ADLSalAdjCurator.csv
 
 1. Items to Enter into Contract Admin and MFL
 Enter these missing source contracts in Contract Admin and verify the calculated adjustment. Compare with MFL first: add only missing adjustments, correct incorrect existing entries, and never enter a duplicate. After confirming MFL, mark ENTD?. Contract salary below is not the penalty amount.
@@ -10,13 +10,13 @@ Previously reported; still outstanding:
 Previously reported; still outstanding:
 - Dropped 8/26/2026 08:41:41 ET by WAS | Cash Trade: $0.05
   Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
-New entry request:
-- Dropped 11/20/2026 20:31:45 ET by DET | Trey Benson ARI RB: $2.46 / 2 yr / 2024 1.16
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 22, 2026
-New entry request:
+Previously reported; still outstanding:
 - Dropped 11/21/2026 00:46:21 ET by GBP | Cash Trade: $10.20
-New entry request:
+Previously reported; still outstanding:
 - Dropped 11/21/2026 00:46:21 ET by LAR | Cash Trade: $-10.20
+New entry request:
+- Dropped 11/21/2026 19:48:01 ET by SEA | Josh Metellus MIN S: $2.10 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 23, 2026
 
 2. Items in Contract Admin to be Entered into MFL
 None outstanding.
