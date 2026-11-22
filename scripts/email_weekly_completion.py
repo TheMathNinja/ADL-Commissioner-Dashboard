@@ -82,16 +82,26 @@ def get_json(url, payload=None, method=None):
         raise
 
 
+def contents_bytes(repo, item):
+    # Contents omits the inline payload for large files; pin reads to the same SHA
+    # used by the optimistic state write so concurrent updates cannot be lost.
+    if item.get('encoding') == 'none':
+        item = get_json(f'https://api.github.com/repos/{repo}/git/blobs/{item["sha"]}')
+        if not item or item.get('encoding') != 'base64':
+            raise ValueError('GitHub did not return the requested file blob')
+    return base64.b64decode(''.join(item['content'].split()), validate=True)
+
+
 @lru_cache(maxsize=None)
 def document(repo, path):
     item = get_json(f'https://api.github.com/repos/{repo}/contents/{path}?ref=main')
-    return json.loads(base64.b64decode(item['content'])) if item else None
+    return json.loads(contents_bytes(repo, item)) if item is not None else None
 
 
 @lru_cache(maxsize=None)
 def text_document(repo, path):
     item = get_json(f'https://api.github.com/repos/{repo}/contents/{path}?ref=main')
-    return base64.b64decode(item['content']).decode('utf-8') if item else None
+    return contents_bytes(repo, item).decode('utf-8') if item is not None else None
 
 
 def csv_document(repo, path):
@@ -733,17 +743,17 @@ def save_state(state):
             # A failed PUT response may hide an accepted write. Re-read before
             # retrying, and preserve records committed by another writer.
             current = get_json(url + '?ref=main')
-            remote = json.loads(base64.b64decode(current['content'])) if current else {}
+            remote = json.loads(contents_bytes(repo, current)) if current is not None else {}
             merged = dict(remote)
             for key, value in state.items():
                 merged[key] = ({**remote.get(key, {}), **value}
                                if isinstance(value, dict) and isinstance(remote.get(key, {}), dict)
                                else value)
-            if current and remote == merged:
+            if current and remote == merged and current.get('encoding') != 'none':
                 state.update(merged)
                 return
             payload = dict(message='Record league email reporting state',
-                           content=base64.b64encode((json.dumps(merged, indent=2)+'\n').encode()).decode(),
+                           content=base64.b64encode((json.dumps(merged, separators=(',', ':'))+'\n').encode()).decode(),
                            branch='main')
             if current:
                 payload['sha'] = current['sha']

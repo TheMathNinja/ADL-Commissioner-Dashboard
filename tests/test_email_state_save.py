@@ -66,6 +66,34 @@ class StateSaveTests(unittest.TestCase):
         self.assertEqual(state['sent'], {'other': 'kept', 'one': 'new'})
         self.assertEqual(state['checked'], {'a': 'done', 'b': 'done'})
 
+    def test_large_state_reads_the_pinned_blob(self):
+        state = {'sent': {'old': 'kept'}}
+        metadata = {'sha': 'pinned', 'encoding': 'none', 'content': ''}
+        blob = {**item(state), 'encoding': 'base64'}
+        with patch.object(mail, 'get_json', side_effect=[metadata, blob]) as api:
+            self.assertEqual(mail.document.__wrapped__('owner/repo', 'state.json'), state)
+        self.assertTrue(api.call_args.args[0].endswith('/git/blobs/pinned'))
+
+    def test_large_state_compacts_without_resetting_delivery_history(self):
+        remote = {'sent': {'old': 'delivered'}, 'checked': {'a': 'done'}}
+        state = {'healthyAt': 'now'}
+        metadata = {'sha': 'pinned', 'encoding': 'none', 'content': ''}
+        blob = {**item(remote), 'encoding': 'base64'}
+        with patch.object(mail, 'get_json', side_effect=[metadata, blob, {}]) as api:
+            mail.save_state(state)
+        payload = api.call_args.args[1]
+        data = base64.b64decode(payload['content'])
+        self.assertEqual(payload['sha'], 'pinned')
+        self.assertEqual(json.loads(data), {**remote, 'healthyAt': 'now'})
+        self.assertNotIn(b'\n ', data)
+
+    def test_unavailable_large_state_never_causes_an_empty_state_write(self):
+        metadata = {'sha': 'pinned', 'encoding': 'none', 'content': ''}
+        with patch.object(mail, 'get_json', side_effect=[metadata, None]) as api:
+            with self.assertRaises(ValueError):
+                mail.save_state({'healthyAt': 'now'})
+        self.assertEqual(api.call_count, 2)
+
     @patch.object(mail.time, 'sleep')
     def test_persistent_outage_fails(self, sleep):
         with patch.object(mail, 'get_json', side_effect=HTTPError('url', 503, '', {}, None)) as api:
