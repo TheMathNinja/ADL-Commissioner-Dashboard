@@ -199,6 +199,14 @@ def published(league, receipt):
     publishers = [j for j in jobs if j.get('name') == 'refresh']
     if len(publishers) != 1 or publishers[0]['status'] != 'completed' or publishers[0]['conclusion'] != 'success':
         return None
+    schedule_due = receipt.get('process') == 'corrections' and 12 <= receipt['week'] < 17
+    if schedule_due:
+        schedule_steps = [
+            step for step in publishers[0].get('steps', [])
+            if step.get('name') == 'Enter and verify next postseason schedule in MFL'
+        ]
+        if len(schedule_steps) != 1 or schedule_steps[0].get('conclusion') != 'success':
+            return None
     site = f'https://themathninja.github.io/{repo.split("/")[1]}/'
     marker = get_json(site + 'weekly-refresh-status.json?run=' + run_id)
     if not marker or str(marker.get('run_id')) != run_id:
@@ -684,6 +692,9 @@ def message(process, checked):
             if r.get('player_scores_verified_at'):
                 lines.append('Same player-score revision verified after publication: ' + local_time(r['player_scores_verified_at']))
             lines.append('Due Bonus Games entries in MFL verified.')
+            if 12 <= r['week'] < 17:
+                lines.append(f'Week {r["week"] + 1} matchups confirmed in MFL, including home and away teams.')
+
         lines += ['Payouts winners and balances verified; team-logo refresh queued separately.',
                   'Live site verified: ' + local_time(result['verified']),
                   'GitHub run: ' + result['url'],
