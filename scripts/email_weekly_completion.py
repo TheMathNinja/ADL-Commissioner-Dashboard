@@ -24,6 +24,7 @@ from weekly_email_support import ET, mfl, priced_rank, snapshot
 from gotw_blurbs import fetch_context, history_games, make_blurb
 from smtp_delivery import send_message_with_retries
 from email_delivery_state import deliver_once
+from weekly_refresh_reliability import inspect_refresh, fetch_job_log
 
 LEAGUES = {
     'ADL': ('TheMathNinja/ADL-GM-Dashboard', '60206', 'refresh_extension_calculator.yml'),
@@ -67,7 +68,7 @@ FRANCHISE_ABBREVIATIONS = {
 }
 
 
-def get_json(url, payload=None, method=None):
+def get_json(url, payload=None, method=None, *, timeout=45):
     headers = {'User-Agent': 'Analytics-Fantasy-Labs-completion-report', 'Accept': 'application/json'}
     if url.startswith('https://api.github.com/'):
         headers['Authorization'] = 'Bearer ' + os.environ['GH_TOKEN']
@@ -76,7 +77,7 @@ def get_json(url, payload=None, method=None):
         headers['Content-Type'] = 'application/json'
     try:
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
-        with urllib.request.urlopen(req, timeout=45) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
         if exc.code == 404 and (method is None or method == 'GET') and payload is None:
@@ -109,6 +110,27 @@ def text_document(repo, path):
 def csv_document(repo, path):
     value = text_document(repo, path)
     return list(csv.DictReader(io.StringIO(value))) if value else []
+
+
+def reliability_notes(league, receipt, run, jobs):
+    repo, _, workflow = LEAGUES[league]
+    base = f'https://api.github.com/repos/{repo}'
+
+    def read_at_ref(path, ref):
+        item = get_json(f'{base}/contents/{path}?ref={ref}', timeout=15)
+        if item is None:
+            raise ValueError('Expected run-matched evidence is missing')
+        return contents_bytes(repo, item).decode('utf-8-sig')
+
+    season, week = receipt['season'], min(receipt['week'], 12)
+    return inspect_refresh(
+        league, receipt, run, jobs, workflow,
+        api=lambda path: get_json(f'{base}/{path}', timeout=15),
+        read_receipt=lambda ref: json.loads(read_at_ref(f'data/refresh_receipts/{receipt["process"]}.json', ref)),
+        read_components=lambda ref: list(csv.DictReader(io.StringIO(read_at_ref('data/component_publish_status.csv', ref)))),
+        read_certificate=lambda ref: json.loads(read_at_ref(f'data/clinching/{season}/week-{week:02}.json', ref)),
+        read_log=lambda job_id: fetch_job_log(repo, job_id),
+    )
 
 
 def orchestration_json(url, payload=None, method=None):
@@ -234,6 +256,7 @@ def published(league, receipt):
     return dict(league=league, receipt=receipt, started=started, finished=finished,
                 created=run['created_at'], url=run['html_url'], site=site,
                 verified=datetime.now(timezone.utc).isoformat(),
+                reliability=reliability_notes(league, receipt, run, jobs),
                 impact=document(repo, 'data/correction_impact.json'))
 
 
@@ -666,9 +689,15 @@ def message(process, checked):
             scope.append('Extension Calculator data, where applicable')
         intro = (f'The Week {receipt["week"]} {league} Thursday correction publication '
                  'completed successfully and the live dashboard was verified.')
+    issues = [issue for result in checked for issue in result.get('reliability', [])]
+    if issues:
+        label += ' with reliability notices'
+        intro = f'The Week {receipt["week"]} {league} publication is live. Review these reliability notices.'
     subject = f'{league} {receipt["season"]} Week {receipt["week"]}: {label}'
-    lines = [subject, '', intro, '',
-             'Reconciled and verified:',
+    lines = [subject, '', intro, '']
+    if issues:
+        lines += ['Reliability notices', *[f'- {issue}' for issue in issues], '']
+    lines += ['Weekly publication scope:' if issues else 'Reconciled and verified:',
              *[f'- {item}' for item in scope], '',
              'All times are Eastern.', '']
     for result in checked:
