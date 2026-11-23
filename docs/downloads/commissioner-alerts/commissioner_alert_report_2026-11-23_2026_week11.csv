@@ -1,0 +1,5 @@
+season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,rule,observed,details,commissioner_only,lineup_issue_keys,consecutive_days
+2026,11,2026-11-23 10:35:19 UTC,Illegal Lineup Warning,warning,AFC,CLE,Cleveland Browns,No inactive players allowed in starting lineup,"Greenlaw, Dre SFO LB is inactive (O)",,,"[""player:14247""]",
+2026,11,2026-11-23 10:35:19 UTC,Illegal Lineup Warning,warning,AFC,KCC,Kansas City Chiefs,Starting lineups require minimum 1 PN,0 PN,Must start 1 additional PN,,"[""position:PN""]",
+2026,11,2026-11-23 10:35:19 UTC,Illegal Lineup Warning,warning,AFC,LVR,Las Vegas Raiders,No inactive players allowed in starting lineup,"Rodgers, Isaiah MIN CB is inactive (O)",,,"[""player:14997""]",
+2026,11,2026-11-23 10:35:19 UTC,Illegal Lineup Warning,warning,NFC,WAS,Washington Commanders,"Starting lineups require 7 offensive starters, including minimum 1 QB","6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,,"[""position:QB""]",
