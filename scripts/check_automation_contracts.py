@@ -5,6 +5,7 @@ import argparse
 import ast
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -31,6 +32,34 @@ def workflow_inputs(path: Path) -> set[str]:
             elif re.match(r"^    \S", line):
                 in_inputs = False
     return found
+
+
+def payout_publication_errors(adl: Path, fafl: Path) -> list[str]:
+    """Require the shared payout builder and a native publication in both leagues."""
+    errors = []
+    builder = "scripts/build_payouts.py"
+    if not all((root / builder).is_file() for root in (adl, fafl)):
+        return ["Both GM dashboards must include the native payout builder"]
+    if (adl / builder).read_bytes() != (fafl / builder).read_bytes():
+        errors.append("ADL and FAFL must use the same native payout calculations")
+    for league, root, workflow in (
+        ("ADL", adl, "refresh_extension_calculator.yml"),
+        ("FAFL", fafl, "refresh.yml"),
+    ):
+        source = (root / ".github/workflows" / workflow).read_text(encoding="utf-8")
+        if f"{builder} --league {league}" not in source or "scripts/sync_payouts.py" in source:
+            errors.append(f"{league} official refresh must build payouts without writing to Google Sheets")
+        for path in ("config/payouts.json", "docs/payouts/index.html", "docs/payouts/payouts-data.json",
+                     "tests/test_native_payouts.py"):
+            if not (root / path).is_file():
+                errors.append(f"{league} is missing {path}")
+        result = subprocess.run(
+            [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_native_payouts.py"],
+            cwd=root, capture_output=True, text=True,
+        )
+        if result.returncode:
+            errors.append(f"{league} payout contract tests failed:\n{result.stderr}")
+    return errors
 
 
 def cloud_jobs(path: Path) -> list[tuple[str, str, set[str]]]:
@@ -335,6 +364,7 @@ def main() -> int:
             errors.append('MFL potential warning producer and owner-email consumer must match the reviewed contract')
     fafl = roots.get("FAFL-GM-Dashboard")
     if adl and fafl:
+        errors.extend(payout_publication_errors(adl, fafl))
         corrections=(adl/'scripts/score_corrections.py').read_text(encoding='utf-8')
         if corrections != (fafl/'scripts/score_corrections.py').read_text(encoding='utf-8'):
             errors.append('ADL/FAFL Thursday correction readiness policies must match, not just their signatures')
