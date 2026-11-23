@@ -17,11 +17,12 @@ class NoRedirect(HTTPRedirectHandler):
 def send_for_pending(pending, now, token, transport=None):
     if transport is None:
         transport = build_opener(NoRedirect).open
+    claimed = set()
     for receipt, (league, item) in pending.items():
         if not item.get('pushUntil') or item.get('severity') != 'confirmed':
             continue
         try:
-            expires, observed = stamp(item['pushUntil']), stamp(item['openedAt'])
+            expires, observed = stamp(item['pushUntil']), stamp(item.get('pushObservedAt', item['openedAt']))
             if not (timedelta(0) < expires - now <= timedelta(minutes=90)
                     and timedelta(0) <= now - observed <= timedelta(minutes=15)):
                 continue
@@ -36,7 +37,10 @@ def send_for_pending(pending, now, token, transport=None):
             })
             with transport(request, timeout=8) as response:
                 result = json.load(response)
+            if result.get('status') in {'accepted', 'already-claimed'}:
+                claimed.add(receipt)
             if result.get('status') == 'unavailable':
                 print('Owner phone push unavailable; email delivery continues.')
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
             print('Owner phone push unavailable; email delivery continues.')
+    return claimed

@@ -1,4 +1,6 @@
 import copy
+from base64 import b64encode
+from io import BytesIO
 import json
 import os
 import sys
@@ -12,6 +14,7 @@ import guardian_basic as basic
 import guardian_health_monitor as health
 from guardian_incidents import report_missing_checks
 from guardian_incidents import owned_basic_failure
+from guardian_phone import send_for_pending
 from actions_budget import configured_projection
 
 
@@ -57,6 +60,72 @@ class Basic(unittest.TestCase):
         _, issues = basic.inspect(self.league, self.now, self.read)
         self.assertIn('PN: requires 1-1; currently 0', issues['lineup-rules'].detail)
         self.assertEqual(len(issues), 1)
+
+    def test_both_leagues_push_confirmed_findings_only_in_the_action_window(self):
+        for case in ('OUT', 'INACTIVE', 'IR', 'SUSP', 'SUSPENDED', 'BYE', 'TAXI', 'EMPTY', 'Q', 'D'):
+            with self.subTest(case=case):
+                self.setUp()
+                morning = self.now.replace(hour=11, minute=5)
+                kickoff = self.now + timedelta(hours=1)
+                ledger = dict(self.ledger, generatedAt=morning.isoformat())
+                games = self.fixtures['nflSchedule']['nflSchedule']
+                injuries = self.fixtures['injuries']['injuries']
+                if case == 'BYE':
+                    self.fixtures['nflByeWeeks']['nflByeWeeks']['team'] = {'id': 'LV'}
+                    games['matchup']['team'] = {'id': 'BUF'}
+                elif case == 'EMPTY':
+                    self.fixtures['weeklyResults']['weeklyResults']['matchup']['franchise']['starters'] = ''
+                elif case == 'TAXI':
+                    self.fixtures['rosters']['rosters']['franchise']['player'][0]['status'] = 'TAXI_SQUAD'
+                else:
+                    injuries['injury'] = {'id': '1', 'status': case}
+                coverage = {'schedules': {league: {'week': 12, 'kickoffs': [kickoff.isoformat()]}
+                                          for league in ('ADL', 'FAFL')}}
+                state, warning, send = {'sent': {}}, {}, Mock()
+                transport = Mock(side_effect=lambda *a, **kw: BytesIO(b'{"status":"accepted"}'))
+                phone = lambda pending, now: send_for_pending(pending, now, 'fake', transport)
+                deliver = lambda state, key, callback, save: callback()
+
+                def api(repo, path):
+                    doc = warning if basic.WARNINGS in path else coverage if health.STATE in path else ledger
+                    return {'content': b64encode(json.dumps(doc).encode()).decode()}
+
+                for now in (morning, kickoff - timedelta(minutes=91)):
+                    ledger, warning = basic.check(ledger, warning, 'monitor', now, self.read)
+                    basic.report(api, now, state, False, deliver, Mock(), send, phone=phone)
+                    transport.assert_not_called()
+                self.assertEqual(send.call_count, 1)  # Morning email does not use the phone receipt.
+
+                now = kickoff - timedelta(minutes=90)
+                expected = {'ADL', 'FAFL'} if case not in ('Q', 'D') else set()
+                for run_time in (now + timedelta(minutes=15), kickoff):
+                    basic.report(api, run_time, state, False, deliver, Mock(), send, phone=phone)
+                    transport.assert_not_called()  # Stale receipt and elapsed deadline.
+                for schedule in coverage['schedules'].values():
+                    schedule['kickoffs'] = [(kickoff + timedelta(minutes=5)).isoformat()]
+                basic.report(api, now, state, False, deliver, Mock(), send, phone=phone)
+                transport.assert_not_called()  # An unverified deadline cannot authorize a push.
+                for schedule in coverage['schedules'].values():
+                    schedule['kickoffs'] = [kickoff.isoformat()]
+                basic.report(api, now, state, False, deliver, Mock(), send, phone=phone)
+                self.assertEqual(transport.call_count, len(expected))
+                payloads = [json.loads(call.args[0].data) for call in transport.call_args_list]
+                self.assertEqual({p['league'] for p in payloads}, expected)
+                self.assertEqual(set(state.get('guardian_basic_phone_claims', {})), {p['id'] for p in payloads})
+                self.assertTrue(all(p['observedAt'] == (kickoff - timedelta(minutes=91)).isoformat()
+                                    and p['expiresAt'] == kickoff.isoformat() for p in payloads))
+                basic.report(api, now, state, False, deliver, Mock(), send, phone=phone)
+                self.assertEqual(transport.call_count, len(expected))
+                self.assertEqual(send.call_count, 1)
+
+    def test_lineup_overage_already_locked_is_not_phone_actionable(self):
+        rules = self.fixtures['league']['league']['starters']
+        rules.update(count='0', iop_starters='0', position={'name': 'QB', 'limit': '0'})
+        schedule = self.fixtures['nflSchedule']['nflSchedule']
+        schedule['matchup'] = [schedule['matchup'], {'team': {'id': 'BUF'},
+            'kickoff': str(int((self.now + timedelta(hours=2)).timestamp()))}]
+        _, issues = basic.inspect(self.league, self.now + timedelta(hours=1), self.read)
+        self.assertIsNone(issues['lineup-rules'].push_until)
 
     def test_locked_starter_does_not_get_impossible_replacement_instruction(self):
         self.fixtures['injuries']['injuries']['injury'] = {'id': '1', 'status': 'O'}

@@ -80,17 +80,20 @@ def inspect(league, now, read=feed):
         position = players[identity]['position']
         counts[position] = counts.get(position, 0) + 1
     issues = {}
-    def rule(key, actual, minimum, maximum):
+    violated_bounds = {}
+    def rule(key, actual, minimum, maximum, positions=None):
         if not 0 <= minimum <= maximum <= 100:
             raise ValueError('Unsupported starter bounds')
         if not minimum <= actual <= maximum:
             issues['rule:' + key] = f'{key}: requires {minimum}-{maximum}; currently {actual}. Adjust the lineup to meet this limit.'
-    for key, actual, field in (
-        ('total starters', len(ids), 'count'),
-        ('offensive starters', sum(counts.get(p, 0) for p in ('QB', 'RB', 'WR', 'TE')), 'iop_starters'),
-        ('defensive starters', sum(counts.get(p, 0) for p in ('DT', 'DE', 'LB', 'CB', 'S')), 'idp_starters')):
+            violated_bounds[key] = (maximum, positions)
+    for key, field, positions in (
+        ('total starters', 'count', None),
+        ('offensive starters', 'iop_starters', ('QB', 'RB', 'WR', 'TE')),
+        ('defensive starters', 'idp_starters', ('DT', 'DE', 'LB', 'CB', 'S'))):
         required = int(rules[field])
-        rule(key, actual, required, required)
+        actual = len(ids) if positions is None else sum(counts.get(p, 0) for p in positions)
+        rule(key, actual, required, required, positions)
     allowed = set()
     for position in rows(rules['position']):
         name, limits = position['name'], str(position['limit'])
@@ -98,7 +101,7 @@ def inspect(league, now, read=feed):
             raise ValueError('Unsupported position rule')
         allowed.add(name)
         low, _, high = limits.partition('-')
-        rule(name, counts.get(name, 0), int(low), int(high or low))
+        rule(name, counts.get(name, 0), int(low), int(high or low), (name,))
     if not allowed or set(counts) - allowed:
         raise ValueError('Unknown lineup position')
     injury_feed = read(season, 'injuries', W=week)['injuries']
@@ -115,6 +118,8 @@ def inspect(league, now, read=feed):
                 for g in games for t in rows(g['team'])}
     if not kickoffs:
         raise ValueError('Missing kickoff evidence')
+    next_kickoff = min((time for time in kickoffs.values() if time > now), default=None)
+    locked_positions = []
     for identity in ids:
         player = players[identity]
         team_id, status = mfl_team(player['team'], strict=True), injuries.get(identity, '')
@@ -122,21 +127,25 @@ def inspect(league, now, read=feed):
             raise ValueError('Starter has no verified game or bye')
         # Already locked starters cannot be replaced; do not suggest an impossible move.
         if team_id in kickoffs and kickoffs[team_id] <= now:
+            locked_positions.append(player['position'])
             continue
         confirmed_out = status in {'O', 'OUT', 'INACTIVE'}
-        unavailable = (team_id in byes or confirmed_out or status in {'I', 'H', 'HOLDOUT', 'S', 'SUSPENDED', 'SUSPENSION'}
+        unavailable = (team_id in byes or confirmed_out or status in {'I', 'H', 'HOLDOUT', 'S', 'SUSP', 'SUSPENDED', 'SUSPENSION'}
                        or status.startswith('IR') or 'PUP' in status or 'INJURED' in status)
         roster_status = rostered[identity]['status'] if identity in rostered else 'NOT_ON_ROSTER'
         if unavailable or roster_status != 'ROSTER':
             reason = 'BYE' if team_id in byes else status if unavailable else roster_status
+            deadline = next_kickoff if team_id in byes else kickoffs[team_id]
+            push_until = deadline.isoformat() if deadline else None
             issues['starter:' + identity] = Finding(
                 f'Remove {player["name"]} ({player["position"]}; {reason}) from the starting lineup. '
                 'Select an eligible replacement in private CHI Tools, then submit the revised lineup before the replacement locks.',
-                push_until=kickoffs[team_id].isoformat() if confirmed_out and team_id in kickoffs and team_id not in byes else None)
+                push_until=push_until)
             if roster_status == 'TAXI_SQUAD' and not unavailable:
                 issues['starter:' + identity] = Finding(
                     f'Move {player["name"]} ({player["position"]}) from Taxi to Active before starting him, '
-                    'or replace him with an eligible active player selected in private CHI Tools. Submit the revised lineup before kickoff.')
+                    'or replace him with an eligible active player selected in private CHI Tools. Submit the revised lineup before kickoff.',
+                    push_until=push_until)
         elif status in {'Q', 'QUESTIONABLE', 'D', 'DOUBTFUL'}:
             issues['starter:' + identity] = Finding(
                 f'{player["name"]} ({player["position"]}) is {status}. '
@@ -144,7 +153,10 @@ def inspect(league, now, read=feed):
                 'advisory')
     rule_findings = [issues.pop(k) for k in list(issues) if k.startswith('rule:')]
     if rule_findings:
-        issues['lineup-rules'] = Finding('\n'.join(rule_findings))
+        can_address_rule = any(sum(positions is None or p in positions for p in locked_positions) <= maximum
+                               for maximum, positions in violated_bounds.values())
+        issues['lineup-rules'] = Finding('\n'.join(rule_findings),
+            push_until=next_kickoff.isoformat() if next_kickoff and can_address_rule else None)
     return week, issues
 
 
@@ -225,6 +237,19 @@ def report(api, now, state, dry, deliver, save, send, phone=None):
     uncertain = False
     changed = False
     health = None
+    phone_pending = {}
+    phone_claims = state.get('guardian_basic_phone_claims', {})
+    fresh_checks = {}
+
+    def latest_check(league, week):
+        nonlocal health
+        if health is None:
+            health = decode(api(REPO, 'contents/' + HEALTH + '?ref=main'))
+        if (league, week) not in fresh_checks:
+            fresh_checks[league, week] = max((stamp(r['checkedAt']) for r in health['checks']
+                if r['league'] == league and r['week'] == week
+                and timedelta(0) <= now - stamp(r['checkedAt']) <= timedelta(minutes=15)), default=None)
+        return fresh_checks[league, week]
     # Preserve the exact membership across a crash after SMTP accepts a digest.
     for group, members in groups.items():
         receipt = receipts.get(group, {})
@@ -243,6 +268,17 @@ def report(api, now, state, dry, deliver, save, send, phone=None):
         if item['status'] != 'open' or item.get('currentSeverity') == 'advisory':
             continue
         receipt = 'guardian-basic:' + key + ':' + item['openedAt']
+        schedule = coverage.get('schedules', {}).get(item['league'], {})
+        # An early email must not consume a later, independently timed phone alert.
+        if (phone is not None and not dry and not item.get('legacyDelivery')
+                and item.get('severity') == 'confirmed' and schedule.get('week') == item['week']
+                and item.get('pushUntil') in schedule['kickoffs']
+                and timedelta(0) < stamp(item['pushUntil']) - now <= timedelta(minutes=90)
+                and hashlib.sha256(receipt.encode()).hexdigest() not in phone_claims):
+            checked_at = latest_check(item['league'], item['week'])
+            if checked_at and checked_at >= stamp(item['openedAt']):
+                league = next(r for r in health['leagues'] if r['key'] == item['league'])
+                phone_pending[receipt] = (league, dict(item, pushObservedAt=checked_at.isoformat()))
         if receipt in state['sent'] or receipt in held:
             continue
         previous = receipts.get(receipt, {})
@@ -269,7 +305,6 @@ def report(api, now, state, dry, deliver, save, send, phone=None):
                     sent_at=legacy['sentAt'], migrated=True, legacy_delivery=legacy)
                 save(state)
             continue
-        schedule = coverage.get('schedules', {}).get(item['league'], {})
         if schedule.get('week') != item['week']:
             continue
         kickoffs = [stamp(k) for k in schedule['kickoffs']]
@@ -278,17 +313,21 @@ def report(api, now, state, dry, deliver, save, send, phone=None):
         if not morning and not any(timedelta(0) < kickoff - now <= timedelta(minutes=90) for kickoff in kickoffs):
             continue  # No off-hours mail flood on handoff or routine daily reads.
         # Do not email a stale warning when no current read could confirm it.
-        if health is None:
-            health = decode(api(REPO, 'contents/' + HEALTH + '?ref=main'))
-        if not any(r['league'] == item['league'] and r['week'] == item['week']
-                   and timedelta(0) <= now - stamp(r['checkedAt']) <= timedelta(minutes=15) for r in health['checks']):
+        if not latest_check(item['league'], item['week']):
             continue
         league = next(r for r in health['leagues'] if r['key'] == item['league'])
         pending[receipt] = (league, item)
 
+    if phone_pending:
+        claimed = phone(phone_pending, now)
+        if claimed:
+            cutoff = now - timedelta(days=35)
+            state['guardian_basic_phone_claims'] = {
+                receipt: at for receipt, at in phone_claims.items() if stamp(at) >= cutoff}
+            state['guardian_basic_phone_claims'].update(
+                (hashlib.sha256(receipt.encode()).hexdigest(), now.isoformat()) for receipt in claimed)
+            save(state)
     if pending and not dry:
-        if phone is not None:
-            phone(pending, now)
         sections = {}
         for league, item in pending.values():
             sections.setdefault((league['key'], item['week'], submit_link(league, item['week'], now)), []).append(item['detail'])
