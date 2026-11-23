@@ -858,6 +858,7 @@ AFC,MIA,Miami Dolphins,15255,"Gainwell, Kenneth TBB RB","Gainwell, Kenneth",TBB,
 AFC,MIA,Miami Dolphins,16279,"Moss, Riley DEN CB","Moss, Riley",DEN,CB,Active,,2.2,1,266.62,2026 UFA,,moss
 AFC,MIA,Miami Dolphins,17038,"McCord, Kyle MIA QB","McCord, Kyle",MIA,QB,Active,,1.1,1,266.62,2026 UFA,,mccord
 AFC,MIA,Miami Dolphins,17608,"Thomas, Jakobe MIN S","Thomas, Jakobe",MIN,S,Active,R,1.1,1,266.62,2026 UFA,,thomas
+AFC,MIA,Miami Dolphins,17386,"Williams, Elijah MIN DT","Williams, Elijah",MIN,DT,Active,,1.1,1,266.62,2026 UFA,,williams
 AFC,MIA,Miami Dolphins,17585,"Miller, Christen NOS DT","Miller, Christen",NOS,DT,INJURED_RESERVE,IR,1.05,4,266.62,2026 4.13,,miller
 AFC,MIA,Miami Dolphins,15904,"Bland, DaRon DAL CB","Bland, DaRon",DAL,CB,INJURED_RESERVE,IR,5.88,2,266.62,2025 SRFA,,bland
 AFC,MIA,Miami Dolphins,14893,"Baun, Zack PHI LB","Baun, Zack",PHI,LB,INJURED_RESERVE,IR,6.39,3,266.62,2026 UFA,,baun
@@ -1002,6 +1003,7 @@ AFC,BAL,Baltimore Ravens,16622,"Pearsall, Ricky SFO WR","Pearsall, Ricky",SFO,WR
 AFC,BAL,Baltimore Ravens,17107,"Ferguson, Terrance LAR TE","Ferguson, Terrance",LAR,TE,Active,IR-R,1.25,3,262.58,2025 3.15,,ferguson
 AFC,BAL,Baltimore Ravens,15864,"Wright, Alex CLE DE","Wright, Alex",CLE,DE,Active,,3.17,2,262.58,2025 iEXT,,wright
 AFC,BAL,Baltimore Ravens,15852,"Gordon, Kyler CHI CB","Gordon, Kyler",CHI,CB,Active,Out,1.1,1,262.58,2026 UFA,,gordon
+AFC,BAL,Baltimore Ravens,13742,"Hill, B.J. CIN DT","Hill, B.J.",CIN,DT,Active,,1.1,1,262.58,2026 UFA,,hill
 AFC,BAL,Baltimore Ravens,14840,"Aiyuk, Brandon SFO WR","Aiyuk, Brandon",SFO,WR,Taxi,Holdout,2.38,2,262.58,2026 B/R,,aiyuk
 AFC,CIN,Cincinnati Bengals,15365,"Moehrig, Trevon CAR S","Moehrig, Trevon",CAR,S,Active,,6.92,1,266.62,2024 iEXT,,moehrig
 AFC,CIN,Cincinnati Bengals,16276,"Young, Byron LAR DE","Young, Byron",LAR,DE,Active,,5.81,1,266.62,2023 3.12^,,young
@@ -1441,6 +1443,8 @@ AFC,KCC,Kansas City Chiefs,17594,"Clark, Bud SEA S","Clark, Bud",SEA,S,Active,IR
 AFC,KCC,Kansas City Chiefs,17068,"Harvey, RJ DEN RB","Harvey, RJ",DEN,RB,Active,IR,2.56,3,254.86,2025 1.16,,harvey
 AFC,KCC,Kansas City Chiefs,16727,"Hicks, Jaden KCC S","Hicks, Jaden",KCC,S,Active,,1.1,1,254.86,2026 UFA,,hicks
 AFC,KCC,Kansas City Chiefs,17572,"Terrell, Avieon ATL CB","Terrell, Avieon",ATL,CB,Active,R,1.1,1,254.86,2026 UFA,,terrell
+AFC,KCC,Kansas City Chiefs,15668,"Waitman, Corliss SFO PN","Waitman, Corliss",SFO,PN,Active,,1.1,1,254.86,2026 UFA,,waitman
+AFC,KCC,Kansas City Chiefs,16887,"Rehkow, Ryan CIN PN","Rehkow, Ryan",CIN,PN,Active,,1.1,1,254.86,2026 UFA,,rehkow
 AFC,LVR,Las Vegas Raiders,12611,"Goff, Jared DET QB","Goff, Jared",DET,QB,Active,,26.98,2,251.85,2024 oEXT,,goff
 AFC,LVR,Las Vegas Raiders,14797,"Swift, D'Andre CHI RB","Swift, D'Andre",CHI,RB,Active,,6.56,1,251.85,2024 oEXT,,swift
 AFC,LVR,Las Vegas Raiders,16161,"Robinson, Bijan ATL RB","Robinson, Bijan",ATL,RB,Active,,10.93,1,251.85,2023 1.01,,robinson
