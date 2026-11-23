@@ -66,6 +66,10 @@ class AnnualDepositTests(unittest.TestCase):
         self.assertIn('Monday night’s', html)
         self.assertNotIn('>GM<', html)
         self.assertNotIn('Winnings as of', html)
+        reminder, draft = html.split('<main>', 1)
+        self.assertIn('href="https://www.leaguesafe.com/dashboard"', reminder)
+        self.assertIn('Renew League', reminder)
+        self.assertNotIn('leaguesafe.com', draft)
 
     def test_2026_scheduled_run_skips_before_any_api_or_email(self):
         class Frozen(datetime):
