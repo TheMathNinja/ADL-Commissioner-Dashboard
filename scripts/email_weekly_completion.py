@@ -733,7 +733,7 @@ def message(process, checked):
     return subject, '\n'.join(lines)
 
 
-def send_email(subject, body, key, to=None, cc=None):
+def send_email(subject, body, key, to=None, cc=None, *, html=False):
     to = to or os.environ['WEEKLY_REPORT_EMAIL_TO']
     addresses = getaddresses([to])
     recipients = [address for _, address in addresses if address]
@@ -750,7 +750,7 @@ def send_email(subject, body, key, to=None, cc=None):
         recipients = list(dict.fromkeys(recipients + copied))
     msg['Date'] = format_datetime(datetime.now(timezone.utc))
     msg['Message-ID'] = '<' + hashlib.sha256(key.encode()).hexdigest() + '@analyticsfantasylabs.github.io>'
-    msg.set_content(body)
+    msg.set_content(body, subtype='html' if html else 'plain')
     server = os.environ['ADL_SMTP_SERVER']
     parsed = urllib.parse.urlsplit(server if '://' in server else 'smtp://' + server)
     secure = parsed.scheme == 'smtps' or parsed.port == 465
@@ -777,9 +777,10 @@ def send_email(subject, body, key, to=None, cc=None):
         send_message_with_retries(smtp, msg, parseaddr(sender)[1], recipients)
 
 
-def save_state(state):
+def save_state(state, path=None):
+    path = path or STATE_PATH
     repo = os.environ['GITHUB_REPOSITORY']
-    url = f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
+    url = f'https://api.github.com/repos/{repo}/contents/{path}'
     for attempt in range(4):
         try:
             # A failed PUT response may hide an accepted write. Re-read before
@@ -792,7 +793,7 @@ def save_state(state):
                                if isinstance(value, dict) and isinstance(remote.get(key, {}), dict)
                                else value)
             encoded = (json.dumps(merged, separators=(',', ':'))+'\n').encode()
-            if (STATE_PATH == FAILURE_REPORT_STATE_PATH and len(encoded) >= FAILURE_STATE_COMPACTION_BYTES
+            if (path == FAILURE_REPORT_STATE_PATH and len(encoded) >= FAILURE_STATE_COMPACTION_BYTES
                     and isinstance(merged.get('checked'), dict)):
                 # Routine successes are not incident or delivery evidence.
                 merged['checked'] = {key: result for key, result in merged['checked'].items()
