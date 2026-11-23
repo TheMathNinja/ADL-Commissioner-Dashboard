@@ -693,18 +693,56 @@ def inactive_audit_branch(repo, run, job):
     return job.get('conclusion') == 'skipped' and job['name'] == unused
 
 
+def cancelled_pages_run(run):
+    return (run.get('path') == 'dynamic/pages/pages-build-deployment'
+            and run.get('head_branch') == 'main' and run.get('conclusion') == 'cancelled')
+
+
+def pages_deploy_succeeded(job):
+    return job.get('name') == 'deploy' and job.get('conclusion') == 'success' and any(
+        step.get('name') == 'Deploy to GitHub Pages' and step.get('conclusion') == 'success'
+        for step in job.get('steps', []))
+
+
+def completed_pages_before_cancel(repo, run, job_list):
+    """Use the exact deploy job's receipt, not the workflow wrapper's conclusion."""
+    sha = run.get('head_sha') or ''
+    if (not cancelled_pages_run(run) or run.get('status') != 'completed'
+            or not re.fullmatch('[a-f0-9]{40}', sha)
+            or {job.get('name') for job in job_list} != {'build', 'report-build-status', 'deploy'}
+            or len(job_list) != 3 or any(job.get('conclusion') != 'success' for job in job_list)):
+        return None
+    deploy = next(job for job in job_list if job['name'] == 'deploy')
+    if (not pages_deploy_succeeded(deploy) or not isinstance(run.get('id'), int)
+            or not isinstance(deploy.get('id'), int) or deploy.get('run_id') != run['id']
+            or deploy.get('run_attempt') != run.get('run_attempt', 1)):
+        return None
+    log_url = f'https://github.com/{repo}/actions/runs/{run["id"]}/job/{deploy["id"]}'
+    try:
+        deployments = api(repo, f'deployments?sha={sha}&environment=github-pages&per_page=30')
+        for release in deployments:
+            if (release.get('sha') != sha or release.get('environment') != 'github-pages'
+                    or not isinstance(release.get('id'), int)
+                    or not run['created_at'] <= release.get('created_at', '') <= run['updated_at']):
+                continue
+            for status in api(repo, f'deployments/{release["id"]}/statuses?per_page=30'):
+                at = status.get('created_at', '')
+                if (status.get('state') == 'success' and status.get('environment') == 'github-pages'
+                        and status.get('log_url') == log_url and deploy['started_at'] <= at <= run['updated_at']):
+                    return {'html_url': log_url, 'updated_at': at}
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError):
+        return None  # Missing or ambiguous evidence is never proof of publication.
+    return None
+
+
 def deployed_pages_replacement(repo, run, later, completed):
     """A deployed descendant can supersede a Pages build before it stops."""
-    if (run.get('path') != 'dynamic/pages/pages-build-deployment'
-            or run.get('conclusion') != 'cancelled'
-            or run.get('head_branch') != 'main' or later.get('head_branch') != 'main'
+    if (not cancelled_pages_run(run) or later.get('head_branch') != 'main'
             or later.get('created_at', '') < run.get('created_at', '')
             or not all(re.fullmatch('[a-f0-9]{40}', value or '')
                        for value in (run.get('head_sha'), later.get('head_sha')))):
         return False
-    if not any(job.get('name') == 'deploy' and job.get('conclusion') == 'success' and any(
-            step.get('name') == 'Deploy to GitHub Pages' and step.get('conclusion') == 'success'
-            for step in job.get('steps', [])) for job in completed):
+    if not any(pages_deploy_succeeded(job) for job in completed):
         return False
     try:
         comparison = api(repo, 'compare/' + run['head_sha'] + '...' + later['head_sha'])
@@ -717,6 +755,9 @@ def verified_recovery(repo, run, job_list, history):
     """Suppress historical alerts only when the same production work passed."""
     if run.get('conclusion') not in BAD:
         return None
+    already_deployed = completed_pages_before_cancel(repo, run, job_list)
+    if already_deployed:
+        return already_deployed
     for later in history:
         if run.get('_account_report'):
             later = dict(later, _account_report=True)
@@ -732,8 +773,7 @@ def verified_recovery(repo, run, job_list, history):
             completed = jobs(repo, later)
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
-        cancelled_pages = (run.get('path') == 'dynamic/pages/pages-build-deployment'
-                           and run.get('conclusion') == 'cancelled')
+        cancelled_pages = cancelled_pages_run(run)
         if cancelled_pages:
             if not deployed_pages_replacement(repo, run, later, completed):
                 continue
@@ -762,6 +802,8 @@ def verified_recovery(repo, run, job_list, history):
                 return later
             continue
         if not affected:
+            if cancelled_pages and all(job.get('conclusion') == 'success' for job in job_list):
+                return later  # All original jobs succeeded, and the published descendant is verified.
             continue
         recovered = True
         for old in affected:
@@ -974,6 +1016,14 @@ def main():
                     if repo == GUARDIAN and guardian_operational_run(latest) and not state['sent'][key].get('resolved_at'):
                         sent_run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
                         reconcile_guardian_delivery(repo, sent_run, history, state['sent'][key])
+                    elif (cancelled_pages_run(latest) and attempt == latest.get('run_attempt', 1)
+                          and not state['sent'][key].get('resolved_at')):
+                        try:
+                            published = completed_pages_before_cancel(repo, latest, jobs(repo, latest))
+                        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+                            published = None
+                        if published:
+                            state['sent'][key].update(resolved_at=published['updated_at'], recovery_url=published['html_url'])
                     continue
                 run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
                 if repo == GUARDIAN:

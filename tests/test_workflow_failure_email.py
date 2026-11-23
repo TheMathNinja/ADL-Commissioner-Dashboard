@@ -173,6 +173,55 @@ class FailureReports(unittest.TestCase):
             with patch.object(m, 'api', side_effect=RuntimeError('visibility unavailable')):
                 self.assertIsNone(m.verified_recovery(m.REPOS[1], old, failed, [new]))
 
+    def test_nov23_cancelled_pages_wrapper_did_not_cancel_its_deployment(self):
+        repo = m.REPOS[0]
+        run = dict(self.run, id=45126216920, run_attempt=1, _account_report=True, conclusion='cancelled',
+                   path='dynamic/pages/pages-build-deployment', name='pages build and deployment',
+                   created_at='2026-11-23T06:45:04Z', updated_at='2026-11-23T06:45:48Z',
+                   head_sha='c74d3f0f461469961905dca396510dbb5529b596')
+        log = f'https://github.com/{repo}/actions/runs/45126216920/job/137531223838'
+        jobs = [dict(name='build', conclusion='success'), dict(name='report-build-status', conclusion='success'),
+                dict(name='deploy', conclusion='success', id=137531223838, run_id=run['id'], run_attempt=1,
+                     started_at='2026-11-23T06:45:37Z',
+                     steps=[dict(name='Deploy to GitHub Pages', conclusion='success')])]
+        deployment = dict(id=7992248864, sha=run['head_sha'], created_at='2026-11-23T06:45:33Z',
+                          environment='github-pages')
+        status = dict(created_at=run['updated_at'], state='success', environment='github-pages', log_url=log)
+        inactive = dict(status, state='inactive', created_at='2026-11-23T06:46:51Z')
+        with patch.object(m, 'api', side_effect=[[deployment], [inactive, status]]) as api:
+            self.assertEqual(m.verified_recovery(repo, run, jobs, []), dict(html_url=log, updated_at=run['updated_at']))
+        self.assertIn('sha='+run['head_sha'], api.call_args_list[0].args[1])
+        self.assertIn('/7992248864/statuses', api.call_args_list[1].args[1])
+        for changes in ({'state': 'in_progress'}, {'log_url': log+'0'}, {'environment': 'preview'},
+                        {'created_at': '2026-11-23T06:45:00Z'}, {'created_at': '2026-11-23T06:45:49Z'}):
+            with patch.object(m, 'api', side_effect=[[deployment], [dict(status, **changes)]]):
+                self.assertIsNone(m.verified_recovery(repo, run, jobs, []))
+        with patch.object(m, 'api', side_effect=OSError('API unavailable')):
+            self.assertIsNone(m.verified_recovery(repo, run, jobs, []))
+        for job_changes in ({'run_attempt': 2}, {'conclusion': 'failure'}, {'steps': []}):
+            with patch.object(m, 'api') as api:
+                self.assertIsNone(m.verified_recovery(repo, run, [*jobs[:2], dict(jobs[-1], **job_changes)], []))
+                api.assert_not_called()
+
+    def test_report_silently_reconciles_existing_pages_email(self):
+        repo = m.REPOS[0]
+        run = dict(self.run, id=45126216920, run_attempt=1, _account_report=True, conclusion='cancelled',
+                   path='dynamic/pages/pages-build-deployment', name='pages build and deployment')
+        stamp = '2026-11-23T06:45:48Z'
+        log = f'https://github.com/{repo}/actions/runs/45126216920/job/137531223838'
+        key = f'{repo}:45126216920:1'
+        state = {'sent': {key: {'sent_at': 'prior', 'subject': 'existing delivery'}}, 'checked': {}}
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.COMMISSIONER}), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [repo]), \
+             patch.object(m, 'runs', return_value=[run]), patch.object(m, 'jobs', return_value=[]), \
+             patch.object(m, 'completed_pages_before_cancel', return_value={'updated_at': stamp, 'html_url': log}), \
+             patch.object(m.mail, 'document', return_value=state), patch.object(m, 'save'), \
+             patch.object(m.mail, 'send_email') as send:
+            m.main()
+        send.assert_not_called()
+        self.assertEqual(state['sent'][key], {'sent_at': 'prior', 'subject': 'existing delivery',
+                                              'resolved_at': stamp, 'recovery_url': log})
+
     def test_recovered_inactivity_startup_requires_live_same_day_check(self):
         run = dict(self.run, id=42671504712, path='fafl-inactivity-watch.yml',
                    display_title='FAFL Inactivity Watch', created_at='2026-11-09T18:09:31Z',
