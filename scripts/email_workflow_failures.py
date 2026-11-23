@@ -811,7 +811,11 @@ def main():
             report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
             if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
                 from guardian_basic import report
-                report(api, datetime.now(timezone.utc), state, args.dry_run, mail.deliver_once, save, mail.send_email)
+                from guardian_phone import send_for_pending
+                token = os.environ.get('CHI_SITE_SERVICE_TOKEN', '')
+                phone = (lambda pending, now: send_for_pending(pending, now, token)) if token else None
+                report(api, datetime.now(timezone.utc), state, args.dry_run, mail.deliver_once, save, mail.send_email,
+                       phone=phone)
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             coverage_errors.append('Guardian incident delivery: ' + type(error).__name__)
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':

@@ -23,6 +23,7 @@ FEEDS = {'league', 'rosters', 'weeklyResults', 'players', 'injuries', 'nflSchedu
 class Finding(NamedTuple):
     detail: str
     severity: str = 'confirmed'
+    push_until: str | None = None
 
 
 def submit_link(league, week, now):
@@ -122,14 +123,16 @@ def inspect(league, now, read=feed):
         # Already locked starters cannot be replaced; do not suggest an impossible move.
         if team_id in kickoffs and kickoffs[team_id] <= now:
             continue
-        unavailable = (team_id in byes or status in {'O', 'OUT', 'I', 'H', 'HOLDOUT', 'S', 'SUSPENDED', 'SUSPENSION'}
+        confirmed_out = status in {'O', 'OUT', 'INACTIVE'}
+        unavailable = (team_id in byes or confirmed_out or status in {'I', 'H', 'HOLDOUT', 'S', 'SUSPENDED', 'SUSPENSION'}
                        or status.startswith('IR') or 'PUP' in status or 'INJURED' in status)
         roster_status = rostered[identity]['status'] if identity in rostered else 'NOT_ON_ROSTER'
         if unavailable or roster_status != 'ROSTER':
             reason = 'BYE' if team_id in byes else status if unavailable else roster_status
             issues['starter:' + identity] = Finding(
                 f'Remove {player["name"]} ({player["position"]}; {reason}) from the starting lineup. '
-                'Select an eligible replacement in private CHI Tools, then submit the revised lineup before the replacement locks.')
+                'Select an eligible replacement in private CHI Tools, then submit the revised lineup before the replacement locks.',
+                push_until=kickoffs[team_id].isoformat() if confirmed_out and team_id in kickoffs and team_id not in byes else None)
             if roster_status == 'TAXI_SQUAD' and not unavailable:
                 issues['starter:' + identity] = Finding(
                     f'Move {player["name"]} ({player["position"]}) from Taxi to Active before starting him, '
@@ -174,6 +177,10 @@ def record_warnings(previous, league, week, issues, now):
                 existing['currentSeverity'] = finding.severity
             else:
                 existing.pop('currentSeverity', None)
+        if finding.push_until:
+            incidents[key]['pushUntil'] = finding.push_until
+        else:
+            incidents[key].pop('pushUntil', None)
     return value
 
 
@@ -207,7 +214,7 @@ def run(ledger, mode, now, dry, document):
     return result
 
 
-def report(api, now, state, dry, deliver, save, send):
+def report(api, now, state, dry, deliver, save, send, phone=None):
     from guardian_health_monitor import REPO, STATE
     warning = decode(api(REPO, 'contents/' + WARNINGS + '?ref=main'))
     coverage = decode(api(REPO, 'contents/' + STATE + '?ref=main'))
@@ -280,6 +287,8 @@ def report(api, now, state, dry, deliver, save, send):
         pending[receipt] = (league, item)
 
     if pending and not dry:
+        if phone is not None:
+            phone(pending, now)
         sections = {}
         for league, item in pending.values():
             sections.setdefault((league['key'], item['week'], submit_link(league, item['week'], now)), []).append(item['detail'])
