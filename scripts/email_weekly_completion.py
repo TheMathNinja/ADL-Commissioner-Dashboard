@@ -722,7 +722,7 @@ def message(process, checked):
                 lines.append('Same player-score revision verified after publication: ' + local_time(r['player_scores_verified_at']))
             lines.append('Due Bonus Games entries in MFL verified.')
             if 12 <= r['week'] < 17:
-                lines.append(f'Week {r["week"] + 1} matchups confirmed in MFL, including home and away teams.')
+                lines.append(f'Week {r["week"] + 1} matchups verified in MFL.')
 
         lines += ['Payouts winners and balances verified; team-logo refresh queued separately.',
                   'Live site verified: ' + local_time(result['verified']),
