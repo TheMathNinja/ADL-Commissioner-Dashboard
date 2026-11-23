@@ -1,0 +1,47 @@
+name: Email annual ADL deposit draft
+run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'ADL annual deposit draft - read-only' || 'ADL annual deposit draft' }}
+on:
+  schedule:
+    # 1:05 p.m. Eastern in either daylight or standard time. The script
+    # verifies NFL Week 11 and checks that the bylaws' cutoff has passed.
+    - cron: '5 17,18 * 10-12 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate the owner draft without sending or saving state
+        type: boolean
+        default: true
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: adl-annual-deposit-draft
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test deposit cutoff, format and evidence handling
+        run: python3 -m unittest discover -s tests -p test_adl_deposit_report.py -v
+      - name: Build and deliver the ADL deposit draft to the owner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+          ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+          ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+          ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+          ADL_LEAGUE_ID: ${{ vars.ADL_LEAGUE_ID || '60206' }}
+          EVENT_NAME: ${{ github.event_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [ "$EVENT_NAME" = schedule ]; then args+=(--scheduled --send); fi
+          if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$DRY_RUN" = false ]; then args+=(--send); fi
+          python3 scripts/adl_deposit_report.py "${args[@]}"
+      - name: Request an independent failure notification
+        if: failure() && (github.event_name == 'schedule' || inputs.dry_run == false)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run email_workflow_failures.yml --repo TheMathNinja/ADL-Commissioner-Dashboard -f dry_run=false
