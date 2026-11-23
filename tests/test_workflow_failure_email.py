@@ -339,6 +339,22 @@ class FailureReports(unittest.TestCase):
         self.assertIn('later run', body)
         self.assertIn(m.OWNER, body)
 
+    def test_recurring_failure_note_requires_prior_exact_step_known_cause_and_workflow(self):
+        repo = m.REPOS[1]
+        incident = m.incident_key(repo, self.run)
+        failed = ['refresh: Bonus Games']
+        good = {'incident_key': incident, 'failed_at': '2026-09-22T11:00:00Z', 'failed_steps': failed,
+                'cause_codes': {'refresh': 'a' * 64}}
+        def note(entry, codes=None):
+            return m.recurring_failure_context({'sent': {'prior': entry}}, repo, self.run, failed,
+                                               good['cause_codes'] if codes is None else codes)
+        self.assertIn('2026-09-22 UTC', note(good))
+        for change in ({'failed_steps': ['refresh: unrelated']}, {'cause_codes': {'refresh': 'b' * 64}},
+                       {'failed_at': self.run['updated_at']}, {'incident_key': incident + ':other'},
+                       {'incident_key': None}):
+            self.assertEqual(note({**good, **change}), '')
+        self.assertEqual(note(good, {'refresh': 'unclassified'}), '')
+
     def test_failed_followup_poll_acknowledges_verified_publication(self):
         poll=dict(self.run,path='.github/workflows/poll_score_corrections.yml',event='schedule',
                   name='Poll Thursday score corrections',display_title='Poll Thursday score corrections',

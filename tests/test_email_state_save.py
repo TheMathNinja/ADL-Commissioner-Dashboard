@@ -94,6 +94,25 @@ class StateSaveTests(unittest.TestCase):
                 mail.save_state({'healthyAt': 'now'})
         self.assertEqual(api.call_count, 2)
 
+    def test_reporter_compaction_keeps_recovery_and_smtp_evidence_after_conflict(self):
+        state = {'checked': {'local-green': 'success', 'own-recovery': 'verified recovery'}, 'healthyAt': 'now'}
+        remote = {'sent': {'sent-1': {'subject': 'existing'}},
+                  'checked': {'historic-green': 'success', 'older-recovery': 'verified recovery',
+                              'previous-cancellation': 'cancelled'},
+                  'delivery_receipts': {'failure:sent-1': {'status': 'accepted'}},
+                  'delivery_incidents': {'sent-1': {'failed_steps': ['read']}}}
+        raced = dict(remote, sent={**remote['sent'], 'sent-2': {'subject': 'concurrent write'}})
+        with patch.object(mail, 'STATE_PATH', mail.FAILURE_REPORT_STATE_PATH), \
+             patch.object(mail, 'FAILURE_STATE_COMPACTION_BYTES', 1), patch.object(mail.time, 'sleep'), \
+             patch.object(mail, 'get_json', side_effect=[item(remote), HTTPError('url', 409, '', {}, None), item(raced), {}]) as api:
+            mail.save_state(state)
+        result = json.loads(base64.b64decode(api.call_args.args[1]['content']))
+        self.assertEqual(result, state)
+        self.assertEqual(result['checked'], {'older-recovery': 'verified recovery', 'own-recovery': 'verified recovery',
+                                             'previous-cancellation': 'cancelled'})
+        for key in ('sent', 'delivery_receipts', 'delivery_incidents'):
+            self.assertEqual(result[key], raced[key])
+
     @patch.object(mail.time, 'sleep')
     def test_persistent_outage_fails(self, sleep):
         with patch.object(mail, 'get_json', side_effect=HTTPError('url', 503, '', {}, None)) as api:

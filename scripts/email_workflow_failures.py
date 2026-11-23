@@ -47,7 +47,7 @@ def watchdog_maintenance_evidence(repo, run, job_list):
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError, KeyError, TypeError):
         return False
 
-STATE_PATH = 'data/workflow_failure_email_state.json'
+STATE_PATH = mail.FAILURE_REPORT_STATE_PATH
 LOOKBACK_DAYS = 7
 OWNER = 'fili.mikey@gmail.com'
 REPOS = ['TheMathNinja/ADL-GM-Dashboard', 'TheMathNinja/FAFL-GM-Dashboard', 'TheMathNinja/ADL-Commissioner-Dashboard']
@@ -459,6 +459,27 @@ def cause_codes(repo,run,job_list):
         codes[job['name']]=code
     return codes
 
+def recurring_failure_context(state, repo, run, failed, codes):
+    """Mention only an exact prior step and known cause within the same incident family."""
+    identity = notification_episode(incident_key(repo, run), run['created_at'])
+    actionable = {step for step in failed if re.fullmatch(r'[a-f0-9]{64}', codes.get(step.partition(': ')[0]) or '')}
+    dates = set()
+    for entry in state['sent'].values():
+        at, previous_identity = entry.get('failed_at'), entry.get('incident_key')
+        if not isinstance(previous_identity, str) or not isinstance(at, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}T.*Z', at):
+            continue
+        if at >= run['created_at'] or notification_episode(previous_identity, at) != identity:
+            continue
+        prior = entry.get('observed_cause_codes') or entry.get('cause_codes') or {}
+        if any(prior.get(step.partition(': ')[0]) == codes.get(step.partition(': ')[0])
+               for step in actionable.intersection(entry.get('failed_steps') or [])):
+            dates.add(at[:10])
+    if not dates:
+        return ''
+    return ('\n\nRecurring failure: the same failed step and error fingerprint appeared '
+            f'in a previous incident (most recently {max(dates)} UTC). Investigate that cause before replaying this run.')
+
+
 def incident_scope(repo,run):
     local = datetime.fromisoformat(run['created_at'].replace('Z','+00:00')).astimezone(ZoneInfo('America/New_York'))
     filename = PurePosixPath(run.get('path','')).name
@@ -773,7 +794,8 @@ def main():
     if args.verify_coverage:
         # Read the original attempts, not a later successful retry. Never send
         # or acknowledge emails while checking access to failure evidence.
-        for repo, number in [(DAILY_REPO,43199358490),(COMMISSIONER,42471397260),(GUARDIAN,43193643494)]:
+        for repo, number in [(DAILY_REPO,43199358490),('TheMathNinja/FAFL-GM-Dashboard',44665296259),
+                             (COMMISSIONER,42471397260),(GUARDIAN,43193643494)]:
             run = api(repo,f'actions/runs/{number}/attempts/1')
             evidence = jobs(repo,run)
             if not failures(run,evidence):
@@ -1108,6 +1130,7 @@ def main():
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
                 subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
+                body += recurring_failure_context(state, repo, run, failed, codes)
                 if child:
                     body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
                 if watchdog_evidence and WATCHDOG_STEP in failed:

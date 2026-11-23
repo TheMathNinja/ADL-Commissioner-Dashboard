@@ -30,6 +30,8 @@ LEAGUES = {
     'FAFL': ('TheMathNinja/FAFL-GM-Dashboard', '22686', 'refresh.yml'),
 }
 STATE_PATH = 'data/weekly_email_state.json'
+FAILURE_REPORT_STATE_PATH = 'data/workflow_failure_email_state.json'
+FAILURE_STATE_COMPACTION_BYTES = 950_000
 MAX_COMPLETION_EMAIL_AGE = timedelta(hours=6)
 GOTW_SEED = {
     'ADL': [
@@ -749,11 +751,18 @@ def save_state(state):
                 merged[key] = ({**remote.get(key, {}), **value}
                                if isinstance(value, dict) and isinstance(remote.get(key, {}), dict)
                                else value)
+            encoded = (json.dumps(merged, separators=(',', ':'))+'\n').encode()
+            if (STATE_PATH == FAILURE_REPORT_STATE_PATH and len(encoded) >= FAILURE_STATE_COMPACTION_BYTES
+                    and isinstance(merged.get('checked'), dict)):
+                # Routine successes are not incident or delivery evidence.
+                merged['checked'] = {key: result for key, result in merged['checked'].items()
+                                     if result != 'success'}
+                encoded = (json.dumps(merged, separators=(',', ':'))+'\n').encode()
             if current and remote == merged and current.get('encoding') != 'none':
                 state.update(merged)
                 return
             payload = dict(message='Record league email reporting state',
-                           content=base64.b64encode((json.dumps(merged, separators=(',', ':'))+'\n').encode()).decode(),
+                           content=base64.b64encode(encoded).decode(),
                            branch='main')
             if current:
                 payload['sha'] = current['sha']
