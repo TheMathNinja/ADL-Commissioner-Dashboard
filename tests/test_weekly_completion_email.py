@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
 import email_weekly_completion as m
+import weekly_refresh_reliability as reliability
 
 
 def bonus_receipt(week=3,run_id='123',league='ADL'):
@@ -35,7 +36,7 @@ class CompletionEmailTest(unittest.TestCase):
             if '/jobs?' in url: return {'jobs': [self.job] + self.other_jobs}
             if 'weekly-refresh-status' in url: return self.marker
             return self.run
-        with patch.object(m, 'get_json', side_effect=api), patch.object(m, 'document', side_effect=lambda repo, path: self.payout if path.endswith('payouts_sync_metadata.json') else self.bonus if path.endswith('bonus_mfl_sync_metadata.json') else self.baseline), patch.object(m, 'mfl', return_value=self.feed):
+        with patch.object(m, 'get_json', side_effect=api), patch.object(m, 'document', side_effect=lambda repo, path: self.payout if path.endswith('payouts_sync_metadata.json') else self.bonus if path.endswith('bonus_mfl_sync_metadata.json') else self.baseline), patch.object(m, 'mfl', return_value=self.feed), patch.object(m, 'reliability_notes', return_value=[]):
             return m.published('ADL', self.receipt)
 
     def test_both_leagues_required_for_preliminary(self):
@@ -126,6 +127,59 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertNotIn('\nADL\n', body)
         self.assertNotIn('Shiny hosting delays', body)
         self.assertIn('01:00:00 AM EST', m.local_time('2026-11-12T06:00:00Z'))
+
+    def test_digest_puts_reliability_notices_before_publication_scope(self):
+        result = self.verify()
+        result['reliability'] = ['Playoff clinching: 17 unresolved checks.',
+                                 'Contract Admin: fallback inputs used.']
+        subject, body = m.message('preliminary', [result])
+        self.assertIn('with reliability notices', subject)
+        self.assertLess(body.index('17 unresolved checks'), body.index('Weekly publication scope'))
+        self.assertNotIn('Reconciled and verified:', body)
+
+    def test_successful_refresh_still_reports_timeouts_fallback_and_unknown_checks(self):
+        receipt = dict(self.receipt, week=10)
+        job = dict(self.job, id=1234, steps=[
+            dict(name='Test refresh safety', started_at='2026-09-29T04:31:00Z', completed_at='2026-09-29T04:33:00Z'),
+            dict(name='Build playoff forecast', started_at='2026-09-29T04:33:00Z', completed_at='2026-09-29T04:39:00Z'),
+        ])
+        log = '\n'.join([
+            '2026-09-29T04:31:01.100Z simulated API timed out SECRET_FIXTURE',
+            '2026-09-29T04:33:00.900Z buffered simulated API timed out SECRET_FIXTURE',
+            '2026-09-29T04:33:01.100Z ##[group]Run echo deployment timed out',
+            '2026-09-29T04:33:01.200Z echo deployment timed out',
+            '2026-09-29T04:33:01.300Z ##[endgroup]',
+            '2026-09-29T04:34:01.500Z Upstream request timed out SECRET_LIVE',
+            '2026-09-29T04:34:02.500Z Preserving published fallback inputs',
+            '2026-09-29T04:35:02.500Z Clinch certificates: 4 proved; 2 unresolved queries',
+        ])
+        def api(path):
+            if path.startswith('commits?'):
+                return [{'sha': 'b'*40}]
+            return {'workflow_runs': []}
+        rows = [dict(run_id='123', component=k, status='success', score_status='preliminary')
+                for k in reliability.COMPONENTS['ADL']]
+        notes = reliability.inspect_refresh(
+            'ADL', receipt, self.run, [job], 'refresh_extension_calculator.yml', api,
+            lambda ref: receipt, lambda ref: rows,
+            lambda ref: dict(season=2026, week=10, complete=False, queries=[
+                dict(status='unknown', reason='timeout'), dict(status='unknown', reason='canceled')]),
+            lambda job_id: log,
+        )
+        self.assertTrue(any('timeout or deadline (1 log messages)' in s for s in notes))
+        self.assertTrue(any('fallback or retained values' in s for s in notes))
+        self.assertTrue(any('2 unresolved checks, including 2 solver timeouts/cancellations' in s for s in notes))
+        self.assertFalse(any('SECRET_' in s or 'Test refresh safety' in s for s in notes))
+
+    def test_missing_reliability_evidence_is_visible_for_fafl(self):
+        receipt = dict(self.receipt, league_id='22686')
+        def fail(*args):
+            raise TimeoutError('private URL')
+        notes = reliability.inspect_refresh('FAFL', receipt, self.run,
+                    [dict(self.job, id=1234, steps=[])], 'refresh.yml', fail, fail, fail, fail, fail)
+        self.assertTrue(any('logs or step evidence unavailable' in s for s in notes))
+        self.assertTrue(any('could not be matched' in s for s in notes))
+        self.assertFalse(any('private URL' in s for s in notes))
 
     def test_fafl_weekly_scope_excludes_adl_only_components(self):
         result = self.verify()
