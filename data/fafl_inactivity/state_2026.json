@@ -200,7 +200,11 @@
       "observed": "No owner-submitted Week 11 lineup; MFL may have inherited a lineup",
       "detected_at": "2026-11-24T04:09:44.966042+00:00",
       "status": "review",
-      "activity_at": null
+      "activity_at": null,
+      "notice": {
+        "status": "sending",
+        "attempted_at": "2026-11-24T04:09:51.640109+00:00"
+      }
     }
   },
   "counts": {
