@@ -269,6 +269,35 @@ class FailureReports(unittest.TestCase):
             self.assertEqual(send.call_count, 2)
         self.assertFalse(errors)
 
+    def test_pages_cancellation_replacements_and_legacy_queue_do_not_email(self):
+        from email_delivery_state import deliver_once
+        repo = m.COMMISSIONER
+        state = {'recovery_notices_since': '2026-10-01T14:00:00Z'}
+        old = dict(self.run, id=45358926950, path='dynamic/pages/pages-build-deployment',
+                   display_title='pages build and deployment', event='dynamic', conclusion='cancelled')
+        later = dict(old, id=45362568457, conclusion='success')
+        key = f'recovery:{repo}:{later["id"]}:1'
+        for attempt, steps in enumerate(([], [{'name': 'Set up job', 'conclusion': 'cancelled'}]), 1):
+            jobs = [{'name': 'build', 'conclusion': 'cancelled', 'steps': steps}]
+            run = dict(old, run_attempt=attempt)
+            m.remember_recovery(state, repo, run, later, m.failures(run, jobs), jobs)
+        self.assertNotIn('recovery_notices', state)
+        state['recovery_notices'] = {key: {'title': 'pages build and deployment', 'repository': repo}}
+        errors = []
+        with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
+             patch.object(m, 'save'):
+            m.deliver_recovery_notices(state, False, errors)
+            send.assert_not_called()
+            self.assertIn('suppressed_reason', state['recovery_notices'][key])
+            failed = [{'name': 'build', 'conclusion': 'cancelled',
+                       'steps': [{'name': 'Build site', 'conclusion': 'failure'}]}]
+            replacement = dict(later, id=45362568458)
+            m.remember_recovery(state, repo, old, replacement, m.failures(old, failed), failed)
+            m.deliver_recovery_notices(state, False, errors)
+            send.assert_called_once()
+            self.assertIn('Build site', send.call_args.args[1])
+        self.assertFalse(errors)
+
     def test_verified_retry_is_recorded_without_email(self):
         earlier = copy.deepcopy(self.run)
         later = dict(earlier, run_attempt=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')

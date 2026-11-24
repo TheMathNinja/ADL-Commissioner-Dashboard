@@ -819,11 +819,18 @@ def push_preflight_recovered(repo, run, later, original, completed):
         return False
 
 
-def remember_recovery(state, repo, run, recovery, failed_steps):
+def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
     """Group retry attempts under the exact verified replacement; never backfill mail."""
     since = state.get('recovery_notices_since')
     if not since or not isinstance(recovery.get('id'), int) or not failed_steps:
         return
+    pages = run.get('path') == 'dynamic/pages/pages-build-deployment'
+    if pages and run.get('conclusion') == 'cancelled':
+        actual_errors = BAD - {'cancelled'}
+        if not any(job.get('conclusion') in actual_errors or any(
+                step.get('conclusion') in actual_errors for step in job.get('steps', []))
+                for job in job_list):
+            return  # A verified replacement for a cancellation is not a repair.
     try:
         if gameday_time(run['updated_at']) < gameday_time(since):
             return
@@ -836,12 +843,19 @@ def remember_recovery(state, repo, run, recovery, failed_steps):
         'recovery_url': f'https://github.com/{repo}/actions/runs/{recovery["id"]}',
         'verified_at': recovery['updated_at'], 'failures': {},
     })
+    if pages:
+        notice['pages_actionable_failure'] = True
     notice['failures'][f'{run["id"]}:{run.get("run_attempt", 1)}'] = list(dict.fromkeys(failed_steps))
 
 
 def deliver_recovery_notices(state, dry_run, coverage_errors):
     for key, notice in state.get('recovery_notices', {}).items():
         if notice.get('notified_at'):
+            continue
+        if (notice.get('title', '').casefold() == 'pages build and deployment'
+                and not notice.get('pages_actionable_failure')):
+            if not dry_run:
+                notice.setdefault('suppressed_reason', 'legacy Pages recovery lacks evidence of an actual build error')
             continue
         repo = notice['repository']
         subject = f'[League automation RECOVERED] {repo.split("/")[-1]}'
@@ -860,7 +874,6 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
         try:
             mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
             notice['notified_at'] = datetime.now(timezone.utc).isoformat()
-            save(state)
         except (OSError, RuntimeError, ValueError) as error:
             coverage_errors.append('Recovery summary delivery: ' + type(error).__name__)
 
@@ -1448,7 +1461,9 @@ def main():
                                 repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
                             recovery = reconcile_delivered_failure(repo, sent_run, history, entry)
                             if recovery:
-                                remember_recovery(state, repo, sent_run, recovery, entry.get('failed_steps', []))
+                                original_jobs = jobs(repo, sent_run) if cancelled_pages_run(sent_run) else ()
+                                remember_recovery(state, repo, sent_run, recovery, entry.get('failed_steps', []),
+                                                  original_jobs)
                         except (OSError, RuntimeError, ValueError, KeyError, TypeError):
                             pass  # Retry ledger reconciliation when exact evidence is available.
                     if (not entry.get('resolved_at') and cancelled_pages_run(latest)
@@ -1506,7 +1521,7 @@ def main():
                     continue
                 recovery = verified_recovery(repo, run, job_list, history)
                 if recovery:
-                    remember_recovery(state, repo, run, recovery, failures(run, job_list))
+                    remember_recovery(state, repo, run, recovery, failures(run, job_list), job_list)
                     state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
                     continue
                 if recovered_inactivity_startup(repo, run, job_list, later):
@@ -1677,9 +1692,9 @@ def main():
     deliver_recovery_notices(state, args.dry_run, coverage_errors)
     if args.deadlines:
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories,coverage_errors)
-    if not args.dry_run and state != original:
-        save(state)
     if coverage_errors:
+        if not args.dry_run and state != original:
+            save(state)
         raise RuntimeError('Failure coverage unavailable; native notifications must remain enabled: '+', '.join(coverage_errors))
     if not args.dry_run:
         state.setdefault('recovery_notices_since', now.isoformat())
