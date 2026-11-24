@@ -1,6 +1,5 @@
 """Run-scoped reliability evidence for the ADL and FAFL weekly digests."""
 from collections import Counter
-from datetime import datetime, timedelta
 import re
 import urllib.request
 import os
@@ -136,7 +135,9 @@ def component_notes(rows, league, receipt):
     for row in selected:
         component, status = row['component'], row.get('status') or 'unverified'
         intentionally_skipped = (
-            (component == 'bonus_mfl' and row.get('score_status') == 'preliminary')
+            (component == 'bonus_mfl' and receipt['process'] == 'preliminary'
+             and not receipt.get('bonus_mfl_verified')
+             and row.get('score_status') in {'preliminary', 'unofficial'})
             or (component == 'official_cap_snapshot' and receipt['process'] == 'corrections')
         )
         if status == 'success' or status == 'skipped' and intentionally_skipped:
@@ -145,7 +146,7 @@ def component_notes(rows, league, receipt):
     return notes
 
 
-def inspect_refresh(league, receipt, run, jobs, workflow, api, read_receipt, read_components,
+def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_components,
                     read_certificate, read_log=fetch_job_log):
     """Keep any telemetry failure visible even when the publication is verified."""
     run_id = str(receipt['run_id'])
@@ -188,7 +189,7 @@ def inspect_refresh(league, receipt, run, jobs, workflow, api, read_receipt, rea
 
     review_jobs(jobs, 'Weekly refresh')
 
-    certificate_reported_issues = False
+    certificate_verified = False
     try:
         ref = api(f'commits?sha=main&path=data/refresh_receipts/{process}.json&per_page=1')[0]['sha']
         if not SHA.fullmatch(ref):
@@ -206,11 +207,11 @@ def inspect_refresh(league, receipt, run, jobs, workflow, api, read_receipt, rea
             notes.append('Run-matched component status unavailable. Some publication checks are unverified.')
         try:
             findings = certificate_notes(read_certificate(ref), season, min(week, 12))
-            certificate_reported_issues = bool(findings)
+            certificate_verified = True
             notes.extend(findings)
         except UNAVAILABLE:
             notes.append('Run-matched clinch certificate unavailable. Clinch and elimination reliability is unverified.')
-    if weekly_clinch_peak and not certificate_reported_issues:
+    if weekly_clinch_peak and not certificate_verified:
         notes.append(f'Weekly refresh / Playoff clinching: the job log recorded up to '
                      f'{weekly_clinch_peak} unresolved checks during this refresh.')
 
@@ -230,29 +231,6 @@ def inspect_refresh(league, receipt, run, jobs, workflow, api, read_receipt, rea
             notes.append('MFL Bonus Games child logs could not be traced to this refresh. '
                          'The verification receipt was checked, but child timeouts are unverified.')
 
-    if run_attempt > 1:
-        if run_attempt > 4:
-            notes.append('Earlier retries exceeded the audit window. The digest checked the last three prior attempts.')
-        for attempt in range(max(1, run_attempt - 3), run_attempt):
-            try:
-                earlier = api(f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')['jobs']
-                if not earlier:
-                    raise ValueError('Missing prior attempt jobs')
-                review_jobs(earlier, f'Earlier attempt {attempt}')
-            except UNAVAILABLE:
-                notes.append(f'Earlier attempt {attempt}: job evidence unavailable.')
-
-    try:
-        started = datetime.fromisoformat(run['created_at'])
-        recent = api(f'actions/workflows/{workflow}/runs?branch=main&event=workflow_dispatch&per_page=20')
-        kind = 'correction' if process == 'corrections' else 'weekly'
-        title = re.compile(rf'^(?:Official|Preliminary) {league} {kind} update · Week {week}(?:\b|$)')
-        for previous in recent['workflow_runs']:
-            when = datetime.fromisoformat(previous['created_at'])
-            if str(previous['id']) != run_id and started - timedelta(days=6) <= when < started \
-                    and title.search(previous.get('display_title', '')) and previous.get('conclusion') in FAILURES:
-                notes.append(f'Earlier Week {week} refresh run {int(previous["id"])} '
-                             f'{previous["conclusion"].replace("_", " ")}. The current publication was verified.')
-    except UNAVAILABLE:
-        notes.append('Earlier refresh-run history unavailable. Prior failures or timeouts are unverified.')
+    # The failure reporter owns earlier attempts and independent failures.
+    # This digest describes the verified publication and its remaining issues.
     return list(dict.fromkeys(notes))

@@ -160,7 +160,7 @@ class CompletionEmailTest(unittest.TestCase):
         rows = [dict(run_id='123', component=k, status='success', score_status='preliminary')
                 for k in reliability.COMPONENTS['ADL']]
         notes = reliability.inspect_refresh(
-            'ADL', receipt, self.run, [job], 'refresh_extension_calculator.yml', api,
+            'ADL', receipt, self.run, [job], api,
             lambda ref: receipt, lambda ref: rows,
             lambda ref: dict(season=2026, week=10, complete=False, queries=[
                 dict(status='unknown', reason='timeout'), dict(status='unknown', reason='canceled')]),
@@ -176,10 +176,30 @@ class CompletionEmailTest(unittest.TestCase):
         def fail(*args):
             raise TimeoutError('private URL')
         notes = reliability.inspect_refresh('FAFL', receipt, self.run,
-                    [dict(self.job, id=1234, steps=[])], 'refresh.yml', fail, fail, fail, fail, fail)
+                    [dict(self.job, id=1234, steps=[])], fail, fail, fail, fail, fail)
         self.assertTrue(any('logs or step evidence unavailable' in s for s in notes))
         self.assertTrue(any('could not be matched' in s for s in notes))
         self.assertFalse(any('private URL' in s for s in notes))
+
+    def test_fafl_preliminary_skips_writes_and_completion_ignores_historical_attempts(self):
+        receipt = dict(self.receipt, league_id='22686', bonus_mfl_verified=False)
+        rows = [dict(run_id=receipt['run_id'], component=k, status='success', score_status='unofficial')
+                for k in reliability.COMPONENTS['FAFL']]
+        bonus = next(row for row in rows if row['component'] == 'bonus_mfl')
+        bonus['status'] = 'skipped'
+        self.assertEqual(reliability.component_notes(rows, 'FAFL', receipt), [])
+        self.assertEqual(reliability.component_notes(rows, 'FAFL', dict(receipt, process='corrections')),
+                         ['Bonus mfl: skipped.'])
+        bonus['status'] = 'failure'
+        self.assertEqual(reliability.component_notes(rows, 'FAFL', receipt), ['Bonus mfl: failure.'])
+        bonus['status'] = 'skipped'
+        def api(path):
+            self.assertTrue(path.startswith('commits?'))
+            return [{'sha': 'b'*40}]
+        notes = reliability.inspect_refresh('FAFL', receipt, dict(self.run, run_attempt=2), [], api,
+            lambda _: receipt, lambda _: rows,
+            lambda _: dict(season=receipt['season'], week=receipt['week'], complete=True, queries=[dict(status='proved')]))
+        self.assertEqual(notes, [])
 
     def test_fafl_weekly_scope_excludes_adl_only_components(self):
         result = self.verify()

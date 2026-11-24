@@ -113,7 +113,7 @@ def csv_document(repo, path):
 
 
 def reliability_notes(league, receipt, run, jobs):
-    repo, _, workflow = LEAGUES[league]
+    repo = LEAGUES[league][0]
     base = f'https://api.github.com/repos/{repo}'
 
     def read_at_ref(path, ref):
@@ -124,7 +124,7 @@ def reliability_notes(league, receipt, run, jobs):
 
     season, week = receipt['season'], min(receipt['week'], 12)
     return inspect_refresh(
-        league, receipt, run, jobs, workflow,
+        league, receipt, run, jobs,
         api=lambda path: get_json(f'{base}/{path}', timeout=15),
         read_receipt=lambda ref: json.loads(read_at_ref(f'data/refresh_receipts/{receipt["process"]}.json', ref)),
         read_components=lambda ref: list(csv.DictReader(io.StringIO(read_at_ref('data/component_publish_status.csv', ref)))),
