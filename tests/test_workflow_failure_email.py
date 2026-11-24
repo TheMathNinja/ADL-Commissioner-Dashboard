@@ -154,6 +154,55 @@ class FailureReports(unittest.TestCase):
         with patch.object(m, 'jobs', side_effect=RuntimeError('unavailable')):
             self.assertIsNone(check(self.jobs, later))
 
+    def test_adl_preliminary_recovery_requires_exact_snapshot_and_full_signoff(self):
+        old = dict(self.run, id=45333868748,
+                   path='.github/workflows/refresh_extension_calculator.yml',
+                   display_title='Preliminary ADL weekly update \u00b7 Week 11 \u00b7 ' + 'a'*64,
+                   created_at='2026-11-24T05:31:05Z', updated_at='2026-11-24T05:40:58Z')
+        later = dict(old, id=45339512245, conclusion='success',
+                     created_at='2026-11-24T06:22:36Z', updated_at='2026-11-24T06:39:05Z')
+        def step(name, conclusion='success'):
+            return dict(name=name, conclusion=conclusion)
+        def job(name, conclusion='success', *steps):
+            return dict(name=name, conclusion=conclusion, steps=steps)
+        browser = 'Test generated Playoff Picture in Chromium'
+        cap = 'Require official cap snapshot for preliminary weekly publication'
+        rollover = 'Roll Live Bonus Game Watch to the upcoming week'
+        completion = 'Request weekly completion email'
+        personal = 'Personal CHI Team Tools (after league publication)'
+        old_jobs = [
+            job('refresh', 'failure', step(browser, 'failure'), step(cap, 'failure'),
+                step('Require official MFL Bonus Games verification', 'skipped'),
+                step('Preserve previous EXT publication after an EXT-only failure', 'skipped')),
+            job(rollover, 'skipped'), job(completion, 'skipped'), job(personal, 'skipped'),
+        ]
+        required = [browser, cap, 'Validate the shared MFL snapshot', 'Publish updated reports on GitHub Pages',
+                    'Verify published Playoff Picture in Chromium', 'Require a verified Payouts publication for every refresh',
+                    'Confirm weekly publication and record processed scores']
+        new_jobs = [job('refresh', 'success', *map(step, required)), job(rollover, 'skipped'),
+                    job(completion, 'success', step('Dispatch shared completion verifier')),
+                    job(personal, 'success', step('Queue the final personal forecast refresh'))]
+        repo = m.DAILY_REPO
+        with patch.object(m, 'jobs', return_value=new_jobs):
+            self.assertEqual(m.verified_recovery(repo, old, old_jobs, [later]), later)
+            self.assertIsNone(m.verified_recovery(repo, old, old_jobs, [
+                dict(later, display_title=later['display_title'][:-1] + 'b')]))
+            self.assertIsNone(m.verified_recovery(repo, old, old_jobs + [job(rollover, 'failure')], [later]))
+            self.assertIsNone(m.verified_recovery(repo, old, old_jobs + [job('unknown required job', 'skipped')], [later]))
+        for name in required:
+            with patch.object(m, 'jobs', return_value=[
+                    job('refresh', 'success', *[step(x) for x in required if x != name]), *new_jobs[1:]]):
+                self.assertIsNone(m.verified_recovery(repo, old, old_jobs, [later]), name)
+        with patch.object(m, 'jobs', side_effect=lambda _, run: old_jobs if run == old else new_jobs):
+            state = {}
+            self.assertTrue(m.reconcile_delivered_failure(repo, old, [later], state))
+            self.assertEqual(state['resolved_at'], later['updated_at'])
+        ended = m.datetime.fromisoformat(old['updated_at'])
+        self.assertTrue(m.notification_pending(repo, old, ended + m.timedelta(minutes=59)))
+        self.assertFalse(m.notification_pending(repo, old, ended + m.timedelta(minutes=60)))
+        self.assertFalse(m.notification_pending(repo, dict(old, display_title='Other job'),
+                                                ended + m.timedelta(minutes=15)))
+
     def test_verified_retry_is_recorded_without_email(self):
         earlier = copy.deepcopy(self.run)
         later = dict(earlier, run_attempt=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')

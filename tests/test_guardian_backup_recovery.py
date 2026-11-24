@@ -62,18 +62,18 @@ class GuardianBackupRecovery(unittest.TestCase):
     def test_delivered_incident_is_closed_without_resending_or_erasing_delivery(self):
         entry = {'subject': 'Already sent', 'sent_at': '2026-11-17T17:15:00Z'}
         with patch.object(reporter, 'jobs', side_effect=lambda repo, value: [] if value['id'] == self.old['id'] else live_jobs()):
-            self.assertTrue(reporter.reconcile_guardian_delivery(reporter.GUARDIAN, self.old, [self.later], entry))
+            self.assertTrue(reporter.reconcile_delivered_failure(reporter.GUARDIAN, self.old, [self.later], entry))
         self.assertEqual(entry['sent_at'], '2026-11-17T17:15:00Z')
         self.assertEqual(entry['resolved_at'], self.later['updated_at'])
         self.assertEqual(entry['recovery_url'], self.later['html_url'])
         with patch.object(reporter, 'jobs') as read:
-            self.assertFalse(reporter.reconcile_guardian_delivery(reporter.GUARDIAN, self.old, [self.later], entry))
+            self.assertFalse(reporter.reconcile_delivered_failure(reporter.GUARDIAN, self.old, [self.later], entry))
             read.assert_not_called()
 
     def test_missing_recovery_evidence_does_not_close_delivered_incident(self):
         entry = {'subject': 'Already sent'}
         with patch.object(reporter, 'jobs', side_effect=RuntimeError('API unavailable')):
-            self.assertFalse(reporter.reconcile_guardian_delivery(reporter.GUARDIAN, self.old, [self.later], entry))
+            self.assertFalse(reporter.reconcile_delivered_failure(reporter.GUARDIAN, self.old, [self.later], entry))
         self.assertNotIn('resolved_at', entry)
 
     def test_other_day_branch_workflow_mode_and_failed_replacements_do_not_recover(self):

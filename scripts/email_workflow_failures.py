@@ -718,9 +718,10 @@ def guardian_live_recovery(repo, run, candidate, completed):
         step['name'] for step in job.get('steps', []) if step.get('conclusion') == 'success'} for job in completed)
 
 
-def reconcile_guardian_delivery(repo, run, history, entry):
-    """Close an already-delivered outage only from verified real-check evidence."""
-    if (repo != GUARDIAN or not guardian_operational_run(run) or entry.get('resolved_at')
+def reconcile_delivered_failure(repo, run, history, entry):
+    """Close an already-delivered outage only from verified recovery evidence."""
+    if (not (repo == GUARDIAN and guardian_operational_run(run) or adl_preliminary_run(repo, run))
+            or entry.get('resolved_at')
             or run.get('conclusion') not in BAD):
         return False
     candidates = [later for later in history if later.get('status') == 'completed'
@@ -736,6 +737,43 @@ def reconcile_guardian_delivery(repo, run, history, entry):
     if not recovery:
         return False
     entry.update(resolved_at=recovery['updated_at'], recovery_url=recovery['html_url'])
+    return True
+
+
+def adl_preliminary_run(repo, run):
+    return (repo == DAILY_REPO and not run.get('_account_report')
+            and run.get('path') == '.github/workflows/refresh_extension_calculator.yml'
+            and re.fullmatch(r'Preliminary ADL weekly update · Week (?:[1-9]|1[0-7]) · [a-f0-9]{64}',
+                             run.get('display_title') or '') is not None)
+
+
+def adl_preliminary_recovered(original, completed):
+    """A signed-off preliminary refresh replaces branch skips, not actual errors."""
+    successful = {job['name']: job for job in completed if job.get('conclusion') == 'success'}
+    def passed(name):
+        return {s['name'] for s in successful.get(name, {}).get('steps', [])
+                if s.get('conclusion') == 'success'}
+    required = {
+        'Validate the shared MFL snapshot',
+        'Test generated Playoff Picture in Chromium',
+        'Publish updated reports on GitHub Pages',
+        'Verify published Playoff Picture in Chromium',
+        'Require a verified Payouts publication for every refresh',
+        'Require official cap snapshot for preliminary weekly publication',
+        'Confirm weekly publication and record processed scores',
+    }
+    if (not required <= passed('refresh')
+            or 'Dispatch shared completion verifier' not in passed('Request weekly completion email')):
+        return False
+    for job in original:
+        name = job['name']
+        status = job.get('conclusion')
+        if status == 'skipped' and name == 'Roll Live Bonus Game Watch to the upcoming week':
+            continue  # Only the correction workflow branch rolls the watch forward.
+        if status in BAD | {'skipped'}:
+            if not passed(name) or not {s['name'] for s in job.get('steps', [])
+                                       if s.get('conclusion') in BAD} <= passed(name):
+                return False
     return True
 
 
@@ -855,6 +893,10 @@ def verified_recovery(repo, run, job_list, history):
             continue
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
+        if adl_preliminary_run(repo, run):
+            if adl_preliminary_recovered(job_list, completed):
+                return later
+            continue
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
         private_sync = repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml'
         required_status = BAD if run.get('_account_report') or private_sync else BAD | {'skipped'}
@@ -1304,9 +1346,10 @@ def main():
                 if key in state['checked']:
                     continue
                 if key in state['sent']:
-                    if repo == GUARDIAN and guardian_operational_run(latest) and not state['sent'][key].get('resolved_at'):
+                    if ((repo == GUARDIAN and guardian_operational_run(latest) or adl_preliminary_run(repo, latest))
+                            and not state['sent'][key].get('resolved_at')):
                         sent_run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
-                        reconcile_guardian_delivery(repo, sent_run, history, state['sent'][key])
+                        reconcile_delivered_failure(repo, sent_run, history, state['sent'][key])
                     elif (cancelled_pages_run(latest) and attempt == latest.get('run_attempt', 1)
                           and not state['sent'][key].get('resolved_at')):
                         try:
@@ -1546,6 +1589,8 @@ def notification_pending(repo, run, now):
     if run.get('conclusion') not in BAD:
         return False
     delay = 10 if repo == GUARDIAN and PurePosixPath(run.get('path','')).name in {'guardian.yml','initial-lineup.yml'} else 15
+    if adl_preliminary_run(repo, run):
+        delay = 60  # Let the weekly readiness poll retry a full publication before escalating.
     ended = datetime.fromisoformat(run['updated_at'].replace('Z','+00:00'))
     return now - ended < timedelta(minutes=delay)
 
