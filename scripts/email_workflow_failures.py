@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 import http.client
 import json
+import math
 import os
 import re
 import urllib.request
@@ -840,12 +841,96 @@ def read_gameday_health(repo):
     return health
 
 
+GAMEDAY_EASTERN = ZoneInfo('America/New_York')
+MAX_AGE_SECONDS = 180
+
+def read_gameday_snapshot(league, now):
+    url = (f'https://raw.githubusercontent.com/TheMathNinja/{league}-GM-Dashboard/'
+           f'live-bonus-watch/live.json?health={int(now.timestamp()) // 60}')
+    req = urllib.request.Request(url, headers={'User-Agent':'League-incident-reporter',
+                                               'Cache-Control':'no-cache'})
+    with urllib.request.urlopen(req, timeout=8) as response:
+        return json.load(response)
+
+def inspect_gameday(league, snapshot, now):
+    local = now.astimezone(GAMEDAY_EASTERN)
+    weekday, minute = local.weekday(), local.hour * 60 + local.minute
+    if not ((weekday == 6 and minute >= 539) or
+            (weekday in (0, 3) and minute >= 1199) or
+            (weekday in (0, 1, 4) and minute <= 30)):
+        return None
+    if snapshot.get('league') != league:
+        return 'Wrong league snapshot.'
+    teams = snapshot.get('teams', [])
+    starters = [p for t in teams for p in t.get('starters', [])]
+    kickoff = [p['kickoff'] for p in starters if isinstance(p.get('kickoff'), (int,float))]
+    if kickoff and min(kickoff) > now.timestamp():
+        return None
+    if snapshot.get('complete'):
+        return None
+    timestamp = datetime.fromisoformat(snapshot['fetchedAt'].replace('Z','+00:00'))
+    if (now - timestamp).total_seconds() >= MAX_AGE_SECONDS:
+        return 'The live snapshot is stale.'
+    if (snapshot.get('forecastsPending') or snapshot.get('liveProbabilityUnavailable') or
+        len(teams) != 32 or any(not isinstance(t.get('projectedScore'), (int,float))
+            or not math.isfinite(t['projectedScore']) or not t.get('liveMatchups') for t in teams)):
+        return 'Projected points or matchup win probabilities are missing.'
+    if snapshot['week'] <= 12 and (snapshot.get('liveBonusProbabilityUnavailable') or
+            snapshot.get('liveBonusProbabilityBasis') != 'final_event_outcome'):
+        return 'Final Bonus Game probabilities are missing.'
+    return ''
+
+def check_gameday_direct(state, dry_run, covered, coverage_errors):
+    now = datetime.now(timezone.utc)
+    local = now.astimezone(GAMEDAY_EASTERN)
+    if local.weekday() not in (0,1,3,4,6):
+        return
+    records = state.setdefault('gameday_direct', {})
+    for league in ('ADL','FAFL'):
+        record = records.get(league)
+        # Reuse the time gate before fetching the large snapshot.
+        if inspect_gameday(league, {}, now) is None:
+            continue
+        try:
+            evidence = read_gameday_snapshot(league, now)
+            error = inspect_gameday(league, evidence, now)
+        except (OSError, ValueError, KeyError, TypeError):
+            error = 'The public feed could not be verified.'
+            evidence = {}
+        if error is None:
+            continue
+        if not error:
+            if record and not record.get('resolved'):
+                record['resolved'] = now.isoformat()
+            continue
+        if not record or record.get('resolved'):
+            record = records[league] = {'opened':now.isoformat(),'error':error}
+        key = f"gameday-direct:{league}:{record['opened']}"
+        if league in covered or record.get('notified'):
+            continue
+        subject = f'{league} Gameday forecast failure'
+        body = (f"{league} Gameday health check at {local:%Y-%m-%d %I:%M %p %Z}. "
+                f"{error}\nThe existing live collector can retry within its scheduled run. "
+                "The next report check will verify whether forecasts have returned.")
+        if dry_run:
+            print(subject + '\n' + body)
+        else:
+            try:
+                mail.deliver_once(state,key,lambda:mail.send_email(subject,body,key),lambda:save(state))
+                record['notified'] = now.isoformat()
+            except (OSError, RuntimeError, ValueError) as exc:
+                coverage_errors.append(f'{league} Gameday alert delivery: {type(exc).__name__}')
+
+
 def report_gameday_incidents(state, dry_run, coverage_errors):
+    covered = set()
     for league in ('ADL', 'FAFL'):
         repo = f'TheMathNinja/{league}-GM-Dashboard'
         try:
             health = read_gameday_health(repo)
             for incident in health['incidents']:
+                if not incident.get('recoveredAt'):
+                    covered.add(league)
                 key = f"gameday:{league}:{incident['openedAt']}"
                 if key in state['sent']:
                     continue
@@ -865,6 +950,8 @@ def report_gameday_incidents(state, dry_run, coverage_errors):
                 save(state)
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             coverage_errors.append(f'{league} Gameday incident reporting: {type(error).__name__}')
+
+    return covered
 
 
 def main():
@@ -894,7 +981,8 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
-    report_gameday_incidents(state, args.dry_run, coverage_errors)
+    covered = report_gameday_incidents(state, args.dry_run, coverage_errors)
+    check_gameday_direct(state, args.dry_run, covered, coverage_errors)
     if os.environ.get('MFL_POTENTIAL_WARNING') == 'true':
         try:
             from mfl_potential_warning import report_warning
