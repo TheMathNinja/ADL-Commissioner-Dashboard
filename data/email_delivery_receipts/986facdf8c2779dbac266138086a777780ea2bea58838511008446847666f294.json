@@ -1,1 +1,1 @@
-{"delivery_receipts": {"986facdf8c2779dbac266138086a777780ea2bea58838511008446847666f294": {"attempted_at": "2026-11-24T05:38:39.697419+00:00", "status": "sending"}}}
+{"delivery_receipts": {"986facdf8c2779dbac266138086a777780ea2bea58838511008446847666f294": {"accepted_at": "2026-11-24T05:38:42.938784+00:00", "attempted_at": "2026-11-24T05:38:39.697419+00:00", "status": "accepted"}}}
