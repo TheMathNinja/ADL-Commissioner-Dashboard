@@ -62,6 +62,30 @@ def payout_publication_errors(adl: Path, fafl: Path) -> list[str]:
     return errors
 
 
+def playoff_browser_errors(adl: Path, fafl: Path) -> list[str]:
+    dependency = 'requirements-playoff-browser.txt'
+    locks = [root / dependency for root in (adl, fafl)]
+    if not all(lock.is_file() for lock in locks):
+        return ['Both weekly refreshes must have a Playoff Picture browser dependency lock']
+    pins = [lock.read_text(encoding='utf-8').strip() for lock in locks]
+    errors = []
+    if pins[0] != pins[1] or not re.fullmatch(r'playwright==\d+\.\d+\.\d+', pins[0]):
+        errors.append('ADL and FAFL must use the same exact Playwright pin')
+    for root, workflow in ((adl, 'refresh_extension_calculator.yml'), (fafl, 'refresh.yml')):
+        source = (root / '.github/workflows' / workflow).read_text(encoding='utf-8')
+        steps = re.split(r'^      - ', source, flags=re.MULTILINE)
+        browser = next((i for i, step in enumerate(steps) if 'id: playoff_browser' in step), -1)
+        elo = next((i for i, step in enumerate(steps) if 'id: elo' in step), -1)
+        local = 'run: python scripts/check_playoff_picture_browser.py'
+        generated = next((i for i, step in enumerate(steps) if local + '\n' in step), -1)
+        published = next((i for i, step in enumerate(steps) if local + ' --live-url ' in step), -1)
+        if (not 0 < browser < elo < generated < published
+                or ('pip install -r ' + dependency) not in steps[browser]
+                or 'playwright install --with-deps chromium' not in steps[browser]):
+            errors.append(f'{workflow} must install the shared browser before live Elo writes and verify generated and published pages')
+    return errors
+
+
 def cloud_jobs(path: Path) -> list[tuple[str, str, set[str]]]:
     source = path.read_text(encoding="utf-8")
     jobs = []
@@ -373,6 +397,7 @@ def main() -> int:
     fafl = roots.get("FAFL-GM-Dashboard")
     if adl and fafl:
         errors.extend(payout_publication_errors(adl, fafl))
+        errors.extend(playoff_browser_errors(adl, fafl))
         corrections=(adl/'scripts/score_corrections.py').read_text(encoding='utf-8')
         if corrections != (fafl/'scripts/score_corrections.py').read_text(encoding='utf-8'):
             errors.append('ADL/FAFL Thursday correction readiness policies must match, not just their signatures')
