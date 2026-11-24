@@ -87,6 +87,11 @@ def playoff_browser_errors(adl: Path, fafl: Path) -> list[str]:
                 or ('pip install -r ' + dependency) not in steps[browser]
                 or ('python ' + setup) not in steps[browser]):
             errors.append(f'{workflow} must install the shared browser before live Elo writes and verify generated and published pages')
+    result = subprocess.run(
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_prepare_playoff_browser.py'],
+        cwd=adl, capture_output=True, text=True)
+    if result.returncode or 'Ran 0 tests' in result.stderr:
+        errors.append('Headless browser setup regression suite did not pass:\n' + result.stderr)
     return errors
 
 

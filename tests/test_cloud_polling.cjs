@@ -3,6 +3,36 @@ const source=fs.readFileSync('scripts/CloudPolling.gs','utf8');
 const alerts=[];
 const context=vm.createContext({MailApp:{sendEmail:(...args)=>alerts.push(args)}});vm.runInContext(source,context);
 assert.equal(vm.runInContext('CLOUD_SCHEDULER.intervalMinutes',context),5);
+const quotaHeaders={'X-RateLimit-Remaining':'0','X-RateLimit-Reset':'200'};
+let calls=[];
+context.UrlFetchApp={fetch:(url,opts)=>{
+  calls.push({url,opts});
+  if(url.includes('raw.githubusercontent.com')) return {getResponseCode:()=>200,getContentText:()=>'{\"week\":11}'};
+  if(opts.headers) return {getResponseCode:()=>403,getAllHeaders:()=>quotaHeaders};
+  return {getResponseCode:()=>200,getContentText:()=>'{\"workflow_runs\":[]}'};
+}};
+assert.equal(vm.runInContext("cloudRepoJson_('ADL-GM-Dashboard','data/refresh_receipts/preliminary.json','secret').week",context),11);
+assert.equal(calls.length,1);
+assert(!calls[0].opts.headers.Authorization);
+assert.throws(()=>vm.runInContext("cloudRepoJson_('Chicago-Bears-Lineup-Guardian','data/refresh_receipts/preliminary.json','secret')",context),/HTTP 403/);
+assert(!calls.at(-1).url.includes('raw.githubusercontent.com'));
+assert.equal(vm.runInContext("cloudWorkflowRuns_({repo:'FAFL-GM-Dashboard',workflow:'refresh.yml'},'secret',10).length",context),0);
+assert.equal(calls.at(-1).opts.headers,undefined);
+assert.equal(context.cloudRateReset_({getResponseCode:()=>403,getAllHeaders:()=>quotaHeaders},100000),200000);
+assert.equal(context.cloudRateReset_({getResponseCode:()=>403,getAllHeaders:()=>({})},100000),0);
+const quotaState={};
+context.quotaProps={getProperty:key=>quotaState[key]||null,setProperty:(key,value)=>{quotaState[key]=value;}};
+let posts=0;
+context.console={warn:()=>{},log:()=>{}};
+context.UrlFetchApp.fetch=()=>{posts++;return {
+  getResponseCode:()=>403,getContentText:()=>'{\"message\":\"Rate limited\"}',getAllHeaders:()=>({'Retry-After':'90'})
+};};
+const tryDispatch=`dispatchOnce_({repo:'ADL-GM-Dashboard',workflow:'poll_preliminary_scores.yml'},'secret',new Date(),quotaProps)`;
+assert.equal(vm.runInContext(tryDispatch,context),false);
+assert.equal(vm.runInContext(tryDispatch,context),false);
+assert.equal(posts,1);
+assert(!Object.keys(quotaState).some(key=>key.startsWith('CLOUD_SCHEDULER_SENT_')));
+assert.equal(alerts.length,0);
 const window=(day,clock,year=2026,month=10)=>vm.runInContext(`cloudPollWindowParts_(${day},'${clock}',${year},${month})`,context);
 assert.equal(window(1,'23:14'),'');
 assert.equal(window(1,'23:15'),'preliminary');

@@ -34,6 +34,20 @@ Ordinary incidents wait up to thirty minutes for a matching in-flight retry.
 The escalation states whether the retry did not verify recovery or no safe
 automatic replay was available.
 
+The reporter uses the repository workflow credential for the high-volume
+public league reads. Guardian and the wider owner inventory retain their
+existing credential and coverage. A quota response pauses that route until its reset; an ordinary 403
+is actionable and isn't retried blindly. The weekly scheduler reads only
+allowlisted public receipt files without a token, shares one run-history
+fetch for its two queue checks, and leaves rate-limited dispatches pending.
+
+Both weekly jobs install the same pinned Playwright release before any live
+writes. The cache is an optimization, never proof of readiness: headless
+Chromium must run JavaScript on a warm or cold start. Host packages are only
+installed after a missing-library launch error. A transient cold download
+gets one bounded repeat; the generated and live page checks still gate
+successful publication.
+
 Before retiring the desktop schedule, verify the normal reporter on the exact
 release, all four repository reads, exact Guardian completion and missed-check
 handling, scrape freshness, and the separately scheduled Apps Script health

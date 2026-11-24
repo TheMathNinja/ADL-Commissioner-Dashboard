@@ -151,11 +151,23 @@ function cloudHeaders_(token) {
     'X-GitHub-Api-Version': '2022-11-28'};
 }
 
+function cloudRateReset_(response, now) {
+  const status = response.getResponseCode();
+  if (status !== 403 && status !== 429) return 0;
+  const headers = Object.fromEntries(Object.entries(response.getAllHeaders ? response.getAllHeaders() : {})
+    .map(function(entry) { return [entry[0].toLowerCase(), String(entry[1])]; }));
+  if (status === 403 && headers['x-ratelimit-remaining'] !== '0' && !headers['retry-after']) return 0;
+  const next = headers['retry-after'] ? now + Number(headers['retry-after']) * 1000 :
+    Number(headers['x-ratelimit-reset']) * 1000;
+  return Number.isFinite(next) && next > now ? next : now + 60000;
+}
+
 function cloudDispatch_(job, token, overrideInputs) {
   const inputs = Object.assign({}, job.inputs || {}, overrideInputs || {});
   const url = 'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + job.repo +
     '/actions/workflows/' + job.workflow + '/dispatches';
   let response;
+  let retryAt;
   for (let attempt = 0; attempt < 4; attempt++) {
     try { response = UrlFetchApp.fetch(url,
       {method: 'post', headers: cloudHeaders_(token), contentType: 'application/json',
@@ -169,13 +181,16 @@ function cloudDispatch_(job, token, overrideInputs) {
     }
     const code = response.getResponseCode();
     if (code === 200 || code === 204) return;
+    retryAt = cloudRateReset_(response, Date.now());
+    if (retryAt) break;
     if ([429, 500, 502, 503, 504].indexOf(code) < 0 || attempt === 3) break;
     Utilities.sleep(Math.pow(2, attempt) * 1000);
   }
   const error = new Error(job.repo + '/' + job.workflow + ' returned HTTP ' +
     response.getResponseCode() + ': ' + response.getContentText().slice(0, 500));
   error.dispatchFailure = true;
-  error.retryable = [429, 500, 502, 503, 504].indexOf(response.getResponseCode()) >= 0;
+  error.retryAt = retryAt;
+  error.retryable = !!retryAt || [429, 500, 502, 503, 504].indexOf(response.getResponseCode()) >= 0;
   throw error;
 }
 
@@ -191,6 +206,20 @@ function cloudVerifyWorkflow_(job, token) {
 }
 
 function cloudRepoJson_(repo, path, token) {
+  // These receipts are public and validated against the expected league and
+  // week by the caller. Do not spend the dispatch credential on routine reads.
+  if (['ADL-GM-Dashboard','FAFL-GM-Dashboard'].includes(repo) &&
+      /^data\/(refresh_receipts\/(preliminary|corrections)\.json|processed_player_scores\.json)$/.test(path)) {
+    try {
+      const raw = UrlFetchApp.fetch('https://raw.githubusercontent.com/' + CLOUD_SCHEDULER.owner +
+        '/' + repo + '/main/' + path + '?league-minute=' + Math.floor(Date.now()/60000),
+        {muteHttpExceptions:true, followRedirects:false, headers:{'Cache-Control':'no-cache'}});
+      if (raw.getResponseCode() === 200) {
+        const document = JSON.parse(raw.getContentText());
+        if (document && typeof document === 'object' && !Array.isArray(document)) return document;
+      }
+    } catch (error) { /* A raw read never proves absence; defer to the Contents API. */ }
+  }
   const response = UrlFetchApp.fetch(
     'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + repo + '/contents/' + path + '?ref=main',
     {method: 'get', headers: cloudHeaders_(token), muteHttpExceptions: true}
@@ -204,11 +233,13 @@ function cloudRepoJson_(repo, path, token) {
 }
 
 function cloudWorkflowRuns_(job, token, limit) {
-  const response = UrlFetchApp.fetch(
-    'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + job.repo +
-      '/actions/workflows/' + job.workflow + '/runs?event=workflow_dispatch&branch=main&per_page=' + limit,
-    {method: 'get', headers: cloudHeaders_(token), muteHttpExceptions: true}
-  );
+  const url = 'https://api.github.com/repos/' + CLOUD_SCHEDULER.owner + '/' + job.repo +
+    '/actions/workflows/' + job.workflow + '/runs?event=workflow_dispatch&branch=main&per_page=' + limit;
+  let response = UrlFetchApp.fetch(url,
+    {method:'get', headers:cloudHeaders_(token), muteHttpExceptions:true, followRedirects:false});
+  if (cloudRateReset_(response, Date.now()) && ['ADL-GM-Dashboard','FAFL-GM-Dashboard'].includes(job.repo)) {
+    response = UrlFetchApp.fetch(url, {method:'get', muteHttpExceptions:true, followRedirects:false});
+  }
   if (response.getResponseCode() !== 200) {
     throw new Error(job.repo + '/' + job.workflow + ' run history returned HTTP ' +
       response.getResponseCode());
@@ -227,8 +258,9 @@ function cloudWorkflowInFlight_(job, token) {
   return cloudWorkflowInFlightFromRuns_(cloudWorkflowRuns_(job, token, 10));
 }
 
-function cloudPollingCircuitOpen_(job, token, props, now) {
-  const runs = cloudWorkflowRuns_(job, token, CLOUD_SCHEDULER.circuitFailureThreshold);
+function cloudPollingCircuitOpen_(job, token, props, now, observations) {
+  const runs = (observations || cloudWorkflowRuns_(job, token, CLOUD_SCHEDULER.circuitFailureThreshold))
+    .slice(0, CLOUD_SCHEDULER.circuitFailureThreshold);
   if (runs.length < CLOUD_SCHEDULER.circuitFailureThreshold) return false;
   const bad = {failure: true, timed_out: true, startup_failure: true, action_required: true};
   const sha = runs[0].head_sha;
@@ -333,6 +365,10 @@ function dispatchOnce_(job, token, slot, props, overrideInputs) {
   const incidentKey = 'CLOUD_DISPATCH_INCIDENT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
   const receipt = 'CLOUD_SCHEDULER_SENT_' + key.replace(/[^A-Za-z0-9_]/g, '_');
   const slotText = String(slot.getTime());
+  if (Number(props.getProperty('CLOUD_GITHUB_DISPATCH_RETRY_AT')) > Date.now()) {
+    console.log('GitHub rate limit has not reset; dispatch remains unconfirmed.');
+    return false;
+  }
   if (props.getProperty(receipt) === slotText) {
     console.log('Already dispatched ' + key + ' for ' + slot.toISOString());
     return false;
@@ -346,6 +382,7 @@ function dispatchOnce_(job, token, slot, props, overrideInputs) {
     return true;
   } catch (error) {
     if (!error.dispatchFailure) throw error;
+    if (error.retryAt) props.setProperty('CLOUD_GITHUB_DISPATCH_RETRY_AT', String(error.retryAt));
     let incident;
     try { incident = JSON.parse(props.getProperty(incidentKey) || 'null'); } catch (ignored) {}
     if (!incident || !Number.isFinite(incident.firstFailure)) incident = {firstFailure: Date.now(), alerted: false};
@@ -403,9 +440,11 @@ function runCloudLeagueScheduler() {
     const targetWeek = cloudTargetWeek_(now);
     if (pollingWindow) CLOUD_SCHEDULER.polling[pollingWindow].forEach(function(job) {
       try {
-        if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props) &&
-            !cloudPollingCircuitOpen_(job, token, props, now) &&
-            !cloudWorkflowInFlight_(job, token)) attempt(job, intervalSlot);
+        if (!cloudRefreshComplete_(job, pollingWindow, targetWeek, token, props)) {
+          const history = cloudWorkflowRuns_(job, token, Math.max(10, CLOUD_SCHEDULER.circuitFailureThreshold));
+          if (!cloudPollingCircuitOpen_(job, token, props, now, history) &&
+              !cloudWorkflowInFlightFromRuns_(history)) attempt(job, intervalSlot);
+        }
       } catch (error) {
         failures.push(cloudJobKey_(job) + ' receipt check: ' + error.message);
       }

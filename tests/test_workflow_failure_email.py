@@ -6,12 +6,38 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
 import email_workflow_failures as m
 
 
 class FailureReports(unittest.TestCase):
+    def test_public_account_scans_do_not_spend_private_api_quota(self):
+        with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE': 'true', 'PRIVATE_REPORT_TOKEN': 'fixture'}), \
+             patch.dict(m.API_BACKOFF_UNTIL, {}, clear=True), \
+             patch.object(m.mail, 'get_json', return_value={'workflow_runs': []}) as public, \
+             patch.object(m.urllib.request, 'urlopen') as private:
+            self.assertEqual(m.api(m.DAILY_REPO, 'actions/runs'), {'workflow_runs': []})
+        public.assert_called_once()
+        private.assert_not_called()
+
+    def test_rate_limit_stops_one_credential_without_blocking_the_other(self):
+        quota = HTTPError('https://api.github.com/', 403, 'Forbidden',
+                          {'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '1700'}, None)
+        with patch.dict(os.environ, {'PRIVATE_REPORT_TOKEN': 'fixture'}), \
+             patch.dict(m.API_BACKOFF_UNTIL, {}, clear=True), \
+             patch.object(m.mail.time, 'time', return_value=1600), \
+             patch.object(m.mail, 'get_json', return_value={'workflow_runs': []}) as public, \
+             patch.object(m.urllib.request, 'urlopen', side_effect=quota) as private:
+            with self.assertRaisesRegex(RuntimeError, 'rate-limit reset'):
+                m.api(m.GUARDIAN, 'actions/runs')
+            with self.assertRaisesRegex(RuntimeError, 'rate-limit reset'):
+                m.api(m.GUARDIAN, 'contents/data/guardian_coverage.json')
+            self.assertEqual(m.api(m.DAILY_REPO, 'actions/runs'), {'workflow_runs': []})
+        private.assert_called_once()
+        public.assert_called_once()
+
     def test_nov15_startup_runs_and_missed_checks_have_one_reporter_owner(self):
         from datetime import datetime, timezone
         from email_delivery_state import deliver_once

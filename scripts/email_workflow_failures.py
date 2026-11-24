@@ -90,6 +90,7 @@ IMPACT = {
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
 COMPLETED_JOB_EVIDENCE = {}
+API_BACKOFF_UNTIL = {}
 COMMISSIONER = 'TheMathNinja/ADL-Commissioner-Dashboard'
 DAILY_REPO = 'TheMathNinja/ADL-GM-Dashboard'
 DAILY_CHILDREN = {
@@ -192,12 +193,33 @@ PRODUCTION_DISPATCH_NAMES = (
 )
 
 
+def rate_backoff_until(error, now):
+    if error.code not in (403, 429):
+        return None
+    headers = error.headers or {}
+    if error.code == 403 and headers.get('X-RateLimit-Remaining') != '0' and not headers.get('Retry-After'):
+        if not error.fp or b'secondary rate limit' not in error.read(1024).lower():
+            return None
+    for name, base in (('Retry-After', now), ('X-RateLimit-Reset', 0)):
+        try:
+            value = float(headers.get(name, ''))
+            if value >= 0 and value < float('inf'):
+                return max(now + 1, base + value)
+        except (ValueError, TypeError):
+            pass
+    return now + 60
+
+
 def api(repo, path, *, allow_missing=False):
     url = f'https://api.github.com/repos/{repo}' + ('/' + path if path else '')
+    account_repo = os.environ.get('ACCOUNT_FAILURE_COVERAGE') == 'true' and repo not in REPOS
+    route = 'private' if repo == GUARDIAN or account_repo else 'workflow'
+    if API_BACKOFF_UNTIL.get(route, 0) > mail.time.time():
+        raise RuntimeError(f'GitHub {route} API is waiting for its rate-limit reset')
     error = None
     for attempt in range(5):
         try:
-            if repo == GUARDIAN or os.environ.get('ACCOUNT_FAILURE_COVERAGE') == 'true':
+            if route == 'private':
                 token = os.environ.get('PRIVATE_REPORT_TOKEN')
                 if not token:
                     raise RuntimeError('Account/private failure-report coverage credential is unavailable')
@@ -213,12 +235,20 @@ def api(repo, path, *, allow_missing=False):
                     return None
                 raise RuntimeError(f'GitHub resource unavailable: {repo}/{path}')
             return value
-        except (TimeoutError, OSError, http.client.IncompleteRead, json.JSONDecodeError) as exc:
-            if allow_missing and isinstance(exc, urllib.error.HTTPError) and exc.code == 404:
+        except urllib.error.HTTPError as exc:
+            if allow_missing and exc.code == 404:
                 return None
+            reset = rate_backoff_until(exc, mail.time.time())
+            if reset is not None:
+                API_BACKOFF_UNTIL[route] = reset
+                raise RuntimeError(f'GitHub {route} API is waiting for its rate-limit reset') from exc
+            if exc.code not in (408, 500, 502, 503, 504):
+                raise RuntimeError(f'GitHub HTTP {exc.code} reading {repo}/{path}') from exc
             error = exc
-            if attempt < 4:
-                mail.time.sleep(min(8, 2 ** attempt))
+        except (TimeoutError, OSError, http.client.IncompleteRead, json.JSONDecodeError) as exc:
+            error = exc
+        if attempt < 4:
+            mail.time.sleep(min(8, 2 ** attempt))
     raise RuntimeError(f'GitHub API remained unavailable for {repo}/{path}') from error
 
 
@@ -1093,6 +1123,7 @@ def guardian_phase(state, dry, coverage_errors, *, deliver_alerts):
 
 def main():
     COMPLETED_JOB_EVIDENCE.clear()
+    API_BACKOFF_UNTIL.clear()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--deadlines', action='store_true')
