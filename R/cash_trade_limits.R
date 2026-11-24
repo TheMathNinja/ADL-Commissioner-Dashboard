@@ -1,3 +1,5 @@
+source("R/cap_money.R")
+
 adl_net_cash_trade_limit <- function(season = get_current_season()) {
   env_name <- paste0("ADL_NET_CASH_TRADE_LIMIT_", season)
   env_value <- suppressWarnings(as.numeric(Sys.getenv(env_name, unset = NA_character_)))
@@ -35,9 +37,9 @@ summarize_cash_trade_net <- function(saladj_rows) {
     dplyr::group_by(.data$FRAN) |>
     dplyr::summarize(
       conference = dplyr::first(.data$CONF[nzchar(.data$CONF)], default = NA_character_),
-      total_given = round(sum(pmax(.data$cash_amount, 0), na.rm = TRUE), 2),
-      total_acquired = round(sum(pmax(-.data$cash_amount, 0), na.rm = TRUE), 2),
-      net_given = round(sum(.data$cash_amount, na.rm = TRUE), 2),
+      total_given = round_cap_money(sum(pmax(.data$cash_amount, 0), na.rm = TRUE)),
+      total_acquired = round_cap_money(sum(pmax(-.data$cash_amount, 0), na.rm = TRUE)),
+      net_given = round_cap_money(sum(.data$cash_amount, na.rm = TRUE)),
       .groups = "drop"
     ) |>
     dplyr::transmute(
@@ -56,7 +58,7 @@ evaluate_cash_trade_limit <- function(saladj_rows, season = get_current_season()
     dplyr::filter(.data$net_amount > .env$limit + 1e-9) |>
     dplyr::mutate(
       season = as.integer(.env$season),
-      limit = round(.env$limit, 2),
-      overage = round(.data$net_amount - .env$limit, 2)
+      limit = round_cap_money(.env$limit),
+      overage = round_cap_money(.data$net_amount - .env$limit)
     )
 }

@@ -1,4 +1,5 @@
 source("R/cap_accounting_engine.R")
+stopifnot(identical(format_summary_dollars(c(16.065, -16.065, NA_real_)), c("16.07", "-16.07", NA_character_)))
 stopifnot(identical(cap_is_taxi_exempt_status(c("S","(S)","Suspended","H","(H)","Holdout","IR","Out",NA)),c(rep(TRUE,6),rep(FALSE,3))))
 lookup <- data.frame(franchise_id="0001",FRANCHISE="TEST")
 x <- data.frame(franchise_id="0001",roster_status=c(rep("ACTIVE_ROSTER",44),"TAXI_SQUAD","TAXI_SQUAD","INJURED_RESERVE"),inj=c(rep("",44),"Holdout","Suspended","Holdout"),contract_years=2,salary=2)

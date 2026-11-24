@@ -1,5 +1,7 @@
 source("R/inseason_inactivity_monitor.R")
 source("R/emergency_salary_preflight.R")
+source("R/official_july1_snapshot.R")
+stopifnot(identical(round_salary_millions(c(16.065, -16.065, 16.06499999)), c(16.07, -16.07, 16.06)))
 rosters <- tibble(franchise_id = c("0001", "0017"), franchise = c("DAL", "BUF"),
   player_id = c("123", "123"), player_name = "Example", prev_salary = c(0, 7),
   prev_years = c(1, 3), contract = c("2026 UFA", "2024 UFA"))

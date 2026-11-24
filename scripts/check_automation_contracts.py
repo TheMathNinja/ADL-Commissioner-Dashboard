@@ -242,6 +242,14 @@ def main() -> int:
     else:
         errors.append('Every league repository must install the shared MFL NFL team contract')
 
+    if set(roots) == required:
+        cap_money = [roots[repo] / "R" / "cap_money.R" for repo in
+                     ("ADL-Commissioner-Dashboard", "ADL-GM-Dashboard")]
+        if not all(path.is_file() for path in cap_money) or len({
+            path.read_text(encoding="utf-8") for path in cap_money
+        }) != 1:
+            errors.append("ADL salary-cap rounding helper must match in Commissioner and GM repositories")
+
     # Reject encoding damage before any helper attempts to parse the same file.
     for repo, root in roots.items():
         for path in root.glob('.github/workflows/*.yml'):

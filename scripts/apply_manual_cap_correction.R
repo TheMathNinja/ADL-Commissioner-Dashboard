@@ -2,6 +2,7 @@
 # Contract Admin's Cap Rollover tab. Corrections are idempotent by audit key.
 
 source("R/config_helpers.R")
+source("R/cap_money.R")
 
 arg_value <- function(name, default = NULL) {
   args <- commandArgs(trailingOnly = TRUE)
@@ -26,7 +27,7 @@ parse_corrections <- function(value) {
   rows <- lapply(pieces, function(piece) {
     fields <- strsplit(trimws(piece), ":", fixed = TRUE)[[1]]
     if (length(fields) != 2L) stop("Invalid correction: ", piece)
-    amount <- suppressWarnings(as.numeric(fields[[2]]))
+    amount <- suppressWarnings(round_cap_money(fields[[2]]))
     if (!nzchar(fields[[1]]) || !is.finite(amount) || amount == 0) stop("Invalid correction: ", piece)
     data.frame(FRANCHISE = toupper(trimws(fields[[1]])), amount = amount, stringsAsFactors = FALSE)
   })
@@ -127,9 +128,9 @@ if (apply_files) {
       rds_current <- suppressWarnings(as.numeric(summary_rds_data[[corr_col]][[rds_row]]))
       if (is.na(csv_current)) csv_current <- 0
       if (is.na(rds_current)) rds_current <- 0
-      csv_fields[[corr_index]] <- sprintf("%.2f", csv_current + amount)
+      csv_fields[[corr_index]] <- sprintf("%.2f", round_cap_money(csv_current + amount))
       csv_lines[[csv_row]] <- paste(csv_fields, collapse = ",")
-      summary_rds_data[[corr_col]][[rds_row]] <- rds_current + amount
+      summary_rds_data[[corr_col]][[rds_row]] <- round_cap_money(rds_current + amount)
       writeLines(csv_lines, summary_csvs[[j]], useBytes = TRUE)
       saveRDS(summary_rds_data, summary_rdss[[j]])
     }

@@ -6,6 +6,7 @@ library(tibble)
 
 source("R/config_helpers.R")
 source("R/mfl_helpers.R")
+source("R/cap_money.R")
 
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
@@ -307,9 +308,7 @@ is_eft_contract <- function(contract_info) {
     !str_detect(coalesce(contract_info, ""), regex("\\bNEFT\\b", ignore_case = TRUE))
 }
 
-round_salary_millions <- function(x) {
-  round(as.numeric(x) + 1e-9, 2)
-}
+round_salary_millions <- round_cap_money
 
 apply_july1_eft_salaries <- function(roster, season) {
   base <- roster |>

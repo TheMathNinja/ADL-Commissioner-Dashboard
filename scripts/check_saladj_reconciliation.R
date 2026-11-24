@@ -12,6 +12,7 @@ source("R/commissioner_alerts.R")
 source("R/saladj_contract_admin.R")
 source("R/saladj_notification_policy.R")
 source("R/saladj_action_report.R")
+source("R/cap_money.R")
 
 
 arg_value <- function(name, default = NULL) {
@@ -27,14 +28,7 @@ arg_flag <- function(name) {
 }
 
 
-round_saladj_cents <- function(amount) {
-  cents <- abs(amount) * 100
-  whole <- floor(cents)
-  fraction <- cents - whole
-  # Match Sheets ROUND, allowing for binary arithmetic at the half-cent boundary.
-  tie_slack <- 2 * .Machine$double.eps * pmax(1, cents)
-  sign(amount) * (whole + (fraction >= 0.5 - tie_slack)) / 100
-}
+round_saladj_cents <- round_cap_money
 
 
 derive_saladj_penalty_amount <- function(salary, years, is_pre_july_1, is_trade_or_ib, is_fg,

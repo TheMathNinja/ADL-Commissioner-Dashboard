@@ -13,6 +13,7 @@ library(tibble)
 
 source("R/config_helpers.R")
 source("R/mfl_helpers.R")
+source("R/cap_money.R")
 
 salary_thresholds <- tibble::tribble(
   ~season, ~adl_veteran_min,
@@ -39,19 +40,13 @@ waiver_correction_columns <- c(
 )
 
 format_salary_dollars <- function(x) {
-  dplyr::if_else(
-    is.na(suppressWarnings(as.numeric(x))),
-    NA_character_,
-    paste0("$", sprintf("%.2f", suppressWarnings(as.numeric(x))))
-  )
+  value <- suppressWarnings(round_cap_money(x))
+  dplyr::if_else(is.na(value), NA_character_, paste0("$", sprintf("%.2f", value)))
 }
 
 format_summary_dollars <- function(x) {
-  dplyr::if_else(
-    is.na(suppressWarnings(as.numeric(x))),
-    NA_character_,
-    sprintf("%.2f", suppressWarnings(as.numeric(x)))
-  )
+  value <- suppressWarnings(round_cap_money(x))
+  dplyr::if_else(is.na(value), NA_character_, sprintf("%.2f", value))
 }
 
 get_cap_veteran_min <- function(current_season) {
@@ -770,6 +765,7 @@ build_cap_accounting_snapshot <- function(
     dplyr::left_join(sal_adj_summary, by = "franchise_id") %>%
     dplyr::mutate(
       Adj = dplyr::coalesce(.data$Adj, 0),
+      dplyr::across(dplyr::all_of(c("Vac$", "RostSal", "Adj")), round_cap_money),
       Corr = NA_real_,
       Final = NA_real_
     ) %>%

@@ -102,7 +102,7 @@ fetch_mfl_salary_cap_adjustments <- function(season = get_current_season()) {
     ) |>
     group_by(.data$franchise_id) |>
     summarize(
-      salary_cap_adjustments = round(sum(.data$amount, na.rm = TRUE), 2),
+      salary_cap_adjustments = round_cap_money(sum(.data$amount, na.rm = TRUE)),
       adjustment_count = n(),
       .groups = "drop"
     )
@@ -864,10 +864,9 @@ current_cap_accounting_expenditure <- function(rosters, season = get_current_sea
   current <- roster_tbl |>
     group_by(.data$conference, .data$franchise, .data$franchise_name) |>
     summarize(
-      live_salary = round(
+      live_salary = round_cap_money(
         sum(.data$salary_num, na.rm = TRUE) -
-          sum(if_else(.data$is_taxi_suspended, .data$salary_num, 0), na.rm = TRUE),
-        2
+          sum(if_else(.data$is_taxi_suspended, .data$salary_num, 0), na.rm = TRUE)
       ),
       franchise_salary_cap = suppressWarnings(max(as.numeric(.data$franchise_salary_cap), na.rm = TRUE)),
       .groups = "drop"
@@ -894,7 +893,7 @@ current_cap_accounting_expenditure <- function(rosters, season = get_current_sea
         .data$franchise_salary_cap
       ),
       live_adjustments = coalesce(.data$live_adjustments, 0),
-      live_accounting_salary = round(.data$live_salary + .data$live_adjustments, 2)
+      live_accounting_salary = round_cap_money(.data$live_salary + .data$live_adjustments)
     )
 }
 
@@ -929,7 +928,7 @@ evaluate_salary_cap_average_warnings <- function(
       tibble(
         franchise = as.character(row$FRANCHISE[[1]]),
         completed_snapshots = length(completed),
-        cumulative_spending = round(sum(completed, na.rm = TRUE), 2),
+        cumulative_spending = round_cap_money(sum(completed, na.rm = TRUE)),
         last_average_spending = if (length(completed)) round(mean(completed, na.rm = TRUE), 2) else NA_real_
       )
     }))
@@ -940,9 +939,9 @@ evaluate_salary_cap_average_warnings <- function(
     mutate(
       completed_snapshots = coalesce(.data$completed_snapshots, 0L),
       cumulative_spending = coalesce(.data$cumulative_spending, 0),
-      projected_average = round((.data$cumulative_spending + .data$live_accounting_salary) / (.data$completed_snapshots + 1), 2),
-      required_live_salary = round(.data$franchise_salary_cap * (.data$completed_snapshots + 1) - .data$cumulative_spending, 2),
-      projected_overage = round(.data$projected_average - .data$franchise_salary_cap, 2)
+      projected_average = round_cap_money((.data$cumulative_spending + .data$live_accounting_salary) / (.data$completed_snapshots + 1)),
+      required_live_salary = round_cap_money(.data$franchise_salary_cap * (.data$completed_snapshots + 1) - .data$cumulative_spending),
+      projected_overage = round_cap_money(.data$projected_average - .data$franchise_salary_cap)
     ) |>
     filter(.data$projected_overage > 0) |>
     transmute(
@@ -998,7 +997,7 @@ evaluate_salary_cap_alerts <- function(
     slice_head(n = top_n) |>
     summarize(
       top_salary_count = n(),
-      top_salary_total = round(sum(.data$prev_salary, na.rm = TRUE), 2),
+      top_salary_total = round_cap_money(sum(.data$prev_salary, na.rm = TRUE)),
       franchise_salary_cap = coalesce(
         suppressWarnings(max(as.numeric(.data$franchise_salary_cap), na.rm = TRUE)),
         .env$cap
@@ -1023,8 +1022,8 @@ evaluate_salary_cap_alerts <- function(
     mutate(
       franchise_salary_cap = if_else(is.infinite(.data$franchise_salary_cap), .env$cap, .data$franchise_salary_cap),
       salary_cap_adjustments = coalesce(.data$salary_cap_adjustments, 0),
-      final_expenditure = round(.data$top_salary_total + .data$salary_cap_adjustments, 2),
-      overage = round(.data$final_expenditure - .data$franchise_salary_cap, 2)
+      final_expenditure = round_cap_money(.data$top_salary_total + .data$salary_cap_adjustments),
+      overage = round_cap_money(.data$final_expenditure - .data$franchise_salary_cap)
     ) |>
     filter(.data$overage > 0) |>
     transmute(
