@@ -268,7 +268,16 @@ class SchedulingTests(unittest.TestCase):
         self.assertIn("cron: '2-59/5 * * 9-12,1 *'", backup)
         self.assertIn('scripts/guardian_fallback.py', backup)
         self.assertIn('scripts/guardian_fallback.py --live', reporter)
-        self.assertIn('name: Report failed league dependencies independently of publication\n        if: always()', reporter)
+        guardian, tests, delivery = (reporter.index('name: ' + name) for name in (
+            'Assess Guardian coverage and deliver Guardian alerts independently',
+            'Test failure gating and owner-only delivery',
+            'Report failed league dependencies independently of publication'))
+        self.assertLess(guardian, tests)
+        self.assertLess(tests, delivery)
+        self.assertIn('!cancelled()', reporter[guardian:tests])
+        self.assertIn('--guardian-only', reporter[guardian:tests])
+        self.assertIn("steps.delivery_tests.outcome == 'success'", reporter[delivery:])
+        self.assertIn('--skip-guardian-delivery', reporter[delivery:])
         self.assertNotIn('repository: TheMathNinja/Chicago-Bears-Lineup-Guardian', backup)
 
 

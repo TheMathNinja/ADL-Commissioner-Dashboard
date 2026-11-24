@@ -35,8 +35,25 @@ jobs:
           GUARDIAN_BASIC_OWNER: ${{ vars.GUARDIAN_BASIC_OWNER }}
           GUARDIAN_COALESCE_BACKGROUND: ${{ vars.PRIVATE_DISCRETIONARY_ACTIONS == 'paused' && 'true' || 'false' }}
         run: python3 scripts/guardian_fallback.py --live
+      - name: Assess Guardian coverage and deliver Guardian alerts independently
+        id: guardian_safety
+        if: ${{ !cancelled() && inputs.dry_run != true && inputs.verify_coverage != true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
+          GUARDIAN_ALERT_OWNER: ${{ vars.GUARDIAN_ALERT_OWNER }}
+          GUARDIAN_COVERAGE_RUNNER: ${{ vars.GUARDIAN_COVERAGE_RUNNER }}
+          GUARDIAN_BASIC_OWNER: ${{ vars.GUARDIAN_BASIC_OWNER }}
+          CHI_SITE_SERVICE_TOKEN: ${{ secrets.CHI_SITE_SERVICE_TOKEN }}
+          WEEKLY_REPORT_EMAIL_TO: fili.mikey@gmail.com
+          ADL_ALERT_EMAIL_FROM: ${{ secrets.ADL_ALERT_EMAIL_FROM }}
+          ADL_SMTP_SERVER: ${{ secrets.ADL_SMTP_SERVER }}
+          ADL_SMTP_USERNAME: ${{ secrets.ADL_SMTP_USERNAME }}
+          ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
+        run: python3 scripts/email_workflow_failures.py --guardian-only
       - name: Test failure gating and owner-only delivery
-        if: always()
+        id: delivery_tests
+        if: ${{ !cancelled() }}
         run: |
           python3 -m unittest discover -s tests -p test_workflow_failure_email.py -v
           python3 -m unittest discover -s tests -p test_mfl_potential_warning.py -v
@@ -48,7 +65,7 @@ jobs:
           python3 -m unittest discover -s tests -p test_actions_budget.py -v
           python3 -m unittest discover -s tests -p test_forecast_request_monitor.py -v
       - name: Report failed league dependencies independently of publication
-        if: always()
+        if: ${{ !cancelled() && steps.delivery_tests.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
           PRIVATE_REPORT_TOKEN: ${{ secrets.WEEKLY_ORCHESTRATION_TOKEN }}
@@ -72,8 +89,9 @@ jobs:
           ADL_SMTP_PASSWORD: ${{ secrets.ADL_SMTP_PASSWORD }}
           DRY_RUN: ${{ inputs.dry_run }}
           VERIFY_COVERAGE: ${{ inputs.verify_coverage }}
+          GUARDIAN_SAFETY_PHASE_OUTCOME: ${{ steps.guardian_safety.outcome }}
         run: |
-          args=(--deadlines)
+          args=(--deadlines --skip-guardian-delivery)
           if [ "$VERIFY_COVERAGE" = true ]; then
             python3 scripts/email_workflow_failures.py --verify-coverage
             exit 0

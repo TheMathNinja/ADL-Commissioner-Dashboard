@@ -643,6 +643,31 @@ def recovery_scope(repo, run):
     return scope
 
 
+def repair_disposition(repo, run, history, now):
+    """Wait for bounded, equivalent retry work; never replay an unknown writer."""
+    ended = datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00'))
+    result = 'no_safe_retry'
+    for candidate in history:
+        same_run = candidate.get('id') == run.get('id')
+        if not same_run and run.get('_account_report'):
+            continue  # The inputs of a generic account dispatch are unknown.
+        if candidate.get('path') != run.get('path') or recovery_scope(repo, candidate) != recovery_scope(repo, run):
+            continue
+        if same_run:
+            if candidate.get('run_attempt', 1) <= run.get('run_attempt', 1):
+                continue
+        elif candidate.get('created_at', '') <= run['updated_at'] or not production(candidate):
+            continue
+        if candidate.get('status') != 'completed':
+            if now - ended < timedelta(minutes=30):
+                return 'pending'
+            if result == 'no_safe_retry':
+                result = 'retry_deadline'
+        else:
+            result = 'retry_unverified'
+    return result
+
+
 def guardian_operational_run(run):
     filename = PurePosixPath(run.get('path', '')).name
     title = {'guardian.yml': 'Chicago Bears Lineup Guardian',
@@ -1037,12 +1062,44 @@ def read_gameday_incidents(coverage_errors):
     return active
 
 
+def guardian_phase(state, dry, coverage_errors, *, deliver_alerts):
+    if os.environ.get('GUARDIAN_ALERT_OWNER') != 'commissioner-v1':
+        return None
+    try:
+        if deliver_alerts and os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1':
+            from guardian_health_monitor import refresh
+            coverage = refresh(api, datetime.now(timezone.utc), dry=dry)
+        else:
+            from guardian_health_monitor import decode, STATE
+            coverage = decode(api(GUARDIAN, 'contents/' + STATE + '?ref=main'))
+        validate_coverage(coverage, datetime.now(timezone.utc))
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+        coverage_errors.append('Guardian coverage: ' + str(error))
+        return None
+    if deliver_alerts:
+        try:
+            report_missing_checks(coverage, state, dry, mail.deliver_once, save, mail.send_email)
+            if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+                from guardian_basic import report
+                from guardian_phone import send_for_pending
+                token = os.environ.get('CHI_SITE_SERVICE_TOKEN', '')
+                phone = (lambda pending, now: send_for_pending(pending, now, token)) if token else None
+                report(api, datetime.now(timezone.utc), state, dry, mail.deliver_once, save, mail.send_email,
+                       phone=phone)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            coverage_errors.append('Guardian incident delivery: ' + type(error).__name__)
+    return coverage
+
+
 def main():
     COMPLETED_JOB_EVIDENCE.clear()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--deadlines', action='store_true')
     parser.add_argument('--verify-coverage', action='store_true')
+    phases = parser.add_mutually_exclusive_group()
+    phases.add_argument('--guardian-only', action='store_true')
+    phases.add_argument('--skip-guardian-delivery', action='store_true')
     args = parser.parse_args()
     if os.environ.get('WEEKLY_REPORT_EMAIL_TO') != OWNER:
         raise ValueError('Failure reports must be addressed only to ' + OWNER)
@@ -1064,6 +1121,11 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
+    if args.guardian_only:
+        guardian_phase(state, args.dry_run, coverage_errors, deliver_alerts=True)
+        if coverage_errors:
+            raise RuntimeError('; '.join(coverage_errors))
+        return  # The independent ordinary reporter receipt cannot be stamped here.
     now = datetime.now(timezone.utc)
     if inspect_gameday('ADL', {}, now) is not None:
         receipts = read_gameday_incidents(coverage_errors)
@@ -1074,31 +1136,10 @@ def main():
             report_warning(state, args.dry_run, mail.document, mail.deliver_once, save, mail.send_email)
         except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
             coverage_errors.append('MFL potential warning delivery: ' + type(error).__name__)
-    shared_coverage = None
-    if os.environ.get('GUARDIAN_ALERT_OWNER') == 'commissioner-v1':
-        try:
-            if os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1':
-                from guardian_health_monitor import refresh
-                shared_coverage = refresh(api, datetime.now(timezone.utc), dry=args.dry_run)
-            else:
-                value = api(GUARDIAN, 'contents/data/guardian_coverage.json?ref=main')
-                shared_coverage = json.loads(base64.b64decode(value['content']))
-            validate_coverage(shared_coverage, datetime.now(timezone.utc))
-        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
-            shared_coverage = None
-            coverage_errors.append('Guardian coverage: ' + str(error))
-    if shared_coverage:
-        try:
-            report_missing_checks(shared_coverage, state, args.dry_run, mail.deliver_once, save, mail.send_email)
-            if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
-                from guardian_basic import report
-                from guardian_phone import send_for_pending
-                token = os.environ.get('CHI_SITE_SERVICE_TOKEN', '')
-                phone = (lambda pending, now: send_for_pending(pending, now, token)) if token else None
-                report(api, datetime.now(timezone.utc), state, args.dry_run, mail.deliver_once, save, mail.send_email,
-                       phone=phone)
-        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
-            coverage_errors.append('Guardian incident delivery: ' + type(error).__name__)
+    shared_coverage = guardian_phase(state, args.dry_run, coverage_errors,
+                                     deliver_alerts=not args.skip_guardian_delivery)
+    if args.skip_guardian_delivery and os.environ.get('GUARDIAN_SAFETY_PHASE_OUTCOME') == 'failure':
+        coverage_errors.append('Guardian safety phase did not complete')
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
         try:
             from actions_budget import review
@@ -1396,9 +1437,17 @@ def main():
                     failed = available
                     if not failed:
                         continue  # Not delivered or acknowledged; keep the safety net visible.
+                repair = repair_disposition(repo, run, history, datetime.now(timezone.utc))
+                if repair == 'pending':
+                    continue  # Re-evaluate completed work and exact recovery on the next scan.
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
                 subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
+                body += '\n\nRecovery check: ' + {
+                    'retry_unverified': 'a matching retry completed, but the failed work is still unverified.',
+                    'retry_deadline': 'a matching retry did not verify recovery before the notification deadline.',
+                    'no_safe_retry': 'no safe automatic replay was available; please review the failed checks.',
+                }[repair]
                 body += recurring_failure_context(state, repo, run, failed, codes)
                 if child:
                     body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
@@ -1430,7 +1479,8 @@ def main():
                         continue
                 state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
                                       'subject': subject, 'incident_key': incident, 'scope': scope,
-                                      'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,'failed_at':run['updated_at']}
+                                      'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,
+                                      'failed_at':run['updated_at'], 'repair_disposition':repair}
                 if child:
                     state['sent'][key].update(daily_parent=child[0],daily_job=child[1][1])
                 if audit_parent:

@@ -20,6 +20,20 @@ own. New fixes and anything that could change functionality, run with elevated
 permissions, or replay business writes require review. No model or bot has
 been granted production write access as a result of this integration.
 
+Guardian's safety phase runs independently of the ordinary email tests, using
+the same serialized workflow and delivery ledger. Only the ordinary phase
+can record a successful reporter heartbeat, and only after the delivery tests
+pass. A Guardian safety phase failure also makes the whole scan unhealthy.
+
+The independent timer uses completion receipts, not dispatch acceptance. It
+coalesces recent or queued ordinary work outside protected kickoff windows,
+and preserves attempts when kickoff evidence is missing. A prolonged outage
+claims one notification. A fresh read does not rearm it: both receipts must
+advance during at least ten minutes of recovery without another stale read.
+Ordinary incidents wait up to thirty minutes for a matching in-flight retry.
+The escalation states whether the retry did not verify recovery or no safe
+automatic replay was available.
+
 Before retiring the desktop schedule, verify the normal reporter on the exact
 release, all four repository reads, exact Guardian completion and missed-check
 handling, scrape freshness, and the separately scheduled Apps Script health

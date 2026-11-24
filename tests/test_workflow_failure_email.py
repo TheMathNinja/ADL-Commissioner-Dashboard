@@ -321,6 +321,30 @@ class FailureReports(unittest.TestCase):
         self.assertIn('contents: write', permissions)
         self.assertIn('actions: read', permissions)
 
+    def test_guardian_phase_does_not_run_general_reports_or_publish_reporter_heartbeat(self):
+        state = {'sent': {}, 'checked': {}}
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER, 'GITHUB_REPOSITORY': m.COMMISSIONER}), \
+             patch.object(sys, 'argv', ['report', '--guardian-only']), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m, 'guardian_phase') as guardian, patch.object(m, 'runs') as runs, \
+             patch.object(m, 'save') as save:
+            m.main()
+        guardian.assert_called_once_with(state, False, [], deliver_alerts=True)
+        runs.assert_not_called()
+        save.assert_not_called()
+        self.assertNotIn('healthyAt', state)
+
+    def test_pending_retry_is_bounded_and_ignores_unrelated_dispatch(self):
+        repo = m.REPOS[1]
+        ended = m.datetime.fromisoformat(self.run['updated_at'].replace('Z', '+00:00'))
+        retry = dict(self.run, run_attempt=2, status='in_progress')
+        unrelated = dict(retry, id=2, path='.github/workflows/other.yml')
+        self.assertEqual(m.repair_disposition(repo, self.run, [unrelated], ended), 'no_safe_retry')
+        self.assertEqual(m.repair_disposition(repo, self.run, [retry], ended+m.timedelta(minutes=29)), 'pending')
+        self.assertEqual(m.repair_disposition(repo, self.run, [retry], ended+m.timedelta(minutes=30)), 'retry_deadline')
+        completed = dict(retry, status='completed', conclusion='failure')
+        self.assertEqual(m.repair_disposition(repo, self.run, [completed], ended+m.timedelta(minutes=20)), 'retry_unverified')
+
     def test_independent_timer_owns_reporter_outages_even_with_account_coverage(self):
         reporter_path = '.github/workflows/email_workflow_failures.yml'
         self_failures = [
