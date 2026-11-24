@@ -71,6 +71,10 @@ def playoff_browser_errors(adl: Path, fafl: Path) -> list[str]:
     errors = []
     if pins[0] != pins[1] or not re.fullmatch(r'playwright==\d+\.\d+\.\d+', pins[0]):
         errors.append('ADL and FAFL must use the same exact Playwright pin')
+    setup = 'scripts/prepare_playoff_browser.py'
+    installers = [root / setup for root in (adl, fafl)]
+    if not all(path.is_file() for path in installers) or len({path.read_text(encoding='utf-8') for path in installers}) != 1:
+        errors.append('ADL and FAFL must use the same launch-tested headless Chromium installer')
     for root, workflow in ((adl, 'refresh_extension_calculator.yml'), (fafl, 'refresh.yml')):
         source = (root / '.github/workflows' / workflow).read_text(encoding='utf-8')
         steps = re.split(r'^      - ', source, flags=re.MULTILINE)
@@ -81,7 +85,7 @@ def playoff_browser_errors(adl: Path, fafl: Path) -> list[str]:
         published = next((i for i, step in enumerate(steps) if local + ' --live-url ' in step), -1)
         if (not 0 < browser < elo < generated < published
                 or ('pip install -r ' + dependency) not in steps[browser]
-                or 'playwright install --with-deps chromium' not in steps[browser]):
+                or ('python ' + setup) not in steps[browser]):
             errors.append(f'{workflow} must install the shared browser before live Elo writes and verify generated and published pages')
     return errors
 
