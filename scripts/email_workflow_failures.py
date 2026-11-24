@@ -854,6 +854,47 @@ def read_gameday_snapshot(league, now):
     with urllib.request.urlopen(req, timeout=8) as response:
         return json.load(response)
 
+def confirmed_final_display_problem(snapshot):
+    """Require an upstream final matched by NFL team and scheduled kickoff."""
+    import urllib.request
+    from datetime import datetime
+    from nfl_teams import mfl_team
+
+    candidates = [
+        player for team in snapshot.get('teams', [])
+        for player in team.get('starters', []) + team.get('bench', [])
+        if str(player.get('gameStatus', '')).startswith('Awaiting')
+        or any(score.get('possession') for score in player.get('nflScoreboard') or [])
+    ]
+    candidates = [p for p in candidates if isinstance(p.get('kickoff'), (int,float))]
+    if not candidates:
+        return None
+    season, week = int(snapshot['season']), int(snapshot['week'])
+    url = ('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'
+           f'?dates={season}&week={week}&seasontype=2')
+    request = urllib.request.Request(url, headers={'User-Agent':'Gameday-health-checker'})
+    with urllib.request.urlopen(request, timeout=5) as response:
+        events = json.load(response)['events']
+    for event in events:
+        if event.get('season', {}).get('year') != season:
+            continue
+        for game in event.get('competitions', []):
+            status = game.get('status', {})
+            kind = status.get('type', {})
+            if (kind.get('state') != 'post' or kind.get('completed') is not True
+                    or status.get('clock') != 0):
+                continue
+            codes = [mfl_team(t['team']['abbreviation']) for t in game.get('competitors', [])]
+            if len(set(codes)) != 2:
+                continue
+            kickoff = datetime.fromisoformat(game['date'].replace('Z','+00:00')).timestamp()
+            if any(mfl_team(p.get('nflTeam')) in codes and
+                   abs(kickoff-p['kickoff']) <= 3600 for p in candidates):
+                return ('NFL scoreboard confirms a final for ' + ' / '.join(sorted(codes))
+                        + ', but Gameday still shows an awaiting status or possession.')
+    return None
+
+
 def inspect_gameday(league, snapshot, now):
     local = now.astimezone(GAMEDAY_EASTERN)
     weekday, minute = local.weekday(), local.hour * 60 + local.minute
@@ -870,6 +911,9 @@ def inspect_gameday(league, snapshot, now):
         return None
     if snapshot.get('complete'):
         return None
+    final_issue = confirmed_final_display_problem(snapshot)
+    if final_issue:
+        return final_issue
     timestamp = datetime.fromisoformat(snapshot['fetchedAt'].replace('Z','+00:00'))
     if (now - timestamp).total_seconds() >= MAX_AGE_SECONDS:
         return 'The live snapshot is stale.'
