@@ -41,7 +41,7 @@ render_saladj_action_report <- function(plan, all_rows, season, archive_filename
     unlist(lapply(seq_len(nrow(findings)), function(i) format_checker_finding(findings[i, ])))
   }
   entry_lines <- if (!nrow(plan$entries)) "None outstanding." else c(
-    "Enter these missing source contracts in Contract Admin and verify the calculated adjustment. Compare with MFL first: add only missing adjustments, correct incorrect existing entries, and never enter a duplicate. After confirming MFL, mark ENTD?. Contract salary below is not the penalty amount.",
+    "Enter these missing source contracts in Contract Admin and verify the calculated adjustment.",
     unlist(lapply(seq_len(nrow(plan$entries)), function(i) c(
       if (plan$entry_new[[i]]) "New entry request:" else "Previously reported; still outstanding:",
       format_saladj_digest_row(plan$entries[i, , drop = FALSE])
