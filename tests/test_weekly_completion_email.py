@@ -171,6 +171,31 @@ class CompletionEmailTest(unittest.TestCase):
         self.assertTrue(any('2 unresolved checks, including 2 solver timeouts/cancellations' in s for s in notes))
         self.assertFalse(any('SECRET_' in s or 'Test refresh safety' in s for s in notes))
 
+    def test_adl_fresh_direct_mfl_is_not_confused_with_cached_workbook_inputs(self):
+        receipt = dict(self.receipt, status='success', player_score_digest='a'*64,
+                       player_scores_captured_at='2026-09-29T04:31:00Z',
+                       player_scores_verified_at='2026-09-29T04:39:00Z')
+        starts = ('04:31:00', '04:33:00', '04:35:00', '04:39:00')
+        steps = [dict(name=name, conclusion='success', started_at=f'2026-09-29T{a}Z',
+                      completed_at=f'2026-09-29T{b}Z')
+                 for name, a, b in zip(('Scrape the shared weekly score source',
+                        'Validate the shared MFL snapshot', 'Refresh Extension Calculator data'), starts, starts[1:])]
+        job = dict(self.job, id=1234, steps=steps)
+        log = ('2026-09-29T04:32:00Z ffscrapr::ff_playerscores() failed; falling back to raw MFL playerScores endpoint: rule parse\n'
+               '2026-09-29T04:36:00Z Contract Admin export is unavailable; preserving published fallback inputs.')
+        rows = [dict(run_id=receipt['run_id'], component=k, status='success', score_status='unofficial')
+                for k in reliability.COMPONENTS['ADL']]
+        proof = dict(season=receipt['season'], week=receipt['week'], complete=True, queries=[dict(status='proved')])
+        def inspect(pinned):
+            return reliability.inspect_refresh('ADL', receipt, self.run, [job],
+                lambda _: [{'sha': 'a'*40}], lambda _: pinned, lambda _: rows, lambda _: proof, lambda _: log)
+        self.assertEqual(inspect(receipt), [
+            'Weekly refresh / Refresh Extension Calculator data: Contract Admin EXT inputs could not be verified; prior workbook inputs retained (1 log messages).'])
+        self.assertTrue(any('Scrape the shared weekly score source' in line
+                            for line in inspect(dict(receipt, player_score_digest='b'*64))))
+        steps[1]['conclusion'] = 'skipped'
+        self.assertTrue(any('Scrape the shared weekly score source' in line for line in inspect(receipt)))
+
     def test_missing_reliability_evidence_is_visible_for_fafl(self):
         receipt = dict(self.receipt, league_id='22686')
         def fail(*args):

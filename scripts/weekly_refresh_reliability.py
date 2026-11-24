@@ -57,7 +57,7 @@ def fetch_job_log(repo, job_id):
     return payload.decode('utf-8-sig', errors='replace')
 
 
-def log_findings(text, steps):
+def log_findings(text, steps, verified_live_scores=False):
     windows = sorted((s['started_at'][:19], s['completed_at'][:19], s['name'])
                      for s in steps if s.get('started_at') and s.get('completed_at')
                      and s['started_at'] != s['completed_at'])
@@ -92,6 +92,14 @@ def log_findings(text, steps):
         match = CLINCH_LINE.search(content)
         if match:
             clinch_peak = max(clinch_peak, int(match[1]))
+            continue
+        if (verified_live_scores and step == 'Scrape the shared weekly score source'
+                and content.startswith('ffscrapr::ff_playerscores() failed; falling back to raw MFL playerScores endpoint:')):
+            continue  # A verified direct fetch is not retained or stale data.
+        if step == 'Refresh Extension Calculator data' and content.startswith((
+                'Contract Admin export is unavailable; preserving published fallback inputs.',
+                'Contract Admin EXT export could not be verified; preserving published fallback inputs.')):
+            findings[step, 'Contract Admin EXT inputs could not be verified; prior workbook inputs retained'] += 1
             continue
         for label, pattern in LOG_SIGNALS:
             if pattern.search(content):
@@ -156,6 +164,7 @@ def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_componen
     notes = []
     checked_jobs = set()
     weekly_clinch_peak = 0
+    verified_live_scores = False
 
     def review_jobs(items, scope):
         nonlocal weekly_clinch_peak
@@ -175,7 +184,10 @@ def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_componen
                 continue
             checked_jobs.add(job.get('id'))
             try:
-                findings, peak = log_findings(read_log(job['id']), job['steps'])
+                passed = {step['name'] for step in job.get('steps', []) if step.get('conclusion') == 'success'}
+                direct_scores = (league == 'ADL' and scope == 'Weekly refresh' and verified_live_scores
+                                 and {'Scrape the shared weekly score source', 'Validate the shared MFL snapshot'} <= passed)
+                findings, peak = log_findings(read_log(job['id']), job['steps'], direct_scores)
             except UNAVAILABLE:
                 notes.append(f'{scope} / {name}: job logs or step evidence unavailable. '
                              'Warnings and timeouts could not be fully checked.')
@@ -186,8 +198,6 @@ def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_componen
                 weekly_clinch_peak = max(weekly_clinch_peak, peak)
             elif peak:
                 notes.append(f'{scope} / Playoff clinching: up to {peak} unresolved checks in this job.')
-
-    review_jobs(jobs, 'Weekly refresh')
 
     certificate_verified = False
     try:
@@ -201,6 +211,10 @@ def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_componen
         notes.append('Publication evidence could not be matched to this refresh. '
                      'Component and clinch reliability are unverified.')
     else:
+        fields = ('player_score_digest', 'player_scores_captured_at', 'player_scores_verified_at')
+        verified_live_scores = (pinned.get('status') == 'success'
+            and bool(re.fullmatch(r'[a-f0-9]{64}', pinned.get('player_score_digest') or ''))
+            and all(pinned.get(k) and pinned[k] == receipt.get(k) for k in fields))
         try:
             notes.extend(component_notes(read_components(ref), league, receipt))
         except UNAVAILABLE:
@@ -211,6 +225,7 @@ def inspect_refresh(league, receipt, run, jobs, api, read_receipt, read_componen
             notes.extend(findings)
         except UNAVAILABLE:
             notes.append('Run-matched clinch certificate unavailable. Clinch and elimination reliability is unverified.')
+    review_jobs(jobs, 'Weekly refresh')
     if weekly_clinch_peak and not certificate_verified:
         notes.append(f'Weekly refresh / Playoff clinching: the job log recorded up to '
                      f'{weekly_clinch_peak} unresolved checks during this refresh.')
