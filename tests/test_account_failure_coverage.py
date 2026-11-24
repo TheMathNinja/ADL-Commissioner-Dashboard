@@ -17,6 +17,7 @@ import email_workflow_failures as m
 class AccountCoverage(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(m, 'read_gameday_health', return_value={'incidents': []}))
+        self.enterContext(patch.object(m, 'check_gameday_direct'))
 
     def run_record(self, **changes):
         return dict(dict(id=42, workflow_id=123, path='.github/workflows/daily-values.yml',

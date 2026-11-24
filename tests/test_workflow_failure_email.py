@@ -81,6 +81,7 @@ class FailureReports(unittest.TestCase):
 
     def setUp(self):
         self.enterContext(patch.object(m, 'read_gameday_health', return_value={'incidents': []}))
+        self.enterContext(patch.object(m, 'check_gameday_direct'))
         self.run = dict(id=1, run_attempt=1, workflow_id=10, path='.github/workflows/refresh.yml',
                         head_branch='main', event='workflow_dispatch', status='completed', conclusion='failure',
                         name='Official FAFL Weekly League Update',
@@ -618,30 +619,58 @@ class GamedayReports(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Invalid Gameday health receipt'):
                 m.read_gameday_health(m.DAILY_REPO)
 
-    def test_failed_feed_does_not_hide_other_league_or_repeat_its_email(self):
-        state, errors = {'sent': {}}, []
-        key = 'gameday:FAFL:' + self.incident['openedAt']
-        with patch.object(m, 'read_gameday_health', side_effect=[
-                TimeoutError(), {'incidents': [self.incident]},
-                {'incidents': []}, {'incidents': [dict(self.incident, recoveredAt='2026-11-23T20:20:00Z')]}
-             ]), patch.object(m.mail, 'deliver_once', side_effect=lambda state, key, send, save: send()), \
-             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
-            m.report_gameday_incidents(state, False, errors)
-            m.report_gameday_incidents(state, False, errors)
-        self.assertEqual(errors, ['ADL Gameday incident reporting: TimeoutError'])
-        self.assertIn(key, state['sent'])
-        send.assert_called_once()
-        self.assertEqual(send.call_args.args[2], key)
+    start = m.gameday_time('2026-11-24T01:15:00Z')
 
-    def test_dry_run_does_not_send_or_acknowledge(self):
+    @staticmethod
+    def snapshot(league, now, failing):
+        return {'league': league, 'week': 11,
+                'fetchedAt': (now - m.timedelta(minutes=4) if failing else now).isoformat(),
+                'teams': [{'projectedScore': 100, 'liveMatchups': [{}]}] * 32,
+                'liveBonusProbabilityBasis': 'final_event_outcome'}
+
+    def test_history_does_not_send_and_missing_feed_does_not_hide_other_league(self):
+        incidents = [dict(self.incident, openedAt=(self.start - m.timedelta(minutes=i * 2)).isoformat(),
+                          recoveredAt=(self.start - m.timedelta(minutes=i * 2) + m.timedelta(seconds=40)).isoformat())
+                     for i in range(1, 31)]
+        errors = []
+        with patch.object(m, 'read_gameday_health', side_effect=[TimeoutError(), {'incidents': incidents}]), \
+             patch.object(m.mail, 'deliver_once') as deliver:
+            self.assertEqual(m.read_gameday_incidents(errors), {})
+        self.assertEqual(errors, ['ADL Gameday incident reporting: TimeoutError'])
+        deliver.assert_not_called()
+
+    def test_short_flaps_stay_quiet_and_real_outage_reports_once(self):
         state, errors = {'sent': {}}, []
-        with patch.object(m, 'read_gameday_health', return_value={'incidents': [self.incident]}), \
+        with patch.object(m, 'read_gameday_snapshot') as read, patch.object(m, 'save'), \
+             patch.object(m.mail, 'deliver_once', side_effect=lambda state, key, send, save: send()), \
+             patch.object(m.mail, 'send_email') as send:
+            for minute, failing in [(0, True), (2, False), (4, True), (6, False), (8, True), (18, True)]:
+                read.side_effect = lambda league, now: self.snapshot(league, now, league == 'FAFL' and failing)
+                m.check_gameday_direct(state, False, {}, errors, now=self.start + m.timedelta(minutes=minute))
+            send.assert_not_called()
+            for minute, failing in [(28, True), (38, False), (40, True), (50, True)]:
+                read.side_effect = lambda league, now: self.snapshot(league, now, league == 'FAFL' and failing)
+                m.check_gameday_direct(state, False, {}, errors, now=self.start + m.timedelta(minutes=minute))
+            send.assert_called_once()
+            self.assertTrue(send.call_args.args[2].startswith('gameday-direct:FAFL:'))
+        self.assertEqual(errors, [])
+
+    def test_existing_delivery_and_preview_do_not_send(self):
+        receipt = dict(self.incident, week=11)
+        old_key = 'gameday:FAFL:' + receipt['openedAt']
+        state = {'sent': {old_key: {'sent_at': self.start.isoformat()}}}
+        errors = []
+        with patch.object(m, 'read_gameday_snapshot',
+                          side_effect=lambda league, now: self.snapshot(league, now, True)), \
              patch.object(m.mail, 'deliver_once') as deliver, patch.object(m, 'save') as save, \
              patch('builtins.print') as output:
-            m.report_gameday_incidents(state, True, errors)
+            for minute in (0, 20):
+                m.check_gameday_direct(state, True, {'FAFL': receipt}, errors,
+                                       now=self.start + m.timedelta(minutes=minute))
         self.assertEqual(errors, [])
-        self.assertEqual(state, {'sent': {}})
-        self.assertEqual(output.call_count, 2)
+        self.assertEqual(output.call_count, 1)
+        self.assertIn('ADL Gameday forecast failure', output.call_args.args[0])
+        self.assertEqual(set(state['sent']), {old_key})
         deliver.assert_not_called()
         save.assert_not_called()
 

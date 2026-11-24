@@ -29,6 +29,7 @@ def job(name, step, number, status='failure'):
 class MaintenanceLinks(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(m, 'read_gameday_health', return_value={'incidents': []}))
+        self.enterContext(patch.object(m, 'check_gameday_direct'))
         common = dict(event='workflow_dispatch', head_branch='main', status='completed',
             conclusion='failure', run_attempt=1, created_at='2026-11-13T10:19:38Z',
             updated_at='2026-11-13T10:27:00Z', workflow_id=1)

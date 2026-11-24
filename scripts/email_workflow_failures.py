@@ -843,6 +843,8 @@ def read_gameday_health(repo):
 
 GAMEDAY_EASTERN = ZoneInfo('America/New_York')
 MAX_AGE_SECONDS = 180
+GAMEDAY_CONFIRMATION = timedelta(minutes=15)
+GAMEDAY_MAX_SAMPLE_GAP = timedelta(minutes=30)
 
 def read_gameday_snapshot(league, now):
     url = (f'https://raw.githubusercontent.com/TheMathNinja/{league}-GM-Dashboard/'
@@ -880,17 +882,21 @@ def inspect_gameday(league, snapshot, now):
         return 'Final Bonus Game probabilities are missing.'
     return ''
 
-def check_gameday_direct(state, dry_run, covered, coverage_errors):
-    now = datetime.now(timezone.utc)
+def gameday_time(value):
+    parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    if parsed.tzinfo is None:
+        raise ValueError('Gameday evidence timestamp lacks an offset')
+    return parsed
+
+
+def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None):
+    now = now or datetime.now(timezone.utc)
     local = now.astimezone(GAMEDAY_EASTERN)
-    if local.weekday() not in (0,1,3,4,6):
+    if inspect_gameday('ADL', {}, now) is None:
         return
     records = state.setdefault('gameday_direct', {})
     for league in ('ADL','FAFL'):
         record = records.get(league)
-        # Reuse the time gate before fetching the large snapshot.
-        if inspect_gameday(league, {}, now) is None:
-            continue
         try:
             evidence = read_gameday_snapshot(league, now)
             error = inspect_gameday(league, evidence, now)
@@ -899,19 +905,40 @@ def check_gameday_direct(state, dry_run, covered, coverage_errors):
             evidence = {}
         if error is None:
             continue
+        week = evidence.get('week') if evidence.get('league') == league else None
+        episode_week = f"{local.year}:{week}" if isinstance(week, int) else None
+        if record and episode_week and record.get('week') not in (None, episode_week):
+            record = None
         if not error:
             if record and not record.get('resolved'):
-                record['resolved'] = now.isoformat()
+                last_good = record.get('last_good')
+                if not last_good or now - gameday_time(last_good) > GAMEDAY_MAX_SAMPLE_GAP:
+                    record['healthy_since'] = now.isoformat()
+                record['last_good'] = now.isoformat()
+                if not record.get('notified') or now - gameday_time(record['healthy_since']) >= GAMEDAY_CONFIRMATION:
+                    record['resolved'] = now.isoformat()
             continue
-        if not record or record.get('resolved'):
-            record = records[league] = {'opened':now.isoformat(),'error':error}
+        last_bad = record.get('last_bad') if record else None
+        if (not record or record.get('resolved') or (not record.get('notified') and
+                (not last_bad or now - gameday_time(last_bad) > GAMEDAY_MAX_SAMPLE_GAP))):
+            record = records[league] = {'opened': now.isoformat(), 'error': error}
+        if episode_week:
+            record['week'] = episode_week
+        record['last_bad'] = now.isoformat()
+        record.pop('healthy_since', None)
+        record.pop('last_good', None)
+        receipt = receipts.get(league)
+        if receipt and (week is None or receipt['week'] == week):
+            legacy = f"gameday:{league}:{receipt['openedAt']}"
+            if state.get('sent', {}).get(legacy, {}).get('sent_at'):
+                record.setdefault('notified', state['sent'][legacy]['sent_at'])
         key = f"gameday-direct:{league}:{record['opened']}"
-        if league in covered or record.get('notified'):
+        if record.get('notified') or now - gameday_time(record['opened']) < GAMEDAY_CONFIRMATION:
             continue
         subject = f'{league} Gameday forecast failure'
         body = (f"{league} Gameday health check at {local:%Y-%m-%d %I:%M %p %Z}. "
-                f"{error}\nThe existing live collector can retry within its scheduled run. "
-                "The next report check will verify whether forecasts have returned.")
+                f"{error}\nThis problem persisted across checks for at least 15 minutes. "
+                "Automatic checks will continue.")
         if dry_run:
             print(subject + '\n' + body)
         else:
@@ -922,36 +949,21 @@ def check_gameday_direct(state, dry_run, covered, coverage_errors):
                 coverage_errors.append(f'{league} Gameday alert delivery: {type(exc).__name__}')
 
 
-def report_gameday_incidents(state, dry_run, coverage_errors):
-    covered = set()
+def read_gameday_incidents(coverage_errors):
+    active = {}
     for league in ('ADL', 'FAFL'):
         repo = f'TheMathNinja/{league}-GM-Dashboard'
         try:
             health = read_gameday_health(repo)
-            for incident in health['incidents']:
-                if not incident.get('recoveredAt'):
-                    covered.add(league)
-                key = f"gameday:{league}:{incident['openedAt']}"
-                if key in state['sent']:
-                    continue
-                recovered = incident.get('recoveredAt')
-                status = 'Recovered' if recovered else 'Unresolved'
-                subject = f"{league} Gameday forecast failure · {status}"
-                body = (f"{league} Week {incident['week']} Gameday had missing or stale forecasts.\n"
-                        f"Detected at {incident['openedAt']}\n{incident['error']}\n"
-                        + (f"Complete forecasts verified at {recovered}." if recovered else
-                           "The watchdog will retry recovery while live coverage is active."))
-                if dry_run:
-                    print(subject + '\n' + body)
-                    continue
-                mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
-                state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
-                                     'subject': subject, 'scope': f'gameday:{league}'}
-                save(state)
-        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            latest = max(health['incidents'], key=lambda incident: gameday_time(incident['openedAt']), default=None)
+            if latest is not None and not latest.get('recoveredAt'):
+                if not isinstance(latest.get('week'), int):
+                    raise ValueError('Gameday health incident has no week')
+                active[league] = latest
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError) as error:
             coverage_errors.append(f'{league} Gameday incident reporting: {type(error).__name__}')
 
-    return covered
+    return active
 
 
 def main():
@@ -981,8 +993,10 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
-    covered = report_gameday_incidents(state, args.dry_run, coverage_errors)
-    check_gameday_direct(state, args.dry_run, covered, coverage_errors)
+    now = datetime.now(timezone.utc)
+    if inspect_gameday('ADL', {}, now) is not None:
+        receipts = read_gameday_incidents(coverage_errors)
+        check_gameday_direct(state, args.dry_run, receipts, coverage_errors, now=now)
     if os.environ.get('MFL_POTENTIAL_WARNING') == 'true':
         try:
             from mfl_potential_warning import report_warning

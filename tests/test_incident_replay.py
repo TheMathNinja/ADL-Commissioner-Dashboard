@@ -79,6 +79,7 @@ class IncidentReplay(unittest.TestCase):
 
     def setUp(self):
         self.enterContext(patch.object(m, 'read_gameday_health', return_value={'incidents': []}))
+        self.enterContext(patch.object(m, 'check_gameday_direct'))
         self.repo = m.DAILY_REPO
         self.run = dict(id=43191957893, workflow_id=279881511,
                         display_title='Official ADL correction update \u00b7 Week 9 \u00b7 ' + 'a'*64,
