@@ -624,9 +624,14 @@ class GamedayReports(unittest.TestCase):
     @staticmethod
     def snapshot(league, now, failing):
         return {'league': league, 'week': 11,
-                'fetchedAt': (now - m.timedelta(minutes=4) if failing else now).isoformat(),
+                'fetchedAt': (now - m.timedelta(minutes=5) if failing else now).isoformat(),
                 'teams': [{'projectedScore': 100, 'liveMatchups': [{}]}] * 32,
                 'liveBonusProbabilityBasis': 'final_event_outcome'}
+
+    def failed_repair(self, week=11):
+        return dict(self.incident, week=week, repairStatus='needs_attention',
+                    repairAttemptedAt=(self.start + m.timedelta(minutes=17)).isoformat(),
+                    checkedAt=(self.start + m.timedelta(minutes=18)).isoformat())
 
     def test_history_does_not_send_and_missing_feed_does_not_hide_other_league(self):
         incidents = [dict(self.incident, openedAt=(self.start - m.timedelta(minutes=i * 2)).isoformat(),
@@ -648,15 +653,17 @@ class GamedayReports(unittest.TestCase):
                 read.side_effect = lambda league, now: self.snapshot(league, now, league == 'FAFL' and failing)
                 m.check_gameday_direct(state, False, {}, errors, now=self.start + m.timedelta(minutes=minute))
             send.assert_not_called()
-            for minute, failing in [(28, True), (38, False), (40, True), (50, True)]:
+            for minute, failing, receipts in [
+                    (28, True, {}), (30, True, {'FAFL': self.failed_repair()}),
+                    (38, False, {}), (40, True, {}), (48, True, {})]:
                 read.side_effect = lambda league, now: self.snapshot(league, now, league == 'FAFL' and failing)
-                m.check_gameday_direct(state, False, {}, errors, now=self.start + m.timedelta(minutes=minute))
+                m.check_gameday_direct(state, False, receipts, errors, now=self.start + m.timedelta(minutes=minute))
             send.assert_called_once()
             self.assertTrue(send.call_args.args[2].startswith('gameday-direct:FAFL:'))
         self.assertEqual(errors, [])
 
     def test_existing_delivery_and_preview_do_not_send(self):
-        receipt = dict(self.incident, week=11)
+        receipt = self.failed_repair()
         old_key = 'gameday:FAFL:' + receipt['openedAt']
         state = {'sent': {old_key: {'sent_at': self.start.isoformat()}}}
         errors = []
@@ -665,7 +672,7 @@ class GamedayReports(unittest.TestCase):
              patch.object(m.mail, 'deliver_once') as deliver, patch.object(m, 'save') as save, \
              patch('builtins.print') as output:
             for minute in (0, 20):
-                m.check_gameday_direct(state, True, {'FAFL': receipt}, errors,
+                m.check_gameday_direct(state, True, {'ADL': receipt, 'FAFL': receipt}, errors,
                                        now=self.start + m.timedelta(minutes=minute))
         self.assertEqual(errors, [])
         self.assertEqual(output.call_count, 1)
@@ -673,6 +680,15 @@ class GamedayReports(unittest.TestCase):
         self.assertEqual(set(state['sent']), {old_key})
         deliver.assert_not_called()
         save.assert_not_called()
+
+    def test_wrong_week_old_and_unverified_repair_cannot_escalate(self):
+        now = self.start + m.timedelta(minutes=20)
+        receipt = self.failed_repair()
+        self.assertTrue(m.gameday_failed_repair(receipt, 11, None, now))
+        self.assertFalse(m.gameday_failed_repair(dict(receipt, week=10), 11, None, now))
+        self.assertFalse(m.gameday_failed_repair(receipt, 11, None, now + m.timedelta(hours=1)))
+        self.assertFalse(m.gameday_failed_repair(dict(receipt, repairStatus='attempting'), 11, None, now))
+        self.assertFalse(m.gameday_failed_repair(dict(receipt, repairStatus='recovered'), 11, None, now))
 
 
 if __name__ == '__main__':

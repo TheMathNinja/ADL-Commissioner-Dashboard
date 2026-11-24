@@ -842,7 +842,7 @@ def read_gameday_health(repo):
 
 
 GAMEDAY_EASTERN = ZoneInfo('America/New_York')
-MAX_AGE_SECONDS = 180
+MAX_AGE_SECONDS = 240  # Two-minute backup cadence plus one cycle of margin.
 GAMEDAY_CONFIRMATION = timedelta(minutes=15)
 GAMEDAY_MAX_SAMPLE_GAP = timedelta(minutes=30)
 
@@ -933,6 +933,22 @@ def gameday_time(value):
     return parsed
 
 
+def gameday_failed_repair(receipt, week, season, now):
+    if (not receipt or receipt.get('repairStatus') != 'needs_attention' or receipt.get('recoveredAt')
+            or not isinstance(receipt.get('error'), str) or not receipt['error']):
+        return False
+    if ((week is not None and receipt.get('week') != week) or
+            (season is not None and receipt.get('season') != season)):
+        return False
+    try:
+        attempted = gameday_time(receipt['repairAttemptedAt'])
+        checked = gameday_time(receipt['checkedAt'])
+        return (gameday_time(receipt['openedAt']) <= attempted <= checked <= now and
+                now - checked <= GAMEDAY_MAX_SAMPLE_GAP)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
 def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None):
     now = now or datetime.now(timezone.utc)
     local = now.astimezone(GAMEDAY_EASTERN)
@@ -950,7 +966,8 @@ def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None)
         if error is None:
             continue
         week = evidence.get('week') if evidence.get('league') == league else None
-        episode_week = f"{local.year}:{week}" if isinstance(week, int) else None
+        season = evidence.get('season') if evidence.get('league') == league else None
+        episode_week = f"{season or local.year}:{week}" if isinstance(week, int) else None
         if record and episode_week and record.get('week') not in (None, episode_week):
             record = None
         if not error:
@@ -979,10 +996,14 @@ def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None)
         key = f"gameday-direct:{league}:{record['opened']}"
         if record.get('notified') or now - gameday_time(record['opened']) < GAMEDAY_CONFIRMATION:
             continue
+        if not gameday_failed_repair(receipt, week, season, now):
+            print(f'{league} Gameday escalation deferred: no current failed-repair receipt.')
+            continue
         subject = f'{league} Gameday forecast failure'
         body = (f"{league} Gameday health check at {local:%Y-%m-%d %I:%M %p %Z}. "
                 f"{error}\nThis problem persisted across checks for at least 15 minutes. "
-                "Automatic checks will continue.")
+                f"Automatic repair did not restore a verified feed: {receipt['error']}\n"
+                "Please review the live feed; automatic checks will continue.")
         if dry_run:
             print(subject + '\n' + body)
         else:
