@@ -27,6 +27,16 @@ arg_flag <- function(name) {
 }
 
 
+round_saladj_cents <- function(amount) {
+  cents <- abs(amount) * 100
+  whole <- floor(cents)
+  fraction <- cents - whole
+  # Match Sheets ROUND, allowing for binary arithmetic at the half-cent boundary.
+  tie_slack <- 2 * .Machine$double.eps * pmax(1, cents)
+  sign(amount) * (whole + (fraction >= 0.5 - tie_slack)) / 100
+}
+
+
 derive_saladj_penalty_amount <- function(salary, years, is_pre_july_1, is_trade_or_ib, is_fg,
                                          is_suspended, is_jt, is_accelerated, plus_amount) {
   fg_rate <- c(
@@ -70,7 +80,7 @@ derive_saladj_penalty_amount <- function(salary, years, is_pre_july_1, is_trade_
     0
   }
 
-  round(if (is_suspended) 0.5 * base else base, 2)
+  round_saladj_cents(if (is_suspended) 0.5 * base else base)
 }
 
 normalize_label <- function(x) {
@@ -88,7 +98,7 @@ derive_future_saladj_penalty <- function(salary, years, is_pre_july_1, is_trade_
   future <- if (is_fg) {
     salary * sum(1.1 ^ seq_len(as.integer(years) - 1L)) + plus_amount
   } else 0.3 * salary * (years - 1)
-  round(future * if (is_suspended) 0.5 else 1, 2)
+  round_saladj_cents(future * if (is_suspended) 0.5 else 1)
 }
 
 
@@ -350,7 +360,7 @@ saladj_expected_by_franchise <- function(path, season = get_current_season(), ac
         player_team,
         player_pos,
         contract_type,
-        amount = round(.data$expected_amount_known, 2),
+        amount = round_saladj_cents(.data$expected_amount_known),
         salary_amount,
         years_amount,
         penalty_season = season,
@@ -1688,6 +1698,14 @@ render_output <- arg_value(
 )
 
 if (arg_flag("self-test-name-matching")) {
+  stopifnot(
+    identical(round_saladj_cents(c(16.06499999, 16.065, 16.06500001, -16.065, 0, NA_real_)),
+              c(16.06, 16.07, 16.07, -16.07, 0, NA_real_)),
+    derive_saladj_penalty_amount(10.71, 4, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, NA_real_) == 16.07,
+    derive_saladj_penalty_amount(-16.065, 1, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, NA_real_) == -16.07,
+    derive_future_saladj_penalty(10.75, 2, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, NA_real_) == 1.61,
+    derive_future_saladj_penalty(10.71, 4, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, NA_real_) == 0
+  )
   atl_expected <- tibble(franchise = c("ATL", "WAS"), player = "Cash Trade",
     amount = c(3.65, -3.65), is_cash_trade = TRUE,
     row_date = parse_saladj_date(rep("5/3/2026 08:32:29", 2), 2026))
