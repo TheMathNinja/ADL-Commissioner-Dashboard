@@ -93,6 +93,7 @@ COMPLETED_JOB_EVIDENCE = {}
 API_BACKOFF_UNTIL = {}
 COMMISSIONER = 'TheMathNinja/ADL-Commissioner-Dashboard'
 DAILY_REPO = 'TheMathNinja/ADL-GM-Dashboard'
+FAFL_REPO = 'TheMathNinja/FAFL-GM-Dashboard'
 DAILY_CHILDREN = {
     'update_dashboard.yml': ('Commissioner data', 'Refresh SalAdj and Commissioner data', 'Dispatch Commissioner-owned data refresh'),
     'waiver-cap-corrections.yml': ('Waiver corrections', 'Apply waiver cap corrections', 'Dispatch Commissioner-owned waiver corrections'),
@@ -656,6 +657,12 @@ def recovered_inactivity_startup(repo, run, job_list, later):
 
 
 def recovery_scope(repo, run):
+    if production_push_preflight(repo, run):
+        return f'{repo}:{run.get("workflow_id")}:push-preflight'
+    if weekly_preliminary_run(repo, run):
+        local = gameday_time(run['created_at']).astimezone(ZoneInfo('America/New_York'))
+        season = local.year - (local.month == 1)
+        return f'{incident_key(repo, run)}:{season}'
     if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml':
         return incident_key(repo, run) + ':' + run['created_at'][:4]
     if run.get('_account_report'):
@@ -720,9 +727,7 @@ def guardian_live_recovery(repo, run, candidate, completed):
 
 def reconcile_delivered_failure(repo, run, history, entry):
     """Close an already-delivered outage only from verified recovery evidence."""
-    if (not (repo == GUARDIAN and guardian_operational_run(run) or adl_preliminary_run(repo, run))
-            or entry.get('resolved_at')
-            or run.get('conclusion') not in BAD):
+    if entry.get('resolved_at') or run.get('conclusion') not in BAD:
         return False
     candidates = [later for later in history if later.get('status') == 'completed'
                   and later.get('conclusion') == 'success'
@@ -737,31 +742,39 @@ def reconcile_delivered_failure(repo, run, history, entry):
     if not recovery:
         return False
     entry.update(resolved_at=recovery['updated_at'], recovery_url=recovery['html_url'])
-    return True
+    return recovery
 
 
-def adl_preliminary_run(repo, run):
-    return (repo == DAILY_REPO and not run.get('_account_report')
-            and run.get('path') == '.github/workflows/refresh_extension_calculator.yml'
-            and re.fullmatch(r'Preliminary ADL weekly update · Week (?:[1-9]|1[0-7]) · [a-f0-9]{64}',
+def weekly_preliminary_run(repo, run):
+    workers = {DAILY_REPO: ('refresh_extension_calculator.yml', 'Preliminary ADL'),
+               FAFL_REPO: ('refresh.yml', 'Official FAFL')}
+    if run.get('_account_report') or repo not in workers:
+        return False
+    path, name = workers[repo]
+    return (run.get('path') == '.github/workflows/' + path
+            and re.fullmatch(name + r' weekly update \u00b7 Week (?:[1-9]|1[0-7]) \u00b7 [a-f0-9]{64}',
                              run.get('display_title') or '') is not None)
 
 
-def adl_preliminary_recovered(original, completed):
+def weekly_preliminary_recovered(repo, original, completed):
     """A signed-off preliminary refresh replaces branch skips, not actual errors."""
     successful = {job['name']: job for job in completed if job.get('conclusion') == 'success'}
     def passed(name):
         return {s['name'] for s in successful.get(name, {}).get('steps', [])
                 if s.get('conclusion') == 'success'}
     required = {
-        'Validate the shared MFL snapshot',
         'Test generated Playoff Picture in Chromium',
-        'Publish updated reports on GitHub Pages',
         'Verify published Playoff Picture in Chromium',
         'Require a verified Payouts publication for every refresh',
-        'Require official cap snapshot for preliminary weekly publication',
         'Confirm weekly publication and record processed scores',
     }
+    if repo == DAILY_REPO:
+        required.update({'Validate the shared MFL snapshot', 'Publish updated reports on GitHub Pages',
+                         'Require official cap snapshot for preliminary weekly publication'})
+    else:
+        required.add('Save published snapshots')
+        if not any(name.startswith('Run actions/deploy-pages@') for name in passed('refresh')):
+            return False
     if (not required <= passed('refresh')
             or 'Dispatch shared completion verifier' not in passed('Request weekly completion email')):
         return False
@@ -775,6 +788,81 @@ def adl_preliminary_recovered(original, completed):
                                        if s.get('conclusion') in BAD} <= passed(name):
                 return False
     return True
+
+
+def production_push_preflight(repo, run):
+    return (repo == COMMISSIONER and run.get('path') == '.github/workflows/automation-preflight.yml'
+            and run.get('head_branch') == 'main' and run.get('event') == 'push')
+
+
+def push_preflight_recovered(repo, run, later, original, completed):
+    if not production_push_preflight(repo, later):
+        return False
+    first, second = run.get('head_sha') or '', later.get('head_sha') or ''
+    if not all(re.fullmatch('[a-f0-9]{40}', s) for s in (first, second)):
+        return False
+    required = dict(PRIVATE_PARENT_STEPS.values())
+    if any(j['name'] not in required and not (j['name'] == 'preflight' and j.get('conclusion') == 'skipped')
+           and j.get('conclusion') in BAD | {'skipped'} for j in original):
+        return False
+    verified = {j['name'] for j in completed if j.get('conclusion') == 'success'
+                and any(s.get('name') == required.get(j['name']) and s.get('conclusion') == 'success'
+                        for s in j.get('steps', []))}
+    if not required.keys() <= verified:
+        return False
+    if first == second:
+        return True
+    try:
+        comparison = api(repo, 'compare/' + first + '...' + second)
+        return comparison.get('status') == 'ahead' and comparison.get('behind_by') == 0
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
+def remember_recovery(state, repo, run, recovery, failed_steps):
+    """Group retry attempts under the exact verified replacement; never backfill mail."""
+    since = state.get('recovery_notices_since')
+    if not since or not isinstance(recovery.get('id'), int) or not failed_steps:
+        return
+    try:
+        if gameday_time(run['updated_at']) < gameday_time(since):
+            return
+    except (ValueError, TypeError, AttributeError):
+        return
+    notices = state.setdefault('recovery_notices', {})
+    key = f'recovery:{repo}:{recovery["id"]}:{recovery.get("run_attempt", 1)}'
+    notice = notices.setdefault(key, {
+        'repository': repo, 'title': ' '.join((run.get('display_title') or run.get('name') or 'Workflow').split()),
+        'recovery_url': f'https://github.com/{repo}/actions/runs/{recovery["id"]}',
+        'verified_at': recovery['updated_at'], 'failures': {},
+    })
+    notice['failures'][f'{run["id"]}:{run.get("run_attempt", 1)}'] = list(dict.fromkeys(failed_steps))
+
+
+def deliver_recovery_notices(state, dry_run, coverage_errors):
+    for key, notice in state.get('recovery_notices', {}).items():
+        if notice.get('notified_at'):
+            continue
+        repo = notice['repository']
+        subject = f'[League automation RECOVERED] {repo.split("/")[-1]}'
+        lines = [f'The checker verified recovery for {notice["title"]}.', '',
+                 'What went wrong:']
+        for attempt, failed in list(notice['failures'].items())[:8]:
+            run_id, _, number = attempt.partition(':')
+            lines.append(f'- Run {run_id}, attempt {number}: ' + '; '.join(failed[:5]))
+        lines.extend(['', 'What passed: the equivalent run completed and the required checks passed.',
+                      'Verified run: ' + notice['recovery_url'],
+                      'No action is needed for this incident.'])
+        body = '\n'.join(lines)
+        if dry_run:
+            print(subject + '\n' + body)
+            continue
+        try:
+            mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+            notice['notified_at'] = datetime.now(timezone.utc).isoformat()
+            save(state)
+        except (OSError, RuntimeError, ValueError) as error:
+            coverage_errors.append('Recovery summary delivery: ' + type(error).__name__)
 
 
 def private_audit_kind(run):
@@ -893,8 +981,12 @@ def verified_recovery(repo, run, job_list, history):
             continue
         if unverified_forecast_queue(repo, later, completed):
             continue  # Queue acceptance is not a verified replacement for a failed forecast.
-        if adl_preliminary_run(repo, run):
-            if adl_preliminary_recovered(job_list, completed):
+        if weekly_preliminary_run(repo, run):
+            if weekly_preliminary_recovered(repo, job_list, completed):
+                return later
+            continue
+        if production_push_preflight(repo, run):
+            if push_preflight_recovered(repo, run, later, job_list, completed):
                 return later
             continue
         successful = {j['name']: j for j in completed if j.get('conclusion') == 'success'}
@@ -1346,18 +1438,27 @@ def main():
                 if key in state['checked']:
                     continue
                 if key in state['sent']:
-                    if ((repo == GUARDIAN and guardian_operational_run(latest) or adl_preliminary_run(repo, latest))
-                            and not state['sent'][key].get('resolved_at')):
-                        sent_run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
-                        reconcile_delivered_failure(repo, sent_run, history, state['sent'][key])
-                    elif (cancelled_pages_run(latest) and attempt == latest.get('run_attempt', 1)
-                          and not state['sent'][key].get('resolved_at')):
+                    entry = state['sent'][key]
+                    if not entry.get('resolved_at') and any(
+                            item.get('conclusion') == 'success' and item.get('path') == latest.get('path')
+                            and item.get('updated_at', '') > entry.get('failed_at', '')
+                            and recovery_scope(repo, item) == recovery_scope(repo, latest) for item in history):
+                        try:
+                            sent_run = latest if attempt == latest.get('run_attempt', 1) else api(
+                                repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
+                            recovery = reconcile_delivered_failure(repo, sent_run, history, entry)
+                            if recovery:
+                                remember_recovery(state, repo, sent_run, recovery, entry.get('failed_steps', []))
+                        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+                            pass  # Retry ledger reconciliation when exact evidence is available.
+                    if (not entry.get('resolved_at') and cancelled_pages_run(latest)
+                            and attempt == latest.get('run_attempt', 1)):
                         try:
                             published = completed_pages_before_cancel(repo, latest, jobs(repo, latest))
                         except (OSError, RuntimeError, ValueError, KeyError, TypeError):
                             published = None
                         if published:
-                            state['sent'][key].update(resolved_at=published['updated_at'], recovery_url=published['html_url'])
+                            entry.update(resolved_at=published['updated_at'], recovery_url=published['html_url'])
                     continue
                 run = latest if attempt == latest.get('run_attempt', 1) else api(repo, f'actions/runs/{latest["id"]}/attempts/{attempt}')
                 if repo == GUARDIAN:
@@ -1405,6 +1506,7 @@ def main():
                     continue
                 recovery = verified_recovery(repo, run, job_list, history)
                 if recovery:
+                    remember_recovery(state, repo, run, recovery, failures(run, job_list))
                     state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
                     continue
                 if recovered_inactivity_startup(repo, run, job_list, later):
@@ -1572,6 +1674,7 @@ def main():
                 if not args.dry_run:
                     save(state)
                     print('SMTP accepted failure report: ' + key)
+    deliver_recovery_notices(state, args.dry_run, coverage_errors)
     if args.deadlines:
         check_deadlines(state,args.dry_run,datetime.now(timezone.utc),histories,coverage_errors)
     if not args.dry_run and state != original:
@@ -1579,6 +1682,7 @@ def main():
     if coverage_errors:
         raise RuntimeError('Failure coverage unavailable; native notifications must remain enabled: '+', '.join(coverage_errors))
     if not args.dry_run:
+        state.setdefault('recovery_notices_since', now.isoformat())
         state['healthyAt'] = datetime.now(timezone.utc).isoformat()
         state['healthSchema'] = 1
         save(state)
@@ -1589,7 +1693,7 @@ def notification_pending(repo, run, now):
     if run.get('conclusion') not in BAD:
         return False
     delay = 10 if repo == GUARDIAN and PurePosixPath(run.get('path','')).name in {'guardian.yml','initial-lineup.yml'} else 15
-    if adl_preliminary_run(repo, run):
+    if weekly_preliminary_run(repo, run):
         delay = 60  # Let the weekly readiness poll retry a full publication before escalating.
     ended = datetime.fromisoformat(run['updated_at'].replace('Z','+00:00'))
     return now - ended < timedelta(minutes=delay)

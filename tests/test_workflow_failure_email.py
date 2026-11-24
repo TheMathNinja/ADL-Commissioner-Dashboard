@@ -203,6 +203,72 @@ class FailureReports(unittest.TestCase):
         self.assertFalse(m.notification_pending(repo, dict(old, display_title='Other job'),
                                                 ended + m.timedelta(minutes=15)))
 
+    def test_fafl_verified_completion_recovers_exact_snapshot_with_expected_skips(self):
+        old = dict(self.run, id=45330175261, path='.github/workflows/refresh.yml',
+                   display_title='Official FAFL weekly update \u00b7 Week 11 \u00b7 ' + 'a'*64,
+                   created_at='2026-11-24T04:59:48Z', updated_at='2026-11-24T05:10:58Z')
+        new = dict(old, id=45336514175, conclusion='success',
+                   created_at='2026-11-24T05:54:00Z', updated_at='2026-11-24T06:07:31Z')
+        generated = 'Test generated Playoff Picture in Chromium'
+        old_jobs = [dict(name='refresh', conclusion='failure', steps=[dict(name=generated, conclusion='failure')]),
+                    dict(name='Roll Live Bonus Game Watch to the upcoming week', conclusion='skipped')]
+        passed = [generated, 'Verify published Playoff Picture in Chromium', 'Save published snapshots',
+                  'Run actions/deploy-pages@v4', 'Require a verified Payouts publication for every refresh',
+                  'Confirm weekly publication and record processed scores']
+        evidence = [dict(name='refresh', conclusion='success', steps=[
+                        dict(name=n, conclusion='success') for n in passed]),
+                    dict(name='Request weekly completion email', conclusion='success',
+                         steps=[dict(name='Dispatch shared completion verifier', conclusion='success')])]
+        with patch.object(m, 'jobs', return_value=evidence):
+            self.assertEqual(m.verified_recovery(m.FAFL_REPO, old, old_jobs, [new]), new)
+            self.assertIsNone(m.verified_recovery(m.FAFL_REPO, old, old_jobs, [
+                dict(new, display_title=old['display_title'][:-1] + 'b')]))
+        evidence[0]['steps'][-1]['conclusion'] = 'skipped'
+        with patch.object(m, 'jobs', return_value=evidence):
+            self.assertIsNone(m.verified_recovery(m.FAFL_REPO, old, old_jobs, [new]))
+
+    def test_push_preflight_requires_verified_descendant_and_both_audits(self):
+        old = dict(self.run, path='.github/workflows/automation-preflight.yml', _audit_report=True,
+                   event='push', head_sha='a'*40, display_title='Earlier revision')
+        later = dict(old, id=2, conclusion='success', head_sha='b'*40, display_title='Subsequent revision',
+                     created_at='2026-10-01T14:30:00Z', updated_at='2026-10-01T14:31:00Z')
+        old_jobs = [dict(name=n, conclusion='failure') for n, _ in m.PRIVATE_PARENT_STEPS.values()]
+        old_jobs.append(dict(name='preflight', conclusion='skipped'))
+        completed = [dict(name=n, conclusion='success', steps=[dict(name=s, conclusion='success')])
+                     for n, s in m.PRIVATE_PARENT_STEPS.values()]
+        with patch.object(m, 'jobs', return_value=completed), patch.object(m, 'api') as api:
+            api.return_value = dict(status='ahead', behind_by=0)
+            self.assertEqual(m.verified_recovery(m.COMMISSIONER, old, old_jobs, [later]), later)
+            api.return_value = dict(status='diverged', behind_by=1)
+            self.assertIsNone(m.verified_recovery(m.COMMISSIONER, old, old_jobs, [later]))
+        with patch.object(m, 'jobs', return_value=completed[:1]):
+            self.assertIsNone(m.verified_recovery(m.COMMISSIONER, old, old_jobs, [later]))
+
+    def test_recovery_notices_group_attempts_never_backfill_and_send_once(self):
+        from email_delivery_state import deliver_once
+        state = {'recovery_notices_since': '2026-10-01T14:00:00Z'}
+        later = dict(self.run, id=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')
+        def record(run, recovery=later):
+            m.remember_recovery(state, m.FAFL_REPO, run, recovery, ['refresh: Browser installation'])
+        record(dict(self.run, updated_at='2026-10-01T13:59:00Z'))
+        self.assertNotIn('recovery_notices', state)
+        record(self.run)
+        record(dict(self.run, run_attempt=2))
+        self.assertEqual(len(state['recovery_notices']), 1)
+        errors = []
+        with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
+             patch.object(m, 'save'):
+            m.deliver_recovery_notices(state, False, errors)
+            m.deliver_recovery_notices(state, False, errors)
+            send.assert_called_once()
+            self.assertIn('Run 1, attempt 1:', send.call_args.args[1])
+            self.assertIn('Run 1, attempt 2:', send.call_args.args[1])
+            self.assertIn('No action is needed', send.call_args.args[1])
+            record(dict(self.run, id=3), dict(later, id=4))
+            m.deliver_recovery_notices(state, False, errors)
+            self.assertEqual(send.call_count, 2)
+        self.assertFalse(errors)
+
     def test_verified_retry_is_recorded_without_email(self):
         earlier = copy.deepcopy(self.run)
         later = dict(earlier, run_attempt=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')
