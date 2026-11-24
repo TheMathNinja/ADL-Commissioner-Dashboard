@@ -87,7 +87,6 @@ IMPACT = {
     'waiver-cap-corrections.yml': 'Waiver salary-cap corrections or their notifications may be incomplete.',
     'weekly_salary_cap_accounting.yml': 'Official salary-cap snapshots/accounting may be incomplete.',
     'email_weekly_completion.yml': 'The owner completion report could not be delivered or verified.',
-    'email_workflow_failures.yml': 'A failure-report delivery attempt failed. This notice comes from a later reporter run.',
 }
 BAD = {'failure', 'timed_out', 'action_required', 'startup_failure', 'stale', 'cancelled'}
 COMPLETED_JOB_EVIDENCE = {}
@@ -243,6 +242,13 @@ def production(run):
     if run.get('head_branch') != 'main' or not (is_scheduled or is_orchestrated_dispatch or daily_child(run) or audit):
         return None
     return IMPACT.get(filename)
+
+
+def independently_monitored(repo, run):
+    # The Apps Script health timer retries this reporter and checks healthyAt.
+    # Reporting individual attempts here would duplicate that incident.
+    return (repo == COMMISSIONER and
+            run.get('path', '').split('@', 1)[0] == '.github/workflows/email_workflow_failures.yml')
 
 
 def runs(repo):
@@ -1209,6 +1215,8 @@ def main():
                     run['_account_report'] = True
         histories[repo]=history
         for latest in reversed(history):
+            if independently_monitored(repo, latest):
+                continue
             is_watchdog = repo == COMMISSIONER and PurePosixPath(latest.get('path', '')).name == 'dashboard_watchdog.yml'
             if is_watchdog != watchdog_only:
                 continue  # Report underlying child and parent components first.

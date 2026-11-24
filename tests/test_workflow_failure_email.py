@@ -321,6 +321,38 @@ class FailureReports(unittest.TestCase):
         self.assertIn('contents: write', permissions)
         self.assertIn('actions: read', permissions)
 
+    def test_independent_timer_owns_reporter_outages_even_with_account_coverage(self):
+        reporter_path = '.github/workflows/email_workflow_failures.yml'
+        self_failures = [
+            dict(self.run, id=45316659745 + offset, path=reporter_path + suffix,
+                 event=event, name='Email league workflow failures')
+            for offset, (event, suffix) in enumerate(
+                [('workflow_dispatch', ''), ('schedule', '@main'), ('push', '')])
+        ]
+        state = {'sent': {}, 'checked': {}}
+        other_repo = m.REPOS[1]
+
+        def job_evidence(repo, run):
+            self.assertEqual((repo, run['id']), (other_repo, self.run['id']))
+            return self.jobs
+
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER,
+                                     'GITHUB_REPOSITORY': m.COMMISSIONER,
+                                     'ACCOUNT_FAILURE_COVERAGE': 'true'}), \
+             patch('account_failure_coverage.repositories', return_value=[m.COMMISSIONER, other_repo]), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [m.COMMISSIONER, other_repo]), \
+             patch.object(m, 'runs', side_effect=lambda repo: {
+                 m.COMMISSIONER: self_failures, other_repo: [self.run], m.GUARDIAN: []}[repo]), \
+             patch.object(m, 'jobs', side_effect=job_evidence), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
+            m.main()
+            m.main()
+        send.assert_called_once()
+        self.assertEqual(set(state['sent']), {f'{other_repo}:{self.run["id"]}:1'})
+        self.assertEqual(state['healthSchema'], 1)
+        self.assertFalse(m.independently_monitored(other_repo, self_failures[0]))
+
     def test_official_bonus_children_are_reported_but_previews_are_not(self):
         child=dict(self.run,path='.github/workflows/verify_bonus_mfl.yml',display_title='Synchronize MFL Bonus Games · official · source 123')
         self.assertTrue(m.production(child))
