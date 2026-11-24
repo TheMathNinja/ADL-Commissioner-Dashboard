@@ -192,7 +192,7 @@ PRODUCTION_DISPATCH_NAMES = (
 )
 
 
-def api(repo, path):
+def api(repo, path, *, allow_missing=False):
     url = f'https://api.github.com/repos/{repo}' + ('/' + path if path else '')
     error = None
     for attempt in range(5):
@@ -209,9 +209,13 @@ def api(repo, path):
             else:
                 value = mail.get_json(url)
             if value is None:
+                if allow_missing:
+                    return None
                 raise RuntimeError(f'GitHub resource unavailable: {repo}/{path}')
             return value
         except (TimeoutError, OSError, http.client.IncompleteRead, json.JSONDecodeError) as exc:
+            if allow_missing and isinstance(exc, urllib.error.HTTPError) and exc.code == 404:
+                return None
             error = exc
             if attempt < 4:
                 mail.time.sleep(min(8, 2 ** attempt))
@@ -826,20 +830,21 @@ def verified_recovery(repo, run, job_list, history):
     return None
 
 
+def read_gameday_health(repo):
+    item = api(repo, 'contents/gameday-health.json?ref=live-bonus-watch', allow_missing=True)
+    if item is None:
+        return {'incidents': []}
+    health = json.loads(mail.contents_bytes(repo, item))
+    if not isinstance(health, dict) or not isinstance(health.get('incidents'), list):
+        raise ValueError('Invalid Gameday health receipt')
+    return health
+
+
 def report_gameday_incidents(state, dry_run, coverage_errors):
     for league in ('ADL', 'FAFL'):
         repo = f'TheMathNinja/{league}-GM-Dashboard'
-        url = f'https://api.github.com/repos/{repo}/contents/gameday-health.json?ref=live-bonus-watch'
         try:
-            request = urllib.request.Request(url,headers={'User-Agent':'League-incident-reporter'})
-            try:
-                with urllib.request.urlopen(request,timeout=10) as response:
-                    item = json.load(response)
-            except urllib.error.HTTPError as error:
-                if error.code == 404:
-                    continue
-                raise
-            health = json.loads(base64.b64decode(item['content']))
+            health = read_gameday_health(repo)
             for incident in health['incidents']:
                 key = f"gameday:{league}:{incident['openedAt']}"
                 if key in state['sent']:

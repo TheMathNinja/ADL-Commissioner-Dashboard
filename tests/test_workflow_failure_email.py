@@ -80,6 +80,7 @@ class FailureReports(unittest.TestCase):
             self.assertFalse(m.delivered_guardian_roster_warning(m.GUARDIAN,run,jobs))
 
     def setUp(self):
+        self.enterContext(patch.object(m, 'read_gameday_health', return_value={'incidents': []}))
         self.run = dict(id=1, run_attempt=1, workflow_id=10, path='.github/workflows/refresh.yml',
                         head_branch='main', event='workflow_dispatch', status='completed', conclusion='failure',
                         name='Official FAFL Weekly League Update',
@@ -594,6 +595,55 @@ class FailureReports(unittest.TestCase):
              patch.object(m.mail.time, 'sleep') as sleep:
             self.assertEqual(m.api(m.REPOS[0], 'actions/runs'), {'ok': True})
             sleep.assert_called_once_with(1)
+
+
+class GamedayReports(unittest.TestCase):
+    incident = dict(openedAt='2026-11-23T20:00:00Z', week=12, error='Forecast unavailable')
+
+    def test_receipt_uses_shared_authenticated_reader_and_retries(self):
+        payload = {'incidents': [self.incident]}
+        response = {'encoding': 'base64', 'content': base64.b64encode(json.dumps(payload).encode()).decode()}
+        with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE': 'false'}), \
+             patch.object(m.mail, 'get_json', side_effect=[TimeoutError('slow'), response, None]) as fetch, \
+             patch.object(m.mail.time, 'sleep') as sleep:
+            self.assertEqual(m.read_gameday_health(m.DAILY_REPO), payload)
+            self.assertEqual(m.read_gameday_health(m.DAILY_REPO), {'incidents': []})
+        sleep.assert_called_once_with(1)
+        self.assertTrue(all(call.args[0].endswith('/contents/gameday-health.json?ref=live-bonus-watch')
+                            for call in fetch.call_args_list))
+
+    def test_malformed_receipt_is_not_treated_as_healthy(self):
+        bad = {'content': base64.b64encode(b'{"incidents": {}}').decode()}
+        with patch.object(m, 'api', return_value=bad):
+            with self.assertRaisesRegex(ValueError, 'Invalid Gameday health receipt'):
+                m.read_gameday_health(m.DAILY_REPO)
+
+    def test_failed_feed_does_not_hide_other_league_or_repeat_its_email(self):
+        state, errors = {'sent': {}}, []
+        key = 'gameday:FAFL:' + self.incident['openedAt']
+        with patch.object(m, 'read_gameday_health', side_effect=[
+                TimeoutError(), {'incidents': [self.incident]},
+                {'incidents': []}, {'incidents': [dict(self.incident, recoveredAt='2026-11-23T20:20:00Z')]}
+             ]), patch.object(m.mail, 'deliver_once', side_effect=lambda state, key, send, save: send()), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save'):
+            m.report_gameday_incidents(state, False, errors)
+            m.report_gameday_incidents(state, False, errors)
+        self.assertEqual(errors, ['ADL Gameday incident reporting: TimeoutError'])
+        self.assertIn(key, state['sent'])
+        send.assert_called_once()
+        self.assertEqual(send.call_args.args[2], key)
+
+    def test_dry_run_does_not_send_or_acknowledge(self):
+        state, errors = {'sent': {}}, []
+        with patch.object(m, 'read_gameday_health', return_value={'incidents': [self.incident]}), \
+             patch.object(m.mail, 'deliver_once') as deliver, patch.object(m, 'save') as save, \
+             patch('builtins.print') as output:
+            m.report_gameday_incidents(state, True, errors)
+        self.assertEqual(errors, [])
+        self.assertEqual(state, {'sent': {}})
+        self.assertEqual(output.call_count, 2)
+        deliver.assert_not_called()
+        save.assert_not_called()
 
 
 if __name__ == '__main__':
