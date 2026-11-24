@@ -548,37 +548,6 @@ latest_official_cap_snapshot_time <- function(season, base_dir = file.path("data
   if (length(adjustment_times)) max(adjustment_times) else as.POSIXct(NA, tz = "UTC")
 }
 
-transaction_day <- function(x) {
-  if (inherits(x, "POSIXt")) return(as.Date(x, tz = "America/New_York"))
-  raw <- trimws(as.character(x))
-  day <- as.Date(rep(NA_character_, length(raw)))
-  for (pair in list(c("^\\d{1,2}/\\d{1,2}/\\d{4}\\b", "%m/%d/%Y"),
-                    c("^\\d{1,2}/\\d{1,2}/\\d{2}\\b", "%m/%d/%y"),
-                    c("^\\d{4}-\\d{2}-\\d{2}", "%Y-%m-%d"))) {
-    ix <- which(grepl(pair[1], raw, perl = TRUE))
-    day[ix] <- as.Date(raw[ix], format = pair[2])
-  }
-  ix <- which(grepl("^[3-6][0-9]{4}([.]0+)?$", raw))
-  day[ix] <- as.Date(as.numeric(raw[ix]), origin = "1899-12-30")
-  day
-}
-
-read_cash_correction_dates <- function(path = "data/saladj_cash_correction_dates.csv") {
-  rows <- readr::read_csv(path, show_col_types = FALSE,
-    col_types = readr::cols(.default = readr::col_character()))
-  required <- c("season", "franchise", "amount", "effective_date", "entered_date", "evidence")
-  if (!all(required %in% names(rows))) stop("Cash correction date audit is missing required fields.")
-  rows$amount <- suppressWarnings(as.numeric(rows$amount))
-  rows$effective_date <- as.Date(rows$effective_date)
-  rows$entered_date <- as.Date(rows$entered_date)
-  key <- paste(rows$season, rows$franchise, rows$amount, rows$effective_date)
-  if (anyDuplicated(key) || anyNA(rows[required]) || any(!nzchar(rows$evidence)) ||
-      any(!is.finite(rows$amount)) || any(rows$amount == 0) ||
-      any(format(rows$effective_date, "%Y") != rows$season) ||
-      any(rows$entered_date < rows$effective_date)) stop("Invalid or ambiguous cash correction date audit.")
-  rows
-}
-
 build_commissioner_error_report <- function(
   expected_entries,
   actual_entries,
@@ -613,13 +582,10 @@ build_commissioner_error_report <- function(
         # Only explicitly audited corrections may use a different entry date.
         # A matching amount alone must never borrow an unrelated player penalty.
         description_match <- grepl("\\bcash\\b", actual_entries$description, ignore.case = TRUE)
-        approved <- which(cash_correction_dates$franchise == expected$franchise &
-          cash_correction_dates$season == format(transaction_day(expected$row_date), "%Y") &
-          cash_correction_dates$effective_date == transaction_day(expected$row_date) &
-          abs(cash_correction_dates$amount - expected$amount) < 1e-8)
-        if (length(approved) > 1L) stop("Ambiguous cash correction date mapping.")
-        if (length(approved) == 1L) {
-          event_ok <- actual_entries$transaction_day == cash_correction_dates$entered_date[approved]
+        entered_date <- cash_correction_entered_date(cash_correction_dates,
+          expected$franchise, expected$amount, transaction_day(expected$row_date))
+        if (!is.na(entered_date)) {
+          event_ok <- actual_entries$transaction_day == entered_date
         }
         if ("is_br" %in% names(actual_entries)) event_ok <- event_ok & !actual_entries$is_br
       }

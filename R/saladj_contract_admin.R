@@ -40,6 +40,45 @@ parse_saladj_date <- function(x, season) {
   parsed
 }
 
+transaction_day <- function(x) {
+  if (inherits(x, "POSIXt")) return(as.Date(x, tz = "America/New_York"))
+  raw <- trimws(as.character(x))
+  day <- as.Date(rep(NA_character_, length(raw)))
+  for (pair in list(c("^\\d{1,2}/\\d{1,2}/\\d{4}\\b", "%m/%d/%Y"),
+                    c("^\\d{1,2}/\\d{1,2}/\\d{2}\\b", "%m/%d/%y"),
+                    c("^\\d{4}-\\d{2}-\\d{2}", "%Y-%m-%d"))) {
+    ix <- which(grepl(pair[1], raw, perl = TRUE))
+    day[ix] <- as.Date(raw[ix], format = pair[2])
+  }
+  ix <- which(grepl("^[3-6][0-9]{4}([.]0+)?$", raw))
+  day[ix] <- as.Date(as.numeric(raw[ix]), origin = "1899-12-30")
+  day
+}
+
+read_cash_correction_dates <- function(path = "data/saladj_cash_correction_dates.csv") {
+  rows <- readr::read_csv(path, show_col_types = FALSE,
+    col_types = readr::cols(.default = readr::col_character()))
+  required <- c("season", "franchise", "amount", "effective_date", "entered_date", "evidence")
+  if (!all(required %in% names(rows))) stop("Cash correction date audit is missing required fields.")
+  rows$amount <- suppressWarnings(as.numeric(rows$amount))
+  rows$effective_date <- as.Date(rows$effective_date)
+  rows$entered_date <- as.Date(rows$entered_date)
+  key <- paste(rows$season, rows$franchise, rows$amount, rows$effective_date)
+  if (anyDuplicated(key) || anyNA(rows[required]) || any(!nzchar(rows$evidence)) ||
+      any(!is.finite(rows$amount)) || any(rows$amount == 0) ||
+      any(format(rows$effective_date, "%Y") != rows$season) ||
+      any(rows$entered_date < rows$effective_date)) stop("Invalid or ambiguous cash correction date audit.")
+  rows
+}
+
+cash_correction_entered_date <- function(rows, franchise, amount, effective_date) {
+  approved <- which(rows$franchise == franchise &
+    rows$season == format(effective_date, "%Y") &
+    rows$effective_date == effective_date & abs(rows$amount - amount) < 1e-8)
+  if (length(approved) > 1L) stop("Ambiguous cash correction date mapping.")
+  if (length(approved)) rows$entered_date[approved] else as.Date(NA_character_)
+}
+
 is_marked <- function(x) {
   x <- toupper(trimws(as.character(x)))
   !is.na(x) & nzchar(x) & x %in% c("X", "TRUE", "YES", "1")

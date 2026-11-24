@@ -67,6 +67,25 @@ stopifnot(!nrow(prepare_saladj_action_report(rows, recorded, pending, received, 
 reversed <- rows; reversed[["RVSD?"]] <- "x"
 stopifnot(!nrow(prepare_saladj_action_report(reversed, sheet, pending, issued, rows, 2026, monday)$entries))
 
+# Replay the two audited October entries plus a genuinely unentered cash trade.
+cash <- read_csv("data/manual_saladj_adjustments_2026.csv", show_col_types = FALSE,
+  col_types = cols(.default = col_character())) |>
+  filter(FRAN %in% c("NOS", "WAS"), DATE == "8/26/2026 08:41:41")
+cash_sheet <- tibble(franchise = c("NOS", "WAS"), description = "Cash Trade",
+  entered_at = c("10/14/2026", "2026-10-14"), input_salary = c(-0.05, 0.05))
+stopifnot(nrow(cash) == 2L, all(saladj_contract_admin_status(cash, cash_sheet, 2026) == "recorded"))
+unrelated <- cash[cash$FRAN == "WAS", ]; unrelated$DATE <- "8/27/2026 08:41:41"
+unrelated$NOTES <- "Unentered cash trade"
+cash_rows <- bind_rows(cash, unrelated)
+cash_plan <- prepare_saladj_action_report(cash_rows, cash_sheet, pending[FALSE, ], issued, cash, 2026, wednesday)
+stopifnot(identical(cash_plan$entries$DATE, unrelated$DATE), length(cash_plan$new_keys) == 1L,
+  !grepl("8/26/2026", render_saladj_action_report(cash_plan, cash_rows, 2026), fixed = TRUE))
+wrong_sheet <- cash_sheet
+wrong_sheet$description[1] <- "Unrelated player penalty"
+wrong_sheet$input_salary[2] <- 0.054
+stopifnot(all(saladj_contract_admin_status(cash, wrong_sheet, 2026) == "missing"))
+stopifnot(sum(saladj_contract_admin_status(bind_rows(cash, cash[1, ]), cash_sheet, 2026) == "missing") == 1L)
+
 # Exercise the actual delivery block with local files and a fake transport.
 delivery <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("if")) &&
   grepl("send_email && \\(combined_action_email", paste(deparse(x[[2]]), collapse = " ")), expressions)

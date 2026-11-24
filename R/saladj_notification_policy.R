@@ -22,7 +22,8 @@ saladj_checker_email_findings <- function(report, now = Sys.time()) {
   result
 }
 
-saladj_contract_admin_status <- function(rows, entries, season = get_current_season()) {
+saladj_contract_admin_status <- function(rows, entries, season = get_current_season(),
+                                         cash_correction_dates = read_cash_correction_dates()) {
   if (!nrow(rows)) return(character())
   used <- integer()
   vapply(seq_len(nrow(rows)), function(i) {
@@ -43,6 +44,15 @@ saladj_contract_admin_status <- function(rows, entries, season = get_current_sea
     same_date <- !is.na(dates) & !is.na(date) & dates == date
     # Undated legacy rows need matching salary evidence, not just a name.
     compatible_date <- same_date | ((is.na(dates) | is.na(date)) & amount_matches)
+    if (cash) {
+      entered_date <- cash_correction_entered_date(cash_correction_dates,
+        franchise, amount, transaction_day(row$DATE[[1]]))
+      if (!is.na(entered_date)) {
+        identity <- normalize_player_token(entries$description) == "CASH TRADE"
+        amount_matches <- !is.na(entries$input_salary) & abs(entries$input_salary - amount) < 1e-8
+        compatible_date <- transaction_day(entries$entered_at) == entered_date
+      }
+    }
     candidates <- which(identity & compatible_date & !(seq_len(nrow(entries)) %in% used))
     if (cash) candidates <- candidates[amount_matches[candidates]]
     same_franchise <- candidates[entries$franchise[candidates] == franchise]
