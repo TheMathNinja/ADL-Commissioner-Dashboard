@@ -269,6 +269,32 @@ class FailureReports(unittest.TestCase):
             self.assertEqual(send.call_count, 2)
         self.assertFalse(errors)
 
+    def test_queued_fafl_rebuild_requires_real_later_job_and_descendant(self):
+        old = dict(self.run, id=45349627253, _account_report=True, head_sha='a'*40,
+                   event='push', path='.github/workflows/rebuild_bonus_games.yml',
+                   created_at='2026-11-24T07:39:01Z', updated_at='2026-11-24T07:47:50Z')
+        later = dict(old, id=45349845268, head_sha='b'*40, conclusion='success',
+                     created_at='2026-11-24T07:40:44Z', updated_at='2026-11-24T07:56:28Z')
+        original = [dict(name='rebuild', conclusion='failure', steps=[
+            dict(name='Save generated module', conclusion='failure')])]
+        required = ('Build and validate selected module from published score cache',
+                    'Save generated module', 'Request Pages publication')
+        job = dict(name='rebuild', conclusion='success', started_at='2026-11-24T07:47:52Z',
+                   steps=[dict(name=name, conclusion='success') for name in required])
+        check = lambda: m.verified_recovery(m.FAFL_REPO, old, original, [later])
+        with patch.object(m, 'jobs', return_value=[job]), patch.object(m, 'api') as api:
+            api.return_value = dict(status='ahead', behind_by=0)
+            self.assertEqual(check(), later)
+            api.assert_called_once_with(m.FAFL_REPO, f'compare/{"a"*40}...{"b"*40}')
+            api.return_value = dict(status='diverged', behind_by=1)
+            self.assertIsNone(check())
+            api.return_value = dict(status='ahead', behind_by=0)
+            job['started_at'] = '2026-11-24T07:47:49Z'
+            self.assertIsNone(check())
+            job['started_at'] = '2026-11-24T07:47:52Z'
+            job['steps'][-1]['conclusion'] = 'skipped'
+            self.assertIsNone(check())
+
     def test_pages_cancellation_replacements_and_legacy_queue_do_not_email(self):
         from email_delivery_state import deliver_once
         repo = m.COMMISSIONER

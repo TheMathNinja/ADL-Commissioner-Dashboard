@@ -958,6 +958,36 @@ def deployed_pages_replacement(repo, run, later, completed):
         return False
 
 
+def queued_fafl_rebuild_recovered(repo, run, later, original, completed):
+    """A queued, serialized rebuild can start after the failed writer exits."""
+    path = '.github/workflows/rebuild_bonus_games.yml'
+    if (repo != FAFL_REPO or run.get('conclusion') != 'failure' or run['id'] == later['id']
+            or any(item.get('path') != path or item.get('event') != 'push'
+                   or item.get('head_branch') != 'main' for item in (run, later))
+            or failures(run, original) != ['rebuild: Save generated module']):
+        return False
+    first, second = run.get('head_sha') or '', later.get('head_sha') or ''
+    if not all(re.fullmatch(r'[a-f0-9]{40}', sha) for sha in (first, second)):
+        return False
+    rebuilt = next((job for job in completed if job.get('name') == 'rebuild'
+                    and job.get('conclusion') == 'success'), {})
+    required = {'Build and validate selected module from published score cache',
+                'Save generated module', 'Request Pages publication'}
+    passed = {step.get('name') for step in rebuilt.get('steps', []) if step.get('conclusion') == 'success'}
+    if not required <= passed:
+        return False
+    try:
+        if (gameday_time(later['created_at']) < gameday_time(run['created_at'])
+                or gameday_time(rebuilt['started_at']) <= gameday_time(run['updated_at'])):
+            return False
+        if first == second:
+            return True
+        comparison = api(repo, 'compare/' + first + '...' + second)
+        return comparison.get('status') == 'ahead' and comparison.get('behind_by') == 0
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def verified_recovery(repo, run, job_list, history):
     """Suppress historical alerts only when the same production work passed."""
     if run.get('conclusion') not in BAD:
@@ -985,6 +1015,8 @@ def verified_recovery(repo, run, job_list, history):
             if not deployed_pages_replacement(repo, run, later, completed):
                 continue
         elif not retry and later.get('created_at', '') <= run.get('updated_at', ''):
+            if queued_fafl_rebuild_recovered(repo, run, later, job_list, completed):
+                return later
             unstarted_backup = (repo == GUARDIAN and guardian_operational_run(run)
                 and run.get('conclusion') == 'cancelled' and all(
                     not job.get('runner_id') and not job.get('steps') for job in job_list))
