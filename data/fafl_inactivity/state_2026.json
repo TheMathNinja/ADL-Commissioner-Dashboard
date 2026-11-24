@@ -202,8 +202,9 @@
       "status": "review",
       "activity_at": null,
       "notice": {
-        "status": "sending",
-        "attempted_at": "2026-11-24T04:09:51.640109+00:00"
+        "status": "accepted",
+        "attempted_at": "2026-11-24T04:09:51.640109+00:00",
+        "issued_at": "2026-11-24T04:09:51.640109+00:00"
       }
     }
   },
