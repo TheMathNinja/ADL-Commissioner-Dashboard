@@ -826,6 +826,42 @@ def verified_recovery(repo, run, job_list, history):
     return None
 
 
+def report_gameday_incidents(state, dry_run, coverage_errors):
+    for league in ('ADL', 'FAFL'):
+        repo = f'TheMathNinja/{league}-GM-Dashboard'
+        url = f'https://api.github.com/repos/{repo}/contents/gameday-health.json?ref=live-bonus-watch'
+        try:
+            request = urllib.request.Request(url,headers={'User-Agent':'League-incident-reporter'})
+            try:
+                with urllib.request.urlopen(request,timeout=10) as response:
+                    item = json.load(response)
+            except urllib.error.HTTPError as error:
+                if error.code == 404:
+                    continue
+                raise
+            health = json.loads(base64.b64decode(item['content']))
+            for incident in health['incidents']:
+                key = f"gameday:{league}:{incident['openedAt']}"
+                if key in state['sent']:
+                    continue
+                recovered = incident.get('recoveredAt')
+                status = 'Recovered' if recovered else 'Unresolved'
+                subject = f"{league} Gameday forecast failure · {status}"
+                body = (f"{league} Week {incident['week']} Gameday had missing or stale forecasts.\n"
+                        f"Detected at {incident['openedAt']}\n{incident['error']}\n"
+                        + (f"Complete forecasts verified at {recovered}." if recovered else
+                           "The watchdog will retry recovery while live coverage is active."))
+                if dry_run:
+                    print(subject + '\n' + body)
+                    continue
+                mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
+                state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
+                                     'subject': subject, 'scope': f'gameday:{league}'}
+                save(state)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+            coverage_errors.append(f'{league} Gameday incident reporting: {type(error).__name__}')
+
+
 def main():
     COMPLETED_JOB_EVIDENCE.clear()
     parser = argparse.ArgumentParser()
@@ -853,6 +889,7 @@ def main():
     original = copy.deepcopy(state)
     histories={}
     coverage_errors=[]
+    report_gameday_incidents(state, args.dry_run, coverage_errors)
     if os.environ.get('MFL_POTENTIAL_WARNING') == 'true':
         try:
             from mfl_potential_warning import report_warning
