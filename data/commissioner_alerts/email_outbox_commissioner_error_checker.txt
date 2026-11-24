@@ -1,33 +1,17 @@
 Salary-adjustment action report
 This is the complete current worklist. Previously reported items are included for context, not as new errors. Unchecked ENTD? entries are warnings until a completed official snapshot is missed.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_22_ADLSalAdjCurator.csv
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_24_ADLSalAdjCurator.csv
 
 1. Items to Enter into Contract Admin and MFL
 Enter these missing source contracts in Contract Admin and verify the calculated adjustment. Compare with MFL first: add only missing adjustments, correct incorrect existing entries, and never enter a duplicate. After confirming MFL, mark ENTD?. Contract salary below is not the penalty amount.
-Previously reported; still outstanding:
-- Dropped 8/26/2026 08:41:41 ET by NOS | Cash Trade: $-0.05
-  Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
-Previously reported; still outstanding:
-- Dropped 8/26/2026 08:41:41 ET by WAS | Cash Trade: $0.05
-  Notes: Cash-only correction to 8/26/2026 NOS-WAS trade; no MFL trade transaction exists
-Previously reported; still outstanding:
-- Dropped 11/21/2026 00:46:21 ET by GBP | Cash Trade: $10.20
-Previously reported; still outstanding:
-- Dropped 11/21/2026 00:46:21 ET by LAR | Cash Trade: $-10.20
 New entry request:
-- Dropped 11/21/2026 19:48:01 ET by SEA | Josh Metellus MIN S: $2.10 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 23, 2026
+- Dropped 11/24/2026 00:59:39 ET by NEP | Daniel Jones IND QB: $2.50 / 1 yr / 2026 UFA
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 25, 2026
 
 2. Items in Contract Admin to be Entered into MFL
 None outstanding.
 
 3. Items that Need Correcting in Contract Admin or MFL
-Error Type: Incorrect amount in MFL salary adjustments
-Erroneous MFL salary adjustments entry: ATL | J. Fields - 4 yrs at $10.71 mil dropped 11/12/26 - accelerated | Penalty/adjustment: $16.07
-Expected MFL salary-adjustment entry: ATL | Justin Fields | Penalty/adjustment: $16.06
-Original transaction/drop: Nov 12, 2026 at 10:15:11 AM ET
-MFL salary-adjustment entry date: Nov 16, 2026 at 6:26:05 PM ET
-Required: Change the MFL entry to $16.06.
-
+None outstanding.
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
