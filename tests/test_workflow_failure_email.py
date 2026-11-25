@@ -318,6 +318,60 @@ class FailureReports(unittest.TestCase):
         self.assertIn('Your action: Review the failed steps.', body)
         self.assertNotIn('Passed on retry', body)
 
+    def test_log_diagnosis_recognizes_historical_classes_and_keeps_unknowns_manual(self):
+        from failure_repair_policy import diagnose
+        cases = {
+            'generated-output-conflict': 'RuntimeError: Generated output conflicts with newer changes',
+            'credential-or-permission': 'HTTP Error 403: Forbidden',
+            'stale-or-incomplete-input': 'Error: Missing or stale forecasts',
+            'validation-regression': 'AssertionError: Quarterly forecast mismatch',
+            'transient-upstream-read': 'urllib.error.HTTPError: HTTP Error 503: Service unavailable',
+            'unclassified': 'RuntimeError: unexpected new failure',
+        }
+        for code, error in cases.items():
+            with self.subTest(code=code):
+                self.assertEqual(diagnose([error])[0], code)
+        self.assertEqual(diagnose([cases['transient-upstream-read'], cases['credential-or-permission']])[0],
+                         'credential-or-permission')
+
+    def test_replay_is_write_ahead_bounded_and_pinned_to_read_only_definition(self):
+        from failure_repair_policy import READ_ONLY_WORKFLOWS, consider_replay
+        (repo, path), blob = next(iter(READ_ONLY_WORKFLOWS.items()))
+        now = m.datetime(2026, 11, 25, 11, 10, tzinfo=m.timezone.utc)
+        run = dict(self.run, id=94, path=path, head_sha='a' * 40, head_branch='main',
+                   status='completed', conclusion='failure', event='workflow_dispatch',
+                   run_attempt=1, updated_at='2026-11-25T11:00:00Z')
+        state = {'automation_repair_enabled_at': '2026-11-25T10:00:00Z'}
+        trace = []
+        def read(repository, endpoint):
+            self.assertEqual(repository, repo)
+            if not endpoint:
+                return {'private': False}
+            return run if endpoint == 'actions/runs/94' else {'sha': blob}
+        def save(doc):
+            trace.append(doc['automation_repairs'][f'{repo}:94:1']['status'])
+        def request(repository, run_id):
+            self.assertEqual((repository, run_id), (repo, 94))
+            trace.append('POST')
+            return 'uncertain'
+        def evaluate(doc=state, when=now, checked=run, dry_run=False, reader=read, diagnosis='transient-upstream-read'):
+            return consider_replay(doc, repo, checked, ['check: Read'], {'check': diagnosis}, when,
+                                   dry_run=dry_run, read=reader, request=request, save=save)
+        self.assertIsNone(evaluate(dry_run=True))
+        self.assertIsNone(evaluate(checked=dict(run, path='.github/workflows/guardian.yml')))
+        self.assertIsNone(evaluate(checked=dict(run, head_branch='preview')))
+        self.assertIsNone(evaluate(checked=dict(run, run_attempt=2)))
+        self.assertIsNone(evaluate(diagnosis='credential-or-permission'))
+        self.assertIsNone(evaluate(reader=lambda r, p: {'private': True}))
+        self.assertIsNone(evaluate(reader=lambda r, p: {'sha': 'changed'} if p.startswith('contents/') else read(r, p)))
+        self.assertFalse(trace)
+        self.assertEqual(evaluate(), 'pending')
+        self.assertEqual(trace, ['sending', 'POST', 'uncertain'])
+        self.assertEqual(evaluate(), 'pending')
+        self.assertEqual(evaluate(when=now + m.timedelta(minutes=20)), 'retry_deadline')
+        self.assertEqual(trace, ['sending', 'POST', 'uncertain'])
+        self.assertEqual(evaluate(checked=dict(run, id=95)), 'replay_limit')
+
     def test_verified_rebuild_does_not_hide_unresolved_save_problem(self):
         from email_delivery_state import deliver_once
         state = {'recovery_notices_since': '2026-11-25T00:00:00Z'}

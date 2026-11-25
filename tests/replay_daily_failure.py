@@ -38,7 +38,7 @@ if __name__ == '__main__':
              patch.object(reporter, 'runs', lambda r: [run[r]] if r in repos else []), \
              patch.object(reporter, 'jobs', lambda r, _: job_lists[r]), \
              patch.object(reporter.mail, 'document', return_value={}), \
-             patch.object(reporter, 'cause_codes', return_value={}), \
+             patch.object(reporter, 'failure_evidence', return_value=({}, {})), \
              patch.object(reporter, 'read_gameday_health', return_value={'incidents': []}), \
              patch.object(reporter, 'check_gameday_direct'), \
              patch.object(reporter.mail, 'send_email', side_effect=AssertionError), \

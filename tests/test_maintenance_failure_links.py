@@ -77,7 +77,7 @@ class MaintenanceLinks(unittest.TestCase):
              patch.object(m, 'runs', side_effect=history), patch.object(m, 'jobs', side_effect=jobs), \
              patch.object(m, 'api', return_value=self.parent), patch.object(m.subprocess, 'run', side_effect=logs), \
              patch.object(m, 'notification_pending', return_value=False), \
-             patch.object(m, 'verified_recovery', return_value=None), patch.object(m, 'cause_codes', return_value={}), \
+             patch.object(m, 'verified_recovery', return_value=None), patch.object(m, 'failure_evidence', return_value=({}, {})), \
              patch.object(m, 'correction_publication', return_value=None), \
              patch.object(m.mail, 'document', return_value=state), patch.object(m, 'save'), \
              patch.object(m.mail, 'deliver_once', side_effect=lambda state, key, send, save: send()), \

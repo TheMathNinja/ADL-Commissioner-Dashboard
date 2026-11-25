@@ -2,7 +2,6 @@
 import argparse
 import base64
 import copy
-import hashlib
 import subprocess
 from datetime import datetime, timedelta, timezone
 import http.client
@@ -16,6 +15,7 @@ import email_weekly_completion as mail
 from zoneinfo import ZoneInfo
 from maintenance_failure_links import covered_components, WATCHDOG_STEP
 from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, owned_basic_failure, report_missing_checks
+from failure_repair_policy import RULES as FAILURE_RULES, consider_replay, diagnose, fingerprint
 
 
 def watchdog_maintenance_evidence(repo, run, job_list):
@@ -482,30 +482,44 @@ def save(state):
     mail.save_state(state)
 
 
-def cause_codes(repo,run,job_list):
-    codes={}
+def failure_evidence(repo,run,job_list):
+    codes, diagnoses = {}, {}
     for job in job_list:
         if job.get('conclusion') not in BAD or not job.get('id'):continue
         # Run/job IDs identify attempts, not causes. Unknown causes retain the
         # component outage; a newly failed step remains separately reportable.
-        code='unclassified'
+        errors=[]
         try:
-            cmd=['gh','run','view',str(run['id']),'--repo',repo,'--job',str(job['id']),'--log-failed']
+            cmd=['gh','run','view',str(run['id']),'--repo',repo,'--job',str(job['id']),
+                 '--attempt',str(run.get('run_attempt', 1)),'--log-failed']
             env = dict(os.environ)
             if repo == GUARDIAN:
                 env['GH_TOKEN'] = os.environ.get('PRIVATE_REPORT_TOKEN','')
             log=subprocess.run(cmd,capture_output=True,text=True,timeout=25,encoding='utf8',errors='replace',check=True,env=env).stdout
-            errors=[]
             for line in log.splitlines():
                 line=re.split(r'\d{4}-\d\d-\d\dT[\d:.]+Z\s+',line,maxsplit=1)[-1].strip()
                 if not re.match(r'^(?:##\[error\]|(?:[\w.]*Error|fatal|error):)',line,re.I):continue
                 if 'process completed with exit code' in line.lower():continue
                 line=re.sub(r'actions/runs/\d+|\b[0-9a-f]{32,64}\b','<revision>',line)
                 errors.append(line)
-            if errors:code=hashlib.sha256('\n'.join(errors[-4:]).encode()).hexdigest()
         except (OSError,subprocess.SubprocessError):pass
-        codes[job['name']]=code
-    return codes
+        codes[job['name']] = fingerprint(errors)
+        diagnoses[job['name']] = diagnose(errors)[0]
+    return codes, diagnoses
+
+
+def request_read_only_replay(repo, run_id):
+    token = os.environ.get('PRIVATE_REPORT_TOKEN')
+    if not token:
+        return 'rejected'
+    try:
+        reply = subprocess.run(['gh', 'api', '--method', 'POST', f'repos/{repo}/actions/runs/{run_id}/rerun-failed-jobs'],
+                               env={**os.environ, 'GH_TOKEN': token}, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return 'uncertain'
+    if not reply.returncode:
+        return 'requested'
+    return 'rejected' if re.search(r'\(HTTP (?:401|403|404|422)\)', reply.stderr) else 'uncertain'
 
 def recurring_failure_context(state, repo, run, failed, codes):
     """Mention only an exact prior step and known cause within the same incident family."""
@@ -861,6 +875,14 @@ def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
     if (repo == FAFL_REPO and run.get('path') == '.github/workflows/rebuild_bonus_games.yml'
             and 'rebuild: Save generated module' in failed_steps):
         notice['investigation'] = 'fafl-generated-save'
+    elif repo in REPOS and job_list:
+        codes, diagnoses = failure_evidence(repo, run, job_list)
+        for job_name, code in sorted(diagnoses.items()):
+            if code in {'validation-regression', 'generated-output-conflict'}:
+                workflow = run.get('workflow_id') or PurePosixPath(run.get('path', '')).name
+                notice['investigation'] = f'{workflow}:{code}:{codes[job_name]}'
+                notice['diagnosis'] = code
+                break
     notice['failures'][f'{run["id"]}:{run.get("run_attempt", 1)}'] = list(dict.fromkeys(failed_steps))
 
 
@@ -887,20 +909,24 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
             continue
         repo = notice['repository']
         fix = reviewed_root_cause_fix(notice)
-        investigate_save = not fix and notice.get('investigation') == 'fafl-generated-save'
-        if investigate_save and notice.get('investigation_notified'):
+        investigate = not fix and notice.get('investigation')
+        investigate_save = investigate == 'fafl-generated-save'
+        if investigate and notice.get('investigation_notified'):
             continue
-        if not fix and not investigate_save:
+        if not fix and not investigate:
             if dry_run or not notice.get('suppressed_reason'):
                 print(f'Passed on retry (no email): {repo} / {notice["title"]} / {notice["recovery_url"]}')
             if not dry_run:
                 notice.setdefault('suppressed_reason', 'Verified retry success; no reviewed root-cause fix')
             continue
-        status = 'Save failure needs investigation' if investigate_save else 'Root cause fixed'
-        delivery_key = f'investigation:{repo}:fafl-generated-save' if investigate_save else key
+        status = ('Save failure needs investigation' if investigate_save else 'Failure needs investigation'
+                  if investigate else 'Root cause fixed')
+        delivery_key = f'investigation:{repo}:{investigate}' if investigate else key
         subject = f'[League automation: {status}] {repo.split("/")[-1]}'
         action = ('Review the failed save. The later rebuild passed, but the cause of the earlier save failure '
                   'has not been verified as fixed.' if investigate_save else
+                  'Investigate the diagnosed problem. A later run passed, but no root-cause fix was verified.'
+                  if investigate else
                   'None. No action is needed for this incident.')
         lines = [f'{status}: {notice["title"]}.', 'Your action: ' + action, '', 'What went wrong:']
         for attempt, failed in list(notice['failures'].items())[:8]:
@@ -910,6 +936,8 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
                       'Verified run: ' + notice['recovery_url']])
         if fix:
             lines.extend(['', 'What changed: ' + fix[0], 'Verified fix: ' + fix[1]])
+        if notice.get('diagnosis') and not fix:
+            lines.extend(['', 'Diagnosis from the failed job logs: ' + notice['diagnosis'] + '.'])
         body = '\n'.join(lines)
         if dry_run:
             print(subject + '\n' + body)
@@ -917,7 +945,7 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
         try:
             mail.deliver_once(state, delivery_key, lambda: mail.send_email(subject, body, delivery_key), lambda: save(state))
             notice.pop('suppressed_reason', None)
-            if investigate_save:
+            if investigate:
                 notice['investigation_notified'] = True
             else:
                 notice['notified_at'] = datetime.now(timezone.utc).isoformat()
@@ -1687,7 +1715,7 @@ def main():
                         state['checked'][key] = run.get('conclusion')
                     continue
                 incident = incident_key(repo, run)
-                codes=cause_codes(repo,run,job_list)
+                codes, diagnoses = failure_evidence(repo, run, job_list)
                 scope,failed = unreported_steps(state,repo,run,history,failed,codes)
                 if not failed:
                     state['checked'][key] = 'duplicate notification for ' + incident
@@ -1708,6 +1736,15 @@ def main():
                     if not failed:
                         continue  # Not delivered or acknowledged; keep the safety net visible.
                 repair = repair_disposition(repo, run, history, datetime.now(timezone.utc))
+                if (args.deadlines and repair == 'no_safe_retry' and not args.dry_run
+                        and failed == failures(run, job_list)):
+                    try:
+                        replay = consider_replay(state, repo, run, failed, diagnoses, datetime.now(timezone.utc),
+                                                 dry_run=False, read=api, request=request_read_only_replay, save=save)
+                    except (OSError, RuntimeError, ValueError) as error:
+                        coverage_errors.append('Read-only repair receipt: ' + type(error).__name__)
+                        replay = 'replay_unavailable'
+                    repair = replay or repair
                 if repair == 'pending':
                     continue  # Re-evaluate completed work and exact recovery on the next scan.
                 try:publication=correction_publication(repo,run)
@@ -1718,7 +1755,14 @@ def main():
                     'retry_unverified': 'a matching retry completed, but the failed work is still unverified.',
                     'retry_deadline': 'a matching retry did not verify recovery before the notification deadline.',
                     'no_safe_retry': 'no safe automatic replay was available; please review the failed checks.',
+                    'replay_rejected': 'GitHub did not accept the reviewed read-only replay.',
+                    'replay_unavailable': 'The reporter could not verify or record a safe read-only replay.',
+                    'replay_limit': 'The read-only replay limit was reached; no additional replay was requested.',
                 }[repair]
+                observed = sorted(set(diagnoses.values()) - {'unclassified'})
+                if observed:
+                    body += '\nDiagnosis from the failed job logs: ' + ', '.join(observed) + '.'
+                    body += '\n' + ' '.join(action for code, _, action in FAILURE_RULES if code in observed)
                 body += recurring_failure_context(state, repo, run, failed, codes)
                 if child:
                     body += f'\n\nDaily maintenance parent: https://github.com/{DAILY_REPO}/actions/runs/{child[0]}'
@@ -1751,7 +1795,8 @@ def main():
                 state['sent'][key] = {'sent_at': datetime.now(timezone.utc).isoformat(),
                                       'subject': subject, 'incident_key': incident, 'scope': scope,
                                       'failed_steps': failed, 'cause_codes':codes,'affected_jobs':affected,
-                                      'failed_at':run['updated_at'], 'repair_disposition':repair}
+                                      'failed_at':run['updated_at'], 'repair_disposition':repair,
+                                      **({'diagnoses': diagnoses} if observed else {})}
                 if child:
                     state['sent'][key].update(daily_parent=child[0],daily_job=child[1][1])
                 if audit_parent:
@@ -1777,6 +1822,8 @@ def main():
             save(state)
         raise RuntimeError('Failure coverage unavailable; native notifications must remain enabled: '+', '.join(coverage_errors))
     if not args.dry_run:
+        if args.deadlines:
+            state.setdefault('automation_repair_enabled_at', datetime.now(timezone.utc).isoformat())
         state.setdefault('recovery_notices_since', now.isoformat())
         state['healthyAt'] = datetime.now(timezone.utc).isoformat()
         state['healthSchema'] = 1

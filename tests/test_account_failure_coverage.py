@@ -119,7 +119,7 @@ class AccountCoverage(unittest.TestCase):
              patch.object(sys,'argv',['report']),patch.object(m,'REPOS',[]),patch.object(m,'GUARDIAN','TheMathNinja/data'), \
              patch.object(catalog,'repositories',side_effect=discovery or (lambda _: ['TheMathNinja/data'])), \
              patch.object(m,'runs',side_effect=run_reader or (lambda _: [self.run_record()])), \
-             patch.object(m,'jobs',return_value=self.job()),patch.object(m,'cause_codes',return_value={}), \
+             patch.object(m,'jobs',return_value=self.job()),patch.object(m,'failure_evidence',return_value=({}, {})), \
              patch.object(m.mail,'document',return_value=state),patch.object(m,'save'), \
              patch.object(m.mail,'deliver_once',side_effect=lambda s,k,send,persist: send()), \
              patch.object(m.mail,'send_email') as send:

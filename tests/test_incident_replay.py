@@ -199,7 +199,9 @@ class IncidentReplay(unittest.TestCase):
         with patch.object(m.subprocess,'run') as command:
             command.return_value.stdout='2026-11-12T09:36:59Z ##[error]Process completed with exit code 1.'
             for job_id in (131093267662,131103283357):
-                self.assertEqual(m.cause_codes(self.repo,self.run,[dict(id=job_id,name='refresh',conclusion='failure')]),{'refresh':'unclassified'})
+                job = dict(id=job_id, name='refresh', conclusion='failure')
+                self.assertEqual(m.failure_evidence(self.repo, self.run, [job]),
+                                 ({'refresh':'unclassified'}, {'refresh':'unclassified'}))
 
     def test_transient_grace_is_bounded_and_keeps_failure_pending(self):
         ended=m.datetime.fromisoformat(self.run['updated_at'].replace('Z','+00:00'))
