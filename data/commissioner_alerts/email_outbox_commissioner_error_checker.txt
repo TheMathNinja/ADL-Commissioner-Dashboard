@@ -1,12 +1,18 @@
 Salary-adjustment action report
 This is the complete current worklist. Previously reported items are included for context, not as new errors. Unchecked ENTD? entries are warnings until a completed official snapshot is missed.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_24_ADLSalAdjCurator.csv
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_25_ADLSalAdjCurator.csv
 
 1. Items to Enter into Contract Admin and MFL
-Enter these missing source contracts in Contract Admin and verify the calculated adjustment. Compare with MFL first: add only missing adjustments, correct incorrect existing entries, and never enter a duplicate. After confirming MFL, mark ENTD?. Contract salary below is not the penalty amount.
-New entry request:
+Enter these missing source contracts in Contract Admin and verify the calculated adjustment.
+Previously reported; still outstanding:
 - Dropped 11/24/2026 00:59:39 ET by NEP | Daniel Jones IND QB: $2.50 / 1 yr / 2026 UFA
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 25, 2026
+  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
+New entry request:
+- Dropped 11/24/2026 07:02:11 ET by IND | DK Metcalf PIT WR: $13.99 / 1 yr / 2023 oEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 26, 2026
+New entry request:
+- Dropped 11/24/2026 17:49:53 ET by NOS | Javon Kinlaw WAS DT: $2.09 / 3 yr / 2026 oEXT
+  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 26, 2026
 
 2. Items in Contract Admin to be Entered into MFL
 None outstanding.
