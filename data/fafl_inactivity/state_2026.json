@@ -359,8 +359,9 @@
   "digest_signature": "0ccfc3d068446723c82bfea36a985b88544e086013df1d51c02cad8666a10da5",
   "delivery_receipts": {
     "fafl-inactivity-action:2ceb3cd93896eb42a27193106444e24a55cdd1f189a22ddbd3f574605ac1e3c8": {
-      "status": "sending",
-      "attempted_at": "2026-11-25T18:09:49.686553+00:00"
+      "status": "accepted",
+      "attempted_at": "2026-11-25T18:09:49.686553+00:00",
+      "accepted_at": "2026-11-25T18:09:51.796734+00:00"
     }
   }
 }
