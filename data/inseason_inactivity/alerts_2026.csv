@@ -1,2 +1,1 @@
 violation_key,season,week,checked_at,alert_type,severity,conference,franchise,franchise_name,violation_category,rule,observed,details,season_phase
-illegal_lineup|2026|WAS|11,2026,11,2026-11-24 05:27:25 EST,In-Season Inactivity Violation,violation,NFC,WAS,Washington Commanders,Illegal Lineup,GM must submit a legal weekly lineup,"Week 11 final MFL lineup has a confirmed structural violation: 6 offensive starters (0 QB, 6 RB/WR/TE)",Must start 1 additional QB,inseason
