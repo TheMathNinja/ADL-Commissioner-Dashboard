@@ -9,6 +9,8 @@ import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
+from http.client import IncompleteRead
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 from guardian_check_policy import GRACE, monitor_missing
@@ -159,9 +161,25 @@ def persist(path, original, value):
     request = Request(f'https://api.github.com/repos/{REPO}/contents/{path}', method='PUT',
                       headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json',
                                'Accept': 'application/vnd.github+json'}, data=json.dumps(body).encode())
-    # A conflict or ambiguous write must be re-read by the next run, not blindly replayed.
     with urlopen(request, timeout=30) as response:
         json.load(response)
+
+
+def persist_verified(api, original, value):
+    """Resolve an ambiguous write from its exact read-back and original SHA."""
+    for attempt in range(2):
+        try:
+            persist(STATE, original, value)
+            return
+        except (OSError, IncompleteRead, json.JSONDecodeError) as error:
+            if isinstance(error, HTTPError) and error.code not in {408, 409, 500, 502, 503, 504}:
+                raise
+            confirmed = api(REPO, 'contents/' + STATE + '?ref=main')
+            if decode(confirmed) == value:
+                return
+            if attempt or confirmed['sha'] != original['sha']:
+                raise
+            # Only retry the same compare-and-swap; never overwrite a changed receipt.
 
 
 def refresh(api, now, dry=False):
@@ -178,5 +196,5 @@ def refresh(api, now, dry=False):
         state.update(checkScope='read-only basic MFL checks; no private rankings or automatic replacements',
                      basicActivatedAt=warning['activatedAt'])
     if not dry:
-        persist(STATE, original, state)
+        persist_verified(api, original, state)
     return state

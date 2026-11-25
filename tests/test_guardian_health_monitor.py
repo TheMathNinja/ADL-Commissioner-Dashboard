@@ -155,6 +155,41 @@ class MonitorTests(unittest.TestCase):
                 monitor.refresh(api, NOW + timedelta(minutes=10), dry=True)
             persist.assert_not_called()
 
+    # Production reporter 45649967655: coverage assessment got HTTP 500,
+    # and the next phase found only a stale receipt.
+    def test_ambiguous_coverage_write_uses_exact_readback_before_retry(self):
+        import base64, json
+        from urllib.error import HTTPError
+
+        def error(code):
+            return HTTPError('https://api.github.com', code, 'GitHub contents write', {}, None)
+
+        value = {'generatedAt': NOW.isoformat(), 'incidents': []}
+        def response(sha, document):
+            return {'sha': sha, 'content': base64.b64encode(json.dumps(document).encode()).decode()}
+        original = response('old', {'generatedAt': 'old'})
+        for responses, writes, expected in (
+            ([response('accepted', value)], [error(500)], None),
+            ([original], [error(500), None], None),
+            ([original, response('accepted', value)], [error(500), error(503)], None),
+            ([response('newer', {'generatedAt': 'newer'})], [error(500)], 500),
+            ([original, original], [error(500), error(500)], 500),
+            ([], [error(403)], 403),
+        ):
+            with self.subTest(writes=[item.code if item else None for item in writes], expected=expected):
+                with patch.object(monitor, 'persist', side_effect=writes) as persist, \
+                     patch.object(monitor, 'decode', wraps=monitor.decode):
+                    read = unittest.mock.Mock(side_effect=responses)
+                    if expected:
+                        with self.assertRaises(HTTPError) as raised:
+                            monitor.persist_verified(read, original, value)
+                        self.assertEqual(raised.exception.code, expected)
+                    else:
+                        monitor.persist_verified(read, original, value)
+                    self.assertEqual(persist.call_count, len(writes))
+                    self.assertEqual(read.call_count, len(responses))
+                    self.assertTrue(all(call.args[1] == original for call in persist.call_args_list))
+
 
 if __name__ == '__main__':
     unittest.main()
