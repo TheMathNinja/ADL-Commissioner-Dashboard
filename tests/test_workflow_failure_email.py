@@ -244,7 +244,7 @@ class FailureReports(unittest.TestCase):
         with patch.object(m, 'jobs', return_value=completed[:1]):
             self.assertIsNone(m.verified_recovery(m.COMMISSIONER, old, old_jobs, [later]))
 
-    def test_recovery_notices_group_attempts_never_backfill_and_send_once(self):
+    def test_retry_success_groups_attempts_without_sending_or_backfilling_email(self):
         from email_delivery_state import deliver_once
         state = {'recovery_notices_since': '2026-10-01T14:00:00Z'}
         later = dict(self.run, id=2, conclusion='success', updated_at='2026-10-01T15:00:00Z')
@@ -257,22 +257,24 @@ class FailureReports(unittest.TestCase):
         self.assertEqual(len(state['recovery_notices']), 1)
         errors = []
         with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
-             patch.object(m, 'save'):
+             patch.object(m, 'save'), patch('builtins.print') as printed:
             m.deliver_recovery_notices(state, False, errors)
             m.deliver_recovery_notices(state, False, errors)
-            send.assert_called_once()
-            self.assertIn('Passed on retry', send.call_args.args[0])
-            self.assertIn('No root-cause fix was verified.', send.call_args.args[1])
-            self.assertNotIn('Root cause fixed', send.call_args.args[0])
-            self.assertIn('Run 1, attempt 1:', send.call_args.args[1])
-            self.assertIn('Run 1, attempt 2:', send.call_args.args[1])
-            self.assertIn('No action is needed', send.call_args.args[1])
+            send.assert_not_called()
+            printed.assert_called_once()
+            self.assertIn('Passed on retry (no email)', printed.call_args.args[0])
+            notice = next(iter(state['recovery_notices'].values()))
+            self.assertEqual(set(notice['failures']), {'1:1', '1:2'})
+            self.assertIn('no reviewed root-cause fix', notice['suppressed_reason'])
+            self.assertNotIn('notified_at', notice)
             record(dict(self.run, id=3), dict(later, id=4))
             m.deliver_recovery_notices(state, False, errors)
-            self.assertEqual(send.call_count, 2)
+            self.assertEqual(printed.call_count, 2)
+            send.assert_not_called()
         self.assertFalse(errors)
 
     def test_root_cause_notice_requires_reviewed_exact_attempts_and_deployed_commit(self):
+        from email_delivery_state import deliver_once
         repo = m.FAFL_REPO
         sha = 'a' * 40
         state = {'recovery_notices_since': '2026-10-01T14:00:00Z'}
@@ -280,6 +282,19 @@ class FailureReports(unittest.TestCase):
                      updated_at='2026-10-01T15:00:00Z')
         m.remember_recovery(state, repo, self.run, later, ['report: Retryable read'])
         evidence = {(repo, 2, 2): (sha, frozenset({'1:1'}), 'Corrected the read timeout handling.')}
+        verified_state = copy.deepcopy(state)
+        errors = []
+        with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
+             patch.object(m, 'save'):
+            m.deliver_recovery_notices(verified_state, False, errors)
+            send.assert_not_called()
+            with patch.object(m, 'REVIEWED_ROOT_CAUSE_FIXES', evidence):
+                m.deliver_recovery_notices(verified_state, False, errors)
+                m.deliver_recovery_notices(verified_state, False, errors)
+            send.assert_called_once()
+            self.assertIn('Root cause fixed', send.call_args.args[0])
+            self.assertIn(f'https://github.com/{repo}/commit/{sha}', send.call_args.args[1])
+        self.assertFalse(errors)
         with patch.object(m, 'REVIEWED_ROOT_CAUSE_FIXES', evidence), patch('builtins.print') as printed:
             m.deliver_recovery_notices(state, True, [])
             body = printed.call_args.args[0]
@@ -302,6 +317,27 @@ class FailureReports(unittest.TestCase):
         self.assertIn('FAILED', subject)
         self.assertIn('Your action: Review the failed steps.', body)
         self.assertNotIn('Passed on retry', body)
+
+    def test_verified_rebuild_does_not_hide_unresolved_save_problem(self):
+        from email_delivery_state import deliver_once
+        state = {'recovery_notices_since': '2026-11-25T00:00:00Z'}
+        repo = m.FAFL_REPO
+        original = dict(self.run, id=45546157971, path='.github/workflows/rebuild_bonus_games.yml',
+                        updated_at='2026-11-25T04:29:41Z')
+        later = dict(original, id=45547066760, conclusion='success')
+        errors = []
+        with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
+             patch.object(m, 'save'):
+            m.remember_recovery(state, repo, original, later, ['rebuild: Save generated module'])
+            m.deliver_recovery_notices(state, False, errors)
+            m.remember_recovery(state, repo, dict(original, id=45546157972),
+                                dict(later, id=45547066761), ['rebuild: Save generated module'])
+            m.deliver_recovery_notices(state, False, errors)
+            send.assert_called_once()
+            self.assertIn('Save failure needs investigation', send.call_args.args[0])
+            self.assertIn('Your action: Review the failed save.', send.call_args.args[1])
+            self.assertNotIn('Root cause fixed', send.call_args.args[0])
+        self.assertFalse(errors)
 
     def test_queued_fafl_rebuild_requires_real_later_job_and_descendant(self):
         old = dict(self.run, id=45349627253, _account_report=True, head_sha='a'*40,
@@ -354,8 +390,10 @@ class FailureReports(unittest.TestCase):
             replacement = dict(later, id=45362568458)
             m.remember_recovery(state, repo, old, replacement, m.failures(old, failed), failed)
             m.deliver_recovery_notices(state, False, errors)
-            send.assert_called_once()
-            self.assertIn('Build site', send.call_args.args[1])
+            send.assert_not_called()
+            notice = state['recovery_notices'][f'recovery:{repo}:{replacement["id"]}:1']
+            self.assertEqual(notice['failures'][f'{old["id"]}:1'], ['build: Build site'])
+            self.assertIn('no reviewed root-cause fix', notice['suppressed_reason'])
         self.assertFalse(errors)
 
     def test_verified_retry_is_recorded_without_email(self):

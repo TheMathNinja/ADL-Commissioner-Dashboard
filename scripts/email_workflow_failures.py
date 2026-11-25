@@ -858,6 +858,9 @@ def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
                   verified_head_sha=recovery.get('head_sha'))
     if pages:
         notice['pages_actionable_failure'] = True
+    if (repo == FAFL_REPO and run.get('path') == '.github/workflows/rebuild_bonus_games.yml'
+            and 'rebuild: Save generated module' in failed_steps):
+        notice['investigation'] = 'fafl-generated-save'
     notice['failures'][f'{run["id"]}:{run.get("run_attempt", 1)}'] = list(dict.fromkeys(failed_steps))
 
 
@@ -884,10 +887,22 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
             continue
         repo = notice['repository']
         fix = reviewed_root_cause_fix(notice)
-        status = 'Root cause fixed' if fix else 'Passed on retry'
+        investigate_save = not fix and notice.get('investigation') == 'fafl-generated-save'
+        if investigate_save and notice.get('investigation_notified'):
+            continue
+        if not fix and not investigate_save:
+            if dry_run or not notice.get('suppressed_reason'):
+                print(f'Passed on retry (no email): {repo} / {notice["title"]} / {notice["recovery_url"]}')
+            if not dry_run:
+                notice.setdefault('suppressed_reason', 'Verified retry success; no reviewed root-cause fix')
+            continue
+        status = 'Save failure needs investigation' if investigate_save else 'Root cause fixed'
+        delivery_key = f'investigation:{repo}:fafl-generated-save' if investigate_save else key
         subject = f'[League automation: {status}] {repo.split("/")[-1]}'
-        lines = [f'{status}: {notice["title"]}.',
-                 'Your action: None. No action is needed for this incident.', '', 'What went wrong:']
+        action = ('Review the failed save. The later rebuild passed, but the cause of the earlier save failure '
+                  'has not been verified as fixed.' if investigate_save else
+                  'None. No action is needed for this incident.')
+        lines = [f'{status}: {notice["title"]}.', 'Your action: ' + action, '', 'What went wrong:']
         for attempt, failed in list(notice['failures'].items())[:8]:
             run_id, _, number = attempt.partition(':')
             lines.append(f'- Run {run_id}, attempt {number}: ' + '; '.join(failed[:5]))
@@ -895,15 +910,17 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
                       'Verified run: ' + notice['recovery_url']])
         if fix:
             lines.extend(['', 'What changed: ' + fix[0], 'Verified fix: ' + fix[1]])
-        else:
-            lines.extend(['', 'The retry completed the work. No root-cause fix was verified.'])
         body = '\n'.join(lines)
         if dry_run:
             print(subject + '\n' + body)
             continue
         try:
-            mail.deliver_once(state, key, lambda: mail.send_email(subject, body, key), lambda: save(state))
-            notice['notified_at'] = datetime.now(timezone.utc).isoformat()
+            mail.deliver_once(state, delivery_key, lambda: mail.send_email(subject, body, delivery_key), lambda: save(state))
+            notice.pop('suppressed_reason', None)
+            if investigate_save:
+                notice['investigation_notified'] = True
+            else:
+                notice['notified_at'] = datetime.now(timezone.utc).isoformat()
         except (OSError, RuntimeError, ValueError) as error:
             coverage_errors.append('Recovery summary delivery: ' + type(error).__name__)
 
