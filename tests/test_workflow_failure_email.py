@@ -261,6 +261,9 @@ class FailureReports(unittest.TestCase):
             m.deliver_recovery_notices(state, False, errors)
             m.deliver_recovery_notices(state, False, errors)
             send.assert_called_once()
+            self.assertIn('Passed on retry', send.call_args.args[0])
+            self.assertIn('No root-cause fix was verified.', send.call_args.args[1])
+            self.assertNotIn('Root cause fixed', send.call_args.args[0])
             self.assertIn('Run 1, attempt 1:', send.call_args.args[1])
             self.assertIn('Run 1, attempt 2:', send.call_args.args[1])
             self.assertIn('No action is needed', send.call_args.args[1])
@@ -268,6 +271,37 @@ class FailureReports(unittest.TestCase):
             m.deliver_recovery_notices(state, False, errors)
             self.assertEqual(send.call_count, 2)
         self.assertFalse(errors)
+
+    def test_root_cause_notice_requires_reviewed_exact_attempts_and_deployed_commit(self):
+        repo = m.FAFL_REPO
+        sha = 'a' * 40
+        state = {'recovery_notices_since': '2026-10-01T14:00:00Z'}
+        later = dict(self.run, id=2, head_sha=sha, run_attempt=2, conclusion='success',
+                     updated_at='2026-10-01T15:00:00Z')
+        m.remember_recovery(state, repo, self.run, later, ['report: Retryable read'])
+        evidence = {(repo, 2, 2): (sha, frozenset({'1:1'}), 'Corrected the read timeout handling.')}
+        with patch.object(m, 'REVIEWED_ROOT_CAUSE_FIXES', evidence), patch('builtins.print') as printed:
+            m.deliver_recovery_notices(state, True, [])
+            body = printed.call_args.args[0]
+            self.assertIn('Root cause fixed', body)
+            self.assertIn('Your action: None.', body)
+            self.assertIn('Corrected the read timeout handling.', body)
+            self.assertIn(f'https://github.com/{repo}/commit/{sha}', body)
+            m.remember_recovery(state, repo, dict(self.run, id=3), later, ['report: Other failure'])
+            m.deliver_recovery_notices(state, True, [])
+            self.assertIn('Passed on retry', printed.call_args.args[0])
+            self.assertNotIn('Root cause fixed', printed.call_args.args[0])
+        for wrong in ({'verified_head_sha': 'b' * 40}, {'verified_attempt': 1}, {'verified_run_id': 7}):
+            with self.subTest(wrong=wrong), patch.object(m, 'REVIEWED_ROOT_CAUSE_FIXES', evidence):
+                notice = next(iter(state['recovery_notices'].values()))
+                self.assertIsNone(m.reviewed_root_cause_fix(dict(notice, failures={'1:1': []}, **wrong)))
+
+    def test_unverified_later_success_keeps_review_action(self):
+        later = dict(self.run, html_url='https://github.com/test/runs/2')
+        subject, body = m.message(m.FAFL_REPO, self.run, 'Example impact', ['Test'], later)
+        self.assertIn('FAILED', subject)
+        self.assertIn('Your action: Review the failed steps.', body)
+        self.assertNotIn('Passed on retry', body)
 
     def test_queued_fafl_rebuild_requires_real_later_job_and_descendant(self):
         old = dict(self.run, id=45349627253, _account_report=True, head_sha='a'*40,

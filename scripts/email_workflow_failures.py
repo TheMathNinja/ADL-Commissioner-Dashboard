@@ -457,7 +457,11 @@ def message(repo, run, impact, failed, later_success, publication=None, later_cy
     else:
         lines += ['No later successful run of this workflow was found at report time.',
                   'A later retry may recover it; this email does not claim recovery.']
-    lines += ['', 'This alert does not wait for the other league or for successful publication.',
+    action = ('Check whether the earlier cycle left anything outstanding. A later cycle passed.'
+              if later_cycle and not later_success else
+              'Review the failed steps. The reporter has not verified that this work completed.')
+    lines += ['', 'Your action: ' + action,
+              'This alert does not wait for the other league or for successful publication.',
               'Sent only to ' + OWNER + '.']
     return subject, '\n'.join(lines)
 
@@ -819,6 +823,13 @@ def push_preflight_recovered(repo, run, later, original, completed):
         return False
 
 
+# Add only after reviewing the diagnosed cause, deployed fix and passing check.
+# Key: (repository, verified run ID, verified attempt). Value: exact head SHA,
+# frozenset of failed 'run:attempt' keys, and a plain-language fix summary.
+# A later success, commit message or run title is not evidence of a root-cause fix.
+REVIEWED_ROOT_CAUSE_FIXES = {}
+
+
 def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
     """Group retry attempts under the exact verified replacement; never backfill mail."""
     since = state.get('recovery_notices_since')
@@ -843,9 +854,23 @@ def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
         'recovery_url': f'https://github.com/{repo}/actions/runs/{recovery["id"]}',
         'verified_at': recovery['updated_at'], 'failures': {},
     })
+    notice.update(verified_run_id=recovery['id'], verified_attempt=recovery.get('run_attempt', 1),
+                  verified_head_sha=recovery.get('head_sha'))
     if pages:
         notice['pages_actionable_failure'] = True
     notice['failures'][f'{run["id"]}:{run.get("run_attempt", 1)}'] = list(dict.fromkeys(failed_steps))
+
+
+def reviewed_root_cause_fix(notice):
+    key = (notice['repository'], notice.get('verified_run_id'), notice.get('verified_attempt'))
+    fix = REVIEWED_ROOT_CAUSE_FIXES.get(key)
+    if not fix:
+        return None
+    sha, attempts, summary = fix
+    if (re.fullmatch(r'[a-f0-9]{40}', sha) and sha == notice.get('verified_head_sha')
+            and attempts == frozenset(notice['failures'])):
+        return summary, f'https://github.com/{notice["repository"]}/commit/{sha}'
+    return None
 
 
 def deliver_recovery_notices(state, dry_run, coverage_errors):
@@ -858,15 +883,20 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
                 notice.setdefault('suppressed_reason', 'legacy Pages recovery lacks evidence of an actual build error')
             continue
         repo = notice['repository']
-        subject = f'[League automation RECOVERED] {repo.split("/")[-1]}'
-        lines = [f'The checker verified recovery for {notice["title"]}.', '',
-                 'What went wrong:']
+        fix = reviewed_root_cause_fix(notice)
+        status = 'Root cause fixed' if fix else 'Passed on retry'
+        subject = f'[League automation: {status}] {repo.split("/")[-1]}'
+        lines = [f'{status}: {notice["title"]}.',
+                 'Your action: None. No action is needed for this incident.', '', 'What went wrong:']
         for attempt, failed in list(notice['failures'].items())[:8]:
             run_id, _, number = attempt.partition(':')
             lines.append(f'- Run {run_id}, attempt {number}: ' + '; '.join(failed[:5]))
         lines.extend(['', 'What passed: the equivalent run completed and the required checks passed.',
-                      'Verified run: ' + notice['recovery_url'],
-                      'No action is needed for this incident.'])
+                      'Verified run: ' + notice['recovery_url']])
+        if fix:
+            lines.extend(['', 'What changed: ' + fix[0], 'Verified fix: ' + fix[1]])
+        else:
+            lines.extend(['', 'The retry completed the work. No root-cause fix was verified.'])
         body = '\n'.join(lines)
         if dry_run:
             print(subject + '\n' + body)
@@ -1665,7 +1695,8 @@ def main():
                     continue  # Re-evaluate completed work and exact recovery on the next scan.
                 try:publication=correction_publication(repo,run)
                 except (OSError,RuntimeError,ValueError,KeyError,TypeError):publication=None
-                subject, body = message(repo, run, impact, failed, later, publication, later_daily_cycle(repo,run,history))
+                later_cycle = later_daily_cycle(repo, run, history)
+                subject, body = message(repo, run, impact, failed, later, publication, later_cycle)
                 body += '\n\nRecovery check: ' + {
                     'retry_unverified': 'a matching retry completed, but the failed work is still unverified.',
                     'retry_deadline': 'a matching retry did not verify recovery before the notification deadline.',
