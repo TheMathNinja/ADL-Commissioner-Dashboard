@@ -2719,12 +2719,13 @@ roster_cap_email_type <- function(alert_type, consecutive_days, season, checked_
   ifelse(alert_type == "Roster Cap Violation",
     ifelse(!is.na(consecutive_days) & consecutive_days >= 2L,
       "Roster Cap Violation (Inactivity Violation)",
-      "Roster Cap Violation (1st Consecutive)"), alert_type)
+      "Roster Cap Exceeded (1st Consecutive)"), alert_type)
 }
 
 pluralize_alert_type <- function(alert_type, n) {
   if (as.integer(n) == 1L) return(alert_type)
-  if (startsWith(alert_type, "Roster Cap Violation (")) return(alert_type)
+  if (startsWith(alert_type, "Roster Cap Violation (") ||
+      identical(alert_type, "Roster Cap Exceeded (1st Consecutive)")) return(alert_type)
   case_when(
     alert_type == "Illegal Lineup Warning" ~ "Illegal Lineup Warnings",
     alert_type == "Illegal Lineup" ~ "Illegal Lineups",

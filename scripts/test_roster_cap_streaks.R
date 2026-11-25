@@ -89,7 +89,11 @@ second$consecutive_days <- 2L
 first$season <- second$season <- "2026"
 first$checked_date <- second$checked_date <- as.character(as.Date(day2))
 digest <- render_commissioner_alert_email(dplyr::bind_rows(first, second), checked_date = as.Date(day2))
-stopifnot(grepl("Roster Cap Violation (1st Consecutive)", digest, fixed = TRUE))
+first_heading <- "**Roster Cap Exceeded (1st Consecutive)**"
+stopifnot(grepl(first_heading, digest, fixed = TRUE))
+stopifnot(!grepl("Roster Cap Violation (1st Consecutive)", digest, fixed = TRUE))
+gm_first <- render_commissioner_gm_alert_email(dplyr::bind_rows(first, first), checked_date = as.Date(day2))
+stopifnot(grepl(first_heading, gm_first, fixed = TRUE))
 stopifnot(grepl("Roster Cap Violation (Inactivity Violation)", digest, fixed = TRUE))
 stopifnot(grepl(paste0(rule, " (2nd Consecutive)"), digest, fixed = TRUE))
 friday_digest <- render_commissioner_alert_email(first, week = 3L, checked_date = as.Date("2026-09-25"))
