@@ -152,7 +152,7 @@ build_final_lineup_review <- function(lineups, kickoffs, history, submissions, b
 evaluate_final_lineup_review <- function(season, week, run_time, submissions,
     fetch_lineups = fetch_live_lineups, fetch_kickoffs = read_nfl_team_kickoffs,
     fetch_history = read_designation_snapshot_history, fetch_byes = read_bye_weeks,
-    fetch_injuries = fetch_mfl_injury_payload) {
+    fetch_injuries = fetch_mfl_injury_payload, fetch_snap_evidence = load_adl_snap_evidence) {
   if (is.na(week)) return(tibble())
   kickoffs <- fetch_kickoffs(season = season, week = week)
   last_kickoff <- lineup_week_last_kickoff(kickoffs)
@@ -169,6 +169,24 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
     }
   )
   review <- build_final_lineup_review(lineups, kickoffs, history, submissions, fetch_byes(season), week, injuries)
+  if (week >= 2L) {
+    snap_review <- tryCatch({
+      evidence <- fetch_snap_evidence(season)
+      coverage <- unique(evidence$nfl_team[evidence$week == week])
+      list(rows = low_snap_review_rows(lineups, evidence, week),
+           complete = all(mfl_player_team(kickoffs$player_team) %in% coverage))
+    }, error = function(e) {
+      warning("NFL snap-share evidence unavailable; leaving low-snap cases unverified.", call. = FALSE)
+      list(rows = tibble(), complete = FALSE)
+    })
+    review <- bind_rows(review, snap_review$rows)
+    if (!snap_review$complete) {
+      review <- bind_rows(review, tibble(week = as.character(week), conference = NA_character_,
+        franchise = NA_character_, franchise_name = "Snap-share coverage", outcome = "Snap coverage",
+        observed = "NFL snap-count coverage was incomplete for this week.",
+        details = "Only starters with verified shares in both weeks were evaluated. Missing counts are not zero."))
+    }
+  }
   if (is.null(history) || !nrow(history)) {
     review <- bind_rows(review, tibble(
       week = as.character(week), conference = NA_character_, franchise = NA_character_,
@@ -205,7 +223,8 @@ final_lineup_review_digest <- function(review) {
 }
 
 render_final_lineup_review_lines <- function(rows) {
-  headings <- c(Violation = "Confirmed violations", Excused = "Excused inactivity", `Needs review` = "Needs review")
+  headings <- c(Violation = "Confirmed violations", Excused = "Excused inactivity", `Needs review` = "Needs review",
+                `Low snap share` = "Low-snap starters to review", `Snap coverage` = "Snap-share coverage notice")
   lines <- c(paste0("Week ", paste(unique(rows$week), collapse = ", "),
                     ": ", sum(rows$review_outcome %in% "Violation"), " confirmed violation(s), ",
                     sum(rows$review_outcome %in% "Excused"), " excused, ",
@@ -214,6 +233,9 @@ render_final_lineup_review_lines <- function(rows) {
     selected <- rows[rows$review_outcome %in% outcome, , drop = FALSE]
     if (!nrow(selected)) next
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
+      if (outcome == "Low snap share") paste(
+        "Screening only; no strike. Review the expected role at submission and whether an active roster or",
+        "free-agent alternative was available."),
       unlist(lapply(seq_len(nrow(selected)), function(i) {
         row <- selected[i, ]
         team <- if (is.na(row$franchise) || !nzchar(row$franchise)) row$franchise_name else

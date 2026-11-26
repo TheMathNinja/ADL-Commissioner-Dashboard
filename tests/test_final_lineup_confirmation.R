@@ -160,3 +160,26 @@ conflict <- bind_rows(history, mutate(history, player_team = "BUF"))
 stopifnot(nrow(read_mfl_pregame_designations(2026, 11, conflict)) == 0L)
 if (is.na(old_alert_dir)) Sys.unsetenv("ADL_ALERT_DIR") else Sys.setenv(ADL_ALERT_DIR = old_alert_dir)
 cat("Cloud MFL-only pregame designation evidence regressions passed.\n")
+
+players <- tibble(mfl_id = as.character(1:7), pfr_id = letters[1:7])
+snaps <- tibble(season = 2026, game_type = "REG", game_id = rep(c("first", "next"), each = 6),
+  week = rep(10:11, each = 6), pfr_player_id = rep(letters[1:6], 2), team = "NYG",
+  offense_pct = c(.15, .80, 0, .25, .29, .25, .25, .80, 0, .30, .29, .25),
+  defense_pct = c(0, .19, 0, 0, 0, 0, 0, .20, 0, 0, 0, 0))
+snaps$offense_pct[5] <- NA_real_
+snaps <- bind_rows(snaps, filter(snaps, pfr_player_id == "f", week == 10) |> mutate(offense_pct = 0.8))
+evidence <- prepare_adl_snap_evidence(snaps, players, 2026)
+starters <- tibble(conference="NFC", franchise="NYG", franchise_name="New York Giants",
+  player_id = as.character(1:7), player_name = paste("Player", 1:7),
+  player_pos = c("QB", "S", "PK", "RB", "WR", "QB", "TE"))
+low <- adl_low_snap_starters(starters, evidence, 11)
+stopifnot(identical(low$player_id, c("1", "2")), identical(low$unit, c("offense", "defense")))
+ambiguous <- bind_rows(players, tibble(mfl_id = "9", pfr_id = "a"))
+stopifnot(!"1" %in% prepare_adl_snap_evidence(snaps, ambiguous, 2026)$mfl_id)
+low_review <- low_snap_review_rows(starters, evidence, 11)
+stopifnot(nrow(low_review) == 2L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
+  all(is_commissioner_only_alert(final_lineup_review_digest(low_review))))
+mail <- render_final_lineup_review_lines(final_lineup_review_digest(low_review))
+stopifnot(sum(mail == "Low-snap starters to review (2)") == 1L,
+  any(grepl("no strike", mail, fixed = TRUE)), any(grepl("20% of defense snaps", mail, fixed = TRUE)))
+cat("Consecutive low snap share, identity, position, and advisory-only regressions passed.\n")
