@@ -218,14 +218,15 @@
       "count": 1,
       "observed": "Last league access: Nov 19, 2026 at 05:08 PM EST",
       "detected_at": "2026-11-26T22:09:43.180636+00:00",
-      "status": "watch",
+      "status": "resolved",
       "activity_at": "2026-11-19T22:08:45+00:00",
       "notice": {
         "status": "accepted",
         "attempted_at": "2026-11-26T22:09:50.766295+00:00",
         "issued_at": "2026-11-26T22:09:50.766295+00:00"
       },
-      "deadline": "2026-12-01T22:09:50.766295+00:00"
+      "deadline": "2026-12-01T22:09:50.766295+00:00",
+      "resolved_at": "2026-11-26T22:41:53+00:00"
     }
   },
   "counts": {
@@ -376,7 +377,7 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-26T22:09:43.180636+00:00",
+  "last_checked_at": "2026-11-26T23:11:06.702395+00:00",
   "digest_signature": "518818d708b34594459f30096eed205846a4795abce2b3371a132cf7bacf747d",
   "delivery_receipts": {
     "fafl-inactivity-action:2ceb3cd93896eb42a27193106444e24a55cdd1f189a22ddbd3f574605ac1e3c8": {
