@@ -163,7 +163,7 @@ cat("Cloud MFL-only pregame designation evidence regressions passed.\n")
 
 players <- tibble(mfl_id = as.character(1:9), pfr_id = letters[1:9])
 one_game <- tibble(season = 2026, game_type = "REG", game_id = "first",
-  week = 10L, pfr_player_id = c(letters[1:6], "h", "i", "anchor"), team = "NYG",
+  week = 10L, pfr_player_id = c(letters[1:6], "h", "i", "anchor"), team = "NYG", opponent = "BUF",
   offense_snaps = c(15, 2, 0, 25, NA, 25, 5, 25, 100),
   defense_snaps = c(0, 9, 0, 0, 0, 0, 12, 5, 50))
 snaps <- bind_rows(one_game, mutate(one_game, game_id = "next", week = 11L,
@@ -190,3 +190,16 @@ mail <- render_final_lineup_review_lines(final_lineup_review_digest(low_review))
 stopifnot(sum(mail == "Low-snap starters to review (2)") == 1L,
   any(grepl("no strike", mail, fixed = TRUE)), any(grepl("24.0% of team defense snaps", mail, fixed = TRUE)))
 cat("Consecutive low snap share, identity, position, and advisory-only regressions passed.\n")
+
+bal_buf <- tibble(season = 2026, game_type = "REG", game_id = "2026_08_BAL_BUF", week = 8L,
+  pfr_player_id = c("a", "b", "c", "d", "anchor"), team = c(rep("BAL", 4), "BUF"),
+  opponent = c(rep("BUF", 4), "BAL"), offense_snaps = c(51, 42, 11, 3, 82),
+  offense_pct = c(1, .82, .22, .40, 1), defense_snaps = c(82, 0, 0, 0, 51),
+  defense_pct = c(1, 0, 0, 0, 1))
+verified_bal <- prepare_adl_snap_evidence(bal_buf, players, 2026)
+stopifnot(all(verified_bal$team_offense == 51), identical(verified_bal$offense_snaps, c(51, 42, 11, NA_real_)))
+bad_reciprocal <- bal_buf |> mutate(opponent = if_else(team == "BUF", "NYG", opponent))
+two_outliers <- bal_buf |> mutate(offense_pct = if_else(pfr_player_id == "c", .8, offense_pct))
+stopifnot(all(is.na(prepare_adl_snap_evidence(bad_reciprocal, players, 2026)$team_offense)),
+          all(is.na(prepare_adl_snap_evidence(two_outliers, players, 2026)$team_offense)))
+cat("Reciprocal opponent snap totals and bad-row isolation regressions passed.\n")
