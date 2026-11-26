@@ -53,6 +53,44 @@ class Basic(unittest.TestCase):
         self.assertIn('private CHI Tools', detail)
         self.assertNotIn('score', detail)
 
+    def test_qb_with_healthy_unlocked_backup_is_silent_in_both_leagues(self):
+        self.fixtures['injuries']['injuries']['injury'] = {'id': '1', 'status': 'Q'}
+        players = self.fixtures['players']['players']
+        players['player'] = [players['player'], dict(id='2', name='Bench QB', position='QB', team='BUF')]
+        roster = self.fixtures['rosters']['rosters']['franchise']['player']
+        roster.append(dict(id='2', status='ROSTER'))
+        schedule = self.fixtures['nflSchedule']['nflSchedule']
+        bench_game = dict(team={'id': 'BUF'}, kickoff=str(int((self.now + timedelta(hours=2)).timestamp())))
+        schedule['matchup'] = [schedule['matchup'], bench_game]
+        for league in self.ledger['leagues']:
+            self.assertEqual(basic.inspect(league, self.now, self.read)[1], {})
+        for restriction in ('LOCKED', 'DOUBTFUL', 'TAXI'):
+            with self.subTest(restriction=restriction):
+                bench_game['kickoff'] = str(int((self.now + timedelta(hours=-1 if restriction=='LOCKED' else 2)).timestamp()))
+                self.fixtures['injuries']['injuries']['injury'] = [{'id':'1','status':'Q'}] + (
+                    [{'id':'2','status':'D'}] if restriction=='DOUBTFUL' else [])
+                roster[1]['status'] = 'TAXI_SQUAD' if restriction=='TAXI' else 'ROSTER'
+                finding = basic.inspect(self.league, self.now, self.read)[1]['starter:1']
+                self.assertTrue(finding.shortage_risk)
+                self.assertEqual(finding.severity, 'advisory')
+        roster[1]['status'] = 'ROSTER'
+        self.fixtures['injuries']['injuries']['injury'] = {'id':'1','status':'O'}
+        self.assertEqual(basic.inspect(self.league, self.now, self.read)[1]['starter:1'].severity, 'confirmed')
+
+    def test_flex_can_cover_questionable_starter_without_same_position_backup(self):
+        self.fixtures['league']['league']['starters'].update(count='2', iop_starters='2',
+            position=[{'name':'QB','limit':'1'}, {'name':'RB','limit':'0-1'}, {'name':'WR','limit':'0-1'}])
+        self.fixtures['weeklyResults']['weeklyResults']['matchup']['franchise']['starters'] = '1,2,'
+        players = self.fixtures['players']['players']
+        players['player'] = [players['player'], dict(id='2', name='Test RB', position='RB', team='LV'),
+                             dict(id='3', name='Bench WR', position='WR', team='LV')]
+        roster = self.fixtures['rosters']['rosters']['franchise']['player']
+        roster.extend(dict(id=i, status='ROSTER') for i in ('2', '3'))
+        self.fixtures['injuries']['injuries']['injury'] = {'id':'2','status':'Q'}
+        self.assertEqual(basic.inspect(self.league, self.now, self.read)[1], {})
+        self.fixtures['league']['league']['starters']['position'][1]['limit'] = '1'
+        self.assertTrue(basic.inspect(self.league, self.now, self.read)[1]['starter:2'].shortage_risk)
+
     def test_missing_punter_is_an_explicit_position_warning(self):
         rules = self.fixtures['league']['league']['starters']
         rules['count'] = '2'
@@ -263,7 +301,7 @@ class Basic(unittest.TestCase):
         basic.report(api, self.now-timedelta(hours=4), state, False, deliver, save, send)
         send.assert_not_called()
 
-    def test_report_sends_out_once_after_delivered_legacy_questionable_warning(self):
+    def test_report_sends_out_once_after_delivered_shortage_advisory(self):
         from base64 import b64encode
 
         start = self.now
@@ -288,7 +326,11 @@ class Basic(unittest.TestCase):
             return now
 
         question = observe('QUESTIONABLE', 0)
-        del warning['incidents']['FAFL:12:starter:1']['severity']  # pre-upgrade warning
+        advisory = warning['incidents']['FAFL:12:starter:1']
+        del advisory['shortageRisk']
+        basic.report(api, question, state, False, deliver, save, send)
+        send.assert_not_called()
+        advisory['shortageRisk'] = True
         basic.report(api, question, state, False, deliver, save, send)
         self.assertEqual(send.call_count, 1)
         self.assertIn('QUESTIONABLE', send.call_args.args[1])

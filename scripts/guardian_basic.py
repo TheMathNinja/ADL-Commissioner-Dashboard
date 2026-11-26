@@ -7,6 +7,7 @@ central reporter, not this checker. A warning is a completed check, not a crash.
 import copy
 import hashlib
 import re
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import NamedTuple
 from urllib.parse import urlencode
@@ -18,12 +19,17 @@ from nfl_teams import mfl_team
 HEALTH = 'data/guardian_basic_health.json'
 WARNINGS = 'data/guardian_basic_warnings.json'
 FEEDS = {'league', 'rosters', 'weeklyResults', 'players', 'injuries', 'nflSchedule', 'nflByeWeeks'}
+RISKY = {'Q', 'QUESTIONABLE', 'D', 'DOUBTFUL'}
+OFFENSE = ('QB', 'RB', 'WR', 'TE')
+DEFENSE = ('DT', 'DE', 'LB', 'CB', 'S')
+LEGACY_ADVISORY = re.compile(r'\) is (Q|QUESTIONABLE|D|DOUBTFUL)\. Check availability before kickoff ')
 
 
 class Finding(NamedTuple):
     detail: str
     severity: str = 'confirmed'
     push_until: str | None = None
+    shortage_risk: bool = False
 
 
 def submit_link(league, week, now):
@@ -49,6 +55,28 @@ def feed(season, kind, **params):
         raise ValueError('Numeric MFL metadata required')
     return public_json(f'https://api.myfantasyleague.com/{int(season)}/export?' +
                        urlencode(dict(TYPE=kind, JSON=1, **params)))
+
+
+def unavailable(status):
+    return (status in {'O', 'OUT', 'INACTIVE', 'I', 'H', 'HOLDOUT', 'S', 'SUSP', 'SUSPENDED', 'SUSPENSION'}
+            or status.startswith('IR') or 'PUP' in status or 'INJURED' in status)
+
+
+def can_fill(bounds, required, locked, available):
+    limits = {}
+    for position, (minimum, maximum) in bounds.items():
+        low = max(minimum, locked[position])
+        high = min(maximum, locked[position] + available[position])
+        if low > high:
+            return False
+        limits[position] = low, high
+
+    def spans(positions, count):
+        return sum(limits[p][0] for p in positions) <= count <= sum(limits[p][1] for p in positions)
+
+    return (spans(set(bounds) & set(OFFENSE), required[1])
+            and spans(set(bounds) & set(DEFENSE), required[2])
+            and spans(set(bounds) - set(OFFENSE) - set(DEFENSE), required[0] - required[1] - required[2]))
 
 
 def inspect(league, now, read=feed):
@@ -89,20 +117,20 @@ def inspect(league, now, read=feed):
             violated_bounds[key] = (maximum, positions)
     for key, field, positions in (
         ('total starters', 'count', None),
-        ('offensive starters', 'iop_starters', ('QB', 'RB', 'WR', 'TE')),
-        ('defensive starters', 'idp_starters', ('DT', 'DE', 'LB', 'CB', 'S'))):
+        ('offensive starters', 'iop_starters', OFFENSE),
+        ('defensive starters', 'idp_starters', DEFENSE)):
         required = int(rules[field])
         actual = len(ids) if positions is None else sum(counts.get(p, 0) for p in positions)
         rule(key, actual, required, required, positions)
-    allowed = set()
+    bounds = {}
     for position in rows(rules['position']):
         name, limits = position['name'], str(position['limit'])
-        if not re.fullmatch(r'\d+(?:-\d+)?', limits) or name in allowed:
+        if not re.fullmatch(r'\d+(?:-\d+)?', limits) or name in bounds:
             raise ValueError('Unsupported position rule')
-        allowed.add(name)
         low, _, high = limits.partition('-')
-        rule(name, counts.get(name, 0), int(low), int(high or low), (name,))
-    if not allowed or set(counts) - allowed:
+        bounds[name] = int(low), int(high or low)
+        rule(name, counts.get(name, 0), *bounds[name], (name,))
+    if not bounds or set(counts) - bounds.keys():
         raise ValueError('Unknown lineup position')
     injury_feed = read(season, 'injuries', W=week)['injuries']
     if 'week' in injury_feed and int(injury_feed['week']) != week:
@@ -120,6 +148,7 @@ def inspect(league, now, read=feed):
         raise ValueError('Missing kickoff evidence')
     next_kickoff = min((time for time in kickoffs.values() if time > now), default=None)
     locked_positions = []
+    risky_starters = {}
     for identity in ids:
         player = players[identity]
         team_id, status = mfl_team(player['team'], strict=True), injuries.get(identity, '')
@@ -129,28 +158,42 @@ def inspect(league, now, read=feed):
         if team_id in kickoffs and kickoffs[team_id] <= now:
             locked_positions.append(player['position'])
             continue
-        confirmed_out = status in {'O', 'OUT', 'INACTIVE'}
-        unavailable = (team_id in byes or confirmed_out or status in {'I', 'H', 'HOLDOUT', 'S', 'SUSP', 'SUSPENDED', 'SUSPENSION'}
-                       or status.startswith('IR') or 'PUP' in status or 'INJURED' in status)
+        is_out = team_id in byes or unavailable(status)
         roster_status = rostered[identity]['status'] if identity in rostered else 'NOT_ON_ROSTER'
-        if unavailable or roster_status != 'ROSTER':
-            reason = 'BYE' if team_id in byes else status if unavailable else roster_status
+        if is_out or roster_status != 'ROSTER':
+            reason = 'BYE' if team_id in byes else status if is_out else roster_status
             deadline = next_kickoff if team_id in byes else kickoffs[team_id]
             push_until = deadline.isoformat() if deadline else None
             issues['starter:' + identity] = Finding(
                 f'Remove {player["name"]} ({player["position"]}; {reason}) from the starting lineup. '
                 'Select an eligible replacement in private CHI Tools, then submit the revised lineup before the replacement locks.',
                 push_until=push_until)
-            if roster_status == 'TAXI_SQUAD' and not unavailable:
+            if roster_status == 'TAXI_SQUAD' and not is_out:
                 issues['starter:' + identity] = Finding(
                     f'Move {player["name"]} ({player["position"]}) from Taxi to Active before starting him, '
                     'or replace him with an eligible active player selected in private CHI Tools. Submit the revised lineup before kickoff.',
                     push_until=push_until)
-        elif status in {'Q', 'QUESTIONABLE', 'D', 'DOUBTFUL'}:
-            issues['starter:' + identity] = Finding(
-                f'{player["name"]} ({player["position"]}) is {status}. '
-                'Check availability before kickoff and review replacement options in private CHI Tools; no replacement has been ranked here.',
-                'advisory')
+        elif status in RISKY:
+            risky_starters[identity] = status
+    if risky_starters and not issues and rostered.keys() <= players.keys():
+        choices = Counter()
+        for identity, row in rostered.items():
+            player = players[identity]
+            if row['status'] != 'ROSTER' or player['position'] not in bounds:
+                continue
+            team_id = mfl_team(player['team'])
+            if (team_id not in byes and team_id in kickoffs and kickoffs[team_id] > now
+                    and injuries.get(identity, '') not in RISKY and not unavailable(injuries.get(identity, ''))):
+                choices[player['position']] += 1
+        required = tuple(int(rules[field]) for field in ('count', 'iop_starters', 'idp_starters'))
+        locked = Counter(locked_positions)
+        if not can_fill(bounds, required, locked, choices):
+            for identity, status in risky_starters.items():
+                player = players[identity]
+                issues['starter:' + identity] = Finding(
+                    f'{player["name"]} ({player["position"]}) is {status}. '
+                    'If the at-risk starters cannot play, your current Active roster may not cover a full legal lineup.',
+                    'advisory', shortage_risk=True)
     rule_findings = [issues.pop(k) for k in list(issues) if k.startswith('rule:')]
     if rule_findings:
         can_address_rule = any(sum(positions is None or p in positions for p in locked_positions) <= maximum
@@ -173,9 +216,7 @@ def record_warnings(previous, league, week, issues, now):
         # Only recognize the exact legacy advisory template; never replay an
         # existing confirmed warning merely because it predates the severity field.
         previous = existing.get('severity')
-        if previous is None and re.search(
-                r'\) is (Q|QUESTIONABLE|D|DOUBTFUL)\. Check availability before kickoff ',
-                existing.get('detail', '')):
+        if previous is None and LEGACY_ADVISORY.search(existing.get('detail', '')):
             previous = 'advisory'
         escalation = previous == 'advisory' and finding.severity == 'confirmed'
         if existing.get('status') != 'open' or escalation:
@@ -193,6 +234,10 @@ def record_warnings(previous, league, week, issues, now):
             incidents[key]['pushUntil'] = finding.push_until
         else:
             incidents[key].pop('pushUntil', None)
+        if finding.shortage_risk:
+            incidents[key]['shortageRisk'] = True
+        else:
+            incidents[key].pop('shortageRisk', None)
     return value
 
 
@@ -267,6 +312,9 @@ def report(api, now, state, dry, deliver, save, send, phone=None):
     for key, item in sorted(warning.get('incidents', {}).items()):
         if item['status'] != 'open' or item.get('currentSeverity') == 'advisory':
             continue
+        severity = item.get('severity')
+        if (severity == 'advisory' or (severity is None and LEGACY_ADVISORY.search(item.get('detail', '')))) and item.get('shortageRisk') is not True:
+            continue  # Do not revive older blanket Q/D advisories.
         receipt = 'guardian-basic:' + key + ':' + item['openedAt']
         schedule = coverage.get('schedules', {}).get(item['league'], {})
         # An early email must not consume a later, independently timed phone alert.
