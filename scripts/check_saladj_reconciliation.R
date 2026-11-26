@@ -976,6 +976,22 @@ audit_saladj_total_parity <- function(
     )
 }
 
+historical_fg_split_matches <- function(expected, actual) {
+  # Use the ADL equal-split rollout (b2ffcfd) as the transaction-time cutoff.
+  cutoff <- as.POSIXct("2026-11-26 11:30:33", tz = "America/New_York")
+  if (!isTRUE(expected$is_fg) || !identical(expected$is_accelerated[[1]], FALSE) ||
+      !identical(expected$is_trade_or_ib[[1]], FALSE) ||
+      !isTRUE(expected$row_date < cutoff) || !isTRUE(expected$expected_future_amount > 0)) {
+    return(FALSE)
+  }
+  want <- c(expected$amount, expected$expected_future_amount)
+  have <- c(actual$penalty_amount, actual$future_penalty_amount)
+  if (length(want) != 2L || length(have) != 2L || !all(is.finite(c(want, have)))) return(FALSE)
+  units <- round_saladj_cents(sum(want) * 100, digits = 0L)
+  equal_split <- c(ceiling(units / 2), floor(units / 2)) / 100
+  all(abs(have - equal_split) < 1e-8)
+}
+
 audit_contract_admin_control_fields <- function(expected_entries, sheet_entries, tolerance = 0.01) {
   controls <- tibble::tribble(
     ~field, ~label,
@@ -1060,6 +1076,7 @@ audit_contract_admin_control_fields <- function(expected_entries, sheet_entries,
     for (label in names(fields)) {
       pair <- fields[[label]]
       if (!all(pair[[1]] %in% names(expected), pair[[2]] %in% names(actual))) next
+      if (label == "Next-year penalty" && historical_fg_split_matches(expected, actual)) next
       want <- expected[[pair[[1]]]][[1]]; have <- actual[[pair[[2]]]][[1]]
       if (label == "CONTRACT") {
         same <- identical(normalize_adl_contract(want), normalize_adl_contract(have))
@@ -1828,6 +1845,25 @@ if (arg_flag("self-test-name-matching")) {
   cash_test$player <- "Cash Trade"
   cash_test$salary_amount <- 0.05
   stopifnot(nrow(audit_contract_admin_control_fields(cash_test, sheet_contract_test)) == 0L)
+  legette <- contract_test |>
+    mutate(franchise = "HOU", player = "Xavier Legette", contract_type = "2024 1.XX",
+           row_date = as.POSIXct("2026-09-07 11:13:49", tz = "America/New_York"),
+           salary_amount = 2.57, years_amount = 2, amount = 2.57, expected_future_amount = 2.83,
+           is_fg = TRUE, is_accelerated = FALSE)
+  legette_sheet <- sheet_contract_test |>
+    mutate(franchise = "HOU", description = "Xavier Legette", contract_type = "2024 1.XX",
+           entered_at = "9/7/2026", input_salary = 2.57, input_years = 2,
+           penalty_amount = 2.70, future_penalty_amount = 2.70, is_fg = TRUE, is_accelerated = FALSE)
+  split_findings <- function(entry = legette, sheet = legette_sheet) {
+    audit_contract_admin_control_fields(entry, sheet)[["control_label"]]
+  }
+  stopifnot(!"Next-year penalty" %in% split_findings())
+  stopifnot("Next-year penalty" %in% split_findings(sheet = mutate(legette_sheet, penalty_amount = 2.69)))
+  stopifnot("Next-year penalty" %in% split_findings(entry = mutate(legette, is_accelerated = TRUE)))
+  stopifnot("YEARS" %in% split_findings(sheet = mutate(legette_sheet, input_years = 3)))
+  cutoff <- as.POSIXct("2026-11-26 11:30:33", tz = "America/New_York")
+  stopifnot("Next-year penalty" %in% split_findings(mutate(legette, row_date = cutoff),
+                                                    mutate(legette_sheet, entered_at = "11/26/2026")))
   sutton_mfl_test <- tibble(actual_id = 1L, franchise = "NYG", amount = 29.96,
                            description = "C. Sutton - 3 yrs at $24.97 mil dropped 10/20/26 - accelerated",
                            entered_at = "Oct 23, 2026 at 11:59:06 AM ET")
