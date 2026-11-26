@@ -1601,7 +1601,11 @@ def main():
                 if recovered_watchdog(repo, run, later):
                     state['checked'][key] = 'watchdog superseded by verified same-day checks: ' + later['html_url']
                     continue
-                job_list = jobs(repo, run)
+                try:
+                    job_list = jobs(repo, run)
+                except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
+                    coverage_errors.append(f'{key}: job evidence unavailable ({type(error).__name__})')
+                    continue  # Leave this attempt unacknowledged and scan the rest.
                 if shared_coverage and repo == COMMISSIONER and owned_basic_failure(run, job_list, shared_coverage):
                     continue  # The durable missed-check incident owns this exact read-only failure.
                 if run.get('_account_report'):

@@ -735,6 +735,38 @@ class FailureReports(unittest.TestCase):
         send.assert_not_called()
         save.assert_not_called()
 
+    def test_unread_job_evidence_does_not_stop_independent_run_or_mark_coverage_healthy(self):
+        repo = m.REPOS[1]
+        unread = dict(self.run, id=45326184869)
+        unread_key = f'{repo}:{unread["id"]}:1'
+        independent_key = f'{repo}:{self.run["id"]}:1'
+        heartbeat = '2026-10-01T13:00:00+00:00'
+        state = {'sent': {}, 'checked': {}, 'healthSchema': 1, 'healthyAt': heartbeat}
+
+        def read_api(repository, path):
+            self.assertEqual(repository, repo)
+            if path == f'actions/runs/{unread["id"]}/attempts/1/jobs?per_page=100&page=1':
+                raise RuntimeError(f'GitHub API remained unavailable for {repository}/{path}')
+            self.assertEqual(path, f'actions/runs/{self.run["id"]}/attempts/1/jobs?per_page=100&page=1')
+            return {'jobs': self.jobs}
+
+        with patch.dict(os.environ, {'WEEKLY_REPORT_EMAIL_TO': m.OWNER,
+                                     'GITHUB_REPOSITORY': m.COMMISSIONER}, clear=True), \
+             patch.object(sys, 'argv', ['report']), patch.object(m, 'REPOS', [repo]), \
+             patch.object(m, 'runs', return_value=[self.run, unread]), \
+             patch.object(m, 'api', side_effect=read_api), \
+             patch.object(m.mail, 'document', return_value=state), \
+             patch.object(m.mail, 'send_email') as send, patch.object(m, 'save') as save:
+            with self.assertRaisesRegex(RuntimeError, f'Failure coverage unavailable.*{unread_key}'):
+                m.main()
+
+        send.assert_called_once()
+        save.assert_called()
+        self.assertEqual(set(state['sent']), {independent_key})
+        self.assertNotIn(unread_key, state['checked'])
+        self.assertEqual(state['healthyAt'], heartbeat)
+        self.assertEqual(state['healthSchema'], 1)
+
     def test_unassigned_watchdog_cancellation_after_same_day_success_is_suppressed(self):
         cancelled = dict(
             self.run,
