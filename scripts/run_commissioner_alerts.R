@@ -153,9 +153,16 @@ if (include_inseason && exists("evaluate_lineup_submission_warnings", mode = "fu
     write_commissioner_alert_report(alerts, season = season, week = if (is.na(week)) NULL else week, checked_at = checked_at)
   }
 }
+lineup_review_digest <- tibble::tibble()
 if (mode %in% c("check", "inseason") && exists("build_inseason_inactivity_alerts", mode = "function")) {
   message("Checking confirmed inactivity and completed lineup submission evidence.")
   inactivity_alerts <- build_inseason_inactivity_alerts(season = season, force_live = force_live, run_time = checked_at)
+  final_lineup_review <- attr(inactivity_alerts, "final_lineup_review") %||% tibble::tibble()
+  lineup_review_digest <- final_lineup_review_digest(final_lineup_review)
+  if (nrow(final_lineup_review)) {
+    write_csv(final_lineup_review, commissioner_alert_path("final_lineup_review", season,
+      as.integer(final_lineup_review$week[[1]])), na = "")
+  }
   inactivity_alerts <- omit_inactivity_rows_covered_by_roster_cap(inactivity_alerts, alerts)
   if (nrow(inactivity_alerts)) {
     inactivity_alerts <- inactivity_alerts |>
@@ -182,8 +189,11 @@ message("Wrote ", nrow(alerts), " commissioner alert row(s).")
 message(alerts_path)
 
 if (send_email) {
+  email_alerts <- if (nrow(lineup_review_digest)) {
+    bind_rows(mutate(alerts, week = as.character(.data$week)), lineup_review_digest)
+  } else alerts
   email_status <- send_commissioner_alert_email(
-    alerts,
+    email_alerts,
     season = season,
     week = if (is.na(week)) NULL else week,
     send_empty = send_empty,
