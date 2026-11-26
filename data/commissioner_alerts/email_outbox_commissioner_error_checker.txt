@@ -1,23 +1,41 @@
 Salary-adjustment action report
 This is the complete current worklist. Previously reported items are included for context, not as new errors. Unchecked ENTD? entries are warnings until a completed official snapshot is missed.
-Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_25_ADLSalAdjCurator.csv
+Dashboard CSV here: https://themathninja.github.io/ADL-Commissioner-Dashboard/downloads/2026_11_26_ADLSalAdjCurator.csv
 
 1. Items to Enter into Contract Admin and MFL
 Enter these missing source contracts in Contract Admin and verify the calculated adjustment.
 Previously reported; still outstanding:
-- Dropped 11/24/2026 00:59:39 ET by NEP | Daniel Jones IND QB: $2.50 / 1 yr / 2026 UFA
-  Notes: NOT LISTED ON MFL WAIVERS AT LAST CHECK
-New entry request:
-- Dropped 11/24/2026 07:02:11 ET by IND | DK Metcalf PIT WR: $13.99 / 1 yr / 2023 oEXT
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 26, 2026
-New entry request:
-- Dropped 11/24/2026 17:49:53 ET by NOS | Javon Kinlaw WAS DT: $2.09 / 3 yr / 2026 oEXT
-  Notes: ON WAIVERS CURRENTLY - expected to clear at 5 a.m. ET on Nov 26, 2026
+- Dropped 11/24/2026 00:59:39 ET by NEP: Daniel Jones IND QB ($2.50 / 1 yr / 2026 UFA)
+  Notes: CLEARED WAIVERS
+Previously reported; still outstanding:
+- Dropped 11/24/2026 07:02:11 ET by IND: DK Metcalf PIT WR ($13.99 / 1 yr / 2023 oEXT)
+  Notes: CLEARED WAIVERS
+Previously reported; still outstanding:
+- Dropped 11/24/2026 17:49:53 ET by NOS: Javon Kinlaw WAS DT ($2.09 / 3 yr / 2026 oEXT)
+  Notes: CLEARED WAIVERS
 
 2. Items in Contract Admin to be Entered into MFL
 None outstanding.
 
 3. Items that Need Correcting in Contract Admin or MFL
-None outstanding.
+Error Type: Incorrect Next-year penalty setting in AFC Sal Adj tab (Contract Admin Sheet)
+Entry: HOU | Xavier Legette
+Next-year penalty setting: 2.7; expected 2.83
+
+2026 Sheet penalty: $2.70; expected $2.57
+2027 Sheet penalty: $2.70; expected $2.83
+
+
+Original transaction/drop: Sep 7, 2026 at 11:13:49 AM ET
+
+Required: Review the next-year penalty formula and its input controls against the Curator calculation.
+
+Error Type: Incorrect current-season ADJ total in AFC Sal Adj tab (Contract Admin Sheet)
+Contract Admin displayed total: HOU | $2.70
+MFL roster-page total: HOU | $2.57
+Discrepancy includes one or more individual entries; review the entry-level findings in this report.
+Individual-entry totals: Contract Admin $2.70; MFL $2.57.
+Required: Resolve the individual-entry differences listed elsewhere in this report before changing the summary total.
+
 
 This checker is read-only. No Contract Admin or MFL entries were changed automatically.
