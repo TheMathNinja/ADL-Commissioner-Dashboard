@@ -219,7 +219,11 @@
       "observed": "Last league access: Nov 19, 2026 at 05:08 PM EST",
       "detected_at": "2026-11-26T22:09:43.180636+00:00",
       "status": "pending_notice",
-      "activity_at": "2026-11-19T22:08:45+00:00"
+      "activity_at": "2026-11-19T22:08:45+00:00",
+      "notice": {
+        "status": "sending",
+        "attempted_at": "2026-11-26T22:09:50.766295+00:00"
+      }
     }
   },
   "counts": {
