@@ -281,7 +281,7 @@ class FailureReports(unittest.TestCase):
         later = dict(self.run, id=2, head_sha=sha, run_attempt=2, conclusion='success',
                      updated_at='2026-10-01T15:00:00Z')
         m.remember_recovery(state, repo, self.run, later, ['report: Retryable read'])
-        evidence = {(repo, 2, 2): (sha, frozenset({'1:1'}), 'Corrected the read timeout handling.')}
+        evidence = {(repo, 2, 2): (sha, sha, frozenset({'1:1'}), 'Corrected the read timeout handling.')}
         verified_state = copy.deepcopy(state)
         errors = []
         with patch.object(m.mail, 'send_email') as send, patch.object(m.mail, 'deliver_once', side_effect=deliver_once), \
@@ -310,6 +310,20 @@ class FailureReports(unittest.TestCase):
             with self.subTest(wrong=wrong), patch.object(m, 'REVIEWED_ROOT_CAUSE_FIXES', evidence):
                 notice = next(iter(state['recovery_notices'].values()))
                 self.assertIsNone(m.reviewed_root_cause_fix(dict(notice, failures={'1:1': []}, **wrong)))
+
+    def test_reviewed_fafl_save_fix_uses_checkout_commit_and_does_not_repeat_notice(self):
+        notice = dict(repository=m.FAFL_REPO, verified_run_id=45553536609, verified_attempt=1,
+                      verified_head_sha='ceb56c43aa365f48cae56054fed8aa3eafe708c5',
+                      failures={'45552785478:1': ['rebuild: Save generated module'],
+                                '45553213870:1': ['Workflow ended with cancelled']},
+                      investigation='fafl-generated-save', investigation_notified=True)
+        errors = []
+        with patch.object(m.mail, 'deliver_once') as deliver:
+            m.deliver_recovery_notices({'recovery_notices': {'verified': notice}}, False, errors)
+            deliver.assert_not_called()
+        self.assertFalse(errors)
+        self.assertTrue(notice['verified_fix_url'].endswith('5a016b6efdd86410090908f3936187098bdda935'))
+        self.assertIn('already emailed', notice['suppressed_reason'])
 
     def test_unverified_later_success_keeps_review_action(self):
         later = dict(self.run, html_url='https://github.com/test/runs/2')

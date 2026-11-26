@@ -841,7 +841,16 @@ def push_preflight_recovered(repo, run, later, original, completed):
 # Key: (repository, verified run ID, verified attempt). Value: exact head SHA,
 # frozenset of failed 'run:attempt' keys, and a plain-language fix summary.
 # A later success, commit message or run title is not evidence of a root-cause fix.
-REVIEWED_ROOT_CAUSE_FIXES = {}
+REVIEWED_ROOT_CAUSE_FIXES = {
+    # The event SHA predates the fix. The production log records the rebuild
+    # switching to the fix commit, regenerating, and publishing successfully.
+    (FAFL_REPO, 45553536609, 1): (
+        'ceb56c43aa365f48cae56054fed8aa3eafe708c5',
+        '5a016b6efdd86410090908f3936187098bdda935',
+        frozenset({'45552785478:1', '45553213870:1'}),
+        'Regenerate from the latest main when generated pages overlap newer changes; never force-push stale output.',
+    ),
+}
 
 
 def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
@@ -891,10 +900,11 @@ def reviewed_root_cause_fix(notice):
     fix = REVIEWED_ROOT_CAUSE_FIXES.get(key)
     if not fix:
         return None
-    sha, attempts, summary = fix
-    if (re.fullmatch(r'[a-f0-9]{40}', sha) and sha == notice.get('verified_head_sha')
+    event_sha, fix_sha, attempts, summary = fix
+    if (re.fullmatch(r'[a-f0-9]{40}', event_sha) and event_sha == notice.get('verified_head_sha')
+            and re.fullmatch(r'[a-f0-9]{40}', fix_sha)
             and attempts == frozenset(notice['failures'])):
-        return summary, f'https://github.com/{notice["repository"]}/commit/{sha}'
+        return summary, f'https://github.com/{notice["repository"]}/commit/{fix_sha}'
     return None
 
 
@@ -909,6 +919,11 @@ def deliver_recovery_notices(state, dry_run, coverage_errors):
             continue
         repo = notice['repository']
         fix = reviewed_root_cause_fix(notice)
+        if fix and notice.get('investigation_notified'):
+            if not dry_run:
+                notice['verified_fix_url'] = fix[1]
+                notice['suppressed_reason'] = 'Root-cause fix verified; investigation already emailed'
+            continue
         investigate = not fix and notice.get('investigation')
         investigate_save = investigate == 'fafl-generated-save'
         if investigate and notice.get('investigation_notified'):
