@@ -163,3 +163,4 @@ jobs:
           path: |
             data/commissioner_alerts/
             data/inseason_inactivity/
+            !data/commissioner_alerts/final_lineup_review_*.csv

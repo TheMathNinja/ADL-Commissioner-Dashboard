@@ -40,7 +40,11 @@ cat("Lineup email weekday policy tests passed.\n")
 fetch_mfl_franchise_recipients <- function(...) tibble(franchise = c("NYJ", "KCC"), franchise_id = c("0018", "0030"), email = c("nyj@example.test", "kcc@example.test"))
 resolve_commissioner_alert_recipients <- function(...) tibble(email = "commissioner@example.test")
 write_commissioner_alert_recipients <- function(...) tempfile()
-write_commissioner_alert_outbox <- function(...) tempfile()
+write_commissioner_alert_outbox <- function(body, ...) {
+  path <- tempfile()
+  writeLines(body, path)
+  path
+}
 commissioner_alert_path <- function(...) tempfile()
 conference_cc_email <- function(...) "conference@example.test"
 render_commissioner_clean_run_lines <- function(...) character()
@@ -70,6 +74,15 @@ stopifnot(status$sent, length(commissioner_mail) == 1L,
           !grepl("**Illegal Lineup**", commissioner_mail[[1]]$body, fixed = TRUE),
           grepl("In-Season Inactivity", commissioner_mail[[1]]$body, fixed = TRUE),
           grepl("Roster Warning", commissioner_mail[[1]]$body, fixed = TRUE))
+delivered <- list()
+review <- final_lineup_review_digest(tibble(week = "9", conference = "AFC", franchise = "NYJ",
+  franchise_name = "New York Jets", outcome = "Excused", observed = "A late scratch stayed in the lineup.",
+  details = "Prior designation: Q."))
+status <- send_commissioner_alert_email(review, 2026, 10, run_time = friday)
+stopifnot(status$sent, status$gm_emails_sent == 0L, length(delivered) == 1L,
+          identical(delivered[[1]]$to, "commissioner@example.test"),
+          grepl("Week 9 - Excused", delivered[[1]]$body, fixed = TRUE),
+          !any(grepl("A late scratch", readLines(status$outbox_path), fixed = TRUE)))
 delivered <- list()
 status <- send_commissioner_alert_email(dplyr::mutate(alerts, franchise = NA_character_), 2026, 10, run_time = friday)
 stopifnot(!status$sent, status$reason == "offender_franchise_not_found", length(delivered) == 0L)
