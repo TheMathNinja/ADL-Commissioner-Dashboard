@@ -990,9 +990,24 @@ def inactive_audit_branch(repo, run, job):
     return job.get('conclusion') == 'skipped' and job['name'] == unused
 
 
-def cancelled_pages_run(run):
+def native_pages_run(run):
     return (run.get('path') == 'dynamic/pages/pages-build-deployment'
-            and run.get('head_branch') == 'main' and run.get('conclusion') == 'cancelled')
+            and run.get('head_branch') == 'main')
+
+
+def cancelled_pages_run(run):
+    return native_pages_run(run) and run.get('conclusion') == 'cancelled'
+
+
+def pages_deploy_failure(run, steps):
+    return (native_pages_run(run) and run.get('conclusion') == 'failure'
+            and steps == ['deploy: Deploy to GitHub Pages'])
+
+
+def pages_service_recovery_pending(run, steps, diagnoses, now):
+    return (pages_deploy_failure(run, steps)
+            and diagnoses.get('deploy') == 'pages-deployment-service-error'
+            and now - gameday_time(run['updated_at']) < timedelta(minutes=30))
 
 
 def pages_deploy_succeeded(job):
@@ -1034,7 +1049,7 @@ def completed_pages_before_cancel(repo, run, job_list):
 
 def deployed_pages_replacement(repo, run, later, completed):
     """A deployed descendant can supersede a Pages build before it stops."""
-    if (not cancelled_pages_run(run) or later.get('head_branch') != 'main'
+    if (not native_pages_run(run) or not native_pages_run(later)
             or later.get('created_at', '') < run.get('created_at', '')
             or not all(re.fullmatch('[a-f0-9]{40}', value or '')
                        for value in (run.get('head_sha'), later.get('head_sha')))):
@@ -1100,10 +1115,13 @@ def verified_recovery(repo, run, job_list, history):
             completed = jobs(repo, later)
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
-        cancelled_pages = cancelled_pages_run(run)
-        if cancelled_pages:
+        if cancelled_pages_run(run):
             if not deployed_pages_replacement(repo, run, later, completed):
                 continue
+        elif pages_deploy_failure(run, failures(run, job_list)):
+            if deployed_pages_replacement(repo, run, later, completed):
+                return later
+            continue
         elif not retry and later.get('created_at', '') <= run.get('updated_at', ''):
             if queued_fafl_rebuild_recovered(repo, run, later, job_list, completed):
                 return later
@@ -1735,6 +1753,8 @@ def main():
                     continue
                 incident = incident_key(repo, run)
                 codes, diagnoses = failure_evidence(repo, run, job_list)
+                if pages_service_recovery_pending(run, failed, diagnoses, datetime.now(timezone.utc)):
+                    continue  # Wait for publication evidence, not another dispatched deploy.
                 scope,failed = unreported_steps(state,repo,run,history,failed,codes)
                 if not failed:
                     state['checked'][key] = 'duplicate notification for ' + incident

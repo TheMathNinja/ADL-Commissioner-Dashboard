@@ -24,6 +24,8 @@ RULES = (
     ('validation-regression', r'\b(?:assertionerror|schema mismatch|contract mismatch|'
      r'regression test failed|failed tests?)\b',
      'Reproduce the failed check and repair its cause before releasing.'),
+    ('pages-deployment-service-error', r'\bfailed to create deployment \(status: 50[0234]\) with build version\b',
+     'Wait briefly for a verified Pages deployment of this revision or a descendant.'),
     ('transient-upstream-read', r'\b(?:http(?: error|/\d(?:\.\d)?)?\s+(?:408|429|50[0234])|'
      r'connection reset|temporary failure in name resolution|econnreset|etimedout|read timed out)\b',
      'A reviewed read-only workflow may be replayed once.'),

@@ -511,6 +511,34 @@ class FailureReports(unittest.TestCase):
             with patch.object(m, 'api', side_effect=RuntimeError('visibility unavailable')):
                 self.assertIsNone(m.verified_recovery(m.REPOS[1], old, failed, [new]))
 
+    def test_pages_server_error_waits_for_verified_deployment_then_alerts_if_unresolved(self):
+        from datetime import timedelta
+        from failure_repair_policy import diagnose
+        old = dict(self.run, id=45650523035, event='dynamic', conclusion='failure', _account_report=True,
+                   path='dynamic/pages/pages-build-deployment', head_branch='main',
+                   created_at='2026-11-25T16:02:01Z', updated_at='2026-11-25T16:03:14Z',
+                   head_sha='20993c0469abe25c8bb0e47ebd1d69b071f359df')
+        later = dict(old, id=45653885731, conclusion='success', created_at='2026-11-25T16:26:32Z',
+                     updated_at='2026-11-25T16:27:27Z', head_sha='b224264947db0e2902afdebd9f633bc3effad9e6')
+        step = 'Deploy to GitHub Pages'
+        failed = [dict(name='deploy', conclusion='failure', steps=[dict(name=step, conclusion='failure')])]
+        passed = [dict(name='deploy', conclusion='success', steps=[dict(name=step, conclusion='success')])]
+        steps = m.failures(old, failed)
+        reason = diagnose(['Error: Failed to create deployment (status: 500) with build version <revision>.'])[0]
+        self.assertEqual(reason, 'pages-deployment-service-error')
+        end = m.gameday_time(old['updated_at'])
+        self.assertTrue(m.pages_service_recovery_pending(old, steps, {'deploy': reason}, end + timedelta(minutes=29)))
+        self.assertFalse(m.pages_service_recovery_pending(old, steps, {'deploy': reason}, end + timedelta(minutes=30)))
+        self.assertFalse(m.pages_service_recovery_pending(old, steps, {'deploy': 'credential-or-permission'}, end))
+        self.assertFalse(m.pages_service_recovery_pending(old, steps + ['build: test'], {'deploy': reason}, end))
+        with patch.object(m, 'jobs', return_value=passed), patch.object(m, 'api') as api:
+            api.return_value = {'status': 'ahead', 'behind_by': 0}
+            self.assertEqual(m.verified_recovery(m.COMMISSIONER, old, failed, [later]), later)
+            api.return_value = {'status': 'diverged', 'behind_by': 1}
+            self.assertIsNone(m.verified_recovery(m.COMMISSIONER, old, failed, [later]))
+        with patch.object(m, 'jobs', return_value=[dict(passed[0], steps=[])]):
+            self.assertIsNone(m.verified_recovery(m.COMMISSIONER, old, failed, [later]))
+
     def test_nov23_cancelled_pages_wrapper_did_not_cancel_its_deployment(self):
         repo = m.REPOS[0]
         run = dict(self.run, id=45126216920, run_attempt=1, _account_report=True, conclusion='cancelled',
