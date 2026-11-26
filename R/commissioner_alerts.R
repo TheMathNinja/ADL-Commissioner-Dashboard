@@ -5,6 +5,8 @@ library(tibble)
 source("R/roster_source.R")
 source("R/cash_trade_limits.R")
 source("R/roster_readiness.R")
+source("R/cap_money.R")
+source("R/cap_salary_rules.R")
 
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
@@ -757,54 +759,8 @@ format_millions <- function(x) {
   paste0("$", sprintf("%.2f", as.numeric(x)), "m")
 }
 
-cap_accounting_dir <- function() {
-  Sys.getenv(
-    "ADL_CAP_ACCOUNTING_DIR",
-    unset = file.path("data", "cap_accounting")
-  )
-}
-
-cap_accounting_summary_dir <- function(season = get_current_season()) {
-  file.path(cap_accounting_dir(), as.character(season), "summaries")
-}
-
-latest_cap_accounting_summary_path <- function(season = get_current_season()) {
-  summary_dir <- cap_accounting_summary_dir(season)
-  if (!dir.exists(summary_dir)) return(NA_character_)
-
-  files <- list.files(
-    summary_dir,
-    pattern = paste0("^", season, "w\\d+_ADLsalarycapsummary\\.(rds|csv)$"),
-    full.names = TRUE
-  )
-  if (!length(files)) return(NA_character_)
-
-  weeks <- suppressWarnings(as.integer(sub(paste0("^.*", season, "w(\\d+)_ADLsalarycapsummary\\.(rds|csv)$"), "\\1", files)))
-  files <- files[order(weeks, tools::file_ext(files) == "rds", decreasing = TRUE)]
-  files[[1]]
-}
-
-read_cap_accounting_summary <- function(season = get_current_season(), path = latest_cap_accounting_summary_path(season)) {
-  if (is.na(path) || !nzchar(path) || !file.exists(path)) return(NULL)
-  if (identical(tolower(tools::file_ext(path)), "rds")) {
-    return(readRDS(path))
-  }
-  read_csv(path, show_col_types = FALSE)
-}
-
 cap_numeric <- function(x) {
   suppressWarnings(as.numeric(gsub("[$,]", "", as.character(x))))
-}
-
-cap_col <- function(row, name, default = NA_real_) {
-  if (!name %in% names(row)) return(default)
-  row[[name]]
-}
-
-cap_accounting_week_numbers <- function(summary_tbl) {
-  cols <- names(summary_tbl)
-  weeks <- suppressWarnings(as.integer(sub("^W(\\d+)_.*$", "\\1", cols[grepl("^W\\d+_", cols)])))
-  sort(unique(weeks[!is.na(weeks)]))
 }
 
 salary_cap_week_one_start <- function(season = get_current_season()) {
@@ -817,7 +773,46 @@ salary_cap_snapshot_datetime <- function(season = get_current_season(), week) {
     return(as.POSIXct(NA))
   }
   snapshot_date <- week_one_start + (as.integer(week) - 1L) * 7L + 4L
-  as.POSIXct(paste0(snapshot_date, " 23:15:00"), tz = "America/New_York")
+  as.POSIXct(paste0(snapshot_date, " 23:30:00"), tz = "America/New_York")
+}
+
+read_cap_rollover_ledger <- function(season, workbook = Sys.getenv("ADL_CAP_ROLLOVER_WORKBOOK")) {
+  if (!nzchar(workbook)) {
+    workbook <- tempfile(fileext = ".xlsx")
+    on.exit(unlink(workbook), add = TRUE)
+    sheet_id <- Sys.getenv("CONTRACT_ADMIN_SHEET_ID", unset = "1Pyw8qVfiBlXNuX0lW0LdjRnBiijfbo2BXHfZMWwLLaw")
+    response <- httr::GET(
+      paste0("https://docs.google.com/spreadsheets/d/", sheet_id, "/export?format=xlsx"),
+      httr::timeout(30)
+    )
+    httr::stop_for_status(response)
+    writeBin(httr::content(response, as = "raw"), workbook)
+  }
+  sheet <- readxl::read_excel(workbook, sheet = "Cap Rollover", range = "A1:HC34", col_names = FALSE,
+    col_types = "text", .name_repair = "minimal")
+  pricing <- readxl::read_excel(workbook, sheet = "FT5YO $", range = "L2:L4", col_names = FALSE, .name_repair = "minimal")[[1]]
+  finals <- 1L + 12L * seq_len(17L)
+  cap_position <- match("FRAN CAP", as.character(sheet[1, ]))
+  if (!isTRUE(as.integer(pricing[1]) == season) || !is.finite(cap_numeric(pricing[3])) ||
+      is.na(cap_position) || !identical(as.character(sheet[2, finals]), rep("Final", 17L))) {
+    stop("Contract Admin Cap Rollover layout or season could not be verified.")
+  }
+  franchises <- as.character(sheet[[1]][3:34])
+  caps <- cap_numeric(sheet[[cap_position]][3:34])
+  if (anyNA(franchises) || anyDuplicated(franchises) || any(!is.finite(caps) | caps <= 0)) {
+    stop("Contract Admin franchise caps could not be verified.")
+  }
+  ledger <- tibble(franchise = franchises, franchise_salary_cap = caps)
+  ledger[paste0("week_", seq_len(17L))] <- lapply(finals, function(col) cap_numeric(sheet[[col]][3:34]))
+  attr(ledger, "league_cap") <- as.numeric(pricing[3])
+  ledger
+}
+
+available_cap_rollover_ledger <- function(season) {
+  tryCatch(read_cap_rollover_ledger(season), error = function(e) {
+    warning("Weekly cap compliance is unverified: ", conditionMessage(e), call. = FALSE)
+    NULL
+  })
 }
 
 salary_cap_completed_weeks <- function(season = get_current_season(), checked_at = Sys.time(), weeks = integer()) {
@@ -840,35 +835,20 @@ commissioner_alert_current_week <- function(season = get_current_season(), check
   max(1L, min(17L, length(completed) + 1L))
 }
 
-cap_accounting_week_expenditure <- function(row, week) {
-  final <- cap_numeric(cap_col(row, paste0("W", week, "_Final")))
-  if (!is.na(final)) return(final)
-
-  rost_sal <- cap_numeric(cap_col(row, paste0("W", week, "_RostSal")))
-  if (is.na(rost_sal)) return(NA_real_)
-
-  adj <- cap_numeric(cap_col(row, paste0("W", week, "_Adj"), 0))
-  corr <- cap_numeric(cap_col(row, paste0("W", week, "_Corr"), 0))
-  round(rost_sal + coalesce(adj, 0) + coalesce(corr, 0), 2)
-}
-
 current_cap_accounting_expenditure <- function(rosters, season = get_current_season(), salary_cap_adjustments = NULL) {
   roster_tbl <- rosters |>
     mutate(
       roster_status_calc = toupper(normalize_alert_status(.data$roster_status)),
       salary_num = suppressWarnings(as.numeric(.data$prev_salary)),
       is_taxi_suspended = .data$roster_status_calc == "TAXI" &
-        grepl("^(S|SUSP|SUSPENDED|H|HOLDOUT)$",gsub("[()]", "",toupper(trimws(coalesce(as.character(.data$player_status), "")))))
+        grepl("^(S|H)$|SUSP|HOLDOUT", gsub("[() ]", "", toupper(coalesce(as.character(.data$player_status), ""))))
     )
 
   current <- roster_tbl |>
     group_by(.data$conference, .data$franchise, .data$franchise_name) |>
     summarize(
-      live_salary = round_cap_money(
-        sum(.data$salary_num, na.rm = TRUE) -
-          sum(if_else(.data$is_taxi_suspended, .data$salary_num, 0), na.rm = TRUE)
-      ),
-      franchise_salary_cap = suppressWarnings(max(as.numeric(.data$franchise_salary_cap), na.rm = TRUE)),
+      paid = sum(!.data$is_taxi_suspended),
+      live_salary = sum(.data$salary_num[!.data$is_taxi_suspended]),
       .groups = "drop"
     )
 
@@ -887,61 +867,43 @@ current_cap_accounting_expenditure <- function(rosters, season = get_current_sea
 
   current |>
     mutate(
-      franchise_salary_cap = if_else(
-        is.infinite(.data$franchise_salary_cap) | is.na(.data$franchise_salary_cap),
-        commissioner_salary_cap(.env$season),
-        .data$franchise_salary_cap
-      ),
       live_adjustments = coalesce(.data$live_adjustments, 0),
-      live_accounting_salary = round_cap_money(.data$live_salary + .data$live_adjustments)
+      vacancy = pmax(0L, 45L - .data$paid) * get_cap_veteran_min(.env$season),
+      live_accounting_salary = round_cap_money(.data$live_salary + .data$vacancy + .data$live_adjustments)
     )
+}
+
+cap_rollover_balances <- function(ledger, weeks) {
+  if (is.null(ledger) || !nrow(ledger)) return(tibble(
+    franchise = character(), franchise_salary_cap = numeric(), spending = list(), balances = list()
+  ))
+  columns <- paste0("week_", weeks)[seq_along(weeks)]
+  spending <- lapply(seq_len(nrow(ledger)), function(i) as.numeric(ledger[i, columns]))
+  balances <- Map(function(values, cap) round_cap_money(weeks * cap - cumsum(values)),
+    spending, ledger$franchise_salary_cap)
+  tibble(franchise = ledger$franchise, franchise_salary_cap = ledger$franchise_salary_cap,
+    spending = spending, balances = balances)
 }
 
 evaluate_salary_cap_average_warnings <- function(
   rosters,
   season = get_current_season(),
   salary_cap_adjustments = NULL,
-  summary = read_cap_accounting_summary(season),
+  ledger = available_cap_rollover_ledger(season),
   checked_at = Sys.time()
 ) {
+  weeks <- salary_cap_completed_weeks(season, checked_at, seq_len(17L))
+  if (length(weeks) == 17L || is.null(ledger)) return(tibble())
   current <- current_cap_accounting_expenditure(rosters, season = season, salary_cap_adjustments = salary_cap_adjustments)
-
-  history <- if (is.null(summary) || !nrow(summary) || !"FRANCHISE" %in% names(summary)) {
-    tibble(
-      franchise = character(),
-      completed_snapshots = integer(),
-      cumulative_spending = numeric(),
-      last_average_spending = numeric()
-    )
-  } else {
-    summary_tbl <- tibble::as_tibble(summary)
-    weeks <- salary_cap_completed_weeks(
-      season = season,
-      checked_at = checked_at,
-      weeks = cap_accounting_week_numbers(summary_tbl)
-    )
-
-    bind_rows(lapply(seq_len(nrow(summary_tbl)), function(i) {
-      row <- summary_tbl[i, , drop = FALSE]
-      weekly_values <- vapply(weeks, function(week) cap_accounting_week_expenditure(row, week), numeric(1))
-      completed <- weekly_values[!is.na(weekly_values)]
-      tibble(
-        franchise = as.character(row$FRANCHISE[[1]]),
-        completed_snapshots = length(completed),
-        cumulative_spending = round_cap_money(sum(completed, na.rm = TRUE)),
-        last_average_spending = if (length(completed)) round(mean(completed, na.rm = TRUE), 2) else NA_real_
-      )
-    }))
-  }
+  history <- cap_rollover_balances(ledger, weeks) |>
+    mutate(cumulative_spending = vapply(.data$spending, sum, numeric(1)))
 
   current |>
-    left_join(history, by = "franchise") |>
+    inner_join(history, by = "franchise") |>
     mutate(
-      completed_snapshots = coalesce(.data$completed_snapshots, 0L),
-      cumulative_spending = coalesce(.data$cumulative_spending, 0),
-      projected_average = round_cap_money((.data$cumulative_spending + .data$live_accounting_salary) / (.data$completed_snapshots + 1)),
-      required_live_salary = round_cap_money(.data$franchise_salary_cap * (.data$completed_snapshots + 1) - .data$cumulative_spending),
-      projected_overage = round_cap_money(.data$projected_average - .data$franchise_salary_cap)
+      required_live_salary = round_cap_money(.data$franchise_salary_cap * (length(.env$weeks) + 1L) - .data$cumulative_spending),
+      projected_overage = round_cap_money(.data$live_accounting_salary - .data$required_live_salary),
+      projected_average = round_cap_money((.data$cumulative_spending + .data$live_accounting_salary) / (length(.env$weeks) + 1L))
     ) |>
     filter(.data$projected_overage > 0) |>
     transmute(
@@ -950,17 +912,11 @@ evaluate_salary_cap_average_warnings <- function(
       conference,
       franchise,
       franchise_name,
-      rule = if_else(
-        .data$completed_snapshots == 0,
-        paste0("First weekly salary snapshot must be at or below franchise cap of ", format_millions(.data$franchise_salary_cap), "."),
-        paste0("Average weekly salary spending must remain at or below franchise cap of ", format_millions(.data$franchise_salary_cap), ".")
-      ),
-      observed = if_else(
-        .data$completed_snapshots == 0,
-        paste0("Current franchise expenditures are ", format_millions(.data$live_accounting_salary), " before the first salary snapshot."),
-        paste0("Current rostered salary would raise projected average to ", format_millions(.data$projected_average), " at the next salary snapshot.")
-      ),
-      details = paste0("Required: Bring live salary down to ", format_millions(.data$required_live_salary), " to be cap-compliant at next snapshot.")
+      rule = paste0("Average weekly salary spending must remain at or below the franchise cap of ", format_millions(.data$franchise_salary_cap), "."),
+      observed = paste0("Week ", length(.env$weeks) + 1L, " would be ", format_millions(.data$projected_overage),
+        " over its cumulative spending allowance, with a projected weekly average of ", format_millions(.data$projected_average), "."),
+      details = paste0("Current spending: ", format_millions(.data$live_accounting_salary), ". Week ",
+        length(.env$weeks) + 1L, " spending limit: ", format_millions(.data$required_live_salary), ".")
     )
 }
 
@@ -2772,14 +2728,14 @@ build_commissioner_alerts <- function(
       use_inseason_salary_accounting <- checked_at >= commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
       salary_cap_adjustments <- if (isTRUE(force_live)) {
         tryCatch(fetch_mfl_salary_cap_adjustments(season = season), error = function(e) {
-          warning("MFL salary cap adjustments unavailable; using zero adjustments: ", conditionMessage(e), call. = FALSE)
+          warning("MFL salary cap adjustments unavailable: ", conditionMessage(e), call. = FALSE)
           NULL
         })
       } else {
         NULL
       }
       alerts$salary_cap <- if (isTRUE(use_inseason_salary_accounting)) {
-        evaluate_salary_cap_average_warnings(
+        if (isTRUE(force_live) && is.null(salary_cap_adjustments)) tibble() else evaluate_salary_cap_average_warnings(
           rosters,
           season = season,
           salary_cap_adjustments = salary_cap_adjustments,
