@@ -91,3 +91,50 @@ stopifnot(fails(backup_check(invalid)))
 both <- bind_rows(backup_check(), backup_check())
 stopifnot(nrow(collapse_inseason_inactivity_candidates(both)) == 1L)
 cat("Backup acquisition-attempt regressions passed.\n")
+
+# XV-B: only a GM submission after a confirmed inactive observation and before
+# kickoff defeats the late-scratch exemption. Show excused and uncertain rows.
+game <- as.POSIXct("2026-11-22 13:00:00", tz = "America/New_York")
+late_out <- tibble(snapshot_time = game - c(7200, 5400), player_status = c("Q", "O"))
+review <- function(submission, status = "submitted", history = late_out) {
+  review_inactive_starter(history, game, submission, status, 48)
+}
+stopifnot(
+  as.numeric(difftime(final_lineup_time("2026-11-01 01:30:00 EST"),
+                      final_lineup_time("2026-11-01 01:30:00 EDT"), units = "hours")) == 1,
+  review(game - 4800)$outcome == "Violation",
+  review(game - 9000)$outcome == "Excused",
+  grepl("Prior designation: Q", review(game - 9000)$evidence, fixed = TRUE),
+  review(game - 6000)$outcome == "Needs review",
+  review(game - 5400)$outcome == "Needs review",
+  review(game + 3600)$outcome == "Needs review",
+  review(game - 4800, "commissioner_set")$outcome == "Needs review",
+  review(game - 9000, history = mutate(late_out, snapshot_time = game - c(50, 49) * 3600))$outcome == "Violation",
+  is.null(review(game - 4800, history = mutate(late_out, player_status = c("O", "Q"))))
+)
+final <- lineup |> mutate(conference = "NFC", franchise_name = "New York Giants",
+                          player_team = "NYG", player_name = paste("Player", player_id))
+history <- late_out |> mutate(conference = "NFC", player_id = "1", player_team = "NYG")
+schedule <- tibble(player_team = "NYG", kickoff_at = game)
+stamps <- tibble(conference = "NFC", franchise = "NYG", submission_status = "submitted",
+                 submitted_at = format(game - 9000, "%Y-%m-%d %H:%M:%S %Z"))
+weekly_out <- tibble(player_id = "1", player_team = NA_character_, player_status = "O")
+result <- build_final_lineup_review(final, schedule, history, stamps, integer(), 11L, weekly_out)
+stopifnot(nrow(result) == 1L, result$outcome == "Excused", nrow(final_lineup_review_violations(result, 2026)) == 0L)
+stopifnot(all(is_commissioner_only_alert(final_lineup_review_digest(result))))
+
+hindsight <- bind_rows(weekly_out, tibble(player_id = "2", player_team = NA_character_, player_status = "O"))
+result <- build_final_lineup_review(final[-3, ], schedule, history,
+  mutate(stamps, submitted_at = format(game - 4800, "%Y-%m-%d %H:%M:%S %Z")), integer(), 11L, hindsight)
+stopifnot(nrow(result) == 3L, sum(result$outcome == "Violation") == 2L,
+          sum(result$outcome == "Needs review") == 1L,
+          nrow(collapse_inseason_inactivity_candidates(final_lineup_review_violations(result, 2026))) == 1L)
+late_submit <- mutate(stamps, submitted_at = format(game - 4800, "%Y-%m-%d %H:%M:%S %Z"))
+scored <- mutate(final, player_score = if_else(player_id == "1", -0.8, 0))
+stopifnot(nrow(build_final_lineup_review(scored, schedule, history, late_submit, integer(), 11L, weekly_out)) == 0L)
+unconfirmed <- build_final_lineup_review(final, schedule, history, late_submit, integer(), 11L)
+stopifnot(nrow(unconfirmed) == 1L, unconfirmed$outcome == "Needs review")
+stopifnot(nrow(evaluate_final_lineup_review(2026, 11L, game + 1, late_submit,
+  fetch_kickoffs = function(...) mutate(schedule, game_complete = FALSE),
+  fetch_lineups = function(...) stop("Still in progress"))) == 0L)
+cat("Final lineup designation and submission regressions passed.\n")

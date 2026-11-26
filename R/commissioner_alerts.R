@@ -5,6 +5,7 @@ library(tibble)
 source("R/roster_source.R")
 source("R/cash_trade_limits.R")
 source("R/roster_readiness.R")
+source("R/final_lineup_review.R")
 source("R/cap_money.R")
 source("R/cap_salary_rules.R")
 
@@ -282,7 +283,7 @@ derive_udfa_price <- function(rosters, season = get_current_season()) {
 }
 
 commissioner_only_alert_types <- function() {
-  c("MFL Salary Data Error", "Salary Adjustments")
+  c("MFL Salary Data Error", "Salary Adjustments", "Final Lineup Review")
 }
 
 is_commissioner_only_alert <- function(alerts) {
@@ -1005,7 +1006,7 @@ normalize_lineups <- function(starters, franchises = NULL) {
     return(tibble(
       franchise_id = character(), franchise = character(), franchise_name = character(),
       player_id = character(), player_name = character(), player_team = character(),
-      player_pos = character(), lineup_slot = character()
+      player_pos = character(), lineup_slot = character(), player_score = numeric()
     ))
   }
 
@@ -1016,7 +1017,8 @@ normalize_lineups <- function(starters, franchises = NULL) {
       player_name = as.character(coalesce_col(starters_tbl, c("player_name", "player", "name"))),
       player_team = as.character(coalesce_col(starters_tbl, c("team", "player_team"))),
       player_pos = as.character(coalesce_col(starters_tbl, c("pos", "position", "player_pos"))),
-      lineup_slot = as.character(coalesce_col(starters_tbl, c("lineup_slot", "slot", "starter_position", "starter_position")))
+      lineup_slot = as.character(coalesce_col(starters_tbl, c("lineup_slot", "slot", "starter_position", "starter_position"))),
+      player_score = suppressWarnings(as.numeric(coalesce_col(starters_tbl, "player_score")))
     )
 
   if (!is.null(franchises)) {
@@ -1041,7 +1043,7 @@ normalize_lineups <- function(starters, franchises = NULL) {
         TRUE ~ NA_character_
       )
     ) |>
-    select(conference, franchise, franchise_name, franchise_id, player_id, player_name, player_team, player_pos, lineup_slot)
+    select(conference, franchise, franchise_name, franchise_id, player_id, player_name, player_team, player_pos, lineup_slot, player_score)
 }
 
 list_records <- function(x, record_names = character()) {
@@ -1353,16 +1355,21 @@ read_nfl_team_kickoffs <- function(season = get_current_season(), week) {
   }
 
   games <- schedule |>
-    filter(.data[[schedule_type_col]] == "REG", .data$week == .env$week) |>
-    mutate(kickoff_at = nfl_game_kickoff_at(dplyr::cur_data_all()))
+    filter(.data$season == .env$season, .data[[schedule_type_col]] == "REG", .data$week == .env$week) |>
+    mutate(
+      kickoff_at = nfl_game_kickoff_at(dplyr::cur_data_all()),
+      game_complete = if (all(c("home_score", "away_score") %in% names(schedule))) {
+        !is.na(.data$home_score) & !is.na(.data$away_score)
+      } else FALSE
+    )
 
   if (!nrow(games)) {
     return(tibble(player_team = character(), kickoff_at = as.POSIXct(character())))
   }
 
   bind_rows(
-    games |> transmute(player_team = mfl_player_team(.data$home_team, strict = TRUE), kickoff_at),
-    games |> transmute(player_team = mfl_player_team(.data$away_team, strict = TRUE), kickoff_at)
+    games |> transmute(player_team = mfl_player_team(.data$home_team, strict = TRUE), kickoff_at, game_complete),
+    games |> transmute(player_team = mfl_player_team(.data$away_team, strict = TRUE), kickoff_at, game_complete)
   ) |>
     filter(!is.na(.data$kickoff_at), nzchar(.data$player_team)) |>
     distinct(.data$player_team, .keep_all = TRUE)
@@ -1484,9 +1491,11 @@ read_designation_snapshot_history <- function(season = get_current_season(), wee
   }))
 
   latest_snapshot <- read_designation_snapshot(season, week)
-  bind_rows(snapshots, latest_snapshot) |>
+  combined <- bind_rows(snapshots, latest_snapshot)
+  if (!nrow(combined)) return(combined)
+  combined |>
     filter(!is.na(.data$snapshot_time)) |>
-    distinct(.data$player_id, .data$snapshot_time, .keep_all = TRUE)
+    distinct(.data$conference, .data$player_id, .data$snapshot_time, .keep_all = TRUE)
 }
 
 lineup_designation_grace_hours <- function() {
@@ -2191,7 +2200,8 @@ evaluate_illegal_lineup_alerts <- function(
   designation_history = NULL,
   current_designations = NULL,
   kickoffs = NULL,
-  checked_at = Sys.time()
+  checked_at = Sys.time(),
+  submissions = NULL
 ) {
   roster_tbl <- tibble::as_tibble(rosters)
   lineup_tbl <- tibble::as_tibble(lineups)
@@ -2390,6 +2400,28 @@ evaluate_illegal_lineup_alerts <- function(
       bad_designation = .data$designation_violation
     )
 
+  player_checks$submitted_after_inactive <- rep(FALSE, nrow(player_checks))
+  if (nrow(player_checks) && !is.null(submissions) && nrow(submissions) &&
+      !is.null(designation_history) && nrow(designation_history)) {
+    notice_history <- designation_history |>
+      filter(.data$snapshot_time <= .env$checked_at)
+    for (i in which(player_checks$current_bad_designation & !is.na(player_checks$player_kickoff_at))) {
+      starter <- player_checks[i, ]
+      stamp <- submissions |>
+        filter(.data$franchise == starter$franchise[[1]], .data$conference == starter$conference[[1]])
+      if (nrow(stamp) != 1L) next
+      submitted <- final_lineup_time(stamp$submitted_at[[1]])
+      if (is.na(submitted) || submitted > checked_at) next
+      history <- notice_history |>
+        filter(.data$conference == starter$conference[[1]], .data$player_id == starter$player_id[[1]],
+               mfl_player_team(.data$player_team) == starter$player_team_key[[1]])
+      evidence <- review_inactive_starter(history, starter$player_kickoff_at[[1]], submitted,
+                                          stamp$submission_status[[1]], lineup_designation_grace_hours())
+      player_checks$submitted_after_inactive[i] <- isTRUE(evidence$post_notice)
+    }
+    player_checks$player_warning_today <- player_checks$player_warning_today | player_checks$submitted_after_inactive
+  }
+
   if (!"franchise_id" %in% names(player_checks)) {
     player_checks <- tibble(
       conference = character(),
@@ -2461,7 +2493,8 @@ evaluate_illegal_lineup_alerts <- function(
       lineup_issue_keys = vapply(ifelse(.data$player_pos %in% c("QB", "PK", "PN"),
         paste0("position:", .data$player_pos), paste0("player:", .data$player_id)), lineup_issue_keys, character(1)),
       observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
-      details = ""
+      details = if_else(.data$submitted_after_inactive,
+                        "MFL shows a GM submission after the inactive designation and before kickoff.", "")
     )
 
   designation_warning_alerts <- player_checks |>
@@ -2480,7 +2513,8 @@ evaluate_illegal_lineup_alerts <- function(
       lineup_issue_keys = vapply(ifelse(.data$player_pos %in% c("QB", "PK", "PN"),
         paste0("position:", .data$player_pos), paste0("player:", .data$player_id)), lineup_issue_keys, character(1)),
       observed = lineup_inactive_observed(.data$player_name, .data$player_team, .data$player_pos, .data$current_player_status),
-      details = ""
+      details = if_else(.data$submitted_after_inactive,
+                        "MFL shows a GM submission after the inactive designation and before kickoff.", "")
     )
 
   bye_players <- player_checks |>
@@ -2786,7 +2820,8 @@ build_commissioner_alerts <- function(
       designation_history = designation_history,
       current_designations = current_designations,
       kickoffs = kickoffs,
-      checked_at = checked_at
+      checked_at = checked_at,
+      submissions = submissions
     )
     if (isTRUE(force_live)) {
       roles <- if (length(submitted_franchises) && !is.null(current_designations)) {
@@ -3456,6 +3491,18 @@ send_commissioner_alert_email <- function(
   digest_alerts <- commissioner_digest_alerts(alerts)
   checked_date <- as.Date(run_time, tz = "America/New_York")
   date_label <- commissioner_alert_date_label(checked_date)
+  write_digest_outbox <- function(body, gm_emails_sent = FALSE) {
+    if (any(alerts$alert_type == "Final Lineup Review", na.rm = TRUE)) {
+      # The workflow uploads normal outboxes as artifacts. Keep the review in
+      # the email sent to commissioners and out of the uploaded outbox.
+      body <- render_commissioner_alert_email(
+        filter(alerts, .data$alert_type != "Final Lineup Review"), season = season,
+        week = week, checked_date = checked_date, gm_emails_sent = gm_emails_sent,
+        title = digest_title, compliant_teams = compliant_teams
+      )
+    }
+    write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
+  }
 
   if (!nrow(alerts) && !send_empty) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
@@ -3500,7 +3547,7 @@ send_commissioner_alert_email <- function(
 
   if (!length(offender_franchises)) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
-    outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
+    outbox_path <- write_digest_outbox(body)
     digest_status <- send_alert_mail(subject = subject, body = body, to = recipients$email)
     return(tibble(
       sent = isTRUE(digest_status$sent),
@@ -3515,7 +3562,7 @@ send_commissioner_alert_email <- function(
   offender_recipients <- recipient_directory
   if (inherits(offender_recipients, "error")) {
     body <- render_commissioner_alert_email(alerts, season = season, week = week, checked_date = checked_date, title = digest_title, compliant_teams = compliant_teams)
-    outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
+    outbox_path <- write_digest_outbox(body)
     return(tibble(sent = FALSE, reason = paste0("offender_recipient_lookup_failed: ", conditionMessage(offender_recipients)), outbox_path = outbox_path, recipients_path = recipients_path, recipients = paste(recipients$email, collapse = ", ")))
   }
   offender_recipients <- offender_recipients |>
@@ -3608,7 +3655,7 @@ send_commissioner_alert_email <- function(
     title = digest_title,
     compliant_teams = compliant_teams
   )
-  outbox_path <- write_commissioner_alert_outbox(body, season = season, week = week, name = "email_outbox_digest")
+  outbox_path <- write_digest_outbox(body, gm_emails_sent)
   digest_status <- send_alert_mail(subject = subject, body = body, to = recipients$email)
   if (!isTRUE(digest_status$sent)) {
     return(tibble(

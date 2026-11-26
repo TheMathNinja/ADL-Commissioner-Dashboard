@@ -622,24 +622,26 @@ write_lineup_submission_audit <- function(audit, season = get_current_season()) 
   path
 }
 
-evaluate_lineup_submission_inactivity <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time()) {
-  if (!isTRUE(force_live)) return(empty_inseason_inactivity_rows())
+latest_locked_lineup_week <- function(season, run_time) {
   run_time <- as.POSIXct(run_time, tz = "America/New_York")
   if (run_time < commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")) {
-    return(empty_inseason_inactivity_rows())
+    return(NA_integer_)
   }
 
   week <- commissioner_alert_status_week(season = season, checked_at = run_time)
-  if (is.na(week)) return(empty_inseason_inactivity_rows())
+  if (is.na(week)) return(NA_integer_)
 
   # Check the most recent locked week, not a still-editable Thursday lineup.
   last_game_at <- lineup_week_last_kickoff(read_nfl_team_kickoffs(season = season, week = week))
   if (is.na(last_game_at)) stop("Cannot verify lineup submission deadline: missing kickoff evidence.")
   if (run_time < last_game_at) week <- week - 1L
-  if (week < 1L) return(empty_inseason_inactivity_rows())
+  if (week < 1L) return(NA_integer_)
   last_game_at <- lineup_week_last_kickoff(read_nfl_team_kickoffs(season = season, week = week))
   if (is.na(last_game_at) || run_time < last_game_at) stop("Cannot verify a completed lineup submission window.")
+  week
+}
 
+read_locked_lineup_submissions <- function(season, week, force_live, persist = TRUE) {
   audit <- tryCatch(
     lineup_submission_audit(season = season, week = week, force_live = force_live),
     error = function(e) {
@@ -647,7 +649,16 @@ evaluate_lineup_submission_inactivity <- function(season = get_current_season(),
       tibble()
     }
   )
-  if (nrow(audit)) write_lineup_submission_audit(audit, season = season)
+  if (isTRUE(persist) && nrow(audit)) write_lineup_submission_audit(audit, season = season)
+  audit
+}
+
+evaluate_lineup_submission_inactivity <- function(season = get_current_season(), force_live = TRUE, run_time = Sys.time(),
+    week = NULL, audit = NULL) {
+  if (!isTRUE(force_live)) return(empty_inseason_inactivity_rows())
+  if (is.null(week)) week <- latest_locked_lineup_week(season, run_time)
+  if (is.na(week)) return(empty_inseason_inactivity_rows())
+  if (is.null(audit)) audit <- read_locked_lineup_submissions(season, week, force_live)
   if (!nrow(audit)) return(empty_inseason_inactivity_rows())
 
   audit |>
@@ -849,6 +860,26 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
     return(empty_inseason_inactivity_rows())
   }
 
+  review <- tibble()
+  locked_week <- NA_integer_
+  submissions <- tibble()
+  if (isTRUE(force_live)) {
+    locked_week <- latest_locked_lineup_week(season, run_time)
+    if (!is.na(locked_week)) {
+      submissions <- read_locked_lineup_submissions(season, locked_week, force_live, persist)
+      review <- tryCatch(
+        evaluate_final_lineup_review(season, locked_week, run_time, submissions),
+        error = function(e) {
+          warning("Final lineup review unavailable: ", conditionMessage(e), call. = FALSE)
+          tibble(week = as.character(locked_week), conference = NA_character_,
+                 franchise = NA_character_, franchise_name = "Final lineup evidence",
+                 outcome = "Needs review", observed = "MFL final lineups could not be reviewed.",
+                 details = conditionMessage(e))
+        }
+      )
+    }
+  }
+
   candidates <- bind_rows(
     lapply(
       list(
@@ -856,8 +887,9 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
         evaluate_repeated_roster_violations(season, run_time = run_time),
         evaluate_snapshot_cap_violations(season, run_time = run_time, force_live = force_live),
         evaluate_confirmed_illegal_lineup_inactivity(season, run_time = run_time),
+        final_lineup_review_violations(review, season),
         evaluate_backup_lineup_inactivity(season, run_time = run_time),
-        evaluate_lineup_submission_inactivity(season = season, force_live = force_live, run_time = run_time),
+        evaluate_lineup_submission_inactivity(season, force_live, run_time, week = locked_week, audit = submissions),
         evaluate_illegal_waiver_claims(season = season, force_live = force_live, run_time = run_time)
       ),
       normalize_inseason_inactivity_bind_types
@@ -901,6 +933,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
     write_issued_inseason_inactivity(updated_issued, season)
   }
 
+  attr(new_alerts, "final_lineup_review") <- review
   new_alerts
 }
 
