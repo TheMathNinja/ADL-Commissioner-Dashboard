@@ -32,8 +32,13 @@ body <- render_saladj_email(
 
 stopifnot(regexpr("NFC\\n---", body)[1] < regexpr("AFC\\n---", body)[1])
 stopifnot(grepl("Dropped 9/30/2026 19:48:53 ET by JAC", body, fixed = TRUE))
-stopifnot(grepl("Jerry Jeudy CLE WR: $5.00 / 1 yr / 2026 UFA\n  Notes: ON WAIVERS CURRENTLY", body, fixed = TRUE))
-stopifnot(grepl("Joey Porter PIT CB: $2.01 / 1 yr / 2026 oEXT", body, fixed = TRUE))
+stopifnot(grepl("by JAC: Jerry Jeudy CLE WR ($5.00 / 1 yr / 2026 UFA)\n  Notes: ON WAIVERS CURRENTLY", body, fixed = TRUE))
+stopifnot(grepl("by ATL: Joey Porter PIT CB ($2.01 / 1 yr / 2026 oEXT)", body, fixed = TRUE))
+example <- data.frame(DATE = "11/24/2026 00:59:39", FRAN = "NEP", PLAYER = "Daniel Jones",
+  PLAYER_TEAM = "IND", PLAYER_POS = "QB", SALARY = "2.50", YEARS = "1", CONTRACT = "2026 UFA",
+  NOTES = "NOT LISTED ON MFL WAIVERS AT LAST CHECK")
+stopifnot(identical(format_saladj_digest_row(example),
+  "- Dropped 11/24/2026 00:59:39 ET by NEP: Daniel Jones IND QB ($2.50 / 1 yr / 2026 UFA)\n  Notes: CLEARED WAIVERS"))
 stopifnot(!grepl("There are new salary adjustments to enter", body, fixed = TRUE))
 stopifnot(!grepl("Run audit", body, fixed = TRUE))
 stopifnot(grepl("SalAdj scraper scheduled: 10/1/2026 5:17 a.m. EDT", body, fixed = TRUE))

@@ -29,11 +29,13 @@ format_saladj_digest_row <- function(row) {
   years <- saladj_row_value(row, "YEARS")
   contract <- saladj_row_value(row, "CONTRACT")
   notes <- saladj_row_value(row, "NOTES")
+  # Outstanding rows can still carry the previous post-hold label from the CSV.
+  notes <- gsub("NOT LISTED ON MFL WAIVERS AT LAST CHECK", "CLEARED WAIVERS", notes, fixed = TRUE)
   rvsd <- saladj_row_value(row, "RVSD?")
 
   player_display <- paste(c(player, team, pos)[nzchar(c(player, team, pos))], collapse = " ")
   contract_details <- c(
-    salary,
+    if (nzchar(salary)) salary else NULL,
     if (nzchar(years)) paste0(years, " yr") else NULL,
     if (nzchar(contract)) contract else NULL
   )
@@ -43,8 +45,8 @@ format_saladj_digest_row <- function(row) {
   )
 
   paste0(
-    "- Dropped ", date, " ET by ", fran, " | ", player_display,
-    if (length(contract_details)) paste0(": ", paste(contract_details, collapse = " / ")) else "",
+    "- Dropped ", date, " ET by ", fran, ": ", player_display,
+    if (length(contract_details)) paste0(" (", paste(contract_details, collapse = " / "), ")") else "",
     if (length(trailing_details)) paste0("\n  ", paste(trailing_details, collapse = "\n  ")) else ""
   )
 }
