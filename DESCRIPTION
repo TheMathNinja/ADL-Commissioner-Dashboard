@@ -18,6 +18,7 @@ Imports:
     nflreadr,
     purrr,
     readr,
+    readxl,
     rvest,
     stringr,
     tibble,

@@ -319,6 +319,59 @@ evaluate_repeated_roster_violations <- function(season = get_current_season(), r
   }))
 }
 
+evaluate_snapshot_cap_violations <- function(season = get_current_season(), run_time = Sys.time(), force_live = TRUE,
+    ledger = available_cap_rollover_ledger(season), franchises = franchise_lookup_table(season, force_live)) {
+  weeks <- salary_cap_completed_weeks(season, run_time, seq_len(17L))
+  week <- length(weeks)
+  if (!week || is.null(ledger)) return(empty_inseason_inactivity_rows())
+  league_cap <- attr(ledger, "league_cap")
+  verified <- cap_rollover_balances(ledger, weeks) |>
+    mutate(
+      balance = vapply(.data$balances, function(x) x[[week]], numeric(1)),
+      previous_balance = vapply(.data$balances, function(x) if (week > 1L) x[[week - 1L]] else 0, numeric(1))
+    ) |>
+    filter(is.finite(.data$balance)) |>
+    mutate(
+      category = case_when(
+        .env$week == 17L & .data$balance < 0 ~ "Season-End Cap Overage",
+        .env$week == 17L & .data$balance >= round_cap_money(.env$league_cap * .20 * 17L) ~ "Season-End Minimum Spending",
+        .env$week < 17L & .data$balance < 0 & .data$previous_balance >= 0 ~ "Weekly Salary Cap Overage",
+        TRUE ~ NA_character_
+      )
+    ) |>
+    filter(!is.na(.data$category))
+  if (!nrow(verified)) return(empty_inseason_inactivity_rows())
+
+  verified |>
+    inner_join(franchises, by = "franchise") |>
+    transmute(
+      week = as.character(.env$week),
+      alert_type = "In-Season Inactivity Violation",
+      severity = "violation",
+      conference,
+      franchise,
+      franchise_name,
+      violation_category = .data$category,
+      rule = case_when(
+        .data$category == "Season-End Cap Overage" ~ "III-F and XV-B.9: Week 17 average may not exceed the franchise cap (two violations).",
+        .data$category == "Season-End Minimum Spending" ~ "XV-B.8: Unused season-end cap space must be below 20% of the ADL salary cap.",
+        TRUE ~ "III-F: Cumulative average spending may not exceed the franchise cap at a weekly snapshot."
+      ),
+      observed = paste0("Week ", .env$week, " confirmed average: ",
+        format_millions(.data$franchise_salary_cap - .data$balance / .env$week), ". Franchise cap: ",
+        format_millions(.data$franchise_salary_cap), "."),
+      details = if_else(.data$balance < 0,
+        paste0("Overspent the cumulative allowance by ", format_millions(-.data$balance), " through this snapshot."),
+        paste0("Unused season-end cap space: ", format_millions(.data$balance / .env$week), ".")),
+      violation_key = paste(case_when(
+        .data$category == "Season-End Cap Overage" ~ "season_cap_overage",
+        .data$category == "Season-End Minimum Spending" ~ "season_cap_minimum_spending",
+        TRUE ~ "weekly_cap_overage"
+      ), .env$season, franchise, .env$week, sep = "|"),
+      season_phase = "inseason"
+    )
+}
+
 evaluate_final_roster_cutdown_inactivity <- function(season = get_current_season(), run_time = Sys.time()) {
   run_time <- as.POSIXct(run_time, tz = "America/New_York")
   final_cutdown_at <- commissioner_alert_cutdown_datetime(season, "final_roster_cutdown")
@@ -832,6 +885,7 @@ build_inseason_inactivity_alerts <- function(season = get_current_season(), forc
       list(
         evaluate_final_roster_cutdown_inactivity(season, run_time = run_time),
         evaluate_repeated_roster_violations(season, run_time = run_time),
+        evaluate_snapshot_cap_violations(season, run_time = run_time, force_live = force_live),
         evaluate_confirmed_illegal_lineup_inactivity(season, run_time = run_time),
         final_lineup_review_violations(review, season),
         evaluate_backup_lineup_inactivity(season, run_time = run_time),
@@ -891,8 +945,9 @@ inseason_inactivity_cumulative_summary <- function(season = get_current_season()
   }
   issued |>
     filter(!is.na(.data$franchise), nzchar(.data$franchise)) |>
+    distinct(.data$franchise, .data$violation_key, .keep_all = TRUE) |>
     group_by(.data$franchise, .data$franchise_name) |>
-    summarize(inseason_violations = n_distinct(.data$violation_key), .groups = "drop") |>
+    summarize(inseason_violations = sum(if_else(startsWith(.data$violation_key, "season_cap_overage|"), 2L, 1L, missing = 1L)), .groups = "drop") |>
     arrange(desc(.data$inseason_violations), .data$franchise)
 }
 

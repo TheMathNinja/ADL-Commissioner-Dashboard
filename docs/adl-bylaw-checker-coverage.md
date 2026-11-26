@@ -62,7 +62,7 @@ nor does it turn a losing auction into an inactivity violation.
 | III-C position eligibility | MFL season-specific positions used | Consensus-source position requests and appeals remain commissioner decisions. |
 | III-D Taxi/Temporary Eligibility | Roster-cap/exemption accounting and emergency-add checks | No complete TE-versus-active-bids 24-hour warning/rectification evaluator; repeated intentional abuse requires unanimous commissioners. |
 | III-E IR eligibility/reactivation | Status evidence and MFL submission restrictions | No dedicated league-wide report enforcing every activated player's IR removal. |
-| III-F salary spending / rollover | Cap accounting, snapshot reconciliation and projected-average warnings | Not equivalent to the season-end XV-B sanctions below. |
+| III-F salary spending / rollover | Live spending is checked against the next snapshot's cumulative limit. A confirmed weekly overage uses the corrected Cap Rollover ledger. | A new below-zero cumulative balance produces one violation for the episode. A later compliant snapshot restores headroom. |
 | V-A total/offense/defense/position counts | Current warnings and final structural confirmation | Final confirmation currently depends on a prior candidate report; a never-observed illegal lineup can escape this evaluator. |
 | V-A expected QB/PK/PN | New advance readiness warning | Public charts can lag coach announcements; unknown roles are not adjudicated. Other rotational positions must not be judged solely by depth rank. |
 | V-A backup acquisition effort | Reviewed opportunities + final MFL lineup and auction evidence | Future opportunities still need verified role/availability review; unsuccessful bids are conservatively exempt. No automatic discovery of every historical missed auction. |
@@ -77,8 +77,8 @@ nor does it turn a losing auction into an inactivity violation.
 | XV-B.5 seven-day login inactivity | Not implemented in in-season builder | Requires reliable authenticated last-login evidence, timezone handling, and durable single-incident delivery. |
 | XV-B.6 two consecutive snapshot violations | `evaluate_repeated_roster_violations` | Actual consecutive snapshot evidence required; no inference across missing snapshots. |
 | XV-B.7 Drop/Nomination Deadline | No dedicated in-season deadline evaluator | Must use the exact historical deadline roster, not present-day compliance. |
-| XV-B.8 >=20% season-end cap space | Not implemented as inactivity sanction | Need verified final season ledger and franchise cap basis. |
-| XV-B.9 negative cap rollover (double violation) | Accounting exists; sanction conversion missing | Preserve two-strike weight without two duplicate emails. |
+| XV-B.8 >=20% season-end cap space | Inactivity violation from the completed Week 17 ledger. | Measure against 20% of the ADL salary cap. |
+| XV-B.9 negative cap rollover (double violation) | A completed Week 17 overage is recorded once and counts as two violations. | Commissioner review handles earnings forfeiture. |
 | XV-B cumulative removal / XV-C probation | Counts/display exist; no automatic removal or probation adjudication | Commissioner review and appeals; do not remove ownership automatically. |
 
 ## Offseason And Other Sections
