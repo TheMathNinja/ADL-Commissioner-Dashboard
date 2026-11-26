@@ -6,10 +6,14 @@ from html.parser import HTMLParser
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from email_delivery_state import deliver_once
+
 ROOT=Path(__file__).resolve().parents[1]
 EASTERN=ZoneInfo('America/New_York')
 CONFIG=ROOT/'data/fafl_inactivity/config_2026.json'
 STATE_PATH='data/fafl_inactivity/state_2026.json'
+ACTION_DIGEST_PREFIX='fafl-inactivity-action:'
+ACTION_DIGEST_INTERVAL=timedelta(hours=24)
 
 def save_watch_state(updated, repo, request, sleep=time.sleep):
     url=f'https://api.github.com/repos/{repo}/contents/{STATE_PATH}'
@@ -280,6 +284,47 @@ def deliver_owner_notices(updated,franchises,send,save,clock=lambda:datetime.now
     return sorted(set(problems))
 
 
+def deliver_action_digest(updated, delivery_problems, commissioners, now, send, save):
+    action_incidents={key:value for key,value in updated['incidents'].items()
+                      if value['status'] in ('overdue','resolved_late')}
+    summary={'incidents':action_incidents,'coverage':updated['coverage'],
+             'delivery_problems':sorted(set(delivery_problems))}
+    # A late remedy changes the report text, not the underlying review item.
+    review_items={}
+    for key, incident in action_incidents.items():
+        review_items[key]=dict(incident,status='overdue')
+        review_items[key].pop('resolved_at',None)
+    def digest_signature(payload):
+        return hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
+    signature=digest_signature(dict(summary,incidents=review_items))
+    previous_format=digest_signature(summary)
+    if not any(summary.values()) or updated.get('digest_signature') in (signature,previous_format):
+        return False
+
+    # Count ambiguous sends too: a lost SMTP response may still mean delivery.
+    receipts=updated.get('delivery_receipts',{})
+    for key, receipt in receipts.items():
+        if key.startswith(ACTION_DIGEST_PREFIX) and receipt.get('status') in ('accepted','sending','uncertain','partial'):
+            delivered=moment(receipt.get('accepted_at') or receipt.get('attempted_at'))
+            if delivered and now-delivered<ACTION_DIGEST_INTERVAL:
+                return False
+
+    lines=['FAFL Inactivity Watch','Checked: '+local(iso(now)),'']
+    for incident in action_incidents.values():
+        lines += digest_incident_lines(incident,now)
+    if summary['coverage']:lines += ['Source coverage requiring review:']+summary['coverage']+['']
+    if summary['delivery_problems']:lines += ['Notification delivery requiring review:']+summary['delivery_problems']+['']
+    key=ACTION_DIGEST_PREFIX+signature
+    legacy_key=ACTION_DIGEST_PREFIX+previous_format
+    if key not in receipts and legacy_key in receipts:
+        key=legacy_key
+    sent=deliver_once(updated,key,
+                      lambda:send('FAFL Inactivity Watch - Action Required','\n'.join(lines),key,to=','.join(commissioners)),save)
+    updated['digest_signature']=signature
+    save()
+    return sent
+
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--probe',action='store_true');parser.add_argument('--dry-run',action='store_true');args=parser.parse_args()
     config=json.loads(CONFIG.read_text())
@@ -326,19 +371,7 @@ def main():
     delivery_problems=deliver_owner_notices(updated,franchises,mail.send_email,save,commissioners=commissioners)
     # Owner warnings already copy commissioners; only unresolved operational or
     # overdue issues need a separate commissioner action email.
-    action_incidents={key:value for key,value in updated['incidents'].items() if value['status'] in ('overdue','resolved_late')}
-    summary={'incidents':action_incidents,'coverage':updated['coverage'],'delivery_problems':sorted(set(delivery_problems))}
-    signature=hashlib.sha256(json.dumps(summary,sort_keys=True).encode()).hexdigest()
-    actionable=bool(summary['incidents']or summary['coverage']or summary['delivery_problems'])
-    if actionable and signature!=updated.get('digest_signature'):
-        lines=['FAFL Inactivity Watch','Checked: '+local(iso(now)),'']
-        for incident in action_incidents.values():
-            lines += digest_incident_lines(incident,now)
-        if summary['coverage']:lines += ['Source coverage requiring review:']+summary['coverage']+['']
-        if summary['delivery_problems']:lines += ['Notification delivery requiring review:']+summary['delivery_problems']+['']
-        mail.deliver_once(updated, 'fafl-inactivity-action:'+signature,
-                          lambda: mail.send_email('FAFL Inactivity Watch - Action Required','\n'.join(lines),'fafl-inactivity-action:'+signature,to=','.join(commissioners)), save)
-        updated['digest_signature']=signature;save()
+    deliver_action_digest(updated,delivery_problems,commissioners,now,mail.send_email,save)
     print('FAFL inactivity check completed; no roster, lineup, ownership or winnings changes were made')
     if delivery_problems:raise RuntimeError('An inactivity notice needs delivery review; commissioners were notified')
 

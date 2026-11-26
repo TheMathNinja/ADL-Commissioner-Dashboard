@@ -138,6 +138,42 @@ class InactivityTests(unittest.TestCase):
         body='\n'.join(m.digest_incident_lines(incident,self.now))
         self.assertIn('owner has addressed',body);self.assertNotIn('Please log in',body)
 
+    def test_late_login_alone_is_not_a_followup_and_new_digest_waits_24_hours(self):
+        changed=self.now+timedelta(hours=7)
+        pit={'franchise':'Pittsburgh Steelers','rule':'login','status':'overdue',
+             'activity_at':m.iso(self.now-timedelta(days=12)), 'deadline':m.iso(self.now)}
+        state={'coverage':[], 'incidents':{'pit':pit}}
+        messages=[]
+        send=lambda subject, body, key, **kwargs: messages.append(body)
+        save=lambda:None
+        recipients=['commissioner@example.com']
+        self.assertTrue(m.deliver_action_digest(state,[],recipients,self.now,send,save))
+        prior=state['digest_signature']
+        state['delivery_receipts'][m.ACTION_DIGEST_PREFIX+prior]['accepted_at']=m.iso(self.now)
+        pit.update(status='resolved_late',resolved_at=m.iso(changed))
+        eligible=self.now+timedelta(hours=24)
+        self.assertFalse(m.deliver_action_digest(state,[],recipients,eligible,send,save))
+        # Another team becomes actionable while the digest is cooling down.
+        state['incidents']['other']={'franchise':'Other Team','rule':'lineup','episode':12,
+                                    'status':'overdue','deadline':m.iso(changed)}
+        self.assertFalse(m.deliver_action_digest(state,[],recipients,changed,send,save))
+        self.assertEqual(state['digest_signature'],prior)
+        self.assertTrue(m.deliver_action_digest(state,[],recipients,eligible,send,save))
+        self.assertIn('after the warning deadline',messages[1])
+        self.assertIn('Other Team',messages[1])
+        self.assertFalse(m.deliver_action_digest(state,[],recipients,eligible+timedelta(days=1),send,save))
+        self.assertEqual(len(messages),2)
+
+    def test_uncertain_action_delivery_also_counts_against_the_daily_limit(self):
+        state={'coverage':['source unavailable'],'incidents':{},
+               'delivery_receipts':{m.ACTION_DIGEST_PREFIX+'prior':{
+                   'status':'uncertain','attempted_at':m.iso(self.now),
+               }}}
+        def forbidden(*args,**kwargs):
+            self.fail('Do not send or write during cooldown')
+        self.assertFalse(m.deliver_action_digest(state,[],['commissioner@example.com'],
+                         self.now+timedelta(hours=23),forbidden,forbidden))
+
     def test_owner_delivery_starts_timer_only_after_acceptance_and_does_not_repeat(self):
         self.stale();state=self.run_check();send=Mock();saved=[]
         def save():saved.append(copy.deepcopy(state))
