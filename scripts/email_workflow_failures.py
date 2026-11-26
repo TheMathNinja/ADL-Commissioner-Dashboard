@@ -1458,6 +1458,17 @@ def main():
                                      deliver_alerts=not args.skip_guardian_delivery)
     if args.skip_guardian_delivery and os.environ.get('GUARDIAN_SAFETY_PHASE_OUTCOME') == 'failure':
         coverage_errors.append('Guardian safety phase did not complete')
+    if (args.deadlines and not args.dry_run and shared_coverage
+            and os.environ.get('GUARDIAN_COVERAGE_RUNNER') == 'public-reporter-v1'
+            and os.environ.get('GITHUB_REPOSITORY') == COMMISSIONER):
+        from mfl_pregame_archive import capture
+        try:
+            count = capture(shared_coverage, datetime.now(timezone.utc),
+                            lambda *a, **kw: mail.get_json(*a, timeout=8, **kw))
+            if count:
+                print(f'MFL pregame archive: {count} verified slot(s) stored.')
+        except (OSError, http.client.HTTPException, RuntimeError, KeyError, ValueError, TypeError) as error:
+            print(f'::warning::MFL pregame archive could not verify this slot ({type(error).__name__}).')
     if os.environ.get('ACTIONS_BUDGET_MONITOR') == 'true':
         try:
             from actions_budget import review

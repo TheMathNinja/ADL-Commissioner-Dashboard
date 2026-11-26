@@ -142,3 +142,21 @@ stopifnot(nrow(evaluate_final_lineup_review(2026, 11L, game + 1, late_submit,
   fetch_kickoffs = function(...) mutate(schedule, game_complete = FALSE),
   fetch_lineups = function(...) stop("Still in progress"))) == 0L)
 cat("Final lineup designation and submission regressions passed.\n")
+
+archive_dir <- tempfile("mfl-pregame-")
+archive_week <- file.path(archive_dir, "mfl_pregame_designations", "2026", "week11")
+dir.create(archive_week, recursive = TRUE)
+old_alert_dir <- Sys.getenv("ADL_ALERT_DIR", unset = NA_character_)
+Sys.setenv(ADL_ALERT_DIR = archive_dir)
+jsonlite::write_json(list(source = "mfl-injuries", season = 2026, week = 11,
+  slot = "2026-11-22T17:30:00+00:00", observedAt = "2026-11-22T17:38:11.032+00:00",
+  injuries = tibble(player_id = c("1", "2"), player_status = c("Out", "Questionable"))),
+  file.path(archive_week, "mfl_20261122T173000Z.json"), auto_unbox = TRUE)
+more_history <- read_mfl_pregame_designations(2026, 11, history)
+stopifnot(nrow(more_history) == 1L, more_history$player_id == "1", more_history$player_team == "NYG",
+  more_history$conference == "NFC", more_history$player_status == "Out",
+  format(more_history$snapshot_time, "%H:%M:%S", tz = "UTC") == "17:38:11")
+conflict <- bind_rows(history, mutate(history, player_team = "BUF"))
+stopifnot(nrow(read_mfl_pregame_designations(2026, 11, conflict)) == 0L)
+if (is.na(old_alert_dir)) Sys.unsetenv("ADL_ALERT_DIR") else Sys.setenv(ADL_ALERT_DIR = old_alert_dir)
+cat("Cloud MFL-only pregame designation evidence regressions passed.\n")

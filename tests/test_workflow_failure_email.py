@@ -13,6 +13,37 @@ import email_workflow_failures as m
 
 
 class FailureReports(unittest.TestCase):
+    def test_mfl_pregame_archive_shares_capture_and_never_backfills(self):
+        from datetime import timedelta
+        from mfl_pregame_archive import capture, due_slots
+        now = m.gameday_time('2026-11-26T17:33:00Z')
+        kickoffs = ['2026-11-26T18:00:00Z', '2026-11-26T18:00:00Z', '2026-11-26T18:05:00Z']
+        self.assertEqual(len(due_slots(kickoffs, now)), 1)
+        self.assertEqual(len(due_slots(kickoffs, now + timedelta(minutes=3))), 2)
+        coverage = dict(schedules={'ADL': {'week': 12, 'kickoffs': kickoffs}})
+        stored, reads = {}, []
+        def request(url, payload=None, method=None):
+            if 'myfantasyleague.com' in url:
+                reads.append(url)
+                return {'injuries': {'week': '12', 'injury': [
+                    {'id': '123', 'status': 'Out', 'details': 'not stored'}]}}
+            if method == 'PUT':
+                stored[url + '?ref=main'] = json.loads(base64.b64decode(payload['content']))
+                return
+            return stored.get(url)
+        on_time = now + timedelta(minutes=3)
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time), 2)
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time), 0)
+        self.assertEqual(len(reads), 1)
+        self.assertTrue(all(row['observedAt'] == on_time.isoformat() and
+                            row['injuries'] == [{'player_id': '123', 'player_status': 'Out'}]
+                            for row in stored.values()))
+        stored.clear()
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: now + timedelta(minutes=22)), 0)
+        self.assertEqual(stored, {})
+        self.assertEqual(capture(dict(coverage, scheduleFailures={'ADL': 'missing'}), now, request), 0)
+        self.assertEqual(len(reads), 2)
+
     def test_public_account_scans_do_not_spend_private_api_quota(self):
         with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE': 'true', 'PRIVATE_REPORT_TOKEN': 'fixture'}), \
              patch.dict(m.API_BACKOFF_UNTIL, {}, clear=True), \

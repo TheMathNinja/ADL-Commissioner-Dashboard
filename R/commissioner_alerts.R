@@ -1477,6 +1477,33 @@ normalize_designation_snapshot_time <- function(snapshot) {
     )
 }
 
+read_mfl_pregame_designations <- function(season, week, history) {
+  if (is.null(week) || is.na(week) || !nrow(history)) return(tibble())
+  path <- file.path(commissioner_alert_dir(), "mfl_pregame_designations", season, sprintf("week%02d", as.integer(week)))
+  if (!dir.exists(path)) return(tibble())
+  identity <- history |>
+    filter(!is.na(.data$player_team), nzchar(.data$player_team), .data$player_team != "FA") |>
+    distinct(.data$conference, .data$player_id, .data$player_team) |>
+    group_by(.data$player_id) |>
+    filter(n_distinct(.data$player_team) == 1L) |>
+    ungroup()
+  reports <- bind_rows(lapply(list.files(path, "^mfl_[0-9]{8}T[0-9]{6}Z\\.json$", full.names = TRUE), function(file) {
+    doc <- jsonlite::fromJSON(file)
+    if (!identical(doc$source, "mfl-injuries") || !isTRUE(doc$season == season) ||
+        !isTRUE(doc$week == week) || !is.data.frame(doc$injuries)) stop("Invalid archived MFL pregame designation")
+    observed <- lubridate::ymd_hms(doc$observedAt, quiet = TRUE, tz = "UTC")
+    slot <- lubridate::ymd_hms(doc$slot, quiet = TRUE, tz = "UTC")
+    age <- as.numeric(difftime(observed, slot, units = "mins"))
+    if (length(age) != 1L || is.na(age) || age < 0 || age >= 15) stop("Invalid archived MFL observation time")
+    as_tibble(doc$injuries) |> transmute(player_id = as.character(.data$player_id),
+      player_status = as.character(.data$player_status), snapshot_time = .env$observed)
+  }))
+  if (!nrow(reports)) return(tibble())
+  # The feed has no NFL team or conference. Use the verified weekly roster
+  # identity and leave missing/conflicting player identities unverified.
+  inner_join(reports, identity, by = "player_id", relationship = "many-to-many")
+}
+
 read_designation_snapshot_history <- function(season = get_current_season(), week = NULL) {
   snapshot_dir <- commissioner_alert_designation_snapshot_dir(season, week)
   snapshot_files <- if (dir.exists(snapshot_dir)) {
@@ -1493,6 +1520,7 @@ read_designation_snapshot_history <- function(season = get_current_season(), wee
   latest_snapshot <- read_designation_snapshot(season, week)
   combined <- bind_rows(snapshots, latest_snapshot)
   if (!nrow(combined)) return(combined)
+  combined <- bind_rows(combined, read_mfl_pregame_designations(season, week, combined))
   combined |>
     filter(!is.na(.data$snapshot_time)) |>
     distinct(.data$conference, .data$player_id, .data$snapshot_time, .keep_all = TRUE)
