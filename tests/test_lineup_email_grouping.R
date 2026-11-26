@@ -75,13 +75,20 @@ stopifnot(status$sent, length(commissioner_mail) == 1L,
           grepl("In-Season Inactivity", commissioner_mail[[1]]$body, fixed = TRUE),
           grepl("Roster Warning", commissioner_mail[[1]]$body, fixed = TRUE))
 delivered <- list()
-review <- final_lineup_review_digest(tibble(week = "9", conference = "AFC", franchise = "NYJ",
-  franchise_name = "New York Jets", outcome = "Excused", observed = "A late scratch stayed in the lineup.",
-  details = "Prior designation: Q."))
+review <- final_lineup_review_digest(tibble(week = "11", conference = "AFC",
+  franchise = c("WAS", "CIN", "CLE", "LVR", "CIN", "MIA", "NEP", "TEN", "DET", "GBP"),
+  franchise_name = franchise, outcome = c("Violation", rep("Excused", 3), rep("Needs review", 6)),
+  observed = c("Missing QB", rep("A late scratch stayed in the lineup.", 3), paste("Review case", 1:6)),
+  details = "Archival evidence."))
 status <- send_commissioner_alert_email(review, 2026, 10, run_time = friday)
+review_body <- strsplit(delivered[[1]]$body, "\n", fixed = TRUE)[[1]]
 stopifnot(status$sent, status$gm_emails_sent == 0L, length(delivered) == 1L,
           identical(delivered[[1]]$to, "commissioner@example.test"),
-          grepl("Week 9 - Excused", delivered[[1]]$body, fixed = TRUE),
+          sum(review_body == "Excused inactivity (3)") == 1L,
+          sum(review_body == "Needs review (6)") == 1L,
+          sum(review_body == "Confirmed violations (1)") == 1L,
+          sum(grepl("Review case", review_body, fixed = TRUE)) == 6L,
+          !any(grepl("10 alerts found", review_body, fixed = TRUE)),
           !any(grepl("A late scratch", readLines(status$outbox_path), fixed = TRUE)))
 delivered <- list()
 status <- send_commissioner_alert_email(dplyr::mutate(alerts, franchise = NA_character_), 2026, 10, run_time = friday)

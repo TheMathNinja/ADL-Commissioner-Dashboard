@@ -43,16 +43,23 @@ review_inactive_starter <- function(history, kickoff, submitted, submission_stat
   } else {
     "Needs review"
   }
+  stamp <- function(time) if (is.na(time)) "unverified" else format(time, "%b %d %H:%M:%S %Z", tz = "America/New_York")
   reason <- if (post_notice) {
     "GM submitted after the player was confirmed inactive and before kickoff."
   } else if (first_out < deadline) {
     paste0("Player was already inactive more than ", grace_hours, " hours before kickoff.")
   } else if (outcome == "Excused") {
     paste0("Became inactive within ", grace_hours, " hours of kickoff and the GM left the lineup in place.")
+  } else if (!is.na(last_available) && last_available < deadline) {
+    paste0("The designation changed between snapshots that bracket the ", grace_hours,
+           "-hour cutoff (", stamp(deadline), "). The snapshots do not show which side of the cutoff it changed on.")
+  } else if (!gm_stamp || submitted >= kickoff) {
+    "A GM submission before kickoff could not be verified."
+  } else if (is.na(last_available)) {
+    "No earlier available designation was archived to establish when inactivity began."
   } else {
-    "The available snapshots and submission stamp do not establish the order of events."
+    "The GM submission falls within or too close to the observed designation-change window to order the events."
   }
-  stamp <- function(time) if (is.na(time)) "unverified" else format(time, "%b %d %H:%M:%S %Z", tz = "America/New_York")
   list(outcome = outcome, post_notice = post_notice, reason = reason, evidence = paste0(
     "Prior designation: ", prior_status, " (", stamp(last_available), "). Inactive observed: ", stamp(first_out),
     ". Last GM submission: ", if (gm_stamp) stamp(submitted) else "unverified",
@@ -134,7 +141,7 @@ build_final_lineup_review <- function(lineups, kickoffs, history, submissions, b
         }
         return(record("Needs review", paste(label, "started and was listed inactive in the MFL weekly report."),
                       paste0("Last pre-kickoff designation: ", if (length(prior) && !is.na(prior)) prior else "unverified",
-                             ". The report does not establish when the player became inactive.")))
+                             ". The final weekly report lists the player as inactive, but no inactive observation was archived before kickoff.")))
       }
       tibble()
     }))
@@ -192,7 +199,28 @@ final_lineup_review_digest <- function(review) {
   review |>
     transmute(
       alert_type = "Final Lineup Review",
-      severity = "info", commissioner_only = TRUE, conference, franchise, franchise_name, week,
+      severity = "info", commissioner_only = TRUE, conference, franchise, franchise_name, week, review_outcome = outcome,
       rule = paste0("Week ", .data$week, " - ", .data$outcome), observed, details
     )
+}
+
+render_final_lineup_review_lines <- function(rows) {
+  headings <- c(Violation = "Confirmed violations", Excused = "Excused inactivity", `Needs review` = "Needs review")
+  lines <- c(paste0("Week ", paste(unique(rows$week), collapse = ", "),
+                    ": ", sum(rows$review_outcome %in% "Violation"), " confirmed violation(s), ",
+                    sum(rows$review_outcome %in% "Excused"), " excused, ",
+                    sum(rows$review_outcome %in% "Needs review"), " needing review."), "")
+  for (outcome in names(headings)) {
+    selected <- rows[rows$review_outcome %in% outcome, , drop = FALSE]
+    if (!nrow(selected)) next
+    lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
+      unlist(lapply(seq_len(nrow(selected)), function(i) {
+        row <- selected[i, ]
+        team <- if (is.na(row$franchise) || !nzchar(row$franchise)) row$franchise_name else
+          paste0(row$franchise, " (", row$conference, ")")
+        c(paste0("- ", team, " - ", row$observed),
+          if (!is.na(row$details) && nzchar(row$details)) paste0("  ", row$details))
+      })), "")
+  }
+  lines
 }

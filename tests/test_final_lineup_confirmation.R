@@ -112,6 +112,10 @@ stopifnot(
   review(game - 9000, history = mutate(late_out, snapshot_time = game - c(50, 49) * 3600))$outcome == "Violation",
   is.null(review(game - 4800, history = mutate(late_out, player_status = c("O", "Q"))))
 )
+cutoff_gap <- review(game - 60 * 3600, history = mutate(late_out, snapshot_time = game - c(53, 47) * 3600))
+stopifnot(cutoff_gap$outcome == "Needs review",
+          grepl("bracket the 48-hour cutoff", cutoff_gap$reason, fixed = TRUE),
+          grepl("Nov 20 13:00:00 EST", cutoff_gap$reason, fixed = TRUE))
 final <- lineup |> mutate(conference = "NFC", franchise_name = "New York Giants",
                           player_team = "NYG", player_name = paste("Player", player_id))
 history <- late_out |> mutate(conference = "NFC", player_id = "1", player_team = "NYG")

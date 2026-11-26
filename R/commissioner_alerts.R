@@ -3160,7 +3160,9 @@ render_commissioner_alert_email <- function(
   group_order <- vapply(groups, function(rows) min(rows$alert_sort_order, na.rm = TRUE), numeric(1))
   groups <- groups[order(group_order, names(group_order))]
 
-  lines <- c(title, "", clean_run_block, compliance_line, commissioner_alert_count_label(nrow(alerts)), "")
+  ordinary_count <- sum(alerts$alert_type != "Final Lineup Review", na.rm = TRUE)
+  lines <- c(title, "", clean_run_block, compliance_line,
+             if (ordinary_count) commissioner_alert_count_label(ordinary_count), "")
   if (isTRUE(gm_emails_sent)) {
     lines <- c(lines, "Individual emails have been sent to all franchises in violation.", "")
   }
@@ -3168,6 +3170,10 @@ render_commissioner_alert_email <- function(
     rows <- groups[[alert_type]] |>
       arrange(.data$franchise_sort_order, .data$alert_sort_order, .data$rule)
     lines <- c(lines, paste0("**", alert_type, "**"), strrep("-", nchar(alert_type)))
+    if (identical(alert_type, "Final Lineup Review")) {
+      lines <- c(lines, render_final_lineup_review_lines(rows))
+      next
+    }
     if (identical(alert_type, "Illegal Lineup")) {
       lines <- c(lines, render_lineup_team_lines(rows))
       next
