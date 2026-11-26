@@ -234,6 +234,7 @@ render_final_lineup_review_lines <- function(rows) {
     if (!nrow(selected)) next
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
       if (outcome == "Low snap share") paste(
+        "Shares count the player's offense and defense snaps against the team total for their MFL position's unit.",
         "Screening only; no strike. Review the expected role at submission and whether an active roster or",
         "free-agent alternative was available."),
       unlist(lapply(seq_len(nrow(selected)), function(i) {
