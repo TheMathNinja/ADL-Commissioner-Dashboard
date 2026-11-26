@@ -208,6 +208,18 @@
         "issued_at": "2026-11-24T04:09:51.640109+00:00"
       },
       "resolved_at": "2026-11-26T00:44:12+00:00"
+    },
+    "0014:2eae302f396e760dc873:login:1795126125": {
+      "franchise_id": "0014",
+      "franchise": "Los Angeles Rams",
+      "owner_key": "2eae302f396e760dc873",
+      "rule": "login",
+      "episode": 1795126125,
+      "count": 1,
+      "observed": "Last league access: Nov 19, 2026 at 05:08 PM EST",
+      "detected_at": "2026-11-26T22:09:43.180636+00:00",
+      "status": "pending_notice",
+      "activity_at": "2026-11-19T22:08:45+00:00"
     }
   },
   "counts": {
@@ -217,7 +229,8 @@
     "0012:6578b1f3d0572c373a34:login": 2,
     "0007:d0aeaade439070ef87e8:login": 1,
     "0007:d0aeaade439070ef87e8:lineup": 1,
-    "0024:bcc3d4ff500357cc7c1e:lineup": 2
+    "0024:bcc3d4ff500357cc7c1e:lineup": 2,
+    "0014:2eae302f396e760dc873:login": 1
   },
   "audited_weeks": [
     8,
@@ -357,7 +370,7 @@
     }
   },
   "coverage": [],
-  "last_checked_at": "2026-11-26T21:09:44.948807+00:00",
+  "last_checked_at": "2026-11-26T22:09:43.180636+00:00",
   "digest_signature": "518818d708b34594459f30096eed205846a4795abce2b3371a132cf7bacf747d",
   "delivery_receipts": {
     "fafl-inactivity-action:2ceb3cd93896eb42a27193106444e24a55cdd1f189a22ddbd3f574605ac1e3c8": {
