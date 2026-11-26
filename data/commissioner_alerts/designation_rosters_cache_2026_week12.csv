@@ -256,7 +256,7 @@ NFC,DET,Detroit Lions,17469,"Daniels, Jalon TBB QB","Daniels, Jalon",TBB,QB,Acti
 NFC,DET,Detroit Lions,17504,"Daniels, CJ LAR WR","Daniels, CJ",LAR,WR,Active,R,1.1,1,266.44,2026 UFA,,daniels
 NFC,DET,Detroit Lions,17575,"McNeil-Warren, Emmanuel CLE S","McNeil-Warren, Emmanuel",CLE,S,Active,R,1.44,4,266.44,2026 3.04,,mcneil-warren
 NFC,DET,Detroit Lions,16282,"Turner, Kobie LAR DT","Turner, Kobie",LAR,DT,Active,,11,3,266.44,2026 SRFA,,turner
-NFC,DET,Detroit Lions,14840,"Aiyuk, Brandon FA WR","Aiyuk, Brandon",FA,WR,Active,,7.2,3,266.44,2026 B/R,,aiyuk
+NFC,DET,Detroit Lions,14840,"Aiyuk, Brandon WAS WR","Aiyuk, Brandon",WAS,WR,Active,,7.2,3,266.44,2026 B/R,,aiyuk
 NFC,DET,Detroit Lions,17726,"Stevens, Drew WAS PK","Stevens, Drew",WAS,PK,Active,R,1.1,1,266.44,2026 UFA,,stevens
 NFC,DET,Detroit Lions,17680,"Spears-Jennings, Robert PIT S","Spears-Jennings, Robert",PIT,S,Active,R,1.1,1,266.44,2026 UFA,,spears-jennings
 NFC,DET,Detroit Lions,17597,"Height, Romello SFO DE","Height, Romello",SFO,DE,Active,R,1.1,1,266.44,2026 UFA,,height
@@ -802,17 +802,17 @@ AFC,BUF,Buffalo Bills,17581,"Cisse, Brandon GBP CB","Cisse, Brandon",GBP,CB,Acti
 AFC,BUF,Buffalo Bills,16234,"Simpson, Trenton BAL LB","Simpson, Trenton",BAL,LB,Active,,1.1,1,266.62,2026 R/F,,simpson
 AFC,BUF,Buffalo Bills,13707,"Ward, Denzel CLE CB","Ward, Denzel",CLE,CB,Active,,1.1,1,266.62,2026 UFA,,ward
 AFC,BUF,Buffalo Bills,16667,"Gray, Cedric TEN LB","Gray, Cedric",TEN,LB,Active,,1.17,2,266.62,2024 4.09,,gray
-AFC,BUF,Buffalo Bills,14905,"Henderson, CJ ATL CB","Henderson, CJ",ATL,CB,Active,,1.1,1,266.62,2026 UFA,,henderson
 AFC,BUF,Buffalo Bills,17031,"Sanders, Shedeur CLE QB","Sanders, Shedeur",CLE,QB,Active,,1.24,3,266.62,2025 3.16,,sanders
 AFC,BUF,Buffalo Bills,15484,"Cooper, Jonathon DEN DE","Cooper, Jonathon",DEN,DE,Active,,9.26,2,266.62,2024 UFA,,cooper
 AFC,BUF,Buffalo Bills,14918,"Terrell, A.J. ATL CB","Terrell, A.J.",ATL,CB,Active,,1.1,1,266.62,2026 UFA,,terrell
 AFC,BUF,Buffalo Bills,16216,"Washington, Darnell PIT TE","Washington, Darnell",PIT,TE,Active,,1.9,1,266.62,2026 UFA,,washington
 AFC,BUF,Buffalo Bills,16692,"Newton, Jer'Zhan WAS DT","Newton, Jer'Zhan",WAS,DT,Active,,1.49,2,266.62,2024 3.03,,newton
-AFC,BUF,Buffalo Bills,15337,"Gray, Noah KCC TE","Gray, Noah",KCC,TE,Active,Questionable,1.1,1,266.62,2026 UFA,,gray
 AFC,BUF,Buffalo Bills,15393,"Odighizuwa, Osa SFO DT","Odighizuwa, Osa",SFO,DT,Active,,1.2,1,266.62,2026 UFA,,odighizuwa
+AFC,BUF,Buffalo Bills,13595,"Rudolph, Mason PIT QB","Rudolph, Mason",PIT,QB,Active,,1.1,1,266.62,2026 UFA,,rudolph
+AFC,BUF,Buffalo Bills,15914,"Rodriguez, Malcolm DET LB","Rodriguez, Malcolm",DET,LB,Active,,1.1,1,266.62,2026 UFA,,rodriguez
+AFC,BUF,Buffalo Bills,14518,"Thompson, Jalen DAL S","Thompson, Jalen",DAL,S,Active,Questionable,2.18,1,266.62,2026 oEXT,,thompson
 AFC,BUF,Buffalo Bills,16256,"Bresee, Bryan NOS DT","Bresee, Bryan",NOS,DT,INJURED_RESERVE,IR,3.7,1,266.62,2023 2.04^,,bresee
 AFC,BUF,Buffalo Bills,15831,"Chenal, Leo WAS LB","Chenal, Leo",WAS,LB,INJURED_RESERVE,,2.1,3,266.62,2026 oEXT,,chenal
-AFC,BUF,Buffalo Bills,14518,"Thompson, Jalen DAL S","Thompson, Jalen",DAL,S,INJURED_RESERVE,Questionable,2.18,1,266.62,2026 oEXT,,thompson
 AFC,BUF,Buffalo Bills,15779,"Doubs, Romeo NEP WR","Doubs, Romeo",NEP,WR,INJURED_RESERVE,IR-R,6.17,3,266.62,2025 iEXT,,doubs
 AFC,BUF,Buffalo Bills,17108,"Arroyo, Elijah SEA TE","Arroyo, Elijah",SEA,TE,INJURED_RESERVE,IR,1.35,3,266.62,2025 3.09,,arroyo
 AFC,BUF,Buffalo Bills,14109,"McLaurin, Terry WAS WR","McLaurin, Terry",WAS,WR,INJURED_RESERVE,IR,10.29,2,266.62,2024 B/R,,mclaurin
@@ -820,7 +820,7 @@ AFC,BUF,Buffalo Bills,16693,"Sweat, T'Vondre NYJ DT","Sweat, T'Vondre",NYJ,DT,IN
 AFC,BUF,Buffalo Bills,17613,"Halton, Gracen SFO DT","Halton, Gracen",SFO,DT,INJURED_RESERVE,IR,1.08,4,266.62,2026 4.08,,halton
 AFC,BUF,Buffalo Bills,16165,"Spears, Tyjae TEN RB","Spears, Tyjae",TEN,RB,INJURED_RESERVE,IR,1.46,1,266.62,2023 3.08,,spears
 AFC,BUF,Buffalo Bills,16671,"Arnold, Terrion SEA CB","Arnold, Terrion",SEA,CB,Taxi,Suspended,1.18,2,266.62,2024 4.07,,arnold
-AFC,BUF,Buffalo Bills,15914,"Rodriguez, Malcolm DET LB","Rodriguez, Malcolm",DET,LB,Taxi,,1.1,1,266.62,2026 UFA,,rodriguez
+AFC,BUF,Buffalo Bills,14905,"Henderson, CJ ATL CB","Henderson, CJ",ATL,CB,Taxi,,1.1,1,266.62,2026 UFA,,henderson
 AFC,MIA,Miami Dolphins,15287,"St. Brown, Amon-Ra DET WR","St. Brown, Amon-Ra",DET,WR,Active,,37.05,3,266.62,2024 iEXT,,st. brown
 AFC,MIA,Miami Dolphins,16188,"Johnston, Quentin LAC WR","Johnston, Quentin",LAC,WR,Active,,4.92,1,266.62,2023 1.07,,johnston
 AFC,MIA,Miami Dolphins,16190,"Flowers, Zay BAL WR","Flowers, Zay",BAL,WR,Active,Questionable,25.4,6,266.62,2026 iEXT,,flowers
@@ -1003,7 +1003,8 @@ AFC,BAL,Baltimore Ravens,17107,"Ferguson, Terrance LAR TE","Ferguson, Terrance",
 AFC,BAL,Baltimore Ravens,15864,"Wright, Alex CLE DE","Wright, Alex",CLE,DE,Active,,3.17,2,262.58,2025 iEXT,,wright
 AFC,BAL,Baltimore Ravens,15852,"Gordon, Kyler CHI CB","Gordon, Kyler",CHI,CB,Active,Out,1.1,1,262.58,2026 UFA,,gordon
 AFC,BAL,Baltimore Ravens,13742,"Hill, B.J. CIN DT","Hill, B.J.",CIN,DT,Active,,1.1,1,262.58,2026 UFA,,hill
-AFC,BAL,Baltimore Ravens,14840,"Aiyuk, Brandon FA WR","Aiyuk, Brandon",FA,WR,Active,,2.38,2,262.58,2026 B/R,,aiyuk
+AFC,BAL,Baltimore Ravens,14840,"Aiyuk, Brandon WAS WR","Aiyuk, Brandon",WAS,WR,Active,,2.38,2,262.58,2026 B/R,,aiyuk
+AFC,BAL,Baltimore Ravens,16267,"Stevenson, Tyrique CHI CB","Stevenson, Tyrique",CHI,CB,Active,Questionable,1.1,1,262.58,2026 UFA,,stevenson
 AFC,CIN,Cincinnati Bengals,15365,"Moehrig, Trevon CAR S","Moehrig, Trevon",CAR,S,Active,,6.92,1,266.62,2024 iEXT,,moehrig
 AFC,CIN,Cincinnati Bengals,16276,"Young, Byron LAR DE","Young, Byron",LAR,DE,Active,,5.81,1,266.62,2023 3.12^,,young
 AFC,CIN,Cincinnati Bengals,16284,"Williams, Dorian BUF LB","Williams, Dorian",BUF,LB,Active,Questionable,1.17,1,266.62,2023 5.10,,williams
