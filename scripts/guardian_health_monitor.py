@@ -20,6 +20,13 @@ from guardian_check_policy import GRACE, monitor_missing
 REPO = 'TheMathNinja/Chicago-Bears-Lineup-Guardian'
 STATE = 'data/guardian_coverage.json'
 LEDGER = 'data/guardian_health.json'
+SCHEDULE_ERRORS = (OSError, IncompleteRead, ValueError, KeyError, TypeError)
+
+
+class ScheduleReadFailed(RuntimeError):
+    def __init__(self, week):
+        super().__init__('Verified roster week has no live kickoff response')
+        self.week = week
 
 
 def stamp(value):
@@ -60,6 +67,13 @@ def validate(ledger, now):
     return ledger
 
 
+def transient_read(error):
+    if isinstance(error, HTTPError):
+        return error.code in {408, 429, 500, 502, 503, 504}
+    return (isinstance(error, (OSError, IncompleteRead, json.JSONDecodeError))
+            and not isinstance(getattr(error, 'reason', error), ssl.SSLCertVerificationError))
+
+
 def public_json(url):
     # URL is constructed here from fixed MFL hosts and numeric metadata only.
     request = Request(url, headers={'User-Agent': 'League-health-monitor'})
@@ -68,11 +82,7 @@ def public_json(url):
             with urlopen(request, timeout=timeout) as response:
                 return json.load(response)
         except (OSError, IncompleteRead, json.JSONDecodeError) as error:
-            if isinstance(error, HTTPError):
-                retryable = error.code in {408, 429, 500, 502, 503, 504}
-            else:
-                retryable = not isinstance(getattr(error, 'reason', error), ssl.SSLCertVerificationError)
-            if attempt == 2 or not retryable:
+            if attempt == 2 or not transient_read(error):
                 raise
             time.sleep(2 ** attempt)
 
@@ -86,7 +96,18 @@ def schedule(row, now):
     week = int(team['week'])
     if not 1 <= week <= 18:
         raise ValueError('Invalid active week')
-    feed = public_json(root + f'TYPE=nflSchedule&W={week}')['nflSchedule']
+    try:
+        return nfl_week_schedule(week, now)
+    except SCHEDULE_ERRORS as error:
+        if not transient_read(error):
+            raise
+        raise ScheduleReadFailed(week) from error
+
+
+def nfl_week_schedule(week, now):
+    season = now.year if now.month > 2 else now.year - 1
+    url = f'https://api.myfantasyleague.com/{season}/export?JSON=1&TYPE=nflSchedule&W={week}'
+    feed = public_json(url)['nflSchedule']
     if int(feed['week']) != week:
         raise ValueError('Schedule week mismatch')
     rows = feed['matchup'] if isinstance(feed['matchup'], list) else [feed['matchup']]
@@ -128,28 +149,53 @@ def assess(checks, schedules, now, activated):
     return problems
 
 
-def evaluate(ledger, original, now, get_schedule=schedule):
+def evaluate(ledger, original, now, get_schedule=schedule, get_week_schedule=nfl_week_schedule):
     validate(ledger, now)
     state = copy.deepcopy(original)
     state.setdefault('schedule_history', {})
+    schedules = state.setdefault('schedules', {})
+    failed_since = state.setdefault('scheduleFailures', {})
     problems = []
+    observed, failures = {}, {}
     for row in ledger['leagues']:
         key = row['key']
         try:
-            info = get_schedule(row, now)
-            old = state.setdefault('schedules', {}).get(key)
-            if old and old['week'] != info['week']:
-                state['schedule_history'][key + ':' + str(old['week'])] = {'league': key, 'schedule': old}
-            state['schedules'][key] = info
-            state.setdefault('scheduleFailures', {}).pop(key, None)
-        except (OSError, IncompleteRead, ValueError, KeyError, TypeError) as error:
+            observed[key] = get_schedule(row, now)
+        except (*SCHEDULE_ERRORS, ScheduleReadFailed) as error:
+            failures[key] = error
+    calendars = {info['week']: info for info in observed.values()}
+    for key, error in failures.items():
+        week = error.week if isinstance(error, ScheduleReadFailed) else None
+        if week is None and transient_read(error):
+            # Never infer a league's current roster week from the other league.
+            recent = [c for c in ledger['checks'] if c['league'] == key
+                      and timedelta(0) <= now - stamp(c['checkedAt']) <= GRACE]
+            if recent and len({c['week'] for c in recent}) == 1:
+                week = recent[0]['week']
+        if week is not None:
+            try:
+                if week not in calendars:
+                    alternate = get_week_schedule(week, now)
+                    if alternate['week'] != week or not alternate['kickoffs']:
+                        raise ValueError('Fallback kickoff week does not match')
+                    calendars[week] = alternate
+                observed[key] = calendars[week]
+                print(f'Guardian schedule verified for {key} Week {week} from independently checked inputs.')
+                continue
+            except SCHEDULE_ERRORS:
+                pass
+        if key not in observed:
             print(f'Guardian schedule source unavailable for {key} ({type(error).__name__}); retaining verified schedule if present.')
-            failed = state.setdefault('scheduleFailures', {}).setdefault(key, now.isoformat())
+            failed = failed_since.setdefault(key, now.isoformat())
             if now - stamp(failed) >= GRACE:
                 problems.append({'key': key + ':schedule:' + failed, 'league': key, 'week': 0,
                                  'mode': 'schedule', 'kickoff': failed, 'lastVerified': None})
-            if key not in state.get('schedules', {}):
-                raise RuntimeError('Coverage schedule unavailable') from None
+    for key, info in observed.items():
+        old = schedules.get(key)
+        if old and old['week'] != info['week']:
+            state['schedule_history'][key + ':' + str(old['week'])] = {'league': key, 'schedule': old}
+        schedules[key] = info
+        failed_since.pop(key, None)
     activated = stamp(state['activatedAt'])
     problems.extend(assess(ledger['checks'], state['schedules'], now, activated))
     for item in state['schedule_history'].values():

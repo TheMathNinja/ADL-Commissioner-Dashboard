@@ -63,6 +63,39 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual({p['mode']: p['status'] for p in recovered['incidents'].values() if p['league']=='FAFL'},
                          {'monitor':'open','schedule':'resolved'})
 
+    def test_schedule_outage_recovers_from_exact_week_without_inventing_a_receipt(self):
+        now = NOW + timedelta(minutes=42)
+        current = ledger()
+        current['checks'] = [{'league':'FAFL', 'mode':'initial', 'week':10,
+                              'checkedAt': (now-timedelta(minutes=8)).isoformat()}]
+        original = dict(state(), scheduleFailures={'FAFL':NOW.isoformat()})
+        for error in (TimeoutError(), monitor.ScheduleReadFailed(10)):
+            with self.subTest(error=error):
+                def observe(league, now):
+                    if league['key'] == 'FAFL':
+                        raise error
+                    return schedule(league, now)
+                with patch.object(monitor, 'public_json') as network:
+                    result = monitor.evaluate(current, original, now, observe)
+                network.assert_not_called()
+                self.assertEqual(result['schedules']['FAFL'], schedule({},now))
+                self.assertNotIn('FAFL', result['scheduleFailures'])
+                self.assertTrue(any(p['league']=='FAFL' and p['mode']=='monitor' for p in result['incidents'].values()))
+
+    def test_unknown_roster_week_never_borrows_other_league_or_loses_failure_state(self):
+        for error in (TimeoutError(), ValueError('wrong roster metadata')):
+            with self.subTest(error=error):
+                def observe(league, now):
+                    if league['key']=='FAFL':
+                        raise error
+                    return schedule(league, now)
+                current = ledger()
+                current['checks'] = [{'league':'FAFL', 'mode':'monitor', 'week':9, 'checkedAt':NOW.isoformat()}]
+                first = monitor.evaluate(current, state(), NOW+timedelta(minutes=11), observe)
+                later = monitor.evaluate(current, first, NOW+timedelta(minutes=21), observe)
+                self.assertNotIn('FAFL', later['schedules'])
+                self.assertEqual([p['mode'] for p in later['incidents'].values() if p['league']=='FAFL'], ['schedule'])
+
     def test_fifteen_minute_reads_are_healthy_but_a_missed_slot_is_not(self):
         start = datetime(2026, 11, 16, 19, tzinfo=timezone.utc)
         schedules = {'ADL': {'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
