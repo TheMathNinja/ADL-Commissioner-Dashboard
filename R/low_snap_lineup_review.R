@@ -127,16 +127,51 @@ load_adl_snap_evidence <- function(season) {
 }
 
 adl_legal_snap_swap <- function(positions, remove, add) {
+  slot <- match(remove, positions)
+  if (is.na(slot)) return(FALSE)
+  positions[slot] <- add
+  adl_legal_snap_positions(positions)
+}
+
+adl_legal_snap_positions <- function(positions) {
   rules <- adl_lineup_position_rules()
-  if (length(positions) != 21L || !all(positions %in% rules$player_pos) ||
-      !all(c(remove, add) %in% rules$player_pos) || !remove %in% positions) return(FALSE)
+  if (length(positions) != 21L || !all(positions %in% rules$player_pos)) return(FALSE)
   counts <- tabulate(match(positions, rules$player_pos), nrow(rules))
-  counts[match(remove, rules$player_pos)] <- counts[match(remove, rules$player_pos)] - 1L
-  counts[match(add, rules$player_pos)] <- counts[match(add, rules$player_pos)] + 1L
   groups <- adl_lineup_group_rules()
   all(counts >= rules$min_starters & counts <= rules$max_starters) &&
     all(vapply(groups$lineup_group, function(unit) sum(counts[rules$lineup_group == unit]), integer(1)) ==
       groups$required_starters)
+}
+
+adl_assign_snap_replacements <- function(positions, slots, candidates, bench_ids, bench_pos) {
+  active <- which(lengths(candidates) > 0L)
+  best <- rep(NA_integer_, length(slots))
+  best_count <- 0L
+  # Try the lowest-workload starters and their strongest alternatives first,
+  # but backtrack if that would prevent a larger legal set of distinct swaps.
+  search <- function(index, selected, used, assigned, remaining_positions) {
+    if (index > length(active)) {
+      if (assigned > best_count && adl_legal_snap_positions(remaining_positions)) {
+        best <<- selected
+        best_count <<- assigned
+      }
+      return(invisible(NULL))
+    }
+    remaining <- active[seq.int(index, length(active))]
+    unused <- setdiff(unique(bench_ids[unlist(candidates[remaining])]), used)
+    if (assigned + min(length(remaining), length(unused)) <= best_count) return(invisible(NULL))
+    i <- active[index]
+    for (j in candidates[[i]][!bench_ids[candidates[[i]]] %in% used]) {
+      selected[i] <- j
+      next_positions <- remaining_positions
+      next_positions[slots[i]] <- bench_pos[j]
+      search(index + 1L, selected, c(used, bench_ids[j]), assigned + 1L, next_positions)
+    }
+    selected[i] <- NA_integer_
+    search(index + 1L, selected, used, assigned, remaining_positions)
+  }
+  search(1L, best, character(), 0L, positions)
+  best
 }
 
 adl_snap_workload <- function(rows, positions) {
@@ -223,30 +258,43 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
     bench_current <- evidence[evidence$week == week, , drop = FALSE]
     bench_current <- bench_current[match(bench$player_id, bench_current$mfl_id), , drop = FALSE]
     bench_load <- adl_snap_workload(bench_current, bench$player_pos)
-    bind_rows(lapply(seq_len(nrow(flagged)), function(i) {
-      player <- flagged[i, ]
-      starters <- lineups[lineups$franchise_id %in% player$franchise_id, ]
-      first <- unname(kickoff[player$nfl_team_at_game])
-      raw <- current$offense_snaps + current$defense_snaps
-      original <- which(lineups$franchise_id %in% player$franchise_id & lineups$player_id %in% player$player_id)
-      if (length(original) != 1L || is.na(first) || anyDuplicated(starters$player_id)) return(NULL)
-      possible <- which(bench$franchise_id %in% player$franchise_id & !bench$player_id %in% starters$player_id &
-        bench_load$count > raw[original] & bench_load$share > threshold)
-      possible <- possible[order(-bench_load$share[possible], -bench_load$count[possible], bench$player_id[possible])]
-      for (j in possible) {
+    raw <- current$offense_snaps + current$defense_snaps
+    bind_rows(lapply(split(flagged, flagged$franchise_id), function(team_flags) {
+      team_flags <- arrange(team_flags, .data$current_share, .data$previous_share, .data$player_id)
+      team_rows <- which(lineups$franchise_id %in% team_flags$franchise_id[1])
+      starters <- lineups[team_rows, ]
+      if (anyNA(starters$player_id) || anyDuplicated(starters$player_id)) return(NULL)
+      slots <- match(team_flags$player_id, starters$player_id)
+      if (anyNA(slots)) return(NULL)
+      candidates <- lapply(seq_len(nrow(team_flags)), function(i) {
+        player <- team_flags[i, ]
+        first <- unname(kickoff[player$nfl_team_at_game])
+        if (is.na(first)) return(integer())
+        possible <- which(bench$franchise_id %in% player$franchise_id & !is.na(bench$player_id) &
+          !bench$player_id %in% starters$player_id & bench_load$count > raw[team_rows[slots[i]]] &
+          bench_load$share > threshold)
+        possible <- possible[order(-bench_load$share[possible], -bench_load$count[possible], bench$player_id[possible])]
+        possible[vapply(possible, function(j) {
+          alt <- bench[j, ]
+          nfl_team <- bench_current$nfl_team[j]
+          other <- unname(kickoff[nfl_team])
+          !is.na(other) && adl_legal_snap_swap(starters$player_pos, player$player_pos, alt$player_pos) &&
+            observed_roster(player, min(first, other), player$nfl_team_at_game) &&
+            observed_roster(alt, min(first, other), nfl_team)
+        }, logical(1))]
+      })
+      assigned <- adl_assign_snap_replacements(starters$player_pos, slots, candidates, bench$player_id, bench$player_pos)
+      bind_rows(lapply(which(!is.na(assigned)), function(i) {
+        j <- assigned[i]
+        player <- team_flags[i, ]
         alt <- bench[j, ]
-        nfl_team <- bench_current$nfl_team[j]
-        other <- unname(kickoff[nfl_team])
-        if (is.na(other) || !adl_legal_snap_swap(starters$player_pos, player$player_pos, alt$player_pos) ||
-            !observed_roster(player, min(first, other), player$nfl_team_at_game) ||
-            !observed_roster(alt, min(first, other), nfl_team)) next
         return(row(player, sprintf("%s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.",
           player$player_name, player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
           player$unit, week, 100 * player$previous_share, player$previous_week),
           sprintf("Verified legal bench swap: %s %s %s (%d snaps, %.1f%%, vs. %d snaps).",
-            alt$player_name, nfl_team, alt$player_pos, bench_load$count[j], 100 * bench_load$share[j], raw[original])))
-      }
-      NULL
+            alt$player_name, bench_current$nfl_team[j], alt$player_pos, bench_load$count[j],
+            100 * bench_load$share[j], raw[team_rows[slots[i]]])))
+      }))
     }))
   } else tibble()
   injured <- function(player) {

@@ -219,6 +219,19 @@ for (bench_snaps in c(14, 15, 16)) {
   revised <- low_snap_review_rows(workload_team, boundary, 11, archive, schedule, injury_sheet)
   stopifnot(any(grepl("Verified legal bench swap:", revised$details, fixed = TRUE)) == (bench_snaps == 16))
 }
+positions <- workload_team$player_pos
+cb_slots <- head(which(positions == "CB"), 2L)
+s_slots <- head(which(positions == "S"), 2L)
+stopifnot(
+  identical(adl_assign_snap_replacements(positions, cb_slots, list(1L, 1L), "one", "CB"),
+    c(1L, NA_integer_)),
+  identical(adl_assign_snap_replacements(positions, cb_slots, list(c(1L, 2L), 1L),
+    c("one", "two"), c("CB", "CB")), c(2L, 1L)),
+  identical(adl_assign_snap_replacements(positions, cb_slots, list(1L, 2L),
+    c("one", "one"), c("CB", "CB")), c(1L, NA_integer_)),
+  identical(adl_assign_snap_replacements(positions, s_slots, list(1L, 2L),
+    c("one", "two"), c("LB", "LB")), c(1L, NA_integer_))
+)
 mail <- render_final_lineup_review_lines(final_lineup_review_digest(low_review))
 stopifnot(sum(mail == "Low-snap starters to review (3)") == 1L,
   any(grepl("no strike", mail, fixed = TRUE)), any(grepl("24.0% of team defense snaps", mail, fixed = TRUE)))
