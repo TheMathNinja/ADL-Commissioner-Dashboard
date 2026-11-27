@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from maintenance_failure_links import covered_components, WATCHDOG_STEP
 from guardian_incidents import validate_coverage, owned_check_failure, owned_startup_failure, owned_basic_failure, report_missing_checks
 from failure_repair_policy import RULES as FAILURE_RULES, consider_replay, diagnose, fingerprint
+import fafl_rebuild_repair as fafl_repair
 
 
 def watchdog_maintenance_evidence(repo, run, job_list):
@@ -498,7 +499,7 @@ def failure_evidence(repo,run,job_list):
             log=subprocess.run(cmd,capture_output=True,text=True,timeout=25,encoding='utf8',errors='replace',check=True,env=env).stdout
             for line in log.splitlines():
                 line=re.split(r'\d{4}-\d\d-\d\dT[\d:.]+Z\s+',line,maxsplit=1)[-1].strip()
-                if not re.match(r'^(?:##\[error\]|(?:[\w.]*Error|fatal|error):)',line,re.I):continue
+                if not re.match(r'^(?:##\[error\]|(?:[\w.]*Error|collect_live_bonus\.MFLReadExhausted|fatal|error):)',line,re.I):continue
                 if 'process completed with exit code' in line.lower():continue
                 line=re.sub(r'actions/runs/\d+|\b[0-9a-f]{32,64}\b','<revision>',line)
                 errors.append(line)
@@ -520,6 +521,27 @@ def request_read_only_replay(repo, run_id):
     if not reply.returncode:
         return 'requested'
     return 'rejected' if re.search(r'\(HTTP (?:401|403|404|422)\)', reply.stderr) else 'uncertain'
+
+
+def request_fafl_rebuild():
+    token = os.environ.get('PRIVATE_REPORT_TOKEN')
+    if not token:
+        return 'rejected', None
+    url = f'https://api.github.com/repos/{fafl_repair.REPO}/actions/workflows/{fafl_repair.WORKFLOW}/dispatches'
+    request = urllib.request.Request(url, method='POST',
+                                     data=json.dumps({'ref':'main','return_run_details':True}).encode(),
+                                     headers={'Authorization':'Bearer ' + token, 'Content-Type':'application/json',
+                                              'Accept':'application/vnd.github+json',
+                                              'X-GitHub-Api-Version':'2026-03-10', 'User-Agent':'League-incident-reporter'})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as reply:
+            details = json.load(reply)
+        run_id = details.get('workflow_run_id')
+        return ('requested', run_id) if type(run_id) is int else ('uncertain', None)
+    except urllib.error.HTTPError as error:
+        return ('rejected' if error.code in (401,403,404,422) else 'uncertain'), None
+    except (OSError, ValueError, AttributeError, http.client.HTTPException):
+        return 'uncertain', None
 
 def recurring_failure_context(state, repo, run, failed, codes):
     """Mention only an exact prior step and known cause within the same incident family."""
@@ -1679,6 +1701,8 @@ def main():
                     run['_account_report'] = True
                 if run['status'] != 'completed':
                     continue
+                if fafl_repair.owns_retry(state, repo, run):
+                    continue  # The original incident owns this exact retry's result.
                 if notification_pending(repo,run,datetime.now(timezone.utc)):
                     continue  # Leave unacknowledged for the next periodic scan.
                 if str(run['id']) == os.environ.get('GITHUB_RUN_ID') and repo == os.environ['GITHUB_REPOSITORY']:
@@ -1718,7 +1742,27 @@ def main():
                 if delivered_guardian_roster_warning(repo, run, job_list):
                     state['checked'][key] = 'roster needs attention; exact-run warning delivery verified'
                     continue
-                recovery = verified_recovery(repo, run, job_list, history)
+                rebuild = None
+                rebuild_steps = failures(run, job_list)
+                if (repo == fafl_repair.REPO and run.get('path') == fafl_repair.PATH
+                        and len(rebuild_steps) == 1 and rebuild_steps[0] in fafl_repair.FAILURES):
+                    proof = failure_evidence(repo, run, job_list)
+                    if proof[1].get('rebuild') in fafl_repair.FAILURES[rebuild_steps[0]]:
+                        rebuild = proof
+                if rebuild:
+                    for candidate in history:
+                        if (candidate.get('path') != fafl_repair.PATH or candidate.get('conclusion') != 'success'
+                                or candidate.get('updated_at', '') <= run['updated_at']):
+                            continue
+                        try:
+                            if fafl_repair.verified_rebuild(run, candidate, jobs(repo, candidate), api, gameday_time):
+                                state['checked'][key] = 'verified FAFL rebuild and Pages publication: ' + candidate['html_url']
+                                break
+                        except (OSError, RuntimeError, ValueError, KeyError):
+                            continue
+                    if key in state['checked']:
+                        continue
+                recovery = None if rebuild else verified_recovery(repo, run, job_list, history)
                 if recovery:
                     remember_recovery(state, repo, run, recovery, failures(run, job_list), job_list)
                     state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
@@ -1807,7 +1851,7 @@ def main():
                         state['checked'][key] = run.get('conclusion')
                     continue
                 incident = incident_key(repo, run)
-                codes, diagnoses = failure_evidence(repo, run, job_list)
+                codes, diagnoses = rebuild or failure_evidence(repo, run, job_list)
                 if pages_service_recovery_pending(run, failed, diagnoses, datetime.now(timezone.utc)):
                     continue  # Wait for publication evidence, not another dispatched deploy.
                 live_repair = live_watch_read_recovery(repo, run, failed, diagnoses, datetime.now(timezone.utc))
@@ -1836,6 +1880,15 @@ def main():
                     if not failed:
                         continue  # Not delivered or acknowledged; keep the safety net visible.
                 repair = live_repair[0] if live_repair else repair_disposition(repo, run, history, datetime.now(timezone.utc))
+                if rebuild and args.deadlines and failed == rebuild_steps:
+                    try:
+                        retry = fafl_repair.consider_rebuild(state, repo, run, failed, diagnoses, datetime.now(timezone.utc),
+                                                             dry=args.dry_run, read=api, dispatch=request_fafl_rebuild,
+                                                             save=save, stamp=gameday_time)
+                    except (OSError, RuntimeError, ValueError, KeyError) as error:
+                        coverage_errors.append('FAFL rebuild repair receipt: ' + type(error).__name__)
+                        retry = 'replay_unavailable'
+                    repair = retry or repair
                 if (args.deadlines and repair == 'no_safe_retry' and not args.dry_run
                         and failed == failures(run, job_list)):
                     try:

@@ -49,3 +49,18 @@ computer is awake. It must not install another emailer or use paid infrastructur
 The local worker cannot run while this computer sleeps or is shut down. Its
 proposed patch, a successful audit, and verified live recovery are distinct
 outcomes. Do not enable a remote replacement without owner approval.
+
+## Hosted recovery for known FAFL Gameday and rebuild failures
+
+- Live Bonus Game Watch retries transient public MFL reads in place. The reporter
+  uses a verified fresh snapshot and the separate post-repair health check before
+  escalating Gameday staleness. It never replays the live publisher.
+- FAFL rebuilds regenerate from current main on a bounded branch race and retry
+  confirmed transient MFL reads in place. If those attempts exhaust, the reporter
+  can request one fresh rebuild per 24 hours on the reviewed public workflow.
+  It durably records intent before dispatch, leaves queued work alone, and never
+  repeats an uncertain request or reruns an old commit.
+- Recovery requires the build, save and Pages request steps to pass and the
+  live matchup index to match the published main-branch blob for that rebuild.
+  Confirmed recovery stays quiet; the original incident owns any unresolved
+  retry alert. Configuration, permission and unknown failures are not replayed.

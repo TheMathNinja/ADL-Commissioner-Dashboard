@@ -12,8 +12,10 @@ READ_ONLY_WORKFLOWS = {
 }
 DEADLINE = timedelta(minutes=30)
 RULES = (
-    ('live-watch-read-exhausted', r'^error: mfl public read retry exhausted: [a-z]+$',
+    ('live-watch-read-exhausted', r'^(?:error|collect_live_bonus\.mflreadexhausted): mfl public read retry exhausted: [a-z]+$',
      'The collector retried the MFL read; the reporter checked for a newer valid snapshot.'),
+    ('fafl-rebuild-branch-race', r'^runtimeerror: main advanced again during the regenerated build; no stale output was pushed$',
+     'The publisher refused stale output. Only a fresh rebuild from current main can recover it.'),
     ('generated-output-conflict', r'generated (?:output conflicts|publication rejected)|'
      r'main advanced again during the regenerated build|non-fast-forward|could not apply\b',
      'Inspect the publisher and verify a rebuild from current main; do not replay stale output.'),

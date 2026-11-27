@@ -1,5 +1,6 @@
 """Replay Nov 12 retry identities without GitHub writes or SMTP."""
 import copy
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -7,9 +8,82 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
 import email_workflow_failures as m
+import fafl_rebuild_repair as repair
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_fafl_rebuild_claims_once_for_exact_transient_build_or_save(self):
+        old = dict(id=45937111967, path=repair.PATH, head_branch='main', event='push',
+                   status='completed', conclusion='failure', updated_at='2026-11-27T04:07:18Z',
+                   head_sha='a'*40)
+        now = m.gameday_time('2026-11-27T04:25:00Z')
+        for step, line in (
+            (repair.BUILD, 'collect_live_bonus.MFLReadExhausted: MFL public read retry exhausted: playerScores'),
+            (repair.SAVE, 'RuntimeError: Main advanced again during the regenerated build; no stale output was pushed'),
+        ):
+            with self.subTest(step=step):
+                records = {
+                    '': dict(private=False, default_branch='main'),
+                    f'actions/workflows/{repair.WORKFLOW}': dict(state='active', path=repair.PATH),
+                    'git/ref/heads/main': dict(object=dict(sha='b'*40)),
+                    f'compare/{"a"*40}...{"b"*40}': dict(status='ahead', behind_by=0),
+                    f'contents/{repair.PATH}?ref={"b"*40}': dict(sha=repair.BLOB),
+                    f'actions/workflows/{repair.WORKFLOW}/runs?branch=main&per_page=10': dict(workflow_runs=[]),
+                }
+                state, trace = {}, []
+                def save(doc):trace.append(next(iter(doc['fafl_rebuild_repairs'].values()))['status'])
+                def dispatch():
+                    trace.append('POST')
+                    return 'requested', 1234
+                def check(run=old, when=now, dry=False, diagnosis=m.diagnose([line])[0]):
+                    return repair.consider_rebuild(state, repair.REPO, run, [step], {'rebuild':diagnosis},
+                        when, dry=dry, read=lambda repo, path: records[path], dispatch=dispatch,
+                        save=save, stamp=m.gameday_time)
+                self.assertIsNone(check(dry=True))
+                self.assertIsNone(check(diagnosis='credential-or-permission'))
+                records['']['private'] = True
+                self.assertIsNone(check())
+                records['']['private'] = False
+                fresh = records[f'actions/workflows/{repair.WORKFLOW}/runs?branch=main&per_page=10']
+                fresh['workflow_runs'] = [dict(id=555, status='queued')]
+                self.assertEqual(check(), 'pending')
+                self.assertEqual(trace, [])
+                fresh['workflow_runs'] = []
+                self.assertEqual(check(), 'pending')
+                self.assertEqual(check(), 'pending')
+                self.assertEqual(check(run=dict(old, id=222)), 'replay_limit')
+                retry = dict(old, id=1234, event='workflow_dispatch')
+                self.assertTrue(repair.owns_retry(state, repair.REPO, retry))
+                self.assertIsNone(check(run=retry))
+                self.assertEqual(check(when=now + m.timedelta(minutes=30)), 'retry_deadline')
+                self.assertEqual(trace, ['sending','POST','requested'])
+
+    def test_fafl_repair_requires_a_built_pages_commit_from_the_rebuild(self):
+        old = dict(updated_at='2026-11-27T04:07:18Z', head_sha='a'*40)
+        retry = dict(path=repair.PATH, head_branch='main', event='workflow_dispatch',
+                     conclusion='success', head_sha='b'*40, updated_at='2026-11-27T04:25:01Z')
+        job = dict(name='rebuild', conclusion='success', started_at='2026-11-27T04:10:00Z',
+                   steps=[dict(name=s, conclusion='success') for s in sorted(repair.STEPS)])
+        index = dict(league='FAFL',season=2026,currentWeek=12,generatedAt='2026-11-27T04:25:00Z')
+        encode = lambda: json.dumps(index).encode()
+        live = [encode()]
+        def read(repo, path):
+            self.assertEqual(repo, repair.REPO)
+            if path=='git/ref/heads/main':return {'object':{'sha':'c'*40}}
+            if path.startswith('contents/'):return {'sha':repair.git_blob(encode())}
+            return {'status':'ahead','behind_by':0}
+        check = lambda: repair.verified_rebuild(old, retry, [job], read, m.gameday_time, lambda:live[0])
+        self.assertTrue(check())
+        live[0] = b'{"league":"FAFL"}'
+        self.assertFalse(check())
+        index['generatedAt'] = '2026-11-27T04:09:59Z'
+        live[0] = encode()
+        self.assertFalse(check())
+        index['generatedAt'] = '2026-11-27T04:25:00Z'
+        live[0] = encode()
+        job['steps'][0]['conclusion'] = 'skipped'
+        self.assertFalse(check())
+
     def test_scheduled_live_watch_read_failure_waits_for_verified_publication(self):
         repo = 'TheMathNinja/ADL-GM-Dashboard'
         run = dict(path='.github/workflows/live_bonus_watch.yml', event='schedule', head_branch='main', conclusion='failure',
