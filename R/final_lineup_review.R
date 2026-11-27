@@ -179,7 +179,8 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
       list(rows = low_snap_review_rows(lineups, evidence, week, history, kickoffs, injuries,
         function() fetch_transactions(season, DAYS = max(14L, as.integer(difftime(Sys.time(),
           min(kickoffs$kickoff_at), units = "days")) + 9L)),
-        function(weeks) fetch_scoring(season, weeks), byes),
+        function(weeks) fetch_scoring(season, weeks), byes, adl_ng_max_from_sd(adl_sd_minimum(season)),
+        read_adl_snap_injury_exits(season)),
            complete = all(mfl_player_team(kickoffs$player_team) %in% coverage))
     }, error = function(e) {
       warning("NFL snap-share evidence unavailable; leaving low-snap cases unverified.", call. = FALSE)
@@ -243,12 +244,14 @@ render_final_lineup_review_lines <- function(rows) {
         "Screening only; no strike. Skill and defensive starters must be below 30% in the reviewed game",
         "and their previous scheduled game, with a verified legal bench replacement at 45% or higher",
         "in their own two games. An NFL bye is skipped, not counted as zero.",
+        "Verified NFL starters whose workloads were cut short by in-game injury are not flagged.",
         "Every replacement must be at least 3 estimated ADL points better than the starter.",
         "Estimates multiply each player's average snaps in their two comparison games by their season-to-date",
         "ADL points per snap before the reviewed week (at least two verified scoring games per player).",
         "Each replacement is used at most once per franchise, and the swaps must leave a legal combined lineup.",
-        "QB, PK and PN are checked separately for current-week usage and recorded acquisition efforts;",
-        "no bench alternative is required. PK/PN share compares snaps among players at the same position on their NFL team."),
+        "QB, PK and PN require a verified same-conference UFA auction opportunity before kickoff:",
+        "the alternative played at least 45% and the franchise made no bid or lost below the NG maximum.",
+        "PK/PN share compares snaps among players at the same position on their NFL team."),
       unlist(lapply(seq_len(nrow(selected)), function(i) {
         row <- selected[i, ]
         team <- if (is.na(row$franchise) || !nzchar(row$franchise)) row$franchise_name else

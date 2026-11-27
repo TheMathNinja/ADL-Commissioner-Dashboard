@@ -162,6 +162,8 @@ if (is.na(old_alert_dir)) Sys.unsetenv("ADL_ALERT_DIR") else Sys.setenv(ADL_ALER
 cat("Cloud MFL-only pregame designation evidence regressions passed.\n")
 
 players <- tibble(mfl_id = as.character(1:9), pfr_id = letters[1:9])
+stopifnot(identical(load_adl_snap_ids(function() tibble(), function() players), players),
+  inherits(tryCatch(load_adl_snap_ids(function() tibble(), function() tibble()), error = identity), "error"))
 one_game <- tibble(season = 2026, game_type = "REG", game_id = "first",
   week = 10L, pfr_player_id = c(letters[1:6], "h", "i", "anchor"), team = "NYG", opponent = "BUF",
   offense_snaps = c(15, 2, 0, 25, NA, 25, 5, 25, 100),
@@ -205,27 +207,58 @@ evidence2 <- bind_rows(evidence2, evidence2 |> filter(week == 10L) |> mutate(wee
 efficiency_scores <- tibble(week = rep(9:10, each = 2), mfl_id = rep(c("2", "8"), 2),
   points = c(1, 10, 1, 10))
 score_history <- function(weeks) efficiency_scores
+auction <- tibble(player_id = "4", player_name = "McCord, Kyle")
+stopifnot(adl_ng_max_from_sd(2.01) == 2, adl_ng_max_from_sd(2) == 1.9,
+  adl_ng_max_from_sd(adl_sd_minimum(2026L)) == 2)
+auction_tx <- tibble(type = c("AUCTION_INIT", "AUCTION_WON"), franchise = "0003", transaction = "4|1.1|",
+  timestamp = as.character(as.numeric(start) - c(86400, 1800)))
+auction_evidence <- mutate(evidence2, offense_snaps = if_else(mfl_id == "4" & week == 11, 45, offense_snaps))
+suggest <- function(data = auction_evidence, transactions = auction_tx, players = auction, ng_max = NA_real_) {
+  adl_snap_auction_suggestion(workload_team[1, ], transactions, data, 11, start, c(NYG = start), players, ng_max)
+}
+stopifnot(identical(suggest(), "Available Player Suggestion: Kyle McCord NYG QB (via UFA)"),
+  is.null(suggest(evidence2)), is.null(suggest(players = tibble())),
+  is.null(suggest(transactions = mutate(auction_tx, franchise = "0017"))),
+  is.null(suggest(transactions = bind_rows(auction_tx, tx), ng_max = 1.10)),
+  !is.null(suggest(transactions = bind_rows(auction_tx, tx), ng_max = 1.20)))
+other_win <- auction_tx |> mutate(transaction = "44|1.1|",
+  timestamp = as.character(as.numeric(timestamp) + 10))
+two_peers <- bind_rows(auction_evidence, auction_evidence |>
+  filter(mfl_id == "4", week == 11) |> mutate(mfl_id = "44"))
+two_names <- bind_rows(auction, tibble(player_id = "44", player_name = "Other, Player"))
+stopifnot(is.null(suggest(two_peers, bind_rows(auction_tx, tx, other_win), two_names, 1.10)))
 contaminated <- bind_rows(efficiency_scores, tibble(week = 11L, mfl_id = "2", points = 100))
 eff <- adl_season_snap_efficiency(evidence2, contaminated, adl_prior_snap_weeks(11L))
 stopifnot(eff$games[eff$mfl_id == "2"] == 2L,
   isTRUE(all.equal(eff$points_per_snap[eff$mfl_id == "2"], 2 / 22)))
 low_review <- low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injury_sheet,
   function() tx, score_history)
-stopifnot(nrow(low_review) == 3L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
-  any(grepl("Bench LB", low_review$details)), any(grepl("Recorded MFL acquisition activity", low_review$details)),
-  any(grepl("team's PK snaps", low_review$observed)),
-  any(grepl("66.0% of team defense snaps in Week 11; 76.0% in Week 10", low_review$details, fixed = TRUE)),
-  any(grepl("ADL scoring through Week 10", low_review$details, fixed = TRUE)),
-  any(grepl("9.34 vs. 1.05 estimated points (+8.30)", low_review$details, fixed = TRUE)),
+logged_exit <- function(id, w) tibble(player_id = id, week = w, nfl_team = "NYG")
+week_review <- function(exits) {
+  team <- workload_team
+  attr(team, "mfl_players") <- auction
+  low_snap_review_rows(team, auction_evidence, 11, archive, schedule, injury_sheet,
+    function() auction_tx, score_history, injury_exits = exits)
+}
+stopifnot(nrow(week_review(tibble())) == 2L,
+  nrow(week_review(logged_exit("1", 11L))) == 1L,
+  nrow(week_review(logged_exit("2", 11L))) == 1L,
+  nrow(week_review(logged_exit("2", 10L))) == 1L,
+  nrow(week_review(logged_exit("1", 10L))) == 2L,
+  any(with(read_adl_snap_injury_exits(2026L), player_id == "16580" & week == 10L & nfl_team == "NEP")))
+stopifnot(nrow(low_review) == 1L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
+  any(grepl("Bench LB", low_review$details)),
+  any(grepl("Week 11 Snaps: 66% snap% / Week 10: 76%. Estimated 9.34 vs. 1.05 points (+8.30) in Week 12.",
+    low_review$details, fixed = TRUE)),
   !any(grepl("33 snaps", low_review$details, fixed = TRUE)),
   all(is_commissioner_only_alert(final_lineup_review_digest(low_review))))
 injured_qb <- bind_rows(injury_sheet, tibble(player_id = "1", player_status = "Q"))
 unavailable_bench <- archive |> mutate(roster_status = if_else(player_id == "8", "IR", roster_status))
-stopifnot(nrow(low_snap_review_rows(workload_team, evidence2, 11, unavailable_bench, schedule, injured_qb)) == 1L,
+stopifnot(nrow(low_snap_review_rows(workload_team, evidence2, 11, unavailable_bench, schedule, injured_qb)) == 0L,
   nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb,
-    fetch_scoring = score_history)) == 2L,
+    fetch_scoring = score_history)) == 1L,
   nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb,
-    fetch_scoring = function(weeks) mutate(efficiency_scores, points = if_else(mfl_id == "2", 20, 1)))) == 1L,
+    fetch_scoring = function(weeks) mutate(efficiency_scores, points = if_else(mfl_id == "2", 20, 1)))) == 0L,
   !adl_legal_snap_swap(workload_team$player_pos, "DT", "LB"),
   !adl_legal_snap_swap(workload_team$player_pos, "S", "WR"),
   !adl_legal_snap_swap(workload_team$player_pos, "CB", "S"))
@@ -262,8 +295,8 @@ bye_scores <- bind_rows(efficiency_scores, efficiency_scores |> filter(week == 9
 bye_replay <- function(data, byes) low_snap_review_rows(workload_team, data, 11, archive, schedule,
   injury_sheet, fetch_scoring = function(weeks) bye_scores, byes = byes)
 with_bye <- bye_replay(bye_evidence, c(NYG = 10L))
-stopifnot(any(grepl("22.0% in Week 9", with_bye$observed, fixed = TRUE)),
-  any(grepl("76.0% in Week 9", with_bye$details, fixed = TRUE)),
+stopifnot(any(grepl("22% in Week 9", with_bye$observed, fixed = TRUE)),
+  any(grepl("Week 9: 76%", with_bye$details, fixed = TRUE)),
   !any(grepl("Available Player Suggestion:", bye_replay(bye_evidence, integer())$details, fixed = TRUE)),
   !any(grepl("Available Player Suggestion:", bye_replay(
     mutate(bye_evidence, nfl_team = if_else(mfl_id == "8" & week == 9L, "BUF", nfl_team)),
@@ -282,8 +315,8 @@ stopifnot(
     c("one", "two"), c("LB", "LB")), c(1L, NA_integer_))
 )
 mail <- render_final_lineup_review_lines(final_lineup_review_digest(low_review))
-stopifnot(sum(mail == "Low-snap starters to review (3)") == 1L,
-  any(grepl("no strike", mail, fixed = TRUE)), any(grepl("24.0% of team defense snaps", mail, fixed = TRUE)))
+stopifnot(sum(mail == "Low-snap starters to review (1)") == 1L,
+  any(grepl("no strike", mail, fixed = TRUE)), any(grepl("24% of team defense snaps", mail, fixed = TRUE)))
 cat("Consecutive low snap share, identity, position, and advisory-only regressions passed.\n")
 
 bal_buf <- tibble(season = 2026, game_type = "REG", game_id = "2026_08_BAL_BUF", week = 8L,

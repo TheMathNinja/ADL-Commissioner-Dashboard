@@ -9,6 +9,10 @@ recovered <- suppressWarnings(load_verified_nfl_schedule(2026, loader = function
   valid_schedule
 }, clear = function() clears <<- clears + 1L, sleep = function(...) NULL))
 stopifnot(identical(recovered, valid_schedule), reads == 3L, clears == 2L)
+stopifnot(identical(load_verified_nfl_schedule(2026,
+  loader = function(...) data.frame(roof = "outdoors"),
+  fallback = function(seasons) { stopifnot(seasons == 2026); valid_schedule },
+  clear = function() stop("unexpected retry"), sleep = function(...) NULL), valid_schedule))
 for (bad in list(data.frame(), transform(valid_schedule, season = 2025),
                  transform(valid_schedule, gametime = NA_character_))) {
   reads <- 0L

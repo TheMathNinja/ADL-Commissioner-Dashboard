@@ -135,8 +135,19 @@ adl_low_snap_starters <- function(lineups, evidence, week, threshold = 0.30, bye
     distinct(.data$franchise, .data$player_id, .keep_all = TRUE)
 }
 
+load_adl_snap_ids <- function(loader = nflreadr::load_ff_playerids, fallback = function() {
+    readRDS(url("https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.rds"))
+}) {
+  valid <- function(rows) is.data.frame(rows) && nrow(rows) > 0L &&
+    all(c("mfl_id", "pfr_id") %in% names(rows))
+  rows <- tryCatch(loader(), error = function(e) NULL)
+  if (!valid(rows)) rows <- tryCatch(fallback(), error = function(e) NULL)
+  if (!valid(rows)) stop("Cannot verify the MFL to PFR player identity crosswalk.")
+  rows
+}
+
 load_adl_snap_evidence <- function(season) {
-  prepare_adl_snap_evidence(nflreadr::load_snap_counts(season), nflreadr::load_ff_playerids(), season)
+  prepare_adl_snap_evidence(nflreadr::load_snap_counts(season), load_adl_snap_ids(), season)
 }
 
 adl_legal_snap_swap <- function(positions, remove, add) {
@@ -236,34 +247,73 @@ adl_season_snap_efficiency <- function(evidence, scores, weeks) {
     filter(.data$games >= 2L)
 }
 
-adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) {
-  if (!is.finite(as.numeric(deadline)) || !nrow(tx)) return("Free-agency effort could not be verified.")
+adl_snap_display_name <- function(name) {
+  sub("^([^,]+),[[:space:]]*(.+)$", "\\2 \\1", name)
+}
+
+adl_ng_max_from_sd <- function(sd_min) {
+  if (length(sd_min) != 1L || !is.finite(sd_min) || sd_min <= 0) return(NA_real_)
+  (ceiling(sd_min * 10 - 1e-9) - 1) / 10
+}
+
+adl_snap_auction_suggestion <- function(player, tx, evidence, week, deadline, kickoff, players,
+    ng_max = NA_real_) {
+  if (!nrow(tx) || !nrow(players) || is.na(deadline)) return(NULL)
+  club <- suppressWarnings(as.integer(player$franchise_id))
+  if (!isTRUE(club %in% 1:32)) return(NULL)
+  conference_ids <- if (club <= 16L) sprintf("%04d", 1:16) else sprintf("%04d", 17:32)
   position <- c(QB = "QB", PK = "K", PN = "P")[[player$player_pos]]
-  peers <- evidence[evidence$week == week & evidence$snap_pos %in% position &
-    !evidence$mfl_id %in% player$player_id, , drop = FALSE]
-  usage <- adl_snap_workload(peers, rep(player$player_pos, nrow(peers)))
-  peer_kickoffs <- unname(kickoff[peers$nfl_team])
-  ids <- peers$mfl_id[which(usage$share >= .30 & peer_kickoffs > deadline - 7 * 86400)]
+  peers <- evidence[which(evidence$week == week & evidence$snap_pos %in% position &
+    !evidence$mfl_id %in% player$player_id), ]
+  share <- adl_snap_workload(peers, rep(player$player_pos, nrow(peers)))$share
   occurred <- suppressWarnings(as.numeric(tx$timestamp))
-  parts <- strsplit(coalesce(tx$transaction, ""), "|", fixed = TRUE)
-  target <- vapply(parts, function(p) if (length(p)) p[[1]] else "", "")
-  proxy <- vapply(parts, function(p) length(p) == 3L &&
-    trimws(p[[3]]) == paste(player$franchise_name, "forced bid increase"), logical(1))
-  target_team <- peers$nfl_team[match(target, peers$mfl_id)]
-  attempts <- tx$type %in% c("AUCTION_INIT", "AUCTION_BID", "AUCTION_WON", "FREE_AGENT", "WAIVER", "BBID_WAIVER") &
-    (tx$franchise %in% player$franchise_id | proxy) & target %in% ids &
-    occurred >= as.numeric(deadline) - 7 * 86400 & occurred < as.numeric(deadline) &
-    occurred < as.numeric(kickoff[target_team])
-  if (any(attempts, na.rm = TRUE)) {
-    return(sprintf("Recorded MFL acquisition activity for %d higher-workload %s option(s) before kickoff.",
-      length(unique(target[which(attempts)])), player$player_pos))
+  raw <- coalesce(tx$transaction, "")
+  target <- sub("[|].*$", "", raw)
+  annotation <- sub("^[^|]*[|][^|]*[|]", "", raw)
+  # The fantasy-week acquisition interval begins Tuesday at midnight Eastern.
+  start <- as.POSIXct(format(as.Date(min(kickoff, na.rm = TRUE), tz = "America/New_York") -
+    ((as.POSIXlt(min(kickoff, na.rm = TRUE), tz = "America/New_York")$wday + 5L) %% 7L)), tz = "America/New_York")
+  wins <- which(tx$type == "AUCTION_WON" & tx$franchise %in% setdiff(conference_ids, player$franchise_id) &
+    occurred >= as.numeric(start) & occurred < as.numeric(deadline))
+  suggestion <- NULL
+  for (w in wins[order(occurred[wins], decreasing = TRUE)]) {
+    j <- match(target[w], peers$mfl_id)
+    if (is.na(j) || !isTRUE(share[j] >= .45 && occurred[w] < as.numeric(kickoff[peers$nfl_team[j]]))) next
+    opens <- occurred[which(tx$type == "AUCTION_INIT" & target == target[w] &
+      tx$franchise %in% conference_ids & occurred <= occurred[w] & occurred >= as.numeric(start) - 7 * 86400)]
+    if (!length(opens)) next
+    history <- which(target == target[w] & tx$franchise %in% conference_ids &
+      occurred >= max(opens) & occurred <= occurred[w] & tx$type %in% c("AUCTION_INIT", "AUCTION_BID"))
+    bid <- any(tx$franchise[history] %in% player$franchise_id |
+      grepl(player$franchise_name, annotation[history], fixed = TRUE))
+    price <- suppressWarnings(as.numeric(sub("^[^|]*[|]([^|]*)([|].*)?$", "\\1", raw[w])))
+    if (bid && (!is.finite(ng_max) || !is.finite(price) || price >= ng_max - 1e-9)) return(NULL)
+    name <- players$player_name[match(target[w], players$player_id)]
+    if (is.na(name) || !nzchar(name)) next
+    if (is.null(suggestion)) suggestion <- sprintf("Available Player Suggestion: %s %s %s (via UFA)",
+      adl_snap_display_name(name), peers$nfl_team[j], player$player_pos)
   }
-  "No matching attempt found in the public MFL records checked; this does not establish that no bid was made or that an affordable option was available."
+  suggestion
+}
+
+read_adl_snap_injury_exits <- function(season) {
+  path <- file.path("data", "source", sprintf("low_snap_injury_exits_%d.csv", season))
+  if (!file.exists(path)) return(tibble())
+  rows <- read_csv(path, col_types = cols(week = col_integer(), .default = col_character()))
+  required <- c("week", "player_id", "nfl_team", "starter_source", "injury_source")
+  if (!all(required %in% names(rows)) || anyNA(rows[required]) ||
+      !all(rows$week %in% 1:18) || !all(grepl("^[0-9]+$", rows$player_id)) ||
+      !all(startsWith(rows$starter_source, "https://") & startsWith(rows$injury_source, "https://"))) {
+    stop("Invalid reviewed NFL starter injury evidence.")
+  }
+  rows$nfl_team <- mfl_player_team(rows$nfl_team, strict = TRUE)
+  rows
 }
 
 low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), kickoffs = tibble(),
     final_designations = tibble(), fetch_transactions = function() tibble(),
-    fetch_scoring = function(weeks) tibble(), byes = integer()) {
+    fetch_scoring = function(weeks) tibble(), byes = integer(),
+    ng_max = NA_real_, injury_exits = tibble()) {
   if (!nrow(lineups) || !nrow(evidence) || !nrow(kickoffs)) return(tibble())
   threshold <- 0.30
   replacement_threshold <- 0.45
@@ -271,8 +321,14 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
   special_pos <- c("QB", "PK", "PN")
   current <- match(lineups$player_id, evidence$mfl_id[evidence$week == week])
   current <- evidence[evidence$week == week, , drop = FALSE][current, , drop = FALSE]
+  # A reviewed in-game exit explains low usage, regardless of position.
+  exit_keys <- if (nrow(injury_exits)) {
+    with(injury_exits, paste(player_id, nfl_team, week, sep = "|"))
+  } else character()
+  injury_exit <- function(id, team, week) paste(id, team, week, sep = "|") %in% exit_keys
   workload <- adl_snap_workload(current, lineups$player_pos)
-  special_idx <- which(lineups$player_pos %in% special_pos & workload$share < threshold)
+  special_idx <- which(lineups$player_pos %in% special_pos & workload$share < threshold &
+    !injury_exit(lineups$player_id, current$nfl_team, week))
   kickoff <- setNames(kickoffs$kickoff_at, mfl_player_team(kickoffs$player_team))
   bench <- attr(lineups, "mfl_bench")
   roster_history <- if ("roster_status" %in% names(history)) {
@@ -301,7 +357,12 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
     conference = player$conference, franchise = player$franchise, franchise_name = player$franchise_name,
     outcome = "Low snap share", observed = observed, details = details)
   flagged <- adl_low_snap_starters(lineups, evidence, week, threshold = threshold, byes = byes)
-  if (nrow(flagged)) flagged <- flagged[!flagged$player_pos %in% special_pos, , drop = FALSE]
+  if (nrow(flagged)) {
+    prior <- match(paste(flagged$player_id, flagged$previous_week), paste(evidence$mfl_id, evidence$week))
+    flagged <- flagged[!flagged$player_pos %in% special_pos &
+      !injury_exit(flagged$player_id, flagged$nfl_team_at_game, week) &
+      !injury_exit(flagged$player_id, evidence$nfl_team[prior], flagged$previous_week), , drop = FALSE]
+  }
   replacement_rows <- if (nrow(flagged) && !is.null(bench) && nrow(bench) && nrow(roster_history)) {
     bench_current <- evidence[evidence$week == week, , drop = FALSE]
     bench_current <- bench_current[match(bench$player_id, bench_current$mfl_id), , drop = FALSE]
@@ -366,16 +427,14 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
         player <- team_flags[i, ]
         alt <- bench[j, ]
         estimate <- estimated_points(player, team_rows[slots[i]], alt, j)
-        comparison <- sprintf(" ADL scoring through Week %d (replacement vs. starter): %.3f vs. %.3f points per snap; two-game average workloads imply %.2f vs. %.2f estimated points (+%.2f).",
-          max(prior_weeks), estimate$rates[1], estimate$rates[2], estimate$points[1], estimate$points[2],
-          estimate$points[1] - estimate$points[2])
-        return(row(player, sprintf("%s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.",
-          player$player_name, player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
+        comparison <- sprintf(" Estimated %.2f vs. %.2f points (+%.2f) in Week %d.",
+          estimate$points[1], estimate$points[2], estimate$points[1] - estimate$points[2], week + 1L)
+        return(row(player, sprintf("%s %s %s: %.0f%% of team %s snaps in Week %d; %.0f%% in Week %d.",
+          adl_snap_display_name(player$player_name), player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
           player$unit, week, 100 * player$previous_share, player$previous_week),
-          sprintf("Available Player Suggestion: %s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.%s",
-            alt$player_name, bench_current$nfl_team[j], alt$player_pos, 100 * bench_load$share[j],
-            if (alt$player_pos %in% c("QB", "RB", "WR", "TE")) "offense" else "defense",
-            week, 100 * bench_prior_load$share[j], bench_prior$week[j], comparison)))
+          sprintf("Available Player Suggestion: %s %s %s: Week %d Snaps: %.0f%% snap%% / Week %d: %.0f%%.%s",
+            adl_snap_display_name(alt$player_name), bench_current$nfl_team[j], alt$player_pos,
+            week, 100 * bench_load$share[j], bench_prior$week[j], 100 * bench_prior_load$share[j], comparison)))
       }))
     }))
   } else tibble()
@@ -390,12 +449,15 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
     deadline <- unname(kickoff[team])
     if (is.na(deadline) || !nrow(final_designations) || injured(player) ||
         !observed_roster(player, deadline, team, specialist = TRUE)) return(NULL)
+    players <- attr(lineups, "mfl_players") %||% tibble()
+    if (!nrow(players)) return(NULL)
     if (is.null(tx)) tx <<- tryCatch(fetch_transactions(), error = function(e) tibble())
+    suggestion <- adl_snap_auction_suggestion(player, tx, evidence, week, deadline, kickoff, players, ng_max)
+    if (is.null(suggestion)) return(NULL)
     unit <- if (player$player_pos == "QB") "team offense snaps" else paste0("team's ", player$player_pos, " snaps")
-    row(player, sprintf("%s %s %s: %d snaps, %.1f%% of %s in Week %d.",
-      player$player_name, team, player$player_pos, workload$count[i], 100 * workload$share[i], unit, week),
-      paste("No inactive designation found at kickoff or in the weekly report; an in-game injury is not ruled out.",
-        adl_snap_bid_details(player, tx, evidence, week, deadline, kickoff)))
+    row(player, sprintf("%s %s %s: %d snaps, %.0f%% of %s in Week %d.",
+      adl_snap_display_name(player$player_name), team, player$player_pos, workload$count[i], 100 * workload$share[i], unit, week),
+      suggestion)
   }))
   bind_rows(replacement_rows, specialist_rows)
 }

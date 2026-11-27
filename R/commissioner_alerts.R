@@ -1138,6 +1138,7 @@ fetch_live_lineups <- function(season = get_current_season(), week, include_benc
   result <- normalize_lineups(starters[status %in% c("starter", "start", "s", "1", "true"), ], franchises)
   bench <- starters[status %in% "nonstarter", , drop = FALSE]
   attr(result, "mfl_bench") <- normalize_lineups(bench, franchises)
+  attr(result, "mfl_players") <- players
   result
 }
 
@@ -1304,25 +1305,38 @@ nfl_schedule_type_col <- function(schedule) {
   )
 }
 
+load_nfl_schedule_csv <- function(seasons) {
+  read_csv("https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+    col_types = cols(gameday = col_character(), gametime = col_character()),
+    show_col_types = FALSE) |> filter(.data$season == .env$seasons)
+}
+
 load_verified_nfl_schedule <- function(season, loader = nflreadr::load_schedules,
-                                       clear = nflreadr::clear_cache, sleep = Sys.sleep) {
+                                       clear = nflreadr::clear_cache, sleep = Sys.sleep,
+                                       fallback = if (missing(loader)) load_nfl_schedule_csv else NULL) {
   reason <- "empty schedule"
+  valid <- function(schedule) {
+    required <- c("season", "week", "home_team", "away_team")
+    if (!is.data.frame(schedule) || !nrow(schedule) || !all(required %in% names(schedule))) return(FALSE)
+    type <- nfl_schedule_type_col(schedule)
+    if (is.na(type) || (!"game_datetime" %in% names(schedule) &&
+        !all(c("gameday", "gametime") %in% names(schedule)))) return(FALSE)
+    games <- schedule[which(schedule$season == season & schedule[[type]] == "REG" &
+      schedule$week %in% 1:18), , drop = FALSE]
+    nrow(games) > 0L && !anyNA(nfl_game_kickoff_at(games))
+  }
   for (attempt in seq_len(4)) {
     schedule <- tryCatch(loader(seasons = season), error = function(e) {
       reason <<- conditionMessage(e)
       NULL
     })
-    required <- c("season", "week", "home_team", "away_team")
-    if (is.data.frame(schedule) && nrow(schedule) &&
-        all(required %in% names(schedule)) && !is.na(nfl_schedule_type_col(schedule)) &&
-        ("game_datetime" %in% names(schedule) || all(c("gameday", "gametime") %in% names(schedule)))) {
-      type <- nfl_schedule_type_col(schedule)
-      games <- schedule[schedule$season == season & schedule[[type]] == "REG" &
-                          schedule$week %in% 1:18, , drop = FALSE]
-      if (nrow(games) && !anyNA(nfl_game_kickoff_at(games))) return(schedule)
-      reason <- "no regular-season games with complete kickoff times"
-    } else if (!is.null(schedule)) {
+    if (valid(schedule)) return(schedule)
+    if (!is.null(schedule)) {
       reason <- paste("incomplete schedule schema:", paste(names(schedule), collapse = ", "))
+    }
+    if (attempt == 1L && !is.null(fallback)) {
+      plain <- tryCatch(fallback(seasons = season), error = function(e) NULL)
+      if (valid(plain)) return(plain)
     }
     if (attempt < 4) {
       warning(sprintf("NFL schedule read %d/4 invalid (%s); retrying", attempt, reason), call. = FALSE)
