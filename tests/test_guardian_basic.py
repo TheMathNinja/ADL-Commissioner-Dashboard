@@ -276,6 +276,41 @@ class Basic(unittest.TestCase):
         dispatch.assert_not_called()
         private.assert_not_called()
 
+    def test_pre_kickoff_lease_allows_retry_only_after_public_pass_completes(self):
+        import guardian_fallback as gate
+        claim_at = health.stamp('2026-11-27T01:06:24Z')
+        now = health.stamp('2026-11-27T01:09:57Z')
+        kickoff = '2026-11-27T01:20:00Z'
+        schedule = dict(week=12, kickoffs=[kickoff])
+        for completed, owner, both_covered, expect_retry in (
+            (True, gate.PUBLIC_BASIC, False, True),
+            (False, gate.PUBLIC_BASIC, False, False),
+            (True, None, False, False),
+            (True, gate.PUBLIC_BASIC, True, False),
+        ):
+            with self.subTest(completed=completed, owner=owner, both_covered=both_covered):
+                previous = claim_at - timedelta(minutes=29)
+                ledger = dict(self.ledger, generatedAt=(claim_at if completed else previous).isoformat(),
+                              checks=[dict(league='FAFL', week=12, mode='monitor', checkedAt=previous.isoformat())])
+                if completed:
+                    ledger['checks'].append(dict(league='ADL', week=12, mode='monitor', checkedAt=claim_at.isoformat()))
+                if both_covered:
+                    ledger['checks'].append(dict(league='FAFL', week=12, mode='monitor', checkedAt=claim_at.isoformat()))
+                saved = {'claim': {'at': claim_at.isoformat(), 'owner': owner}}
+                coverage = {'schedules': {'ADL':schedule, 'FAFL':schedule}}
+                values = {gate.LEDGER:ledger, basic.HEALTH:ledger, gate.STATE:coverage, gate.PATH:saved}
+                with patch.dict(os.environ, GUARDIAN_BASIC_OWNER=gate.PUBLIC_BASIC, GUARDIAN_COALESCE_BACKGROUND='true'), \
+                        patch.object(gate, 'document', side_effect=lambda path, optional=False: (values[path], {'sha':'current'})), \
+                        patch.object(gate, 'observe', return_value=(schedule, 'a'*64)), \
+                        patch.object(gate, 'persist') as persist, patch.object(gate, 'dispatch') as dispatch, \
+                        patch.object(basic, 'run') as worker:
+                    gate.run(dry=False, now=now)
+                self.assertEqual(worker.call_count, int(expect_retry))
+                self.assertEqual(persist.call_count, int(expect_retry))
+                dispatch.assert_not_called()
+                if expect_retry:
+                    self.assertEqual(persist.call_args.args[2]['claim']['owner'], gate.PUBLIC_BASIC)
+
     def test_warning_delivery_is_once_and_dry_run_never_acknowledges(self):
         from base64 import b64encode
         warning = basic.record_warnings({}, 'ADL', 12,

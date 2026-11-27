@@ -20,6 +20,7 @@ from guardian_check_policy import monitor_slot
 PATH = 'data/guardian_dispatch.json'
 ET = ZoneInfo('America/New_York')
 LEASE = timedelta(minutes=5)
+PUBLIC_BASIC = 'public-basic-v1'
 
 
 def get_json(url, private=False):
@@ -186,7 +187,8 @@ def dispatch(identifier, workflow='guardian.yml', force_standard=False):
 
 
 def run(dry=True, now=None, verify_basic=False):
-    if verify_basic and os.environ.get('GUARDIAN_BASIC_OWNER') != 'public-basic-v1':
+    public_basic = os.environ.get('GUARDIAN_BASIC_OWNER') == PUBLIC_BASIC
+    if verify_basic and not public_basic:
         raise ValueError('Basic verification requires the public read-only owner')
     fixed_clock = now is not None
     now = now or datetime.now(timezone.utc)
@@ -194,7 +196,7 @@ def run(dry=True, now=None, verify_basic=False):
         print('Guardian scheduling gate: offseason; no private runner requested.')
         return
     ledger, _ = document(LEDGER)
-    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+    if public_basic:
         from guardian_basic import HEALTH
         basic, _ = document(HEALTH, optional=True)
         ledger = basic or ledger
@@ -209,10 +211,12 @@ def run(dry=True, now=None, verify_basic=False):
             pass  # Cached kickoff windows still work; uncertainty is never called coverage.
     # A primary run may have completed while the public feeds were being read.
     health_path = LEDGER
-    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+    has_basic_ledger = False
+    if public_basic:
         from guardian_basic import HEALTH
         basic, _ = document(HEALTH, optional=True)
         health_path = HEALTH if basic else LEDGER
+        has_basic_ledger = bool(basic)
     latest, _ = document(health_path)
     if latest['leagues'] != ledger['leagues']:
         raise RuntimeError('League metadata changed during the scheduling assessment')
@@ -228,15 +232,25 @@ def run(dry=True, now=None, verify_basic=False):
         return
     claim = saved.get('claim', {})
     if claim.get('at') and timedelta(0) <= now - stamp(claim['at']) < LEASE:
-        print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
-        return
+        # The basic ledger is written after the pass, even when one league gave
+        # no receipt. This frees the lease, not the unmet coverage requirement.
+        completed_read_only_pass = (
+            has_basic_ledger and claim.get('owner') == PUBLIC_BASIC
+            and stamp(ledger['generatedAt']) >= stamp(claim['at'])
+            and wanted['reason'] in ('required_window', 'initial_safety')
+        )
+        if not completed_read_only_pass:
+            print('Guardian scheduling gate: recent dispatch lease; no duplicate requested.')
+            return
+        print('Guardian scheduling gate: public pass finished, but a required check is still due.')
     workflow = wanted.get('workflow', 'guardian.yml')
-    if os.environ.get('GUARDIAN_BASIC_OWNER') == 'public-basic-v1':
+    if public_basic:
         if wanted['reason'] == 'pending_private_work':
             # Projection-based acquisitions and replacement ranking stay manual/private.
             return
         if not dry:
-            saved['claim'] = {'at': now.isoformat(), 'key': wanted['key'], 'reason': wanted['reason']}
+            saved['claim'] = {'at': now.isoformat(), 'key': wanted['key'], 'reason': wanted['reason'],
+                              'owner': PUBLIC_BASIC}
             persist(PATH, original, saved)
         from guardian_basic import run as basic_check
         basic_check(ledger, 'initial' if workflow == 'initial-lineup.yml' else 'monitor', now, dry, document)
