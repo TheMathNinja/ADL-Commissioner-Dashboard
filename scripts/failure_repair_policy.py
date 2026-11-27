@@ -19,6 +19,9 @@ RULES = (
     ('generated-output-conflict', r'generated (?:output conflicts|publication rejected)|'
      r'main advanced again during the regenerated build|non-fast-forward|could not apply\b',
      'Inspect the publisher and verify a rebuild from current main; do not replay stale output.'),
+    ('runner-unrelated-apt-source', r'^e:\s+failed to fetch https://packages\.microsoft\.com/ubuntu/24\.04/prod/'
+     r'dists/noble/inrelease\s+.*\b403\s+forbidden\b',
+     'The runner could not refresh an unrelated Microsoft apt source. Verify the Ubuntu-only R bootstrap on current main; do not rerun the old dashboard-writing revision.'),
     ('credential-or-permission', r'\b(?:http(?: error)?\s+40[13]|bad credentials|permission denied|'
      r'resource not accessible by integration|invalid_grant)\b',
      'Check the credential, access policy, or upstream authorization. Do not bypass a 403.'),

@@ -12,6 +12,21 @@ import fafl_rebuild_repair as repair
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_runner_mirror_error_is_identified_without_replaying_dashboard_writer(self):
+        code, _ = m.diagnose([
+            'E: Failed to fetch https://packages.microsoft.com/ubuntu/24.04/prod/dists/noble/InRelease  403 Forbidden',
+        ])
+        self.assertEqual(code, 'runner-unrelated-apt-source')
+        self.assertEqual(m.diagnose(['HTTP 403 from a league source'])[0], 'credential-or-permission')
+        run = dict(id=46049446112, path='.github/workflows/update_dashboard.yml', event='push')
+        with patch.object(m, 'api') as api, patch.object(m, 'request_read_only_replay') as request:
+            self.assertIsNone(m.consider_replay({}, 'TheMathNinja/ADL-Commissioner-Dashboard', run,
+                ['build-dashboard: Set up cached ADL R runtime'], {'build-dashboard': code},
+                m.gameday_time('2026-11-27T18:29:00Z'), dry_run=False, read=api, request=request,
+                save=lambda _: self.fail('must not claim a write-capable replay')))
+            api.assert_not_called()
+            request.assert_not_called()
+
     def test_fafl_rebuild_claims_once_for_exact_transient_build_or_save(self):
         old = dict(id=45937111967, path=repair.PATH, head_branch='main', event='push',
                    status='completed', conclusion='failure', updated_at='2026-11-27T04:07:18Z',

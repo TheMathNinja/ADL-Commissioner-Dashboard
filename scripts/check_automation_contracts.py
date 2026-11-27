@@ -329,6 +329,9 @@ def main() -> int:
         required_r_setup = {
             "pinned R package": "r-4.5.1_1_amd64.deb",
             "minimal R install": "--no-install-recommends",
+            "Ubuntu-only apt source file": "/etc/apt/sources.list.d/ubuntu.sources",
+            "no unrelated apt sources": "Dir::Etc::sourceparts=-",
+            "bounded apt download retries": "Acquire::Retries=2",
             "current cache action": "actions/cache@v5",
         }
         for label, marker in required_r_setup.items():

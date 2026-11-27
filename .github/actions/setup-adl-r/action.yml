@@ -10,11 +10,21 @@ runs:
         set -euo pipefail
         r_bin="/opt/R/4.5.1/bin/Rscript"
         if [[ ! -x "$r_bin" ]]; then
+          # This install needs Ubuntu dependencies, not unrelated runner repositories.
+          ubuntu_sources="/etc/apt/sources.list.d/ubuntu.sources"
+          test -r "$ubuntu_sources"
+          apt_options=(
+            -o "Dir::Etc::sourcelist=$ubuntu_sources"
+            -o "Dir::Etc::sourceparts=-"
+            -o "Acquire::Retries=2"
+            -o "Acquire::http::Timeout=20"
+            -o "Acquire::https::Timeout=20"
+          )
           curl --fail --location --retry 4 --retry-all-errors \
             --output /tmp/r-4.5.1.deb \
             https://cdn.rstudio.com/r/ubuntu-2404/pkgs/r-4.5.1_1_amd64.deb
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends /tmp/r-4.5.1.deb
+          sudo apt-get "${apt_options[@]}" -o APT::Update::Error-Mode=any update -qq
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends /tmp/r-4.5.1.deb
         fi
         echo "/opt/R/4.5.1/bin" >> "$GITHUB_PATH"
 
