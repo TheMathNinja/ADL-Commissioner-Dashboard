@@ -59,6 +59,15 @@ stopifnot(!length(prepare_saladj_action_report(rows, sheet, pending, received, r
 legacy <- prepare_saladj_action_report(rows, sheet, pending, issued, rows, 2026, wednesday)
 stopifnot(!length(legacy$new_keys), !any(legacy$entry_new),
   grepl("Previously reported; still outstanding:", render_saladj_action_report(legacy, rows, 2026), fixed = TRUE))
+group_rows <- bind_rows(rows, mutate(rows, PLAYER = "New One"), mutate(rows, PLAYER = "Prior Two"),
+                        mutate(rows, PLAYER = "New Two"))
+group_plan <- prepare_saladj_action_report(group_rows, sheet, pending, issued, group_rows[c(1,3), ], 2026, wednesday)
+group_body <- strsplit(category(render_saladj_action_report(group_plan, group_rows, 2026), 1), "\n", fixed = TRUE)[[1]]
+old_header <- which(group_body == "Previously reported; still outstanding:")
+new_header <- which(group_body == "New entry request:")
+stopifnot(length(old_header) == 1L, length(new_header) == 1L,
+  old_header < grep("Jaylen Wright", group_body), grep("Prior Two", group_body) < new_header,
+  new_header < grep("New One", group_body), grep("New One", group_body) < grep("New Two", group_body))
 next_monday <- as.POSIXct("2026-11-23 10:22:00", tz = "UTC")
 stopifnot(length(prepare_saladj_action_report(rows, sheet, pending, received, rows, 2026, next_monday)$new_keys) == 3L)
 wrong <- pending[1, ]; wrong$issue <- "WRONG_AMOUNT"; wrong$actual_system <- "MFL"

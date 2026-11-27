@@ -845,8 +845,28 @@ audit_saladj_total_parity <- function(
   sheet_entries = NULL,
   mfl_entries = NULL,
   tolerance = 0.01,
-  latest_snapshot_time = as.POSIXct(NA, tz = "UTC")
+  latest_snapshot_time = as.POSIXct(NA, tz = "UTC"),
+  accepted_splits = tibble(franchise = character(), sheet_id = integer(), delta = double()),
+  entry_findings = tibble()
 ) {
+  if (nrow(accepted_splits)) {
+    if (is.null(sheet_entries) || !"actual_id" %in% names(sheet_entries) ||
+        anyDuplicated(accepted_splits$sheet_id) || !all(accepted_splits$sheet_id %in% sheet_entries$actual_id)) {
+      stop("Historical split evidence does not identify unique Contract Admin rows.", call. = FALSE)
+    }
+    accepted_totals <- accepted_splits |>
+      group_by(.data$franchise) |>
+      summarize(accepted_split_delta = round_saladj_cents(sum(.data$delta)), .groups = "drop")
+    sheet_totals <- left_join(sheet_totals, accepted_totals, by = "franchise")
+    sheet_entries$penalty_amount <- round_saladj_cents(sheet_entries$penalty_amount -
+      coalesce(accepted_splits$delta[match(sheet_entries$actual_id, accepted_splits$sheet_id)], 0))
+  } else {
+    sheet_totals$accepted_split_delta <- rep(0, nrow(sheet_totals))
+  }
+  sheet_totals <- sheet_totals |>
+    mutate(raw_sheet_total = .data$sheet_saladj_total,
+           accepted_split_delta = coalesce(.data$accepted_split_delta, 0),
+           sheet_saladj_total = round_saladj_cents(.data$sheet_saladj_total - .data$accepted_split_delta))
   sheet_entry_totals <- if (is.null(sheet_entries)) {
     tibble(
       franchise = character(), sheet_entry_total = double(), sheet_entered_total = double(),
@@ -902,6 +922,12 @@ audit_saladj_total_parity <- function(
     )
   if (!nrow(mismatches)) return(tibble())
 
+  identifying_players <- function(franchise) {
+    if (!nrow(entry_findings)) return("")
+    rows <- which(entry_findings$expected_franchise == franchise | entry_findings$actual_franchise == franchise)
+    names <- entry_findings$player[rows]
+    paste(unique(names[!is.na(names) & nzchar(names)]), collapse = "; ")
+  }
   mismatches |>
     mutate(
       entry_totals_match = !is.na(.data$sheet_entry_total) & !is.na(.data$mfl_entry_total) &
@@ -932,7 +958,7 @@ audit_saladj_total_parity <- function(
       actual_franchise = .data$franchise,
       player = paste0(season, " ADJ total"),
       expected_amount = .data$mfl_roster_saladj_total,
-      actual_amount = .data$sheet_saladj_total,
+      actual_amount = .data$raw_sheet_total,
       mfl_description = "MFL roster-page Salary Adjustments total",
       transaction_date = "",
       mfl_entered_at = "",
@@ -950,16 +976,14 @@ audit_saladj_total_parity <- function(
         .data$discrepancy_nature == "CONTRACT_ADMIN_TOTAL_FORMULA" ~ paste0(
           "Correct ", .data$sheet_tab, "!", .data$sheet_total_cell,
           " so the displayed ", season, " ADJ total returns $",
-          sprintf("%.2f", .data$mfl_roster_saladj_total),
+          sprintf("%.2f", .data$mfl_roster_saladj_total + .data$accepted_split_delta),
           ". Do not change MFL or any individual Sal Adj entry."
         ),
         .data$discrepancy_nature == "MFL_ROSTER_TOTAL" ~ paste0(
           "Investigate the MFL roster-page total because the individual Contract Admin and MFL entries agree at $",
           sprintf("%.2f", .data$mfl_entry_total), "."
         ),
-        TRUE ~ paste0(
-          "Resolve the individual-entry differences listed elsewhere in this report before changing the summary total."
-        )
+        TRUE ~ "Verify the contributing entries before changing the summary total."
       ),
       stage = paste0("Contract Admin ", season, " ADJ totals -> MFL roster page"),
       actual_system = "Contract Admin Sal Adj totals",
@@ -972,6 +996,8 @@ audit_saladj_total_parity <- function(
       pending_entry_details,
       pending_snapshot_missed,
       mfl_entry_total,
+      accepted_split_delta,
+      related_entry_players = vapply(.data$franchise, identifying_players, character(1)),
       total_difference = round(.data$sheet_saladj_total - .data$mfl_roster_saladj_total, 2)
     )
 }
@@ -990,6 +1016,36 @@ historical_fg_split_matches <- function(expected, actual) {
   units <- round_saladj_cents(sum(want) * 100, digits = 0L)
   equal_split <- c(ceiling(units / 2), floor(units / 2)) / 100
   all(abs(have - equal_split) < 1e-8)
+}
+
+accepted_historical_fg_deltas <- function(curator, sheet, mfl) {
+  result <- tibble(franchise = character(), sheet_id = integer(), mfl_id = integer(), delta = double())
+  if (!nrow(curator) || !nrow(sheet) || !nrow(mfl)) return(result)
+  day <- stringr::str_match(mfl$description, stringr::regex("\\bdropped\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\b", ignore_case = TRUE))[, 2]
+  for (i in which(curator$is_fg)) {
+    item <- curator[i, ]
+    matches <- function(description) vapply(description, description_matches_expected, logical(1),
+      player = item$player, is_cash_trade = FALSE)
+    date <- transaction_day(item$row_date)
+    s <- which(sheet$franchise == item$franchise & transaction_day(sheet$entered_at) == date & matches(sheet$description))
+    m <- which(mfl$franchise == item$franchise & transaction_day(day) == date & matches(mfl$description))
+    if (length(s) != 1L || length(m) != 1L || !isTRUE(sheet$is_entered[s])) next
+    row <- sheet[s, ]
+    if (!isTRUE(round_saladj_cents(row$input_salary) == round_saladj_cents(item$salary_amount)) ||
+        !isTRUE(row$input_years == item$years_amount) ||
+        !isTRUE(trimws(row$contract_type) == trimws(item$contract_type)) ||
+        !isTRUE(round_saladj_cents(mfl$amount[m]) == round_saladj_cents(item$amount)) ||
+        !isTRUE(row$is_fg) || !identical(row$is_accelerated[[1]], FALSE) ||
+        !historical_fg_split_matches(item, row)) next
+    delta <- round_saladj_cents(row$penalty_amount - mfl$amount[m])
+    if (delta != 0) result <- add_row(result, franchise = item$franchise, sheet_id = row$actual_id,
+                                     mfl_id = mfl$actual_id[m], delta = delta)
+  }
+  result |>
+    add_count(.data$sheet_id, name = "sheet_matches") |>
+    add_count(.data$mfl_id, name = "mfl_matches") |>
+    filter(.data$sheet_matches == 1L, .data$mfl_matches == 1L) |>
+    select("franchise", "sheet_id", "delta")
 }
 
 audit_contract_admin_control_fields <- function(expected_entries, sheet_entries, tolerance = 0.01) {
@@ -1434,6 +1490,8 @@ format_checker_finding <- function(row) {
     sheet_entry_total <- suppressWarnings(as.numeric(checker_row_value(row, "sheet_entry_total", NA_character_)))
     mfl_entry_total <- suppressWarnings(as.numeric(checker_row_value(row, "mfl_entry_total", NA_character_)))
     total_difference <- suppressWarnings(as.numeric(checker_row_value(row, "total_difference", NA_character_)))
+    accepted_split_delta <- suppressWarnings(as.numeric(checker_row_value(row, "accepted_split_delta", "0")))
+    related_players <- checker_row_value(row, "related_entry_players")
     pending_entry_details <- checker_row_value(row, "pending_entry_details")
     direction <- if (!is.na(total_difference)) {
       paste0("$", sprintf("%.2f", abs(total_difference)), if (total_difference > 0) " too high" else " too low")
@@ -1470,7 +1528,8 @@ format_checker_finding <- function(row) {
       )
     } else {
       c(
-        "Discrepancy includes one or more individual entries; review the entry-level findings in this report.",
+        if (nzchar(related_players)) paste0("Related entry findings: ", related_players, ".")
+        else "The totals differ, but the checker could not isolate a player entry.",
         if (!is.na(sheet_entry_total) && !is.na(mfl_entry_total)) paste0(
           "Individual-entry totals: Contract Admin $", sprintf("%.2f", sheet_entry_total),
           "; MFL $", sprintf("%.2f", mfl_entry_total), "."
@@ -1487,6 +1546,9 @@ format_checker_finding <- function(row) {
       },
       paste0("Contract Admin displayed total: ", row$expected_franchise, " | $", sprintf("%.2f", row$actual_amount)),
       paste0("MFL roster-page total: ", row$expected_franchise, " | $", sprintf("%.2f", row$expected_amount)),
+      if (is.finite(accepted_split_delta) && accepted_split_delta != 0) paste0(
+        "The comparison below excludes ", sprintf("$%+.2f", accepted_split_delta),
+        " of accepted historical split differences."),
       source_detail,
       paste0("Required: ", required_action),
       ""
@@ -1858,6 +1920,33 @@ if (arg_flag("self-test-name-matching")) {
     audit_contract_admin_control_fields(entry, sheet)[["control_label"]]
   }
   stopifnot(!"Next-year penalty" %in% split_findings())
+  hous_totals <- tibble(franchise = "HOU", sheet_saladj_total = 2.70,
+                       sheet_tab = "AFC Sal Adj", sheet_total_cell = "V4")
+  hous_roster <- tibble(franchise = "HOU", mfl_roster_saladj_total = 2.57)
+  legette_sheet$actual_id <- 1L
+  legette_sheet$is_entered <- TRUE
+  legette_sheet$sheet_tab <- "AFC Sal Adj"
+  legette_sheet$sheet_row <- 9L
+  legette_mfl <- tibble(actual_id = 1L, franchise = "HOU", amount = 2.57,
+                        description = "X. Legette - 2 yrs at $2.57 mil dropped 9/7/26 - 2024 1.15")
+  accepted <- accepted_historical_fg_deltas(legette, legette_sheet, legette_mfl)
+  stopifnot(nrow(accepted) == 1L, accepted$delta == 0.13,
+    nrow(audit_saladj_total_parity(hous_totals, hous_roster, 2026, legette_sheet, legette_mfl,
+                                  accepted_splits = accepted)) == 0L,
+    nrow(accepted_historical_fg_deltas(legette, legette_sheet, mutate(legette_mfl, amount = 2.58))) == 0L,
+    nrow(accepted_historical_fg_deltas(legette, mutate(legette_sheet, is_entered = FALSE), legette_mfl)) == 0L,
+    nrow(accepted_historical_fg_deltas(legette, legette_sheet, bind_rows(legette_mfl, legette_mfl))) == 0L,
+    nrow(accepted_historical_fg_deltas(legette, legette_sheet,
+      mutate(legette_mfl, description = sub("9/7/26", "9/8/26", description, fixed = TRUE)))) == 0L)
+  other_hou <- mutate(legette_sheet, actual_id = actual_id + 1L, player = "Other Houston Player", penalty_amount = 1)
+  remaining_hou <- audit_saladj_total_parity(
+    mutate(hous_totals, sheet_saladj_total = 3.70), hous_roster, 2026,
+    bind_rows(legette_sheet, other_hou), legette_mfl, accepted_splits = accepted,
+    entry_findings = tibble(expected_franchise = "HOU", actual_franchise = "HOU", player = "Other Houston Player")
+  )
+  stopifnot(remaining_hou$issue == "SALADJ_TOTAL_MISMATCH", remaining_hou$total_difference == 1,
+            remaining_hou$actual_amount == 3.70, remaining_hou$expected_amount == 2.57,
+            any(grepl("Related entry findings: Other Houston Player", format_checker_finding(remaining_hou), fixed = TRUE)))
   stopifnot("Next-year penalty" %in% split_findings(sheet = mutate(legette_sheet, penalty_amount = 2.69)))
   stopifnot("Next-year penalty" %in% split_findings(entry = mutate(legette, is_accelerated = TRUE)))
   stopifnot("YEARS" %in% split_findings(sheet = mutate(legette_sheet, input_years = 3)))
@@ -2205,7 +2294,9 @@ saladj_total_error_report <- audit_saladj_total_parity(
   sheet_entries = sheet_entries,
   mfl_entries = mfl_entries,
   tolerance = tolerance,
-  latest_snapshot_time = latest_snapshot_time
+  latest_snapshot_time = latest_snapshot_time,
+  accepted_splits = accepted_historical_fg_deltas(expected_entries, sheet_entries, mfl_entries),
+  entry_findings = bind_rows(sheet_error_report, control_field_error_report, mfl_error_report)
 )
 message(
   "Contract Admin vs MFL roster-page salary-adjustment totals: ",

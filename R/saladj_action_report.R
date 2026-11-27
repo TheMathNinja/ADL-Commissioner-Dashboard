@@ -40,12 +40,15 @@ render_saladj_action_report <- function(plan, all_rows, season, archive_filename
     if (!nrow(findings)) return("None outstanding.")
     unlist(lapply(seq_len(nrow(findings)), function(i) format_checker_finding(findings[i, ])))
   }
+  render_entry_group <- function(new, heading) {
+    indices <- which(plan$entry_new == new)
+    if (!length(indices)) return(character())
+    c(heading, unlist(lapply(indices, function(i) format_saladj_digest_row(plan$entries[i, , drop = FALSE]))))
+  }
   entry_lines <- if (!nrow(plan$entries)) "None outstanding." else c(
     "Enter these missing source contracts in Contract Admin and verify the calculated adjustment.",
-    unlist(lapply(seq_len(nrow(plan$entries)), function(i) c(
-      if (plan$entry_new[[i]]) "New entry request:" else "Previously reported; still outstanding:",
-      format_saladj_digest_row(plan$entries[i, , drop = FALSE])
-    )))
+    render_entry_group(FALSE, "Previously reported; still outstanding:"),
+    render_entry_group(TRUE, "New entry request:")
   )
   # Snapshot violations remain explicit, but do not repeat the source row details.
   if (any(missing_sheet)) entry_lines <- c(entry_lines,
