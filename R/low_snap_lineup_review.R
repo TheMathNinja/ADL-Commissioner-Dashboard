@@ -90,7 +90,20 @@ prepare_adl_snap_evidence <- function(snaps, player_ids, season) {
     ungroup()
 }
 
-adl_low_snap_starters <- function(lineups, evidence, week, threshold = 0.30) {
+adl_snap_prior_indices <- function(player_ids, nfl_teams, evidence, week, byes) {
+  keys <- paste(evidence$mfl_id, evidence$week)
+  prior <- match(paste(player_ids, week - 1L), keys)
+  skip <- which(is.na(prior) & !is.na(nfl_teams) & nfl_teams != "FA" &
+    unname(byes[nfl_teams]) == week - 1L)
+  if (week > 2L && length(skip)) {
+    earlier <- match(paste(player_ids[skip], week - 2L), keys)
+    same_team <- which(evidence$nfl_team[earlier] == nfl_teams[skip])
+    prior[skip[same_team]] <- earlier[same_team]
+  }
+  prior
+}
+
+adl_low_snap_starters <- function(lineups, evidence, week, threshold = 0.30, byes = integer()) {
   if (week < 2L || !nrow(lineups) || !nrow(evidence)) return(tibble())
   starters <- lineups |>
     mutate(unit = case_when(
@@ -101,7 +114,7 @@ adl_low_snap_starters <- function(lineups, evidence, week, threshold = 0.30) {
     filter(!is.na(.data$unit))
   evidence_key <- paste(evidence$mfl_id, evidence$week)
   current <- match(paste(starters$player_id, week), evidence_key)
-  previous <- match(paste(starters$player_id, week - 1L), evidence_key)
+  previous <- adl_snap_prior_indices(starters$player_id, evidence$nfl_team[current], evidence, week, byes)
   pick_share <- function(indices) {
     offense <- evidence$offense_snaps[indices]
     defense <- evidence$defense_snaps[indices]
@@ -111,7 +124,7 @@ adl_low_snap_starters <- function(lineups, evidence, week, threshold = 0.30) {
     ifelse(valid, (offense + defense) / denominator, NA_real_)
   }
   starters |>
-    mutate(week = .env$week, previous_week = .env$week - 1L,
+    mutate(week = .env$week, previous_week = evidence$week[previous],
            current_share = .env$pick_share(current), previous_share = .env$pick_share(previous),
            nfl_team_at_game = evidence$nfl_team[current]) |>
     filter(!is.na(.data$nfl_team_at_game), .data$nfl_team_at_game != "FA",
@@ -250,7 +263,7 @@ adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) 
 
 low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), kickoffs = tibble(),
     final_designations = tibble(), fetch_transactions = function() tibble(),
-    fetch_scoring = function(weeks) tibble()) {
+    fetch_scoring = function(weeks) tibble(), byes = integer()) {
   if (!nrow(lineups) || !nrow(evidence) || !nrow(kickoffs)) return(tibble())
   threshold <- 0.30
   replacement_threshold <- 0.45
@@ -286,12 +299,15 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
   row <- function(player, observed, details) tibble(week = as.character(week),
     conference = player$conference, franchise = player$franchise, franchise_name = player$franchise_name,
     outcome = "Low snap share", observed = observed, details = details)
-  flagged <- adl_low_snap_starters(lineups, evidence, week, threshold = threshold)
+  flagged <- adl_low_snap_starters(lineups, evidence, week, threshold = threshold, byes = byes)
   if (nrow(flagged)) flagged <- flagged[!flagged$player_pos %in% special_pos, , drop = FALSE]
   replacement_rows <- if (nrow(flagged) && !is.null(bench) && nrow(bench) && nrow(roster_history)) {
     bench_current <- evidence[evidence$week == week, , drop = FALSE]
     bench_current <- bench_current[match(bench$player_id, bench_current$mfl_id), , drop = FALSE]
     bench_load <- adl_snap_workload(bench_current, bench$player_pos)
+    prior_index <- adl_snap_prior_indices(bench$player_id, bench_current$nfl_team, evidence, week, byes)
+    bench_prior <- evidence[prior_index, , drop = FALSE]
+    bench_prior_share <- adl_snap_workload(bench_prior, bench$player_pos)$share
     efficiency <- NULL
     prior_weeks <- adl_prior_snap_weeks(week)
     load_efficiency <- function() {
@@ -324,7 +340,8 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
         first <- unname(kickoff[player$nfl_team_at_game])
         if (is.na(first)) return(integer())
         possible <- which(bench$franchise_id %in% player$franchise_id & !is.na(bench$player_id) &
-          !bench$player_id %in% starters$player_id & bench_load$share >= replacement_threshold)
+          !bench$player_id %in% starters$player_id & bench_load$share >= replacement_threshold &
+          bench_prior_share >= replacement_threshold)
         possible <- possible[order(-bench_load$share[possible], bench$player_id[possible])]
         possible[vapply(possible, function(j) {
           alt <- bench[j, ]
@@ -351,9 +368,10 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
         return(row(player, sprintf("%s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.",
           player$player_name, player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
           player$unit, week, 100 * player$previous_share, player$previous_week),
-          sprintf("Verified legal bench swap: %s %s %s (Week %d: %.1f%% of team %s snaps).%s",
-            alt$player_name, bench_current$nfl_team[j], alt$player_pos, week, 100 * bench_load$share[j],
-            if (alt$player_pos %in% c("QB", "RB", "WR", "TE")) "offense" else "defense", comparison)))
+          sprintf("Verified legal bench swap: %s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.%s",
+            alt$player_name, bench_current$nfl_team[j], alt$player_pos, 100 * bench_load$share[j],
+            if (alt$player_pos %in% c("QB", "RB", "WR", "TE")) "offense" else "defense",
+            week, 100 * bench_prior_share[j], bench_prior$week[j], comparison)))
       }))
     }))
   } else tibble()

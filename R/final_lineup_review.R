@@ -170,7 +170,8 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
       tibble()
     }
   )
-  review <- build_final_lineup_review(lineups, kickoffs, history, submissions, fetch_byes(season), week, injuries)
+  byes <- fetch_byes(season)
+  review <- build_final_lineup_review(lineups, kickoffs, history, submissions, byes, week, injuries)
   if (week >= 2L) {
     snap_review <- tryCatch({
       evidence <- fetch_snap_evidence(season)
@@ -178,7 +179,7 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
       list(rows = low_snap_review_rows(lineups, evidence, week, history, kickoffs, injuries,
         function() fetch_transactions(season, DAYS = max(14L, as.integer(difftime(Sys.time(),
           min(kickoffs$kickoff_at), units = "days")) + 9L)),
-        function(weeks) fetch_scoring(season, weeks)),
+        function(weeks) fetch_scoring(season, weeks), byes),
            complete = all(mfl_player_team(kickoffs$player_team) %in% coverage))
     }, error = function(e) {
       warning("NFL snap-share evidence unavailable; leaving low-snap cases unverified.", call. = FALSE)
@@ -239,8 +240,9 @@ render_final_lineup_review_lines <- function(rows) {
     if (!nrow(selected)) next
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
       if (outcome == "Low snap share") paste(
-        "Screening only; no strike. Skill and defensive starters must be below 30% in two consecutive weeks",
-        "and have a verified legal bench replacement at 45% or higher in the reviewed week.",
+        "Screening only; no strike. Skill and defensive starters must be below 30% in the reviewed game",
+        "and their previous scheduled game, with a verified legal bench replacement at 45% or higher",
+        "in their own two games. An NFL bye is skipped, not counted as zero.",
         "Cross-position swaps must also imply more ADL points at the reviewed week's observed workloads,",
         "using season-to-date points per snap from before that week (at least two verified games per player).",
         "Each replacement is used at most once per franchise, and the swaps must leave a legal combined lineup.",
