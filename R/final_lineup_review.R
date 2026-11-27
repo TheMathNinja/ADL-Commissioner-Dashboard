@@ -239,7 +239,7 @@ render_final_lineup_review_lines <- function(rows) {
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
       if (outcome == "Low snap share") paste(
         "Screening only; no strike. Skill and defensive starters must be below 30% in two consecutive weeks",
-        "and have an archived, legal bench swap with more snaps and a higher share.",
+        "and have a verified legal bench replacement who played more snaps and exceeded 30% in the reviewed week.",
         "Swaps are evaluated individually, not as a combined lineup.",
         "QB, PK and PN are checked separately for current-week usage and recorded acquisition efforts;",
         "no bench alternative is required. PK/PN share compares snaps among players at the same position on their NFL team."),

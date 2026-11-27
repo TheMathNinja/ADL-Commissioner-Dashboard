@@ -184,11 +184,12 @@ adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) 
 low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), kickoffs = tibble(),
     final_designations = tibble(), fetch_transactions = function() tibble()) {
   if (!nrow(lineups) || !nrow(evidence) || !nrow(kickoffs)) return(tibble())
+  threshold <- 0.30
   special_pos <- c("QB", "PK", "PN")
   current <- match(lineups$player_id, evidence$mfl_id[evidence$week == week])
   current <- evidence[evidence$week == week, , drop = FALSE][current, , drop = FALSE]
   workload <- adl_snap_workload(current, lineups$player_pos)
-  special_idx <- which(lineups$player_pos %in% special_pos & workload$share < .30)
+  special_idx <- which(lineups$player_pos %in% special_pos & workload$share < threshold)
   kickoff <- setNames(kickoffs$kickoff_at, mfl_player_team(kickoffs$player_team))
   bench <- attr(lineups, "mfl_bench")
   roster_history <- if ("roster_status" %in% names(history)) {
@@ -216,7 +217,7 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
   row <- function(player, observed, details) tibble(week = as.character(week),
     conference = player$conference, franchise = player$franchise, franchise_name = player$franchise_name,
     outcome = "Low snap share", observed = observed, details = details)
-  flagged <- adl_low_snap_starters(lineups, evidence, week)
+  flagged <- adl_low_snap_starters(lineups, evidence, week, threshold = threshold)
   if (nrow(flagged)) flagged <- flagged[!flagged$player_pos %in% special_pos, , drop = FALSE]
   replacement_rows <- if (nrow(flagged) && !is.null(bench) && nrow(bench) && nrow(roster_history)) {
     bench_current <- evidence[evidence$week == week, , drop = FALSE]
@@ -230,7 +231,7 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
       original <- which(lineups$franchise_id %in% player$franchise_id & lineups$player_id %in% player$player_id)
       if (length(original) != 1L || is.na(first) || anyDuplicated(starters$player_id)) return(NULL)
       possible <- which(bench$franchise_id %in% player$franchise_id & !bench$player_id %in% starters$player_id &
-        bench_load$count > raw[original] & bench_load$share > player$current_share)
+        bench_load$count > raw[original] & bench_load$share > threshold)
       possible <- possible[order(-bench_load$share[possible], -bench_load$count[possible], bench$player_id[possible])]
       for (j in possible) {
         alt <- bench[j, ]
