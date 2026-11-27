@@ -1067,7 +1067,7 @@ record_field <- function(x, name, default = NA_character_) {
   as.character(value[[1]] %||% default)
 }
 
-normalize_mfl_weekly_result_lineups <- function(raw) {
+normalize_mfl_weekly_result_lineups <- function(raw, include_bench = FALSE) {
   matchups <- list_records(raw, record_names = c("franchise"))
   rows <- list()
 
@@ -1104,7 +1104,7 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
 
   starter_status_key <- tolower(trimws(result$starter_status %||% character()))
   starter_status_present <- any(nzchar(starter_status_key) & !is.na(starter_status_key))
-  if (starter_status_present) {
+  if (starter_status_present && !include_bench) {
     result <- result |>
       filter(tolower(trimws(.data$starter_status)) %in% c("starter", "start", "s", "1", "true"))
   }
@@ -1112,11 +1112,11 @@ normalize_mfl_weekly_result_lineups <- function(raw) {
   result
 }
 
-fetch_live_lineups <- function(season = get_current_season(), week) {
+fetch_live_lineups <- function(season = get_current_season(), week, include_bench = FALSE) {
   conn <- connect_adl_mfl(season)
   franchises <- ffscrapr::ff_franchises(conn)
   weekly_results <- ffscrapr::mfl_getendpoint(conn, "weeklyResults", W = week, YEAR = season)[["content"]][["weeklyResults"]][["matchup"]]
-  starters <- normalize_mfl_weekly_result_lineups(weekly_results)
+  starters <- normalize_mfl_weekly_result_lineups(weekly_results, include_bench = include_bench)
   players_response <- ffscrapr::mfl_getendpoint(conn, "players")
   players_raw <- players_response[["content"]][["players"]][["player"]]
   player_records <- list_records(players_raw, record_names = c("id", "name", "team", "position"))
@@ -1133,7 +1133,12 @@ fetch_live_lineups <- function(season = get_current_season(), week) {
     mutate(player_id = as.character(.data$player_id)) |>
     left_join(players, by = "player_id")
 
-  normalize_lineups(starters, franchises)
+  if (!include_bench) return(normalize_lineups(starters, franchises))
+  status <- tolower(trimws(starters$starter_status))
+  result <- normalize_lineups(starters[status %in% c("starter", "start", "s", "1", "true"), ], franchises)
+  bench <- starters[status %in% "nonstarter", , drop = FALSE]
+  attr(result, "mfl_bench") <- normalize_lineups(bench, franchises)
+  result
 }
 
 cache_lineups_snapshot <- function(season = get_current_season(), week, force_live = TRUE) {
@@ -1195,11 +1200,17 @@ fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL)
   response <- NULL
   injury_json <- NULL
   endpoint_error <- NULL
-  for (base_url in c("https://api.myfantasyleague.com", "http://football.myfantasyleague.com")) {
+  # The NFL injury export is not league-specific; try its public endpoint before the legacy route.
+  routes <- list(
+    list(url = "https://api.myfantasyleague.com", query = query[setdiff(names(query), "L")]),
+    list(url = "https://api.myfantasyleague.com", query = query),
+    list(url = "http://football.myfantasyleague.com", query = query)
+  )
+  for (route in routes) {
     response <- tryCatch(
       httr::GET(
-        url = paste0(base_url, "/", season, "/export"),
-        query = query,
+        url = paste0(route$url, "/", season, "/export"),
+        query = route$query,
         httr::user_agent(get_env_or_default("MFL_USER_AGENT", "ADLCommissionerDashboard")),
         httr::timeout(as.numeric(get_env_or_default("ADL_MFL_INJURY_TIMEOUT_SECONDS", "4")))
       ),
@@ -1224,6 +1235,10 @@ fetch_mfl_injury_payload <- function(season = get_current_season(), week = NULL)
       next
     }
 
+    if (!is.null(query$W) && !isTRUE(as.integer(injury_json[["injuries"]][["week"]]) == query$W)) {
+      endpoint_error <- "MFL did not confirm the requested injury week"
+      next
+    }
     return(injury_json[["injuries"]][["injury"]])
   }
 

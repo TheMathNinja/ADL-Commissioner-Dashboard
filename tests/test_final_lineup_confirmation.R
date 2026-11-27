@@ -183,11 +183,38 @@ stopifnot(identical(low$player_id, c("1", "2")), identical(low$unit, c("offense"
   adl_snap_team_total(c(25, 45), c(.52, .94)) == 48)
 ambiguous <- bind_rows(players, tibble(mfl_id = "9", pfr_id = "a"))
 stopifnot(!"1" %in% prepare_adl_snap_evidence(snaps, ambiguous, 2026)$mfl_id)
-low_review <- low_snap_review_rows(starters, evidence, 11)
-stopifnot(nrow(low_review) == 2L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
+workload_team <- tibble(conference = "NFC", franchise = "NYG", franchise_id = "0002",
+  franchise_name = "New York Giants", player_name = paste("Player", 1:21),
+  player_pos = c("QB", "S", "PK", "RB", rep("WR", 4), "TE", "PN", rep("DT", 2),
+    rep("DE", 2), rep("LB", 2), rep("CB", 2), rep("S", 2), "CB"),
+  player_id = c("1", "2", "3", as.character(104:121)))
+bench <- mutate(workload_team[1, ], player_id = "8", player_pos = "LB", player_name = "Bench LB")
+attr(workload_team, "mfl_bench") <- bench
+start <- as.POSIXct("2026-11-22 18:00:00", tz = "UTC")
+schedule <- tibble(player_team = "NYG", kickoff_at = start)
+archive <- bind_rows(workload_team[1:3, ], bench) |>
+  mutate(player_team = "NYG", roster_status = "Active", snapshot_time = start - 300, player_status = NA_character_)
+injury_sheet <- tibble(player_id = "unused", player_status = "Out")
+evidence2 <- evidence |>
+  mutate(defense_snaps = if_else(mfl_id == "8" & week == 11, 33, defense_snaps),
+    snap_pos = case_when(mfl_id == "3" ~ "K", mfl_id %in% c("1", "4") ~ "QB", TRUE ~ snap_pos),
+    team_role = if_else(mfl_id == "3", 12, team_role), st_snaps = if_else(mfl_id == "3", 1, st_snaps))
+tx <- tibble(type = "AUCTION_BID", franchise = "0002", transaction = "4|8|",
+  timestamp = as.character(as.numeric(start - 3600)))
+low_review <- low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injury_sheet, function() tx)
+stopifnot(nrow(low_review) == 3L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
+  any(grepl("Bench LB", low_review$details)), any(grepl("Recorded MFL acquisition activity", low_review$details)),
+  any(grepl("team's PK snaps", low_review$observed)),
   all(is_commissioner_only_alert(final_lineup_review_digest(low_review))))
+injured_qb <- bind_rows(injury_sheet, tibble(player_id = "1", player_status = "Q"))
+unavailable_bench <- archive |> mutate(roster_status = if_else(player_id == "8", "IR", roster_status))
+stopifnot(nrow(low_snap_review_rows(workload_team, evidence2, 11, unavailable_bench, schedule, injured_qb)) == 1L,
+  nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb)) == 2L,
+  !adl_legal_snap_swap(workload_team$player_pos, "DT", "LB"),
+  !adl_legal_snap_swap(workload_team$player_pos, "S", "WR"),
+  !adl_legal_snap_swap(workload_team$player_pos, "CB", "S"))
 mail <- render_final_lineup_review_lines(final_lineup_review_digest(low_review))
-stopifnot(sum(mail == "Low-snap starters to review (2)") == 1L,
+stopifnot(sum(mail == "Low-snap starters to review (3)") == 1L,
   any(grepl("no strike", mail, fixed = TRUE)), any(grepl("24.0% of team defense snaps", mail, fixed = TRUE)))
 cat("Consecutive low snap share, identity, position, and advisory-only regressions passed.\n")
 

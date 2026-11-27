@@ -12,8 +12,8 @@ read_backup_lineup_opportunities <- function(season) {
   rows |> filter(.data$season == as.character(.env$season))
 }
 
-fetch_backup_lineup_transactions <- function(season) {
-  content <- ffscrapr::mfl_getendpoint(connect_adl_mfl(season), "transactions")[["content"]]
+fetch_backup_lineup_transactions <- function(season, ...) {
+  content <- ffscrapr::mfl_getendpoint(connect_adl_mfl(season), "transactions", ...)[["content"]]
   raw <- content[["transactions"]][["transaction"]]
   records <- list_records(raw, record_names = c("type", "timestamp", "franchise", "transaction"))
   if (!length(records)) stop("Missing auction history for backup-lineup check.")

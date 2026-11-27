@@ -150,9 +150,11 @@ build_final_lineup_review <- function(lineups, kickoffs, history, submissions, b
 }
 
 evaluate_final_lineup_review <- function(season, week, run_time, submissions,
-    fetch_lineups = fetch_live_lineups, fetch_kickoffs = read_nfl_team_kickoffs,
+    fetch_lineups = function(season, week) fetch_live_lineups(season, week, include_bench = TRUE),
+    fetch_kickoffs = read_nfl_team_kickoffs,
     fetch_history = read_designation_snapshot_history, fetch_byes = read_bye_weeks,
-    fetch_injuries = fetch_mfl_injury_payload, fetch_snap_evidence = load_adl_snap_evidence) {
+    fetch_injuries = fetch_mfl_injury_payload, fetch_snap_evidence = load_adl_snap_evidence,
+    fetch_transactions = fetch_backup_lineup_transactions) {
   if (is.na(week)) return(tibble())
   kickoffs <- fetch_kickoffs(season = season, week = week)
   last_kickoff <- lineup_week_last_kickoff(kickoffs)
@@ -173,7 +175,9 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
     snap_review <- tryCatch({
       evidence <- fetch_snap_evidence(season)
       coverage <- unique(evidence$nfl_team[evidence$week == week])
-      list(rows = low_snap_review_rows(lineups, evidence, week),
+      list(rows = low_snap_review_rows(lineups, evidence, week, history, kickoffs, injuries,
+        function() fetch_transactions(season, DAYS = max(14L, as.integer(difftime(Sys.time(),
+          min(kickoffs$kickoff_at), units = "days")) + 9L))),
            complete = all(mfl_player_team(kickoffs$player_team) %in% coverage))
     }, error = function(e) {
       warning("NFL snap-share evidence unavailable; leaving low-snap cases unverified.", call. = FALSE)
@@ -184,7 +188,7 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
       review <- bind_rows(review, tibble(week = as.character(week), conference = NA_character_,
         franchise = NA_character_, franchise_name = "Snap-share coverage", outcome = "Snap coverage",
         observed = "NFL snap-count coverage was incomplete for this week.",
-        details = "Only starters with verified shares in both weeks were evaluated. Missing counts are not zero."))
+        details = "Missing counts are not zero. The general bench-swap screen requires two verified weeks."))
     }
   }
   if (is.null(history) || !nrow(history)) {
@@ -234,9 +238,11 @@ render_final_lineup_review_lines <- function(rows) {
     if (!nrow(selected)) next
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
       if (outcome == "Low snap share") paste(
-        "Shares count the player's offense and defense snaps against the team total for their MFL position's unit.",
-        "Screening only; no strike. Review the expected role at submission and whether an active roster or",
-        "free-agent alternative was available."),
+        "Screening only; no strike. Skill and defensive starters must be below 30% in two consecutive weeks",
+        "and have an archived, legal bench swap with more snaps and a higher share.",
+        "Swaps are evaluated individually, not as a combined lineup.",
+        "QB, PK and PN are checked separately for current-week usage and recorded acquisition efforts;",
+        "no bench alternative is required. PK/PN share compares snaps among players at the same position on their NFL team."),
       unlist(lapply(seq_len(nrow(selected)), function(i) {
         row <- selected[i, ]
         team <- if (is.na(row$franchise) || !nzchar(row$franchise)) row$franchise_name else

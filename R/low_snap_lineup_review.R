@@ -27,6 +27,8 @@ adl_snap_corroborates_total <- function(count, share, total) {
 }
 
 prepare_adl_snap_evidence <- function(snaps, player_ids, season) {
+  snaps$snap_pos <- snaps[["position"]] %||% rep(NA_character_, nrow(snaps))
+  snaps$st_snaps <- snaps[["st_snaps"]] %||% rep(NA_real_, nrow(snaps))
   crosswalk <- player_ids |>
     transmute(mfl_id = as.character(.data$mfl_id), pfr_id = as.character(.data$pfr_id)) |>
     filter(!is.na(.data$mfl_id), grepl("^[0-9]+$", .data$mfl_id), !is.na(.data$pfr_id), nzchar(.data$pfr_id)) |>
@@ -40,7 +42,14 @@ prepare_adl_snap_evidence <- function(snaps, player_ids, season) {
     transmute(week = as.integer(.data$week), pfr_id = as.character(.data$pfr_player_id),
               nfl_team = mfl_player_team(.data$team), game_id = as.character(.data$game_id),
               opponent = mfl_player_team(.data$opponent),
-              offense_snaps, defense_snaps, offense_pct, defense_pct)
+              offense_snaps, defense_snaps, offense_pct, defense_pct, snap_pos, st_snaps)
+  specialist_totals <- rows |>
+    filter(.data$snap_pos %in% c("K", "P")) |>
+    distinct(.data$game_id, .data$nfl_team, .data$snap_pos, .data$pfr_id, .data$st_snaps) |>
+    group_by(.data$game_id, .data$nfl_team, .data$snap_pos) |>
+    summarize(team_role = if (!anyDuplicated(.data$pfr_id) && all(is.finite(.data$st_snaps) &
+      .data$st_snaps >= 0 & .data$st_snaps == floor(.data$st_snaps))) sum(.data$st_snaps) else NA_real_,
+      .groups = "drop")
   totals <- rows |>
     group_by(.data$game_id, .data$nfl_team) |>
     summarize(opponent = if (n_distinct(.data$opponent) == 1L) first(.data$opponent) else NA_character_,
@@ -71,7 +80,9 @@ prepare_adl_snap_evidence <- function(snaps, player_ids, season) {
         !adl_snap_matches_total(.data$defense_snaps, .data$defense_pct, .data$team_defense), NA_real_, .data$defense_snaps)
     ) |>
     ungroup() |>
-    select(week, pfr_id, nfl_team, game_id, offense_snaps, defense_snaps, offense_pct, defense_pct, team_offense, team_defense) |>
+    select(week, pfr_id, nfl_team, game_id, offense_snaps, defense_snaps, offense_pct, defense_pct,
+           team_offense, team_defense, snap_pos, st_snaps) |>
+    left_join(specialist_totals, by = c("game_id", "nfl_team", "snap_pos"), relationship = "many-to-one") |>
     inner_join(crosswalk, by = "pfr_id", relationship = "many-to-one") |>
     distinct() |>
     group_by(.data$mfl_id, .data$week) |>
@@ -115,14 +126,145 @@ load_adl_snap_evidence <- function(season) {
   prepare_adl_snap_evidence(nflreadr::load_snap_counts(season), nflreadr::load_ff_playerids(), season)
 }
 
-low_snap_review_rows <- function(lineups, evidence, week) {
+adl_legal_snap_swap <- function(positions, remove, add) {
+  rules <- adl_lineup_position_rules()
+  if (length(positions) != 21L || !all(positions %in% rules$player_pos) ||
+      !all(c(remove, add) %in% rules$player_pos) || !remove %in% positions) return(FALSE)
+  counts <- tabulate(match(positions, rules$player_pos), nrow(rules))
+  counts[match(remove, rules$player_pos)] <- counts[match(remove, rules$player_pos)] - 1L
+  counts[match(add, rules$player_pos)] <- counts[match(add, rules$player_pos)] + 1L
+  groups <- adl_lineup_group_rules()
+  all(counts >= rules$min_starters & counts <= rules$max_starters) &&
+    all(vapply(groups$lineup_group, function(unit) sum(counts[rules$lineup_group == unit]), integer(1)) ==
+      groups$required_starters)
+}
+
+adl_snap_workload <- function(rows, positions) {
+  off <- positions %in% c("QB", "RB", "WR", "TE")
+  specialist <- positions %in% c("PK", "PN")
+  role_matches <- rows$snap_pos %in% c("K", "P") &
+    rows$snap_pos == ifelse(positions == "PK", "K", "P")
+  count <- ifelse(specialist, ifelse(role_matches, rows$st_snaps, NA_real_),
+    rows$offense_snaps + rows$defense_snaps)
+  total <- ifelse(specialist, rows$team_role, ifelse(off, rows$team_offense, rows$team_defense))
+  list(count = count, share = ifelse(is.finite(count) & count >= 0 & is.finite(total) & total > 0,
+    count / total, NA_real_))
+}
+
+adl_snap_unavailable <- function(x) {
+  x <- toupper(trimws(coalesce(as.character(x), "")))
+  inactive_designation(x) | x %in% c("DOUBTFUL", "D", "(D)", "BYE", "INACTIVE")
+}
+
+adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) {
+  if (!is.finite(as.numeric(deadline)) || !nrow(tx)) return("Free-agency effort could not be verified.")
+  position <- c(QB = "QB", PK = "K", PN = "P")[[player$player_pos]]
+  peers <- evidence[evidence$week == week & evidence$snap_pos %in% position &
+    !evidence$mfl_id %in% player$player_id, , drop = FALSE]
+  usage <- adl_snap_workload(peers, rep(player$player_pos, nrow(peers)))
+  peer_kickoffs <- unname(kickoff[peers$nfl_team])
+  ids <- peers$mfl_id[which(usage$share >= .30 & peer_kickoffs > deadline - 7 * 86400)]
+  occurred <- suppressWarnings(as.numeric(tx$timestamp))
+  parts <- strsplit(coalesce(tx$transaction, ""), "|", fixed = TRUE)
+  target <- vapply(parts, function(p) if (length(p)) p[[1]] else "", "")
+  proxy <- vapply(parts, function(p) length(p) == 3L &&
+    trimws(p[[3]]) == paste(player$franchise_name, "forced bid increase"), logical(1))
+  target_team <- peers$nfl_team[match(target, peers$mfl_id)]
+  attempts <- tx$type %in% c("AUCTION_INIT", "AUCTION_BID", "AUCTION_WON", "FREE_AGENT", "WAIVER", "BBID_WAIVER") &
+    (tx$franchise %in% player$franchise_id | proxy) & target %in% ids &
+    occurred >= as.numeric(deadline) - 7 * 86400 & occurred < as.numeric(deadline) &
+    occurred < as.numeric(kickoff[target_team])
+  if (any(attempts, na.rm = TRUE)) {
+    return(sprintf("Recorded MFL acquisition activity for %d higher-workload %s option(s) before kickoff.",
+      length(unique(target[which(attempts)])), player$player_pos))
+  }
+  "No matching attempt found in the public MFL records checked; this does not establish that no bid was made or that an affordable option was available."
+}
+
+low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), kickoffs = tibble(),
+    final_designations = tibble(), fetch_transactions = function() tibble()) {
+  if (!nrow(lineups) || !nrow(evidence) || !nrow(kickoffs)) return(tibble())
+  special_pos <- c("QB", "PK", "PN")
+  current <- match(lineups$player_id, evidence$mfl_id[evidence$week == week])
+  current <- evidence[evidence$week == week, , drop = FALSE][current, , drop = FALSE]
+  workload <- adl_snap_workload(current, lineups$player_pos)
+  special_idx <- which(lineups$player_pos %in% special_pos & workload$share < .30)
+  kickoff <- setNames(kickoffs$kickoff_at, mfl_player_team(kickoffs$player_team))
+  bench <- attr(lineups, "mfl_bench")
+  roster_history <- if ("roster_status" %in% names(history)) {
+    history[!is.na(history$roster_status) & !is.na(history$snapshot_time), , drop = FALSE]
+  } else tibble()
+  injury_risk <- function(status) {
+    toupper(trimws(coalesce(as.character(status), ""))) %in% c("Q", "(Q)", "QUESTIONABLE")
+  }
+  observed_roster <- function(player, deadline, team, specialist = FALSE) {
+    if (!nrow(roster_history) || is.na(deadline)) return(FALSE)
+    rows <- roster_history[which(roster_history$conference == player$conference &
+      roster_history$franchise == player$franchise &
+      roster_history$snapshot_time <= deadline & roster_history$snapshot_time > deadline - 8 * 3600), ]
+    if (!nrow(rows)) return(FALSE)
+    rows <- rows[which(rows$snapshot_time == max(rows$snapshot_time) & rows$player_id == player$player_id), ]
+    if (!nrow(rows) || !all(mfl_player_team(rows$player_team) %in% team) ||
+        !all(toupper(rows$player_pos) %in% player$player_pos) ||
+        !all(toupper(rows$roster_status) %in% "ACTIVE")) return(FALSE)
+    injury <- if (nrow(history)) history[which(history$conference == player$conference &
+      history$player_id == player$player_id & history$snapshot_time >= max(rows$snapshot_time) &
+      history$snapshot_time <= deadline), ] else tibble()
+    !any(adl_snap_unavailable(injury$player_status)) &&
+      !(specialist && any(injury_risk(injury$player_status)))
+  }
+  row <- function(player, observed, details) tibble(week = as.character(week),
+    conference = player$conference, franchise = player$franchise, franchise_name = player$franchise_name,
+    outcome = "Low snap share", observed = observed, details = details)
   flagged <- adl_low_snap_starters(lineups, evidence, week)
-  if (!nrow(flagged)) return(tibble())
-  flagged |>
-    transmute(week = as.character(.data$week), conference, franchise, franchise_name,
-      outcome = "Low snap share",
-      observed = sprintf("%s %s %s: %.1f%% of team %s snaps in Week %s; %.1f%% in Week %d.",
-                         .data$player_name, .data$nfl_team_at_game, .data$player_pos, 100 * .data$current_share,
-                         .data$unit, .data$week, 100 * .data$previous_share, .data$previous_week),
-      details = "")
+  if (nrow(flagged)) flagged <- flagged[!flagged$player_pos %in% special_pos, , drop = FALSE]
+  replacement_rows <- if (nrow(flagged) && !is.null(bench) && nrow(bench) && nrow(roster_history)) {
+    bench_current <- evidence[evidence$week == week, , drop = FALSE]
+    bench_current <- bench_current[match(bench$player_id, bench_current$mfl_id), , drop = FALSE]
+    bench_load <- adl_snap_workload(bench_current, bench$player_pos)
+    bind_rows(lapply(seq_len(nrow(flagged)), function(i) {
+      player <- flagged[i, ]
+      starters <- lineups[lineups$franchise_id %in% player$franchise_id, ]
+      first <- unname(kickoff[player$nfl_team_at_game])
+      raw <- current$offense_snaps + current$defense_snaps
+      original <- which(lineups$franchise_id %in% player$franchise_id & lineups$player_id %in% player$player_id)
+      if (length(original) != 1L || is.na(first) || anyDuplicated(starters$player_id)) return(NULL)
+      possible <- which(bench$franchise_id %in% player$franchise_id & !bench$player_id %in% starters$player_id &
+        bench_load$count > raw[original] & bench_load$share > player$current_share)
+      possible <- possible[order(-bench_load$share[possible], -bench_load$count[possible], bench$player_id[possible])]
+      for (j in possible) {
+        alt <- bench[j, ]
+        nfl_team <- bench_current$nfl_team[j]
+        other <- unname(kickoff[nfl_team])
+        if (is.na(other) || !adl_legal_snap_swap(starters$player_pos, player$player_pos, alt$player_pos) ||
+            !observed_roster(player, min(first, other), player$nfl_team_at_game) ||
+            !observed_roster(alt, min(first, other), nfl_team)) next
+        return(row(player, sprintf("%s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.",
+          player$player_name, player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
+          player$unit, week, 100 * player$previous_share, player$previous_week),
+          sprintf("Verified legal bench swap: %s %s %s (%d snaps, %.1f%%, vs. %d snaps).",
+            alt$player_name, nfl_team, alt$player_pos, bench_load$count[j], 100 * bench_load$share[j], raw[original])))
+      }
+      NULL
+    }))
+  } else tibble()
+  injured <- function(player) {
+    report <- final_designations[which(final_designations$player_id %in% player$player_id), , drop = FALSE]
+    any(adl_snap_unavailable(report$player_status) | injury_risk(report$player_status))
+  }
+  tx <- NULL
+  specialist_rows <- bind_rows(lapply(special_idx, function(i) {
+    player <- lineups[i, ]
+    team <- current$nfl_team[i]
+    deadline <- unname(kickoff[team])
+    if (is.na(deadline) || !nrow(final_designations) || injured(player) ||
+        !observed_roster(player, deadline, team, specialist = TRUE)) return(NULL)
+    if (is.null(tx)) tx <<- tryCatch(fetch_transactions(), error = function(e) tibble())
+    unit <- if (player$player_pos == "QB") "team offense snaps" else paste0("team's ", player$player_pos, " snaps")
+    row(player, sprintf("%s %s %s: %d snaps, %.1f%% of %s in Week %d.",
+      player$player_name, team, player$player_pos, workload$count[i], 100 * workload$share[i], unit, week),
+      paste("No inactive designation found at kickoff or in the weekly report; an in-game injury is not ruled out.",
+        adl_snap_bid_details(player, tx, evidence, week, deadline, kickoff)))
+  }))
+  bind_rows(replacement_rows, specialist_rows)
 }
