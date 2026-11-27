@@ -32,17 +32,57 @@ class FailureReports(unittest.TestCase):
                 return
             return stored.get(url)
         on_time = now + timedelta(minutes=3)
-        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time), 2)
-        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time), 0)
+        no_following = lambda *args: None
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time, next_schedule=no_following), 2)
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: on_time, next_schedule=no_following), 0)
         self.assertEqual(len(reads), 1)
         self.assertTrue(all(row['observedAt'] == on_time.isoformat() and
                             row['injuries'] == [{'player_id': '123', 'player_status': 'Out'}]
                             for row in stored.values()))
         stored.clear()
-        self.assertEqual(capture(coverage, on_time, request, clock=lambda: now + timedelta(minutes=22)), 0)
+        self.assertEqual(capture(coverage, on_time, request, clock=lambda: now + timedelta(minutes=22),
+                                 next_schedule=no_following), 0)
         self.assertEqual(stored, {})
         self.assertEqual(capture(dict(coverage, scheduleFailures={'ADL': 'missing'}), now, request), 0)
         self.assertEqual(len(reads), 2)
+
+    def test_cutoff_archive_brackets_boundary_before_roster_week_rolls_over(self):
+        from datetime import timedelta
+        from mfl_pregame_archive import capture, due_slots
+        kickoff = m.gameday_time('2026-11-26T18:00:00Z')
+        cutoff = kickoff - timedelta(hours=48)
+        before, after = cutoff - timedelta(minutes=15), cutoff + timedelta(minutes=1)
+        previous_kickoff = m.gameday_time('2026-11-24T01:15:00Z')
+        coverage = dict(schedules={'ADL': {'week': 11, 'kickoffs': [previous_kickoff.isoformat()]}})
+        upcoming = {'week':12, 'kickoffs':[kickoff.isoformat(), kickoff.isoformat()]}
+        written, reads = {}, []
+        def next_schedule(week, now):
+            self.assertEqual(week,12)
+            return upcoming
+        def request(url, payload=None, method=None):
+            if 'myfantasyleague.com' in url:
+                reads.append(url)
+                return {'injuries': {'week':'12','injury':[{'id':'123','status':'Questionable'}]}}
+            if method == 'PUT':
+                self.assertIn('/week12/',url)
+                written[url+'?ref=main'] = json.loads(base64.b64decode(payload['content']))
+                return None
+            return written.get(url)
+        self.assertEqual(due_slots(upcoming['kickoffs'], cutoff), [])
+        self.assertEqual(due_slots(upcoming['kickoffs'], after), [after])
+        self.assertEqual(capture(coverage,before,request,clock=lambda:cutoff,next_schedule=next_schedule),0)
+        self.assertFalse(written)
+        for slot, minutes in ((before,8),(after,4)):
+            measured = slot + timedelta(minutes=minutes)
+            self.assertEqual(capture(coverage,slot,request,clock=lambda:measured,next_schedule=next_schedule),1)
+            self.assertEqual(capture(coverage,slot,request,clock=lambda:measured,next_schedule=next_schedule),0)
+        times = [m.gameday_time(row['observedAt']) for row in written.values()]
+        self.assertLess(min(times),cutoff)
+        self.assertGreater(max(times),cutoff)
+        self.assertEqual(len(reads),3)
+        self.assertTrue(all('TYPE=injuries&W=12' in url for url in reads))
+        self.assertEqual(due_slots(upcoming['kickoffs'], kickoff-timedelta(minutes=30)),
+                         [kickoff-timedelta(minutes=30)])
 
     def test_public_account_scans_do_not_spend_private_api_quota(self):
         with patch.dict(os.environ, {'ACCOUNT_FAILURE_COVERAGE': 'true', 'PRIVATE_REPORT_TOKEN': 'fixture'}), \

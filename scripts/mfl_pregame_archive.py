@@ -3,25 +3,33 @@ import base64
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from http.client import HTTPException
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
-from guardian_health_monitor import stamp
+from guardian_health_monitor import nfl_week_schedule, stamp
 
 REPO = 'TheMathNinja/ADL-Commissioner-Dashboard'
 DIRECTORY = 'data/commissioner_alerts/mfl_pregame_designations'
 GRACE = timedelta(minutes=15)
 LEADS = (120, 90, 60, 30)
+CUTOFF = timedelta(hours=48)
+CUTOFF_OFFSETS = (-15, 1)
 
 
-def due_slots(kickoffs, now):
-    return sorted({slot for kickoff in map(stamp, kickoffs) for minutes in LEADS
-                   if timedelta(0) <= now - (slot := kickoff - timedelta(minutes=minutes)) < GRACE})
+def due_slots(kickoffs, now, *, cutoff_only=False):
+    slots = set()
+    for kickoff in map(stamp, kickoffs):
+        cutoff = kickoff - CUTOFF
+        slots.update(cutoff + timedelta(minutes=offset) for offset in CUTOFF_OFFSETS)
+        if not cutoff_only:
+            slots.update(kickoff - timedelta(minutes=lead) for lead in LEADS)
+    return sorted(slot for slot in slots if timedelta(0) <= now - slot < GRACE)
 
 
-def capture(coverage, now, request, clock=lambda: datetime.now(timezone.utc)):
-    """One live feed read per tick, and an immutable file per verified slot."""
+def capture(coverage, now, request, clock=lambda: datetime.now(timezone.utc), next_schedule=nfl_week_schedule):
+    """One injury feed read per due week, and an immutable file per verified slot."""
     if not coverage or 'ADL' in coverage.get('scheduleFailures', {}):
         return 0
     info = coverage.get('schedules', {}).get('ADL')
@@ -32,7 +40,23 @@ def capture(coverage, now, request, clock=lambda: datetime.now(timezone.utc)):
     season = local.year if local.month > 2 else local.year - 1
     if local.month not in (9, 10, 11, 12, 1):
         return 0
-    slots = due_slots(info['kickoffs'], now)
+    stored = capture_week(season, week, due_slots(info['kickoffs'], now), request, clock)
+    last = max(map(stamp, info['kickoffs']), default=None)
+    # The first cutoff of the next week can arrive before the current roster week rolls over.
+    if week < 18 and last and last - CUTOFF <= now <= last + timedelta(days=7):
+        try:
+            following = next_schedule(week + 1, now)
+            if following is not None:
+                if following['week'] != week + 1:
+                    raise ValueError('Upcoming MFL schedule week mismatch')
+                slots = due_slots(following['kickoffs'], now, cutoff_only=True)
+                stored += capture_week(season, week + 1, slots, request, clock)
+        except (OSError, HTTPException, ValueError, TypeError, KeyError) as error:
+            print(f'::warning::Upcoming MFL cutoff archive not verified ({type(error).__name__}).')
+    return stored
+
+
+def capture_week(season, week, slots, request, clock):
     root = f'https://api.github.com/repos/{REPO}/contents/{DIRECTORY}/{season}/week{week:02}'
     missing = []
     for slot in slots:
