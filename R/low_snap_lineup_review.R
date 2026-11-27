@@ -191,6 +191,38 @@ adl_snap_unavailable <- function(x) {
   inactive_designation(x) | x %in% c("DOUBTFUL", "D", "(D)", "BYE", "INACTIVE")
 }
 
+adl_prior_snap_weeks <- function(week) seq_len(week - 1L)
+
+fetch_adl_snap_scoring <- function(season, weeks) {
+  connection <- connect_adl_mfl(season)
+  bind_rows(lapply(weeks, function(week) {
+    feed <- ffscrapr::mfl_getendpoint(connection, "playerScores", W = week)[["content"]][["playerScores"]]
+    if (!isTRUE(as.integer(record_field(feed, "week")) == week)) stop("MFL scoring week not verified.")
+    rows <- list_records(feed[["playerScore"]], record_names = c("id", "score"))
+    tibble(week = week,
+      mfl_id = vapply(rows, record_field, character(1), name = "id"),
+      points = suppressWarnings(as.numeric(vapply(rows, record_field, character(1), name = "score"))))
+  }))
+}
+
+adl_season_snap_efficiency <- function(evidence, scores, weeks) {
+  if (!nrow(scores)) return(tibble())
+  snaps <- evidence |>
+    filter(.data$week %in% .env$weeks, is.finite(.data$offense_snaps), .data$offense_snaps >= 0,
+      is.finite(.data$defense_snaps), .data$defense_snaps >= 0,
+      .data$offense_snaps + .data$defense_snaps > 0) |>
+    transmute(mfl_id, week, snaps = .data$offense_snaps + .data$defense_snaps)
+  scores |>
+    filter(.data$week %in% .env$weeks, !is.na(.data$mfl_id), is.finite(.data$points)) |>
+    distinct() |>
+    add_count(.data$mfl_id, .data$week, name = "records") |>
+    filter(.data$records == 1L) |>
+    inner_join(snaps, by = c("mfl_id", "week"), relationship = "one-to-one") |>
+    group_by(.data$mfl_id) |>
+    summarize(games = n(), points_per_snap = sum(.data$points) / sum(.data$snaps), .groups = "drop") |>
+    filter(.data$games >= 2L)
+}
+
 adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) {
   if (!is.finite(as.numeric(deadline)) || !nrow(tx)) return("Free-agency effort could not be verified.")
   position <- c(QB = "QB", PK = "K", PN = "P")[[player$player_pos]]
@@ -217,9 +249,11 @@ adl_snap_bid_details <- function(player, tx, evidence, week, deadline, kickoff) 
 }
 
 low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), kickoffs = tibble(),
-    final_designations = tibble(), fetch_transactions = function() tibble()) {
+    final_designations = tibble(), fetch_transactions = function() tibble(),
+    fetch_scoring = function(weeks) tibble()) {
   if (!nrow(lineups) || !nrow(evidence) || !nrow(kickoffs)) return(tibble())
   threshold <- 0.30
+  replacement_threshold <- 0.45
   special_pos <- c("QB", "PK", "PN")
   current <- match(lineups$player_id, evidence$mfl_id[evidence$week == week])
   current <- evidence[evidence$week == week, , drop = FALSE][current, , drop = FALSE]
@@ -258,7 +292,26 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
     bench_current <- evidence[evidence$week == week, , drop = FALSE]
     bench_current <- bench_current[match(bench$player_id, bench_current$mfl_id), , drop = FALSE]
     bench_load <- adl_snap_workload(bench_current, bench$player_pos)
-    raw <- current$offense_snaps + current$defense_snaps
+    efficiency <- NULL
+    prior_weeks <- adl_prior_snap_weeks(week)
+    load_efficiency <- function() {
+      if (is.null(efficiency)) {
+        scores <- tryCatch(fetch_scoring(prior_weeks), error = function(e) {
+          warning("Prior ADL scores could not be verified; cross-position snap swaps withheld.", call. = FALSE)
+          tibble()
+        })
+        efficiency <<- adl_season_snap_efficiency(evidence, scores, prior_weeks)
+      }
+      efficiency
+    }
+    estimated_points <- function(player, row_index, alt, bench_index) {
+      trends <- load_efficiency()
+      if (!nrow(trends)) return(NULL)
+      rates <- trends$points_per_snap[match(c(alt$player_id, player$player_id), trends$mfl_id)]
+      points <- rates * c(bench_load$count[bench_index], workload$count[row_index])
+      if (!all(is.finite(points))) return(NULL)
+      list(rates = rates, points = points)
+    }
     bind_rows(lapply(split(flagged, flagged$franchise_id), function(team_flags) {
       team_flags <- arrange(team_flags, .data$current_share, .data$previous_share, .data$player_id)
       team_rows <- which(lineups$franchise_id %in% team_flags$franchise_id[1])
@@ -271,16 +324,18 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
         first <- unname(kickoff[player$nfl_team_at_game])
         if (is.na(first)) return(integer())
         possible <- which(bench$franchise_id %in% player$franchise_id & !is.na(bench$player_id) &
-          !bench$player_id %in% starters$player_id & bench_load$count > raw[team_rows[slots[i]]] &
-          bench_load$share > threshold)
-        possible <- possible[order(-bench_load$share[possible], -bench_load$count[possible], bench$player_id[possible])]
+          !bench$player_id %in% starters$player_id & bench_load$share >= replacement_threshold)
+        possible <- possible[order(-bench_load$share[possible], bench$player_id[possible])]
         possible[vapply(possible, function(j) {
           alt <- bench[j, ]
           nfl_team <- bench_current$nfl_team[j]
           other <- unname(kickoff[nfl_team])
-          !is.na(other) && adl_legal_snap_swap(starters$player_pos, player$player_pos, alt$player_pos) &&
+          eligible <- !is.na(other) && adl_legal_snap_swap(starters$player_pos, player$player_pos, alt$player_pos) &&
             observed_roster(player, min(first, other), player$nfl_team_at_game) &&
             observed_roster(alt, min(first, other), nfl_team)
+          if (!eligible || isTRUE(player$player_pos == alt$player_pos)) return(eligible)
+          estimate <- estimated_points(player, team_rows[slots[i]], alt, j)
+          !is.null(estimate) && estimate$points[1] > estimate$points[2] + 1e-9
         }, logical(1))]
       })
       assigned <- adl_assign_snap_replacements(starters$player_pos, slots, candidates, bench$player_id, bench$player_pos)
@@ -288,12 +343,17 @@ low_snap_review_rows <- function(lineups, evidence, week, history = tibble(), ki
         j <- assigned[i]
         player <- team_flags[i, ]
         alt <- bench[j, ]
+        comparison <- if (!isTRUE(player$player_pos == alt$player_pos)) {
+          estimate <- estimated_points(player, team_rows[slots[i]], alt, j)
+          sprintf(" ADL scoring through Week %d (replacement vs. starter): %.3f vs. %.3f points per snap; Week %d workload implies %.2f vs. %.2f points.",
+            max(prior_weeks), estimate$rates[1], estimate$rates[2], week, estimate$points[1], estimate$points[2])
+        } else ""
         return(row(player, sprintf("%s %s %s: %.1f%% of team %s snaps in Week %d; %.1f%% in Week %d.",
           player$player_name, player$nfl_team_at_game, player$player_pos, 100 * player$current_share,
           player$unit, week, 100 * player$previous_share, player$previous_week),
-          sprintf("Verified legal bench swap: %s %s %s (%d snaps, %.1f%%, vs. %d snaps).",
-            alt$player_name, bench_current$nfl_team[j], alt$player_pos, bench_load$count[j],
-            100 * bench_load$share[j], raw[team_rows[slots[i]]])))
+          sprintf("Verified legal bench swap: %s %s %s (Week %d: %.1f%% of team %s snaps).%s",
+            alt$player_name, bench_current$nfl_team[j], alt$player_pos, week, 100 * bench_load$share[j],
+            if (alt$player_pos %in% c("QB", "RB", "WR", "TE")) "offense" else "defense", comparison)))
       }))
     }))
   } else tibble()

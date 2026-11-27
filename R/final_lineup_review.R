@@ -154,7 +154,7 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
     fetch_kickoffs = read_nfl_team_kickoffs,
     fetch_history = read_designation_snapshot_history, fetch_byes = read_bye_weeks,
     fetch_injuries = fetch_mfl_injury_payload, fetch_snap_evidence = load_adl_snap_evidence,
-    fetch_transactions = fetch_backup_lineup_transactions) {
+    fetch_transactions = fetch_backup_lineup_transactions, fetch_scoring = fetch_adl_snap_scoring) {
   if (is.na(week)) return(tibble())
   kickoffs <- fetch_kickoffs(season = season, week = week)
   last_kickoff <- lineup_week_last_kickoff(kickoffs)
@@ -177,7 +177,8 @@ evaluate_final_lineup_review <- function(season, week, run_time, submissions,
       coverage <- unique(evidence$nfl_team[evidence$week == week])
       list(rows = low_snap_review_rows(lineups, evidence, week, history, kickoffs, injuries,
         function() fetch_transactions(season, DAYS = max(14L, as.integer(difftime(Sys.time(),
-          min(kickoffs$kickoff_at), units = "days")) + 9L))),
+          min(kickoffs$kickoff_at), units = "days")) + 9L)),
+        function(weeks) fetch_scoring(season, weeks)),
            complete = all(mfl_player_team(kickoffs$player_team) %in% coverage))
     }, error = function(e) {
       warning("NFL snap-share evidence unavailable; leaving low-snap cases unverified.", call. = FALSE)
@@ -239,7 +240,9 @@ render_final_lineup_review_lines <- function(rows) {
     lines <- c(lines, paste0(headings[[outcome]], " (", nrow(selected), ")"),
       if (outcome == "Low snap share") paste(
         "Screening only; no strike. Skill and defensive starters must be below 30% in two consecutive weeks",
-        "and have a verified legal bench replacement who played more snaps and exceeded 30% in the reviewed week.",
+        "and have a verified legal bench replacement at 45% or higher in the reviewed week.",
+        "Cross-position swaps must also imply more ADL points at the reviewed week's observed workloads,",
+        "using season-to-date points per snap from before that week (at least two verified games per player).",
         "Each replacement is used at most once per franchise, and the swaps must leave a legal combined lineup.",
         "QB, PK and PN are checked separately for current-week usage and recorded acquisition efforts;",
         "no bench alternative is required. PK/PN share compares snaps among players at the same position on their NFL team."),

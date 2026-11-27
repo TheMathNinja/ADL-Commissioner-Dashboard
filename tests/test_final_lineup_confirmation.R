@@ -201,23 +201,40 @@ evidence2 <- evidence |>
     team_role = if_else(mfl_id == "3", 12, team_role), st_snaps = if_else(mfl_id == "3", 1, st_snaps))
 tx <- tibble(type = "AUCTION_BID", franchise = "0002", transaction = "4|8|",
   timestamp = as.character(as.numeric(start - 3600)))
-low_review <- low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injury_sheet, function() tx)
+evidence2 <- bind_rows(evidence2, evidence2 |> filter(week == 10L) |> mutate(week = 9L))
+efficiency_scores <- tibble(week = rep(9:10, each = 2), mfl_id = rep(c("2", "8"), 2),
+  points = c(1, 10, 1, 10))
+score_history <- function(weeks) efficiency_scores
+contaminated <- bind_rows(efficiency_scores, tibble(week = 11L, mfl_id = "2", points = 100))
+eff <- adl_season_snap_efficiency(evidence2, contaminated, adl_prior_snap_weeks(11L))
+stopifnot(eff$games[eff$mfl_id == "2"] == 2L,
+  isTRUE(all.equal(eff$points_per_snap[eff$mfl_id == "2"], 2 / 22)))
+low_review <- low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injury_sheet,
+  function() tx, score_history)
 stopifnot(nrow(low_review) == 3L, nrow(final_lineup_review_violations(low_review, 2026)) == 0L,
   any(grepl("Bench LB", low_review$details)), any(grepl("Recorded MFL acquisition activity", low_review$details)),
   any(grepl("team's PK snaps", low_review$observed)),
+  any(grepl("Week 11: 66.0% of team defense snaps", low_review$details, fixed = TRUE)),
+  any(grepl("ADL scoring through Week 10", low_review$details, fixed = TRUE)),
+  !any(grepl("33 snaps", low_review$details, fixed = TRUE)),
   all(is_commissioner_only_alert(final_lineup_review_digest(low_review))))
 injured_qb <- bind_rows(injury_sheet, tibble(player_id = "1", player_status = "Q"))
 unavailable_bench <- archive |> mutate(roster_status = if_else(player_id == "8", "IR", roster_status))
 stopifnot(nrow(low_snap_review_rows(workload_team, evidence2, 11, unavailable_bench, schedule, injured_qb)) == 1L,
-  nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb)) == 2L,
+  nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb,
+    fetch_scoring = score_history)) == 2L,
+  nrow(low_snap_review_rows(workload_team, evidence2, 11, archive, schedule, injured_qb,
+    fetch_scoring = function(weeks) mutate(efficiency_scores, points = if_else(mfl_id == "2", 20, 1)))) == 1L,
   !adl_legal_snap_swap(workload_team$player_pos, "DT", "LB"),
   !adl_legal_snap_swap(workload_team$player_pos, "S", "WR"),
   !adl_legal_snap_swap(workload_team$player_pos, "CB", "S"))
-for (bench_snaps in c(14, 15, 16)) {
+for (bench_snaps in c(44, 45, 46)) {
   boundary <- evidence2 |>
-    mutate(defense_snaps = if_else(mfl_id == "8" & week == 11, bench_snaps, defense_snaps))
-  revised <- low_snap_review_rows(workload_team, boundary, 11, archive, schedule, injury_sheet)
-  stopifnot(any(grepl("Verified legal bench swap:", revised$details, fixed = TRUE)) == (bench_snaps == 16))
+    mutate(defense_snaps = if_else(mfl_id == "8" & week == 11, bench_snaps, defense_snaps),
+      team_defense = if_else(mfl_id == "8" & week == 11, 100, team_defense))
+  revised <- low_snap_review_rows(workload_team, boundary, 11, archive, schedule, injury_sheet,
+    fetch_scoring = score_history)
+  stopifnot(any(grepl("Verified legal bench swap:", revised$details, fixed = TRUE)) == (bench_snaps >= 45))
 }
 positions <- workload_team$player_pos
 cb_slots <- head(which(positions == "CB"), 2L)
