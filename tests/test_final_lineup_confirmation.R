@@ -216,6 +216,7 @@ stopifnot(nrow(low_review) == 3L, nrow(final_lineup_review_violations(low_review
   any(grepl("team's PK snaps", low_review$observed)),
   any(grepl("66.0% of team defense snaps in Week 11; 76.0% in Week 10", low_review$details, fixed = TRUE)),
   any(grepl("ADL scoring through Week 10", low_review$details, fixed = TRUE)),
+  any(grepl("9.34 vs. 1.05 estimated points (+8.30)", low_review$details, fixed = TRUE)),
   !any(grepl("33 snaps", low_review$details, fixed = TRUE)),
   all(is_commissioner_only_alert(final_lineup_review_digest(low_review))))
 injured_qb <- bind_rows(injury_sheet, tibble(player_id = "1", player_status = "Q"))
@@ -228,13 +229,23 @@ stopifnot(nrow(low_snap_review_rows(workload_team, evidence2, 11, unavailable_be
   !adl_legal_snap_swap(workload_team$player_pos, "DT", "LB"),
   !adl_legal_snap_swap(workload_team$player_pos, "S", "WR"),
   !adl_legal_snap_swap(workload_team$player_pos, "CB", "S"))
+same_position <- workload_team
+attr(same_position, "mfl_bench") <- mutate(bench, player_pos = "S")
+same_archive <- archive |> mutate(player_pos = if_else(player_id == "8", "S", player_pos))
+for (gain in c(2.99, 3, 3.01)) {
+  threshold_scores <- efficiency_scores |> mutate(points = if_else(
+    mfl_id == "2", 5 / 11.5 * 11, (5 + gain) / 35.5 * 38))
+  revised <- low_snap_review_rows(same_position, evidence2, 11, same_archive, schedule, injury_sheet,
+    fetch_scoring = function(weeks) threshold_scores)
+  stopifnot(any(grepl("Available Player Suggestion:", revised$details, fixed = TRUE)) == (gain >= 3))
+}
 for (bench_snaps in c(44, 45, 46)) {
   boundary <- evidence2 |>
     mutate(defense_snaps = if_else(mfl_id == "8" & week == 11, bench_snaps, defense_snaps),
       team_defense = if_else(mfl_id == "8" & week == 11, 100, team_defense))
   revised <- low_snap_review_rows(workload_team, boundary, 11, archive, schedule, injury_sheet,
     fetch_scoring = score_history)
-  stopifnot(any(grepl("Verified legal bench swap:", revised$details, fixed = TRUE)) == (bench_snaps >= 45))
+  stopifnot(any(grepl("Available Player Suggestion:", revised$details, fixed = TRUE)) == (bench_snaps >= 45))
 }
 for (bench_snaps in c(44, 45, NA_real_)) {
   prior <- evidence2 |>
@@ -243,7 +254,7 @@ for (bench_snaps in c(44, 45, NA_real_)) {
       team_defense = if_else(mfl_id == "8" & week == 10, 100, team_defense))
   revised <- low_snap_review_rows(workload_team, prior, 11, archive, schedule, injury_sheet,
     fetch_scoring = score_history)
-  stopifnot(any(grepl("Verified legal bench swap:", revised$details, fixed = TRUE)) == isTRUE(bench_snaps >= 45))
+  stopifnot(any(grepl("Available Player Suggestion:", revised$details, fixed = TRUE)) == isTRUE(bench_snaps >= 45))
 }
 bye_evidence <- evidence2 |> filter(!(mfl_id %in% c("2", "8") & week == 10L))
 bye_evidence <- bind_rows(bye_evidence, bye_evidence |> filter(week == 9L) |> mutate(week = 8L))
@@ -253,8 +264,8 @@ bye_replay <- function(data, byes) low_snap_review_rows(workload_team, data, 11,
 with_bye <- bye_replay(bye_evidence, c(NYG = 10L))
 stopifnot(any(grepl("22.0% in Week 9", with_bye$observed, fixed = TRUE)),
   any(grepl("76.0% in Week 9", with_bye$details, fixed = TRUE)),
-  !any(grepl("Verified legal bench swap:", bye_replay(bye_evidence, integer())$details, fixed = TRUE)),
-  !any(grepl("Verified legal bench swap:", bye_replay(
+  !any(grepl("Available Player Suggestion:", bye_replay(bye_evidence, integer())$details, fixed = TRUE)),
+  !any(grepl("Available Player Suggestion:", bye_replay(
     mutate(bye_evidence, nfl_team = if_else(mfl_id == "8" & week == 9L, "BUF", nfl_team)),
     c(NYG = 10L))$details, fixed = TRUE)))
 positions <- workload_team$player_pos
