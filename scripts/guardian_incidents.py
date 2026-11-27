@@ -125,10 +125,22 @@ def report_missing_checks(coverage, state, dry, deliver, save, send):
         active = [(key, current[key]) for key in keys if key in current]
         if not active:
             continue
-        subject = '[Guardian needs attention] Required lineup protection is missing'
-        details = [f'{item["league"]} Week {item["week"]}: {item["mode"]}; window reference (UTC): {item["kickoff"]}'
-                   for _, item in active]
-        body = ('No verified Guardian check within the required deadline.\n\n' + '\n'.join(details) + '\n\n'
+        checks, schedules = [], []
+        for _, item in active:
+            reference = stamp(item['kickoff']).astimezone(timezone.utc).isoformat()
+            if item['mode'] in ('schedule', 'coverage verification unavailable'):
+                schedules.append(f'{item["league"]}: schedule lookup unavailable since {reference} (UTC).')
+            else:
+                checks.append(f'{item["league"]} Week {item["week"]}: {item["mode"]}; window reference (UTC): {reference}')
+        subject = ('[Guardian needs attention] Required lineup protection is missing' if checks
+                   else '[Guardian needs attention] Schedule verification unavailable')
+        sections = []
+        if checks:
+            sections.append('No verified Guardian check within the required deadline.\n' + '\n'.join(checks))
+        if schedules:
+            sections.append('Guardian could not refresh the MFL schedule. A schedule lookup failure alone does not establish a missed check.\n'
+                            + '\n'.join(schedules))
+        body = ('\n\n'.join(sections) + '\n\n'
                 'Please inspect your lineup manually until protection resumes. Automatic checks will continue.\n'
                 'This unresolved incident will not send repeated emails. No roster changes were made by this monitor.')
         if not dry:

@@ -9,6 +9,7 @@ import hashlib
 import re
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from http.client import IncompleteRead
 from typing import NamedTuple
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
@@ -247,7 +248,8 @@ def check(ledger, warnings, mode, now, read=feed):
     for league in ledger['leagues']:
         try:
             week, issues = inspect(league, now, read)
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, IncompleteRead, ValueError, KeyError, TypeError) as error:
+            print(f'Guardian check could not verify {league["key"]} ({type(error).__name__}); no receipt issued.')
             continue  # No receipt and no warning resolution after an incomplete read.
         warnings = record_warnings(warnings, league['key'], week, issues, now)
         result['checks'].append(dict(league=league['key'], week=week, mode=mode, checkedAt=now.isoformat()))

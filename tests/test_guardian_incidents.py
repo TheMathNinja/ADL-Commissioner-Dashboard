@@ -74,6 +74,28 @@ class GuardianIncidents(unittest.TestCase):
         self.assertEqual(len(self.state['sent']),2)
         self.assertTrue(any(v['status']=='sending' for s in self.saves for v in s.get('delivery_receipts',{}).values()))
 
+    def test_schedule_placeholder_is_not_reported_as_a_missed_check(self):
+        del self.coverage['incidents']['ADL']
+        self.coverage['incidents']['FAFL'].update(
+            week=0, mode='schedule', kickoff='2026-11-26T19:57:10-05:00')
+        self.report(); self.report()
+        self.assertEqual(len(self.messages), 1)
+        subject, body, _ = self.messages[0]
+        self.assertIn('Schedule verification unavailable', subject)
+        self.assertIn('FAFL: schedule lookup unavailable since 2026-11-27T00:57:10+00:00', body)
+        self.assertNotIn('Week 0', body)
+        self.assertNotIn('No verified Guardian check', body)
+
+    def test_schedule_and_real_deadline_failure_are_distinct_in_same_email(self):
+        self.coverage['incidents']['FAFL'].update(week=0, mode='schedule')
+        self.report()
+        self.assertEqual(len(self.messages), 1)
+        body = self.messages[0][1]
+        self.assertIn('No verified Guardian check within the required deadline', body)
+        self.assertIn('ADL Week 10: monitor', body)
+        self.assertIn('FAFL: schedule lookup unavailable', body)
+        self.assertNotIn('FAFL Week 0', body)
+
     def test_crash_after_acceptance_does_not_resend(self):
         self.report()
         self.state['sent'] = {}

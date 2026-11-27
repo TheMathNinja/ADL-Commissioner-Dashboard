@@ -8,6 +8,8 @@ import copy
 import json
 import os
 import re
+import ssl
+import time
 from datetime import datetime, timedelta, timezone
 from http.client import IncompleteRead
 from urllib.error import HTTPError
@@ -60,8 +62,19 @@ def validate(ledger, now):
 
 def public_json(url):
     # URL is constructed here from fixed MFL hosts and numeric metadata only.
-    with urlopen(Request(url, headers={'User-Agent': 'League-health-monitor'}), timeout=20) as response:
-        return json.load(response)
+    request = Request(url, headers={'User-Agent': 'League-health-monitor'})
+    for attempt, timeout in enumerate((8, 10, 12)):
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                return json.load(response)
+        except (OSError, IncompleteRead, json.JSONDecodeError) as error:
+            if isinstance(error, HTTPError):
+                retryable = error.code in {408, 429, 500, 502, 503, 504}
+            else:
+                retryable = not isinstance(getattr(error, 'reason', error), ssl.SSLCertVerificationError)
+            if attempt == 2 or not retryable:
+                raise
+            time.sleep(2 ** attempt)
 
 
 def schedule(row, now):
@@ -129,7 +142,8 @@ def evaluate(ledger, original, now, get_schedule=schedule):
                 state['schedule_history'][key + ':' + str(old['week'])] = {'league': key, 'schedule': old}
             state['schedules'][key] = info
             state.setdefault('scheduleFailures', {}).pop(key, None)
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, IncompleteRead, ValueError, KeyError, TypeError) as error:
+            print(f'Guardian schedule source unavailable for {key} ({type(error).__name__}); retaining verified schedule if present.')
             failed = state.setdefault('scheduleFailures', {}).setdefault(key, now.isoformat())
             if now - stamp(failed) >= GRACE:
                 problems.append({'key': key + ':schedule:' + failed, 'league': key, 'week': 0,

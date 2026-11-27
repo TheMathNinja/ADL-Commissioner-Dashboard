@@ -1,10 +1,13 @@
 import copy
+import io
+import ssl
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 import os
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError, URLError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import guardian_health_monitor as monitor
@@ -26,6 +29,40 @@ def schedule(row, now):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_public_get_recovers_after_tls_timeout_and_truncated_payload(self):
+        with patch.object(monitor, 'urlopen', side_effect=[
+            URLError(TimeoutError('handshake timed out')), io.BytesIO(b'{'), io.BytesIO(b'{"week":12}')
+        ]) as fetch, patch.object(monitor.time, 'sleep') as sleep:
+            self.assertEqual(monitor.public_json('https://api.myfantasyleague.com'), {'week':12})
+        self.assertEqual([c.kwargs['timeout'] for c in fetch.call_args_list], [8, 10, 12])
+        self.assertEqual([c.args[0] for c in sleep.call_args_list], [1, 2])
+
+    def test_public_get_retries_only_transient_errors(self):
+        denied = HTTPError('https://api.myfantasyleague.com', 403, 'Forbidden', {}, None)
+        for error, attempts in ((TimeoutError(), 3), (denied, 1),
+                                (URLError(ssl.SSLCertVerificationError('invalid certificate')), 1)):
+            with self.subTest(error=error), patch.object(monitor, 'urlopen', side_effect=error) as fetch, \
+                    patch.object(monitor.time, 'sleep'):
+                with self.assertRaises(type(error)):
+                    monitor.public_json('https://api.myfantasyleague.com')
+                self.assertEqual(fetch.call_count, attempts)
+
+    def test_failed_schedule_refresh_still_assesses_cached_window(self):
+        original = dict(state(), schedules={'FAFL': schedule({}, NOW)})
+        def fail_fafl(league, now):
+            if league['key'] == 'FAFL':
+                raise TimeoutError()
+            return schedule(league, now)
+        first = monitor.evaluate(ledger(), original, NOW, fail_fafl)
+        later = monitor.evaluate(ledger(), first, NOW + timedelta(minutes=15), fail_fafl)
+        self.assertEqual(later['schedules']['FAFL']['week'], 10)
+        self.assertEqual({p['mode'] for p in later['incidents'].values() if p['league']=='FAFL'},
+                         {'monitor','schedule'})
+        recovered = monitor.evaluate(ledger(), later, NOW + timedelta(minutes=16), schedule)
+        self.assertEqual(recovered['scheduleFailures'], {})
+        self.assertEqual({p['mode']: p['status'] for p in recovered['incidents'].values() if p['league']=='FAFL'},
+                         {'monitor':'open','schedule':'resolved'})
+
     def test_fifteen_minute_reads_are_healthy_but_a_missed_slot_is_not(self):
         start = datetime(2026, 11, 16, 19, tzinfo=timezone.utc)
         schedules = {'ADL': {'week':10,'kickoffs':[(start+timedelta(minutes=90)).isoformat()]}}
