@@ -237,15 +237,18 @@ class MFL:
         headers={'User-Agent':'FAFL-Inactivity-Watch/1.0'}
         if self.cookie:headers['Cookie']='MFL_USER_ID='+self.cookie
         request=urllib.request.Request(url,data=urllib.parse.urlencode(data).encode() if data else None,headers=headers)
-        attempts=3 if retry_safe else (2 if data is None else 1)
-        for attempt in range(attempts):
+        # Try faster connections first, then allow a longer final read without replaying any writes.
+        timeouts=(12,16,20) if data is None else ((20,20,20) if retry_safe else (20,))
+        for attempt,timeout in enumerate(timeouts):
             try:
-                with urllib.request.urlopen(request,timeout=20)as response:return response.read().decode('utf-8')
+                with urllib.request.urlopen(request,timeout=timeout)as response:return response.read().decode('utf-8')
             except (OSError,urllib.error.URLError,http.client.HTTPException)as error:
                 code=getattr(error,'code',None)
                 transient=code in (429,500,502,503,504) if code is not None else not isinstance(getattr(error,'reason',error),ssl.SSLCertVerificationError)
-                if attempt==attempts-1 or not transient:raise
-                time.sleep(2**(attempt+1))
+                if attempt==len(timeouts)-1 or not transient:raise
+                delay=2**(attempt+1)
+                print(f'MFL request temporarily unavailable; retrying in {delay}s ({attempt+2}/{len(timeouts)})',flush=True)
+                time.sleep(delay)
 
     def login(self):
         # Login creates only a session, so retrying a lost response cannot send a notice.

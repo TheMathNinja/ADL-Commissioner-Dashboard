@@ -50,6 +50,26 @@ class InactivityTests(unittest.TestCase):
             with self.assertRaises(TimeoutError):m.MFL().read('https://example.test',{'write':'yes'})
             self.assertEqual(opened.call_count,1);sleep.assert_not_called()
 
+    def test_league_export_recovers_after_two_handshake_timeouts(self):
+        timeout=m.urllib.error.URLError(TimeoutError('TLS handshake timed out'))
+        response=Mock()
+        response.__enter__=Mock(return_value=response)
+        response.__exit__=Mock(return_value=False)
+        response.read.return_value=b'{"league":{"franchises":{}}}'
+        with patch.object(m.urllib.request,'urlopen',side_effect=[timeout,timeout,response])as opened,patch.object(m.time,'sleep')as sleep:
+            self.assertEqual(m.MFL().export('league'),{'franchises':{}})
+        self.assertEqual([call.kwargs['timeout']for call in opened.call_args_list],[12,16,20])
+        self.assertEqual([call.args[0]for call in sleep.call_args_list],[1,2,4])
+
+    def test_league_export_persistent_timeout_and_permanent_errors_fail_closed(self):
+        timeout=m.urllib.error.URLError(TimeoutError('TLS handshake timed out'))
+        denied=m.urllib.error.HTTPError('https://example.test',403,'Forbidden',{},None)
+        certificate=m.urllib.error.URLError(m.ssl.SSLCertVerificationError('invalid certificate'))
+        for error,attempts in ((timeout,3),(denied,1),(certificate,1)):
+            with self.subTest(error=error),patch.object(m.urllib.request,'urlopen',side_effect=error)as opened,patch.object(m.time,'sleep'):
+                with self.assertRaises(type(error)):m.MFL().export('league')
+                self.assertEqual(opened.call_count,attempts)
+
     def setUp(self):
         self.now=datetime.fromisoformat('2026-10-30T00:00:00+00:00')
         self.f={'id':'0001','name':'Test Franchise','owner_name':'Test Owner','username':'owner','email':'owner@example.com','lastVisit':str(int((self.now-timedelta(hours=1)).timestamp()))}
