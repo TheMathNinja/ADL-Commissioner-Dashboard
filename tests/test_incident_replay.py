@@ -10,6 +10,35 @@ import email_workflow_failures as m
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_scheduled_live_watch_read_failure_waits_for_verified_publication(self):
+        repo = 'TheMathNinja/ADL-GM-Dashboard'
+        run = dict(path='.github/workflows/live_bonus_watch.yml', event='schedule', head_branch='main', conclusion='failure',
+                   created_at='2026-11-26T23:45:59Z', updated_at='2026-11-26T23:47:40Z')
+        failed = ['watch: Refresh public MFL live scores']
+        code, _ = m.diagnose(['Error: MFL public read retry exhausted: liveScoring'])
+        self.assertEqual(code, 'live-watch-read-exhausted')
+        diagnoses = {'watch': code}
+        early = m.gameday_time('2026-11-27T00:04:49Z')
+        later = m.gameday_time('2026-11-27T00:19:00Z')
+        snapshot = dict(league='ADL', season=2026, week=12, fetchedAt='2026-11-27T00:03:00Z',
+                        teams=[dict(id=f'{i:04d}', score=0.0) for i in range(1,33)])
+        def check(now=early, workflow=run, steps=failed, evidence=diagnoses):
+            return m.live_watch_read_recovery(repo, workflow, steps, evidence, now)
+        with patch.object(m, 'read_gameday_snapshot', return_value=snapshot) as read:
+            self.assertEqual(check()[0], 'recovered')
+            self.assertEqual(check(later)[0], 'retry_deadline')  # Old evidence is not fresh.
+            read.reset_mock()
+            self.assertIsNone(check(workflow=dict(run,event='workflow_dispatch')))
+            self.assertIsNone(check(steps=failed+['watch: Publish']))
+            self.assertIsNone(check(evidence={'watch':'unclassified'}))
+            read.assert_not_called()
+        for invalid in (dict(snapshot, league='FAFL'), dict(snapshot, season=2025),
+                        dict(snapshot, liveProbabilityUnavailable=True),
+                        dict(snapshot, fetchedAt='2026-11-26T23:47:39Z'), dict(snapshot, teams=snapshot['teams'][:-1])):
+            with patch.object(m, 'read_gameday_snapshot', return_value=invalid):
+                self.assertEqual(check()[0], 'pending')
+                self.assertEqual(check(later)[0], 'retry_deadline')
+
     def test_nov15_diagnostic_audit_recovery_ignores_labels_not_required_work(self):
         old=dict(id=43782792510,workflow_id=123,path='.github/workflows/league-audit.yml',
             display_title='Private league audit - contracts - source verify-recovery-43731679111',

@@ -12,6 +12,8 @@ READ_ONLY_WORKFLOWS = {
 }
 DEADLINE = timedelta(minutes=30)
 RULES = (
+    ('live-watch-read-exhausted', r'^error: mfl public read retry exhausted: [a-z]+$',
+     'The collector retried the MFL read; the reporter checked for a newer valid snapshot.'),
     ('generated-output-conflict', r'generated (?:output conflicts|publication rejected)|'
      r'main advanced again during the regenerated build|non-fast-forward|could not apply\b',
      'Inspect the publisher and verify a rebuild from current main; do not replay stale output.'),
@@ -35,7 +37,7 @@ RULES = (
 def diagnose(errors):
     joined = '\n'.join(errors[-30:]).casefold()
     for code, pattern, action in RULES:
-        if re.search(pattern, joined):
+        if re.search(pattern, joined, re.MULTILINE):
             return code, action
     return 'unclassified', 'Inspect the run logs and establish a reproducible cause before changing production.'
 

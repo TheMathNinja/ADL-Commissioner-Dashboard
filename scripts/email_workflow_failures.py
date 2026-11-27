@@ -1202,6 +1202,39 @@ def read_gameday_snapshot(league, now):
     with urllib.request.urlopen(req, timeout=8) as response:
         return json.load(response)
 
+
+def live_watch_read_recovery(repo, run, failed, diagnoses, now):
+    # A scheduled read failure can recover as soon as the normal watcher
+    # publishes; a long-running watch job need not exit first.
+    repos = {f'TheMathNinja/{league}-GM-Dashboard': league for league in ('ADL', 'FAFL')}
+    league = repos.get(repo)
+    if (not league or run.get('path') != '.github/workflows/live_bonus_watch.yml'
+            or run.get('event') != 'schedule' or run.get('head_branch') != 'main'
+            or run.get('conclusion') != 'failure'
+            or failed != ['watch: Refresh public MFL live scores']
+            or diagnoses.get('watch') != 'live-watch-read-exhausted'):
+        return None
+    ended = gameday_time(run['updated_at'])
+    started = gameday_time(run['created_at']).astimezone(GAMEDAY_EASTERN)
+    season = started.year if started.month > 2 else started.year - 1
+    try:
+        evidence = read_gameday_snapshot(league, now)
+        teams = evidence['teams']
+        team_ids = {team['id'] for team in teams}
+        fetched = gameday_time(evidence['fetchedAt'])
+        week = evidence['week']
+        if (evidence['league'] == league and evidence['season'] == season
+                and type(week) is int and 1 <= week <= 17
+                and ended < fetched <= now and now - fetched <= timedelta(minutes=5)
+                and len(teams) == 32 and team_ids == {f'{i:04d}' for i in range(1, 33)}
+                and not evidence.get('forecastsPending') and not evidence.get('liveProbabilityUnavailable')
+                and (week > 12 or not evidence.get('liveBonusProbabilityUnavailable'))
+                and all(type(team.get('score')) in (int, float) and math.isfinite(team['score']) for team in teams)):
+            return 'recovered', fetched.isoformat()
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass  # A failed evidence read is not proof of recovery.
+    return ('pending' if now - ended < GAMEDAY_MAX_SAMPLE_GAP else 'retry_deadline'), None
+
 def confirmed_final_display_problem(snapshot):
     """Require an upstream final matched by NFL team and scheduled kickoff."""
     import urllib.request
@@ -1766,6 +1799,12 @@ def main():
                 codes, diagnoses = failure_evidence(repo, run, job_list)
                 if pages_service_recovery_pending(run, failed, diagnoses, datetime.now(timezone.utc)):
                     continue  # Wait for publication evidence, not another dispatched deploy.
+                live_repair = live_watch_read_recovery(repo, run, failed, diagnoses, datetime.now(timezone.utc))
+                if live_repair and live_repair[0] == 'recovered':
+                    state['checked'][key] = 'verified later live score publication at ' + live_repair[1]
+                    continue
+                if live_repair and live_repair[0] == 'pending':
+                    continue  # Give the existing watch a chance to publish; do not dispatch a writer.
                 scope,failed = unreported_steps(state,repo,run,history,failed,codes)
                 if not failed:
                     state['checked'][key] = 'duplicate notification for ' + incident
@@ -1785,7 +1824,7 @@ def main():
                     failed = available
                     if not failed:
                         continue  # Not delivered or acknowledged; keep the safety net visible.
-                repair = repair_disposition(repo, run, history, datetime.now(timezone.utc))
+                repair = live_repair[0] if live_repair else repair_disposition(repo, run, history, datetime.now(timezone.utc))
                 if (args.deadlines and repair == 'no_safe_retry' and not args.dry_run
                         and failed == failures(run, job_list)):
                     try:
