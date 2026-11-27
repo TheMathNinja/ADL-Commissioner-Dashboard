@@ -1192,6 +1192,7 @@ def read_gameday_health(repo):
 GAMEDAY_EASTERN = ZoneInfo('America/New_York')
 MAX_AGE_SECONDS = 240  # Two-minute backup cadence plus one cycle of margin.
 GAMEDAY_CONFIRMATION = timedelta(minutes=15)
+GAMEDAY_AFTER_REPAIR = timedelta(minutes=5)
 GAMEDAY_MAX_SAMPLE_GAP = timedelta(minutes=30)
 
 def read_gameday_snapshot(league, now):
@@ -1353,6 +1354,7 @@ def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None)
             record = None
         if not error:
             if record and not record.get('resolved'):
+                record.pop('failed_repair_observation', None)
                 last_good = record.get('last_good')
                 if not last_good or now - gameday_time(last_good) > GAMEDAY_MAX_SAMPLE_GAP:
                     record['healthy_since'] = now.isoformat()
@@ -1380,10 +1382,19 @@ def check_gameday_direct(state, dry_run, receipts, coverage_errors, *, now=None)
         if not gameday_failed_repair(receipt, week, season, now):
             print(f'{league} Gameday escalation deferred: no current failed-repair receipt.')
             continue
+        # Another repair may publish before the next scan. Require a separate
+        # verification, without extending the wait on every same-incident retry.
+        repair_observation = record.get('failed_repair_observation')
+        if not repair_observation or repair_observation['incident'] != receipt['openedAt']:
+            record['failed_repair_observation'] = {'incident': receipt['openedAt'], 'at': now.isoformat()}
+            continue
+        if now - gameday_time(repair_observation['at']) < GAMEDAY_AFTER_REPAIR:
+            continue
         subject = f'{league} Gameday forecast failure'
         body = (f"{league} Gameday health check at {local:%Y-%m-%d %I:%M %p %Z}. "
                 f"{error}\nThis problem persisted across checks for at least 15 minutes. "
                 f"Automatic repair did not restore a verified feed: {receipt['error']}\n"
+                "A later check still could not verify recovery.\n"
                 "Please review the live feed; automatic checks will continue.")
         if dry_run:
             print(subject + '\n' + body)

@@ -1138,6 +1138,7 @@ class GamedayReports(unittest.TestCase):
             send.assert_not_called()
             for minute, failing, receipts in [
                     (28, True, {}), (30, True, {'FAFL': self.failed_repair()}),
+                    (35, True, {'FAFL': self.failed_repair()}),
                     (38, False, {}), (40, True, {}), (48, True, {})]:
                 read.side_effect = lambda league, now: self.snapshot(league, now, league == 'FAFL' and failing)
                 m.check_gameday_direct(state, False, receipts, errors, now=self.start + m.timedelta(minutes=minute))
@@ -1154,7 +1155,7 @@ class GamedayReports(unittest.TestCase):
                           side_effect=lambda league, now: self.snapshot(league, now, True)), \
              patch.object(m.mail, 'deliver_once') as deliver, patch.object(m, 'save') as save, \
              patch('builtins.print') as output:
-            for minute in (0, 20):
+            for minute in (0, 20, 25):
                 m.check_gameday_direct(state, True, {'ADL': receipt, 'FAFL': receipt}, errors,
                                        now=self.start + m.timedelta(minutes=minute))
         self.assertEqual(errors, [])
@@ -1172,6 +1173,33 @@ class GamedayReports(unittest.TestCase):
         self.assertFalse(m.gameday_failed_repair(receipt, 11, None, now + m.timedelta(hours=1)))
         self.assertFalse(m.gameday_failed_repair(dict(receipt, repairStatus='attempting'), 11, None, now))
         self.assertFalse(m.gameday_failed_repair(dict(receipt, repairStatus='recovered'), 11, None, now))
+
+    def test_nov26_failed_repair_followed_by_verified_recovery_does_not_email(self):
+        opened = m.gameday_time('2026-11-27T00:57:16Z')
+        failed = dict(week=12, season=2026, openedAt=opened.isoformat(), error='Snapshot is stale.',
+                      repairStatus='needs_attention', repairAttemptedAt='2026-11-27T01:16:16Z',
+                      checkedAt='2026-11-27T01:16:57Z')
+        later_failed = dict(failed, repairAttemptedAt='2026-11-27T01:21:16Z',
+                            checkedAt='2026-11-27T01:21:36Z')
+        for healthy in (True, False):
+            with self.subTest(healthy=healthy), patch.object(m, 'read_gameday_snapshot') as read, \
+                 patch.object(m, 'save'), patch.object(m.mail, 'send_email') as send, \
+                 patch.object(m.mail, 'deliver_once', side_effect=lambda state, key, do_send, save: do_send()):
+                state, errors = {'sent': {}}, []
+                for stamp, failing, receipt in (
+                    ('2026-11-27T01:02:00Z', True, None),
+                    ('2026-11-27T01:18:00Z', True, failed),
+                    ('2026-11-27T01:22:00Z', True, later_failed),
+                    ('2026-11-27T01:24:00Z', not healthy, None if healthy else later_failed),
+                    ('2026-11-27T01:28:00Z', not healthy, None if healthy else later_failed),
+                ):
+                    read.side_effect = lambda league, now: dict(self.snapshot(league, now, league == 'FAFL' and failing),
+                                                               week=12, season=2026)
+                    m.check_gameday_direct(state, False, {'FAFL':receipt}, errors, now=m.gameday_time(stamp))
+                    if stamp < '2026-11-27T01:24:00Z':
+                        send.assert_not_called()
+                self.assertEqual(send.call_count, 0 if healthy else 1)
+                self.assertEqual(errors, [])
 
 
 if __name__ == '__main__':
