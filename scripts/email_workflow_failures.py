@@ -471,6 +471,9 @@ def incident_key(repo, run):
     """Stable identity for repeated dispatches of the same production incident."""
     if repo == GUARDIAN and PurePosixPath(run.get('path', '')).name == 'sync_chi_team_tools.yml':
         return f'{repo}:{run.get("workflow_id")}:Sync private CHI Team Tools trades'
+    if (repo == DAILY_REPO and run.get('path') == GM_DASHBOARD_DEPLOY_PATH
+            and run.get('display_title') in GM_DASHBOARD_DEPLOY_STEPS):
+        return f'{repo}:{run.get("workflow_id")}:{run.get("head_branch", "")}:{run["display_title"]}'
     if run.get('_account_report'):
         return f'{repo}:{run.get("workflow_id")}:account-check:{run.get("head_branch", "")}'
     return f'{repo}:{run.get("workflow_id")}:{run.get("display_title") or run.get("name", "")}'
@@ -877,6 +880,8 @@ REVIEWED_ROOT_CAUSE_FIXES = {
 
 def remember_recovery(state, repo, run, recovery, failed_steps, job_list=()):
     """Group retry attempts under the exact verified replacement; never backfill mail."""
+    if gm_dashboard_unstarted(repo, run, job_list):
+        return  # A replaced pre-start cancellation never merits a recovery email.
     since = state.get('recovery_notices_since')
     if not since or not isinstance(recovery.get('id'), int) or not failed_steps:
         return
@@ -1120,6 +1125,25 @@ GM_DASHBOARD_DEPLOY_STEPS = {
     'Deploy GM Dashboard [reviewed snapshot]': 'Deploy reviewed dashboard snapshot',
     'Deploy GM Dashboard [EXT rebuild]': 'Rebuild and deploy confirmed EXT scores',
 }
+GM_DASHBOARD_REPLACEMENT_GRACE = timedelta(minutes=30)
+
+
+def gm_dashboard_unstarted(repo, run, jobs):
+    return (repo == DAILY_REPO and not jobs and run.get('conclusion') == 'cancelled'
+            and run.get('path') == GM_DASHBOARD_DEPLOY_PATH and run.get('event') == 'workflow_dispatch'
+            and run.get('head_branch') == 'main'
+            and run.get('display_title') in GM_DASHBOARD_DEPLOY_STEPS
+            and bool(re.fullmatch(r'[a-f0-9]{40}', run.get('head_sha') or '')))
+
+
+def gm_dashboard_cancellation_disposition(repo, run, jobs, now):
+    if not gm_dashboard_unstarted(repo, run, jobs):
+        return None
+    try:
+        ended = gameday_time(run['updated_at'])
+        return 'pending' if ended <= now < ended + GM_DASHBOARD_REPLACEMENT_GRACE else 'retry_deadline'
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
 
 
 def gm_dashboard_unstarted_recovered(repo, run, later, original, completed):
@@ -1809,6 +1833,9 @@ def main():
                     remember_recovery(state, repo, run, recovery, failures(run, job_list), job_list)
                     state['checked'][key] = 'resolved before notification; verified recovery: ' + recovery['html_url']
                     continue
+                gm_wait = gm_dashboard_cancellation_disposition(repo, run, job_list, datetime.now(timezone.utc))
+                if gm_wait == 'pending':
+                    continue  # Allow a same-mode replacement to start and finish; never dispatch it.
                 if recovered_inactivity_startup(repo, run, job_list, later):
                     state['checked'][key] = 'startup failure superseded by verified live inactivity check: ' + later['html_url']
                     continue
@@ -1921,7 +1948,8 @@ def main():
                     failed = available
                     if not failed:
                         continue  # Not delivered or acknowledged; keep the safety net visible.
-                repair = live_repair[0] if live_repair else repair_disposition(repo, run, history, datetime.now(timezone.utc))
+                repair = (gm_wait or (live_repair[0] if live_repair else
+                          repair_disposition(repo, run, history, datetime.now(timezone.utc))))
                 if rebuild and args.deadlines and failed == rebuild_steps:
                     try:
                         retry = fafl_repair.consider_rebuild(state, repo, run, failed, diagnoses, datetime.now(timezone.utc),

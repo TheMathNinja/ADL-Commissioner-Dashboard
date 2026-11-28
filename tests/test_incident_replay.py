@@ -35,6 +35,23 @@ class IncidentReplay(unittest.TestCase):
             compare.return_value = {'status': 'ahead', 'behind_by': 0}
             job['steps'][-1]['conclusion'] = 'skipped'
             self.assertIsNone(m.verified_recovery(m.DAILY_REPO, old, [], [later]))
+        ended = m.gameday_time(old['updated_at'])
+        check = lambda when, run=old, jobs=(): m.gm_dashboard_cancellation_disposition(
+            m.DAILY_REPO, run, jobs, when)
+        self.assertEqual(check(ended), 'pending')
+        self.assertEqual(check(ended + m.timedelta(minutes=29, seconds=59)), 'pending')
+        self.assertEqual(check(ended + m.timedelta(minutes=30)), 'retry_deadline')
+        self.assertIsNone(check(ended, dict(old, display_title='Deploy GM Dashboard')))
+        self.assertIsNone(check(ended, jobs=[job]))
+        state = {'recovery_notices_since': old['created_at']}
+        m.remember_recovery(state, m.DAILY_REPO, old, later, m.failures(old, []), [])
+        self.assertNotIn('recovery_notices', state)
+        steps = m.failures(old, [])
+        state = {'sent': {'previous': {'incident_key': m.incident_key(m.DAILY_REPO, old),
+            'failed_steps': steps, 'failed_at': old['updated_at']}}}
+        self.assertEqual(m.unreported_steps(state, m.DAILY_REPO, old, [], steps)[1], [])
+        other = dict(old, display_title='Deploy GM Dashboard [EXT rebuild]')
+        self.assertEqual(m.unreported_steps(state, m.DAILY_REPO, other, [], steps)[1], steps)
 
     def test_runner_mirror_error_is_identified_without_replaying_dashboard_writer(self):
         code, _ = m.diagnose([
