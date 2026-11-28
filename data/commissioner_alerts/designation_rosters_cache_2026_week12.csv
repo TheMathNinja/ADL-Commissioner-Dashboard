@@ -16,7 +16,7 @@ NFC,DAL,Dallas Cowboys,17072,"Harris, Tre LAC WR","Harris, Tre",LAC,WR,Active,,2
 NFC,DAL,Dallas Cowboys,12620,"Prescott, Dak DAL QB","Prescott, Dak",DAL,QB,Active,,25.5,4,256.73,2026 B/R,,prescott
 NFC,DAL,Dallas Cowboys,14102,"Metcalf, DK PIT WR","Metcalf, DK",PIT,WR,Active,,13.6,3,256.73,2026 oEXT,,metcalf
 NFC,DAL,Dallas Cowboys,16598,"Irving, Bucky TBB RB","Irving, Bucky",TBB,RB,Active,,1.17,2,256.73,2024 4.06,,irving
-NFC,DAL,Dallas Cowboys,17589,"Trotter, Josiah TBB LB","Trotter, Josiah",TBB,LB,Active,Questionable,1.71,4,256.73,2026 2.12,,trotter
+NFC,DAL,Dallas Cowboys,17589,"Trotter, Josiah TBB LB","Trotter, Josiah",TBB,LB,Active,R,1.71,4,256.73,2026 2.12,,trotter
 NFC,DAL,Dallas Cowboys,17571,"Golday, Jake MIN LB","Golday, Jake",MIN,LB,Active,R,1.52,4,256.73,2026 3.01,,golday
 NFC,DAL,Dallas Cowboys,14833,"Jeudy, Jerry CLE WR","Jeudy, Jerry",CLE,WR,Active,,4.05,3,256.73,2026 B/R,,jeudy
 NFC,DAL,Dallas Cowboys,13590,"Mayfield, Baker TBB QB","Mayfield, Baker",TBB,QB,Active,IR,14.88,4,256.73,2026 UFA,,mayfield
@@ -754,7 +754,7 @@ NFC,SEA,Seattle Seahawks,15681,"Elliss, Christian NEP LB","Elliss, Christian",NE
 NFC,SEA,Seattle Seahawks,17163,"Parrish, Jacob TBB CB","Parrish, Jacob",TBB,CB,Active,,0.99,2,261.29,2025 UDFA,,parrish
 NFC,SEA,Seattle Seahawks,17584,"Jacas, Gabe NEP DE","Jacas, Gabe",NEP,DE,Active,R,1.02,4,261.29,2026 4.19,,jacas
 NFC,SEA,Seattle Seahawks,17657,"Green, Taylen CLE QB","Green, Taylen",CLE,QB,Active,R,0.94,3,261.29,2026 UDFA,,green
-NFC,SEA,Seattle Seahawks,15357,"Barmore, Christian NEP DT","Barmore, Christian",NEP,DT,Active,,13.7,1,261.29,2025 UFA,,barmore
+NFC,SEA,Seattle Seahawks,15357,"Barmore, Christian NEP DT","Barmore, Christian",NEP,DT,Active,Questionable,13.7,1,261.29,2025 UFA,,barmore
 NFC,SEA,Seattle Seahawks,16794,"Briggs, Jowon NYJ DT","Briggs, Jowon",NYJ,DT,Active,,1.1,1,261.29,2026 UFA,,briggs
 NFC,SEA,Seattle Seahawks,17096,"Williams, Savion GBP WR","Williams, Savion",GBP,WR,Active,,1.08,3,261.29,2025 4.15,,williams
 NFC,SEA,Seattle Seahawks,15484,"Cooper, Jonathon DEN DE","Cooper, Jonathon",DEN,DE,Active,,6.94,3,261.29,2025 iEXT,,cooper
@@ -1418,7 +1418,7 @@ AFC,KCC,Kansas City Chiefs,15391,"Williams, Milton NEP DT","Williams, Milton",NE
 AFC,KCC,Kansas City Chiefs,17136,"Nolen, Walter ARI DT","Nolen, Walter",ARI,DT,Active,,1.46,3,254.86,2025 3.04,,nolen
 AFC,KCC,Kansas City Chiefs,14221,"Williams, Quincy CLE LB","Williams, Quincy",CLE,LB,Active,,4.94,2,254.86,2026 B/R,,williams
 AFC,KCC,Kansas City Chiefs,17501,"Concepcion, KC CLE WR","Concepcion, KC",CLE,WR,Active,R,4.99,4,254.86,2026 1.07,,concepcion
-AFC,KCC,Kansas City Chiefs,17589,"Trotter, Josiah TBB LB","Trotter, Josiah",TBB,LB,Active,Questionable,1.92,4,254.86,2026 2.08,,trotter
+AFC,KCC,Kansas City Chiefs,17589,"Trotter, Josiah TBB LB","Trotter, Josiah",TBB,LB,Active,R,1.92,4,254.86,2026 2.08,,trotter
 AFC,KCC,Kansas City Chiefs,17506,"Bell, Chris MIA WR","Bell, Chris",MIA,WR,Active,R,1.71,4,254.86,2026 2.12,,bell
 AFC,KCC,Kansas City Chiefs,15853,"Mafe, Boye CIN DE","Mafe, Boye",CIN,DE,Active,,2.01,2,254.86,2026 UFA,,mafe
 AFC,KCC,Kansas City Chiefs,13447,"Wilson, Eric MIN LB","Wilson, Eric",MIN,LB,Active,,2.01,2,254.86,2026 UFA,,wilson
