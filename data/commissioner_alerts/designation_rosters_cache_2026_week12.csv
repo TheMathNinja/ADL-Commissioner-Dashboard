@@ -1011,6 +1011,7 @@ AFC,BAL,Baltimore Ravens,15864,"Wright, Alex CLE DE","Wright, Alex",CLE,DE,Activ
 AFC,BAL,Baltimore Ravens,13742,"Hill, B.J. CIN DT","Hill, B.J.",CIN,DT,Active,,1.1,1,262.58,2026 UFA,,hill
 AFC,BAL,Baltimore Ravens,14840,"Aiyuk, Brandon WAS WR","Aiyuk, Brandon",WAS,WR,Active,,2.38,2,262.58,2026 B/R,,aiyuk
 AFC,BAL,Baltimore Ravens,16267,"Stevenson, Tyrique CHI CB","Stevenson, Tyrique",CHI,CB,Active,,1.1,1,262.58,2026 UFA,,stevenson
+AFC,BAL,Baltimore Ravens,14102,"Metcalf, DK PIT WR","Metcalf, DK",PIT,WR,Active,,2,1,262.58,2026 UFA,,metcalf
 AFC,CIN,Cincinnati Bengals,15365,"Moehrig, Trevon CAR S","Moehrig, Trevon",CAR,S,Active,,6.92,1,266.62,2024 iEXT,,moehrig
 AFC,CIN,Cincinnati Bengals,16276,"Young, Byron LAR DE","Young, Byron",LAR,DE,Active,,5.81,1,266.62,2023 3.12^,,young
 AFC,CIN,Cincinnati Bengals,16284,"Williams, Dorian BUF LB","Williams, Dorian",BUF,LB,Active,,1.17,1,266.62,2023 5.10,,williams
@@ -1073,7 +1074,7 @@ AFC,CLE,Cleveland Browns,16809,"Coker, Jalen CAR WR","Coker, Jalen",CAR,WR,Activ
 AFC,CLE,Cleveland Browns,15822,"Lloyd, Devin CAR LB","Lloyd, Devin",CAR,LB,Active,,8.2,1,255.02,2026 UFA,,lloyd
 AFC,CLE,Cleveland Browns,15380,"Campbell, Tyson CLE CB","Campbell, Tyson",CLE,CB,Active,,5.1,1,255.02,2026 UFA,,campbell
 AFC,CLE,Cleveland Browns,15712,"Allgeier, Tyler ARI RB","Allgeier, Tyler",ARI,RB,Active,,4.37,2,255.02,2026 UFA,,allgeier
-AFC,CLE,Cleveland Browns,7836,"Rodgers, Aaron PIT QB","Rodgers, Aaron",PIT,QB,Active,,2.2,1,255.02,2026 UFA,,rodgers
+AFC,CLE,Cleveland Browns,7836,"Rodgers, Aaron FA QB","Rodgers, Aaron",FA,QB,Active,,2.2,1,255.02,2026 UFA,,rodgers
 AFC,CLE,Cleveland Browns,15875,"Belton, Dane NYJ S","Belton, Dane",NYJ,S,Active,,1.1,1,255.02,2026 UFA,,belton
 AFC,CLE,Cleveland Browns,15819,"Wyatt, Devonte GBP DT","Wyatt, Devonte",GBP,DT,Active,,2.05,2,255.02,2025 iEXT,,wyatt
 AFC,CLE,Cleveland Browns,17657,"Green, Taylen CLE QB","Green, Taylen",CLE,QB,Active,R,0.98,4,255.02,2026 5.18,,green
@@ -1198,6 +1199,7 @@ AFC,HOU,Houston Texans,12802,"Reader, D.J. NYG DT","Reader, D.J.",NYG,DT,Active,
 AFC,HOU,Houston Texans,16019,"Hansen, Jake HOU LB","Hansen, Jake",HOU,LB,Active,,1.1,1,257.89,2026 UFA,,hansen
 AFC,HOU,Houston Texans,16419,"Szmyt, Andre CLE PK","Szmyt, Andre",CLE,PK,Active,,1.1,1,257.89,2026 UFA,,szmyt
 AFC,HOU,Houston Texans,14244,"Gay, Matt LVR PK","Gay, Matt",LVR,PK,Active,,2,1,257.89,2026 UFA,,gay
+AFC,HOU,Houston Texans,16664,"Trotter Jr., Jeremiah PHI LB","Trotter Jr., Jeremiah",PHI,LB,Active,,3.4,1,257.89,2026 UFA,,trotter jr.
 AFC,HOU,Houston Texans,15749,"Pacheco, Isiah DET RB","Pacheco, Isiah",DET,RB,INJURED_RESERVE,,5.3,1,257.89,2026 UFA,,pacheco
 AFC,HOU,Houston Texans,16688,"Guerendo, Isaac SFO RB","Guerendo, Isaac",SFO,RB,INJURED_RESERVE,,1.13,2,257.89,2024 4.12,,guerendo
 AFC,HOU,Houston Texans,16215,"Musgrave, Luke GBP TE","Musgrave, Luke",GBP,TE,INJURED_RESERVE,IR-PUP,1.1,1,257.89,2026 UFA,,musgrave
