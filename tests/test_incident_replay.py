@@ -12,6 +12,30 @@ import fafl_rebuild_repair as repair
 
 
 class IncidentReplay(unittest.TestCase):
+    def test_cancelled_gm_deploy_only_recovers_from_proven_same_mode_publication(self):
+        mode = 'Deploy GM Dashboard [reviewed snapshot]'
+        old = dict(id=46113997916, path=m.GM_DASHBOARD_DEPLOY_PATH, workflow_id=123, head_branch='main',
+                   event='workflow_dispatch', status='completed', conclusion='cancelled',
+                   display_title=mode, created_at='2026-11-28T05:51:45Z', updated_at='2026-11-28T05:52:35Z',
+                   head_sha='a'*40, _account_report=True)
+        later = dict(old, id=46114054875, head_sha='b'*40, conclusion='success',
+                     created_at='2026-11-28T05:52:30Z', updated_at='2026-11-28T05:57:00Z')
+        job = dict(name='deploy', conclusion='success', started_at='2026-11-28T05:53:00Z',
+                   steps=[dict(name=step, conclusion='success') for step in
+                          ('Check out repository', 'Verify EXT publication regression cases',
+                           'Deploy reviewed dashboard snapshot')])
+        with patch.object(m, 'jobs', return_value=[job]), patch.object(m, 'api', return_value={
+                'status': 'ahead', 'behind_by': 0}) as compare:
+            self.assertEqual(m.verified_recovery(m.DAILY_REPO, old, [], [later])['id'], later['id'])
+            self.assertIsNone(m.verified_recovery(m.DAILY_REPO, dict(old, display_title='Deploy GM Dashboard'), [], [later]))
+            self.assertIsNone(m.verified_recovery(m.DAILY_REPO, old, [], [
+                dict(later, display_title='Deploy GM Dashboard [EXT rebuild]')]))
+            compare.return_value = {'status': 'diverged', 'behind_by': 1}
+            self.assertIsNone(m.verified_recovery(m.DAILY_REPO, old, [], [later]))
+            compare.return_value = {'status': 'ahead', 'behind_by': 0}
+            job['steps'][-1]['conclusion'] = 'skipped'
+            self.assertIsNone(m.verified_recovery(m.DAILY_REPO, old, [], [later]))
+
     def test_runner_mirror_error_is_identified_without_replaying_dashboard_writer(self):
         code, _ = m.diagnose([
             'E: Failed to fetch https://packages.microsoft.com/ubuntu/24.04/prod/dists/noble/InRelease  403 Forbidden',

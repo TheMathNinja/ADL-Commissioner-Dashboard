@@ -1115,6 +1115,43 @@ def queued_fafl_rebuild_recovered(repo, run, later, original, completed):
         return False
 
 
+GM_DASHBOARD_DEPLOY_PATH = '.github/workflows/deploy_dashboard.yml'
+GM_DASHBOARD_DEPLOY_STEPS = {
+    'Deploy GM Dashboard [reviewed snapshot]': 'Deploy reviewed dashboard snapshot',
+    'Deploy GM Dashboard [EXT rebuild]': 'Rebuild and deploy confirmed EXT scores',
+}
+
+
+def gm_dashboard_unstarted_recovered(repo, run, later, original, completed):
+    if (repo != DAILY_REPO or original or run.get('conclusion') != 'cancelled'
+            or later.get('id') == run.get('id')
+            or any(item.get('path') != GM_DASHBOARD_DEPLOY_PATH or item.get('event') != 'workflow_dispatch'
+                   or item.get('head_branch') != 'main' for item in (run, later))):
+        return False
+    mode = run.get('display_title')
+    if mode not in GM_DASHBOARD_DEPLOY_STEPS or later.get('display_title') != mode:
+        return False
+    if not all(re.fullmatch(r'[a-f0-9]{40}', item.get('head_sha') or '') for item in (run, later)):
+        return False
+    deployed = next((job for job in completed if job.get('name') == 'deploy'
+                     and job.get('conclusion') == 'success'), {})
+    passed = {step.get('name') for step in deployed.get('steps', []) if step.get('conclusion') == 'success'}
+    if not {'Check out repository', 'Verify EXT publication regression cases',
+            GM_DASHBOARD_DEPLOY_STEPS[mode]} <= passed:
+        return False
+    try:
+        if (gameday_time(later['created_at']) <= gameday_time(run['created_at'])
+                or gameday_time(deployed['started_at']) < gameday_time(run['updated_at'])):
+            return False
+        first, second = run['head_sha'], later['head_sha']
+        if first == second:
+            return True
+        comparison = api(repo, 'compare/' + first + '...' + second)
+        return comparison.get('status') == 'ahead' and comparison.get('behind_by') == 0
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def verified_recovery(repo, run, job_list, history):
     """Suppress historical alerts only when the same production work passed."""
     if run.get('conclusion') not in BAD:
@@ -1137,6 +1174,11 @@ def verified_recovery(repo, run, job_list, history):
             completed = jobs(repo, later)
         except (OSError, RuntimeError, ValueError, KeyError):
             continue  # Unavailable recovery evidence must not hide the failure.
+        if (repo == DAILY_REPO and run.get('path') == GM_DASHBOARD_DEPLOY_PATH
+                and run.get('conclusion') == 'cancelled' and not job_list and not retry):
+            if gm_dashboard_unstarted_recovered(repo, run, later, job_list, completed):
+                return later
+            continue
         if cancelled_pages_run(run):
             if not deployed_pages_replacement(repo, run, later, completed):
                 continue
